@@ -1,0 +1,8 @@
+# macOS / editor cruft
+.DS_Store
+*.swp
+*~
+
+# Local-only test scratch
+/tmp/
+/.scratch/

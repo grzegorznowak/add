@@ -1,0 +1,135 @@
+# Adding a New Command
+
+This repo holds **paired** commands: every workflow ships as both a Claude
+Code Skill and a Codex prompt so the same operation works on whichever
+runtime the operator is using. Adding a command means writing both halves
+and getting `scripts/lint.sh` to pass.
+
+## When to add one
+
+Add a command when you have an agentic workflow you keep re-typing or
+re-explaining across sessions, and the workflow is structured enough to
+encode as deterministic prose. If you find yourself hand-walking an agent
+through the same checkpoints twice, that's the signal.
+
+Don't add a command for one-off tasks, exploratory work, or anything where
+the steps will change every time you run it. Skills are for **repeatable
+process**, not for thinking out loud.
+
+## File checklist
+
+A new command called `<name>` (using the Claude hyphenated form) requires:
+
+1. `claude/skills/<name>/SKILL.md` — Anthropic Skill format
+2. `codex/prompts/<name_with_underscores>.md` — Codex prompt format
+
+Both files. No exceptions, except for the explicit known-singletons list in
+`scripts/lint.sh` (currently just `memorize`).
+
+## Claude Skill template
+
+```md
+---
+name: <name>
+description: <one-sentence description that ends with "Use when ...">
+disable-model-invocation: true
+argument-hint: "<arg-shape>"
+allowed-tools: Read Edit Write Grep Glob Bash
+---
+
+# <Title>
+
+<one paragraph summary>
+
+Argument: `$ARGUMENTS` — <what the user passes>.
+
+## Workflow
+1. ...
+2. ...
+
+## ...
+```
+
+### Frontmatter rules
+
+- **`name:`** must match the directory name (`claude/skills/<name>/`).
+  `lint.sh` enforces this.
+- **`description:`** is read by Claude when deciding whether to surface the
+  Skill. It must describe both **what** the Skill does and **when** to use
+  it. Slash commands like `/<name>` will discover it via the description.
+- **`disable-model-invocation: true`** is the default for everything in this
+  repo. These are operator-driven workflows with explicit checkpoints, not
+  background capabilities Claude should auto-launch.
+- **`argument-hint:`** is the hint shown in the `/` autocomplete picker.
+  Mirror the Codex side's `argument-hint` so the two stay aligned.
+- **`allowed-tools:`** lists only what the Skill actually uses. Be
+  conservative — narrow `Bash(...)` patterns are fine and reduce permission
+  prompts. Read-only commands should not list `Edit` / `Write`.
+
+### Body conventions
+
+- Lead with a one-paragraph summary followed by `Argument:` and `## Workflow`.
+- Use `## Phase N — <name>` headings for multi-step workflows. The lint
+  script checks that the Claude and Codex sides have the same set of phase
+  headings.
+- Use explicit checkpoints (`**CHECKPOINT N**`) for any irreversible or
+  high-blast-radius action.
+- State the source-of-truth hierarchy explicitly. The codebase wins over
+  documents; documents win over assumptions.
+- End with a `## Final response` section describing what the operator
+  should see when the command finishes.
+
+## Codex prompt template
+
+```md
+---
+description: <one-sentence description, same as Claude side>
+argument-hint: [ARG1="<value>"] [ARG2="<value>"]
+---
+
+<Title>: $ARG1 / $ARG2
+
+<one paragraph summary>
+
+Treat `$ARG1` as ...
+
+## Workflow
+1. ...
+```
+
+### Frontmatter rules
+
+- **`description:`** identical to the Claude side.
+- **`argument-hint:`** Codex's autocomplete uses this. Use named args
+  (`ARG1="<value>"`) instead of `$ARGUMENTS` so the Codex prompt picker can
+  prefill.
+
+### Body conventions
+
+- Same phase headings as the Claude side. The lint script enforces parity.
+- Use `$ARG1`, `$ARG2`, etc. for argument substitution instead of
+  `$ARGUMENTS`.
+- Use Codex's name where Claude says "Claude" (e.g. "Codex fresh session").
+
+## Pairing the two
+
+The base name normalization is hyphen ↔ underscore: a Claude Skill named
+`epic-claim` pairs with a Codex prompt named `epic_claim.md`. The lint
+script does this conversion automatically.
+
+Singletons (Codex-only or Claude-only) must be added to the relevant
+`SINGLETONS_*_ONLY` array in `scripts/lint.sh`. Don't ship a singleton
+silently — the explicit list is the documentation.
+
+## Lint and ship
+
+```bash
+bash scripts/lint.sh
+```
+
+If it exits 0, you can commit. If not, fix the reported items — they are
+exactly the conditions a reviewer would call out.
+
+For additional cross-runtime conventions (lifecycle, MASTER.md schema,
+story file shapes), see [`epic-lifecycle.md`](epic-lifecycle.md) and
+[`epic-conventions.md`](epic-conventions.md).

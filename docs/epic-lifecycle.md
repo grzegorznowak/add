@@ -1,0 +1,111 @@
+# Epic / Story Lifecycle
+
+The `add` commands all share one status state machine. This document is the
+single source of truth for what each status means and which commands
+transition between them. When the rules in a command's body and the rules
+here disagree, **this document wins** — open a PR to fix the command.
+
+## Status values
+
+| Status | Meaning |
+|---|---|
+| `⚪ TODO` | Not started yet. The default state for newly created stories. |
+| `🔄 IN PROGRESS` | A session is actively working on this story. |
+| `🟣 IN REVIEW` | Implementation is done enough to review. Local review may still find issues. |
+| `🔵 IN PR` | **Optional.** Local review passed and the changes are in a GitHub PR awaiting remote review and merge. Skip this stage entirely if a story does not need a PR. |
+| `✅ DONE` | Implementation and review are both complete. If a PR stage was used, the PR is merged. |
+| `⛔ BLOCKED` | An external blocker prevents progress. The story definition is unchanged and work resumes once the blocker clears. |
+
+`⛔ BLOCKED` is a side state. It can be entered from any of the active
+statuses and exited back to whichever was correct when work resumes.
+
+## State diagram
+
+```
+                         ┌─────────────┐
+                         │   ⚪ TODO    │
+                         └──────┬──────┘
+                                │ /epic-claim
+                                ▼
+                         ┌─────────────┐  ◀─── /epic-resume
+                         │ 🔄 IN PROG  │
+                         └──────┬──────┘
+                                │ implementation done
+                                │   (via /epic-claim, /epic-resume, or /epic-review)
+                                ▼
+                         ┌─────────────┐
+                         │ 🟣 IN REV   │
+                         └──────┬──────┘
+                                │
+                ┌───────────────┴───────────────┐
+                │                               │
+        no PR stage                      /epic-pr (optional)
+                │                               │
+                │                               ▼
+                │                       ┌─────────────┐
+                │                       │  🔵 IN PR   │ ◀──┐
+                │                       └──────┬──────┘    │
+                │                              │           │
+                │                       ┌──────┴──────┐    │
+                │                  PR merged   PR requests changes
+                │                       │             │    │
+                │                       ▼             ▼    │
+                │               ┌─────────────┐  ┌─────────┘
+                │               │  ✅ DONE     │  /epic-resume
+                │               └─────────────┘  /epic-pr (resync)
+                │                       ▲
+                └───────────────────────┘
+```
+
+## Command authority
+
+Each command has a defined window of which transitions it is allowed to
+make. Sticking to these windows prevents two commands from racing on the
+same row.
+
+| From → To | `/epic-claim` | `/epic-resume` | `/epic-review` | `/epic-pr` | `/epic-squash` |
+|---|---|---|---|---|---|
+| `⚪ TODO` → `🔄 IN PROGRESS` | ✅ | — | — | — | — |
+| `🔄 IN PROGRESS` → `🟣 IN REVIEW` | ✅ | ✅ | ✅ | — | — |
+| `🟣 IN REVIEW` → `✅ DONE` (no PR stage) | — | ✅ | ✅ | — | — |
+| `🟣 IN REVIEW` → `🔵 IN PR` | — | — | — | ✅ | — |
+| `🔵 IN PR` → `🔄 IN PROGRESS` (changes requested) | — | — | — | ✅ | — |
+| `🔵 IN PR` → `✅ DONE` (PR merged) | — | — | — | ✅ | — |
+| `🔵 IN PR` → `🔵 IN PR` (refresh) | — | — | — | ✅ | — |
+| `*` → `⛔ BLOCKED` | ✅ | ✅ | ✅ | — | — |
+| `✅ DONE` → archived | — | — | — | — | ✅ |
+
+`/epic-squash` does not transition statuses; it archives stories whose status
+is already `✅ DONE` and folds their contract terms into the merged
+`CONTRACT.md`.
+
+## Rules of thumb
+
+1. **Never mark `✅ DONE` while a PR is open.** If the story uses the PR
+   stage, only `/epic-pr` may move it to `✅ DONE`, and only after
+   `gh pr view --json state` reports `MERGED`.
+2. **Never archive a `🔵 IN PR` story.** `/epic-squash` skips them by design,
+   and reports them in a "skipped" list so the operator knows to rerun after
+   the PR merges.
+3. **`⛔ BLOCKED` is reversible.** Don't delete progress when entering it; the
+   work resumes from where it stopped.
+4. **Status drift between `MASTER.md` and the story file header is a known
+   failure mode.** `/epic-squash` flags it as part of Phase 1.
+5. **`MASTER.md` is the lookup table.** Story file headers are advisory; if
+   the two disagree, `MASTER.md` wins until `/epic-squash` reconciles them.
+
+## The Legend block
+
+Every epic's `MASTER.md` should include a Legend section listing the status
+values it uses. The commands in this repo will add the `🔵 IN PR` line
+automatically the first time they touch an epic that doesn't have it:
+
+```md
+## Legend
+- `⚪ TODO` — not started yet
+- `🔄 IN PROGRESS` — actively being worked
+- `🟣 IN REVIEW` — implementation or evidence is ready for review/verification
+- `🔵 IN PR` — local review passed, PR opened, awaiting GitHub review + merge
+- `✅ DONE` — completed with linked evidence or verification
+- `⛔ BLOCKED` — a concrete blocker exists; the story resumes once it is cleared
+```
