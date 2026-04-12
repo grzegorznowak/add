@@ -212,6 +212,43 @@ original story files of every story that has been folded into
 to point into `archive/` so the trail back to the original story prose is
 preserved.
 
+## Argument inference rules
+
+Each command in this repo has a defined position on whether it auto-detects
+the active epic and story when invoked without explicit args. This is the
+canonical reference. Future commands declare their position in the same
+table.
+
+| Command | Auto-detects epic? | Auto-detects story? | Eligible-status filter | Notes |
+|---|---|---|---|---|
+| `/epic-claim` | yes (single active) | yes (first ready unclaimed) | `⚪ TODO` | Standard "single-context" inference. |
+| `/epic-resume` | yes (single active) | yes (single in-progress, or in-pr `changes_requested`) | `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
+| `/epic-review` | **no — explicit by design** | **no — explicit by design** | n/a | Required args are intentional friction. They force a context-switch into a fresh reviewer session, which is the entire point of separating implementer from reviewer. Do not "fix". |
+| `/epic-pr` | yes (single active) | yes (single eligible) | `🟣 IN REVIEW`, `🔵 IN PR` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode after operator confirmation. |
+| `/epic-squash` | yes (single active) | n/a (operates on every `✅ DONE` row) | `✅ DONE` | The "story" axis doesn't apply — the command consumes every done story in one pass. |
+| `/epic-new-story` | no — explicit by design | n/a (creates) | n/a | Creating a new story should never be guessed. The operator must name the epic explicitly. |
+
+**Inference rules for the "yes" rows**:
+
+1. **Active epic**: an epic is active if its `MASTER.md` tracker has at
+   least one row whose status is not `✅ DONE` and whose `Spec` link does
+   not point into `archive/`. Exactly one active epic → infer it. Zero
+   or many → abort with a specific message.
+2. **Eligible story**: only rows whose status is in the per-command
+   eligible-status filter qualify. Exactly one eligible row → infer it.
+   Zero or many → abort with a specific message that names the next
+   concrete action (e.g. "story X is in progress; run `/epic-review` first").
+3. **Explicit args always win**: passing `EPIC=...` / `STORY=...` (Codex)
+   or the equivalent positional args (Claude) skips the corresponding
+   inference pass entirely. Inference can never override explicit values.
+4. **Inference summary**: every command that runs inference must print a
+   single resolved-context block before any destructive step, so the
+   operator can verify what was inferred.
+
+The "no — explicit by design" rows are **load-bearing**: they document
+deliberate friction, not bugs to fix later. Any future PR that adds
+inference to those commands must be rejected.
+
 ## What the commands will NOT do
 
 - Rename or renumber existing stories
@@ -223,3 +260,5 @@ preserved.
 - Modify the plan file that `/epic-new-story` consumed
 - Mark a story `✅ DONE` while its PR is open
 - Archive a `🔵 IN PR` story
+- Auto-infer arguments for `/epic-review` or `/epic-new-story` (see the
+  "Argument inference rules" table above for the deliberate exceptions)

@@ -5,6 +5,21 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Changed
+- `epic-pr` now infers the active epic and story when invoked without
+  arguments, matching the behavior of `epic-claim` / `epic-resume` /
+  `epic-squash`. Explicit args still take precedence and skip inference.
+- `epic-pr` additionally infers the PR URL from the resolved story's
+  `## PR Tracking` section, then from `gh pr list --head <current branch>`
+  in the project's git repo. Falls through to `OPEN` mode after operator
+  confirmation if no existing PR is found.
+- `epic-review` documents explicitly that its required-args contract is
+  intentional friction (anti-bias forcing function), not a missing feature.
+  Behavior unchanged.
+- `docs/epic-conventions.md` adds an "Argument inference rules" table
+  documenting auto-detection per command, including which commands
+  deliberately reject inference and why.
+
 ### Added
 - Initial repo bootstrap.
 - 6 epic_* commands authored as Claude Skills (`claude/skills/<name>/SKILL.md`)

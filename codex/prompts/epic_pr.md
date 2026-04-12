@@ -38,18 +38,122 @@ claim flow.
   skipped)
 - `⛔ BLOCKED` — external blocker
 
-## Resolution
+## Phase 0 — Resolution and inference
 
-1. Resolve the epic directory as:
-   - `<cwd>/agent_coordination/epics/$EPIC`
-2. Read `<epic>/MASTER.md` and resolve the story row by `$STORY` (same rules
-   as `epic_resume` / `epic_review`).
-3. Read the resolved step file.
-4. Abort fast if the resolved step is not currently `🟣 IN REVIEW`. This flow
-   only transitions from `IN REVIEW` — not from `IN PROGRESS`, `DONE`, or
-   `BLOCKED`. If the step is already `🔵 IN PR`, refer the operator to the
-   "Update existing PR metadata" section below and proceed only if they
-   confirm.
+This flow accepts three arguments — `EPIC`, `STORY`, and `PR_URL` (or
+`OPEN=true`) — and runs three independent inference passes for any of them
+that is missing. **Explicit values always win and skip their corresponding
+inference pass.** The goal is that an operator who has just claimed or
+resumed exactly one story can run `epic_pr` with no arguments at all.
+
+### Pass 1 — Epic inference (when `$EPIC` is empty)
+
+1. List `<cwd>/agent_coordination/epics/*/` directories that contain a
+   `MASTER.md`.
+2. An epic is **active** if its `MASTER.md` story tracker has at least one
+   row whose status is not `✅ DONE` and whose `Spec` link does not point
+   into `archive/`.
+3. If exactly one active epic exists, use it. Print:
+   `inferred epic: <name> (single active epic)`.
+4. If zero active epics exist, abort with:
+   `no active epic found under agent_coordination/epics/. Pass EPIC=<name> explicitly, or create one first.`
+5. If multiple active epics exist, abort with the list and:
+   `multiple active epics; pass EPIC=<name> to disambiguate.`
+
+### Pass 2 — Story inference (when `$STORY` is empty)
+
+After the epic is known, read `<epic>/MASTER.md` and collect every story
+row whose status is one of:
+
+- `🟣 IN REVIEW` — the canonical entry condition for this flow
+- `🔵 IN PR` — included so re-running this flow for refresh works without args
+
+1. If exactly one row matches, use it. Print:
+   `inferred story: <NN> — <title> (status: <emoji>)`.
+2. If zero rows match, do not just abort — emit a specific recovery hint
+   based on the rest of the tracker:
+   - if exactly one row is `🔄 IN PROGRESS`, say:
+     `no story is in review yet. Story <NN> — <title> is still in progress; finish implementation and run epic_review EPIC=<epic> STORY=<NN> first.`
+   - if multiple rows are `🔄 IN PROGRESS`, list them and recommend
+     `epic_review` for the one the operator means.
+   - if no rows are in progress either, say:
+     `no story is in review or in progress. Run epic_claim EPIC=<epic> to start one.`
+3. If multiple rows match the eligible set, list each candidate as
+   `<step> | <status> | <title>` and abort with:
+   `multiple stories are eligible; pass STORY=<NN> to disambiguate.`
+
+### Pass 3 — PR inference (when `$PR_URL` is empty AND `OPEN` is not set)
+
+After the story is resolved, decide whether this is an attach (existing PR)
+or open (new PR) operation. Walk the inference chain in order:
+
+1. **PR Tracking section.** Read the resolved step file and look for a
+   `## PR Tracking` section. If it exists and has a `PR URL: <url>` line,
+   that is the existing PR. Use attach mode in refresh form. Print:
+   `inferred PR (from PR Tracking): <url>`. Skip the rest of the chain.
+
+2. **Project repo detection.** Parse the story's `## Active Claim` section
+   for the `Primary write surfaces:` field. Take the first path. Walk up
+   the directory tree until you find a `.git/` directory; that is the
+   project repo. If no `.git/` is found, fall back to the workspace `.git/`
+   if one exists. If still none, skip directly to step 4.
+
+3. **Branch-based PR lookup.**
+   - Inside the detected project repo, run
+     `git rev-parse --abbrev-ref HEAD` to get the current branch.
+   - If the branch is the repo's default branch, skip to step 4 (operating
+     directly on `main`/`master` is not how PRs are opened).
+   - Otherwise run
+     `gh pr list --head <branch> --state open --json url,number,headRefName,title`
+     from inside the project repo.
+   - If exactly one open PR is returned, print
+     `inferred PR (from current branch <branch>): <url>` and **ask the
+     operator to confirm** before attaching. The branch may legitimately
+     host work unrelated to this story.
+   - If multiple are returned, list each as `<number> | <title> | <url>`
+     and ask which to attach.
+   - If zero are returned, fall through to step 4.
+
+4. **Fall through to OPEN mode.** If no existing PR was found by any
+   previous step, ask the operator:
+   `no existing PR found for branch <branch>. Open a new one via gh? [Y/n]`
+   - If yes, proceed exactly as the existing `OPEN=true` path in
+     "PR creation mode".
+   - If no, abort with:
+     `pass PR_URL=<url> when one exists, or rerun with OPEN=true to open a fresh PR.`
+
+### Inference summary printout
+
+Before doing any work that affects `MASTER.md`, the PR, or the step file,
+print a single resolved-context block so the operator can verify what was
+inferred:
+
+```
+Resolved context:
+- epic:  <name>          (explicit | inferred from single active epic)
+- story: <NN> — <title>  (explicit | inferred from single eligible row)
+- PR:    <url>           (explicit | from PR Tracking | from current branch | new via OPEN)
+```
+
+Print this even when everything was passed explicitly — the printout is
+the contract the operator approves before any destructive step runs.
+
+### Entry-condition check
+
+Once the story is resolved, abort fast if its current status is not
+`🟣 IN REVIEW`. This flow only transitions from `IN REVIEW` — not from
+`IN PROGRESS`, `DONE`, or `BLOCKED`. If the step is already `🔵 IN PR`,
+treat the invocation as a refresh per "Update existing PR metadata" below
+and proceed only after operator confirmation.
+
+### Known limitations
+
+- **Cross-repo PR detection is not supported.** The PR inference looks at
+  the project repo derived from the story's `Primary write surfaces`. If a
+  story's surfaces span multiple repos, pass `PR_URL` explicitly.
+- **Stories without an `Active Claim` section cannot have their project
+  repo inferred.** This usually means the story has never been claimed
+  via `epic_claim` / `epic_resume`. Pass `PR_URL` explicitly in that case.
 
 ## PR description — product-focused, NOT implementation-focused
 

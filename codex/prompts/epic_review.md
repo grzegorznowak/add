@@ -25,6 +25,23 @@ multiple times on the same step when review context already exists.
 You can only change the coordination files in the epic, never actual sourcecodes of the app
 Review is inherently a read-only process
 
+## Why this command requires explicit args
+
+`epic_review` deliberately requires both `EPIC` and `STORY` to be passed
+explicitly. Unlike `epic_pr` — which is mostly mechanical PR-body
+rephrasing and infers the active story from the session context — review
+must come from a fresh, independent perspective. The same session that
+just implemented a story will rationalize its own work, not scrutinize it.
+
+The arg requirement is a **forcing function**: if you find yourself typing
+the epic and story numbers manually, you have just been nudged to consider
+opening a fresh session for the review. **Do that.** Auto-inference here
+would defeat the entire purpose of separating implementer from reviewer.
+
+Operators who insist on running review from the implementation session can
+still do so — the args make it possible — but the friction is intentional
+and any future change that adds inference here must be rejected.
+
 ## Resolution
 1. Resolve the epic directory as:
    - `<cwd>/agent_coordination/epics/$EPIC`
