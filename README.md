@@ -27,7 +27,7 @@ and [`docs/epic-conventions.md`](docs/epic-conventions.md).
 ## Install
 
 ```bash
-git clone https://github.com/<your-github-user>/add.git ~/.local/share/add
+git clone https://github.com/grzegorznowak/add.git ~/.local/share/add
 ~/.local/share/add/scripts/install.sh
 ```
 
@@ -47,7 +47,7 @@ Drop this into `.devcontainer/devcontainer.json`:
 
 ```json
 {
-  "postCreateCommand": "git clone https://github.com/<your-github-user>/add.git ~/.local/share/add && ~/.local/share/add/scripts/install.sh"
+  "postCreateCommand": "git clone https://github.com/grzegorznowak/add.git ~/.local/share/add && ~/.local/share/add/scripts/install.sh"
 }
 ```
 
