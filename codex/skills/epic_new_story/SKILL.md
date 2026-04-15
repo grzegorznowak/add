@@ -73,7 +73,9 @@ implementation time.
 
 ## Phase 0 — Resolution
 
-- Resolve `<cwd>/agent_coordination/epics/$EPIC/MASTER.md`. Abort if missing.
+- **EPIC resolution (menu fallback):**
+  - If `$EPIC` was passed explicitly, resolve `<cwd>/agent_coordination/epics/$EPIC/MASTER.md`. If missing, abort. Suggest `$epic_plan NAME="<epic>"` to bootstrap it first.
+  - If `$EPIC` was not passed, list every directory under `<cwd>/agent_coordination/epics/` that contains a `MASTER.md`. For each, print one line: `<slug> — <N stories, M done, last-touched YYYY-MM-DD>`. If the list is empty, abort with: `no epics found under <cwd>/agent_coordination/epics/; run $epic_plan first to bootstrap one`. Otherwise ask the operator: `Pick an epic for this story (number or slug):` and loop until the input resolves to a valid epic. Never auto-infer; the operator always explicitly picks.
 - Read `<epic>/MASTER.md` fully.
 - Read the main repo `AGENTS.md` for the repo you will touch.
 
@@ -89,12 +91,19 @@ implementation time.
    - Use that one **without** doing an mtime sort.
    - Do not prompt for confirmation — the operator is explicitly asking
      this session to convert its current plan into a story.
-3. Else:
+3. Else (menu fallback):
    - List `~/.claude/plans/*.md`, sort by mtime descending.
-   - If empty, **abort** with the no-plan error from rule #1.
-   - Pick the newest. Show its path and mtime and ask the operator to
-     confirm before using it (avoids accidental coupling between an
-     unrelated plan and a new story).
+   - If empty, **abort** with the no-plan error from rule #1 and suggest
+     the operator run `$epic_story_plan EPIC=<epic>` to draft one from an
+     interview.
+   - Show the 5 most recent plan files to the operator as a numbered menu.
+     For each file include its path, mtime, and an excerpt (first H1 title
+     or first non-blank line) so the operator can tell them apart.
+   - Ask: `Pick a plan file (number, or Enter for newest):`. Enter picks
+     the newest; a number picks that row. Never auto-select silently.
+   - If the operator picks one that is not the newest, note the deviation
+     in the Phase 6 coverage report so the operator can verify they did not
+     pick a stale plan by accident.
 4. Read the plan file fully.
 5. Capture: source path, mtime, plan H1 title.
 
@@ -307,7 +316,7 @@ doesn't know why X was chosen will eventually re-litigate it.
 
 | Case | Handling |
 |---|---|
-| Epic has no MASTER.md | Abort. Suggest the future epic-creation flow instead. |
+| Epic has no MASTER.md | Abort. Suggest `$epic_plan NAME="<slug>"` to bootstrap the epic first. |
 | MASTER.md has no tracker table | Abort with a clear "tracker section missing" error. Don't try to invent a table. |
 | Tracker uses 4 columns vs 5 | Read the header row. Match the existing column count exactly. |
 | Zero-padding mismatch (epic uses 2-digit, operator passes `100`) | Honor the higher digit count; warn the operator. |

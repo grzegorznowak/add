@@ -41,7 +41,9 @@ SLUG="<kebab-case>"            optional — filename slug; auto-derived from tit
 ## Phase 0 — Resolution
 
 - Parse `$ARGUMENTS` into the named keys above
-- Resolve `<epic>/MASTER.md` from `EPIC`. Abort if missing.
+- **EPIC resolution (menu fallback):**
+  - If `EPIC` was passed explicitly, resolve `<cwd>/agent_coordination/epics/<EPIC>/MASTER.md`. If missing, abort. Suggest `/epic-plan NAME="<epic>"` to bootstrap it first.
+  - If `EPIC` was not passed, list every directory under `<cwd>/agent_coordination/epics/` that contains a `MASTER.md`. For each, print one line: `<slug> — <N stories, M done, last-touched YYYY-MM-DD>`. If the list is empty, abort with: `no epics found under <cwd>/agent_coordination/epics/; run /epic-plan first to bootstrap one`. Otherwise ask the operator: `Pick an epic for this story (number or slug):` and loop until the input resolves to a valid epic. Never auto-infer; the operator always explicitly picks.
 - Read `<epic>/MASTER.md` fully
 
 ## Phase 1 — Plan resolution
@@ -52,10 +54,12 @@ SLUG="<kebab-case>"            optional — filename slug; auto-derived from tit
 2. Else if the current session has been actively working on a plan file (the operator and the model both have its path in context — typically a `/home/vscode/.claude/plans/<random-name>.md` the session has been writing or editing):
    - Use that one **without** doing an mtime sort.
    - Do not prompt for confirmation — the operator is explicitly asking this session to convert its current plan into a story.
-3. Else:
+3. Else (menu fallback):
    - List `~/.claude/plans/*.md`, sort by mtime descending.
-   - If empty, **abort** with the no-plan error from rule #1.
-   - Pick the newest. Show its path and mtime to the operator and ask for confirmation before using it (avoids accidental coupling between an unrelated plan and a new story).
+   - If empty, **abort** with the no-plan error from rule #1 and suggest the operator run `/epic-story-plan EPIC=<epic>` to draft one from an interview.
+   - Show the 5 most recent plan files to the operator as a numbered menu. For each file include its path, mtime, and an excerpt (first H1 title or first non-blank line) so the operator can tell them apart.
+   - Ask: `Pick a plan file (number, or Enter for newest):`. Enter picks the newest; a number picks that row. Never auto-select silently.
+   - If the operator picks one that is not the newest, note the deviation in the Phase 6 coverage report so the operator can verify they did not pick a stale plan by accident.
 4. Read the plan file fully.
 5. Capture: source path, mtime, plan H1 title.
 
@@ -226,7 +230,7 @@ Status: `todo`
 
 | Case | Handling |
 |---|---|
-| Epic has no MASTER.md | Abort. Suggest `/epic-new` (epic creation flow) instead. |
+| Epic has no MASTER.md | Abort. Suggest `/epic-plan NAME="<slug>"` to bootstrap the epic first. |
 | MASTER.md has no tracker table | Abort with a clear "tracker section missing" error. Don't try to invent a table. |
 | Tracker uses 4 columns vs 5 | Read the header row. Match the existing column count exactly. |
 | Zero-padding mismatch (epic uses 2-digit, operator passes `100`) | Honor the higher digit count; warn the operator. |

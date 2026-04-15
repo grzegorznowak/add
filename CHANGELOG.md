@@ -6,6 +6,28 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- `epic-plan` paired command (Claude Skill + Codex skill). Interview-
+  driven bootstrap for a new epic. Produces the
+  `agent_coordination/epics/<slug>/MASTER.md` skeleton (header,
+  goal/context, legend, empty story tracker) after a grillme-style
+  walkthrough with the operator. Never overwrites an existing epic.
+  Takes optional `[NAME="<slug>"]`; if omitted, the interview asks for
+  the name.
+- `epic-story-plan` paired command (Claude Skill + Codex skill).
+  Interview-driven draft of a new story plan for an existing epic.
+  Produces a plan file in `~/.claude/plans/<epic>-<story-slug>.md`
+  matching the shape `/epic-new-story` consumes. Takes optional
+  `[EPIC="<epic>"]`; if omitted, the skill lists available epics from
+  `agent_coordination/epics/` and asks the operator to pick.
+- Menu pattern for operator-explicit commands. `/epic-new-story`,
+  `/epic-review`, `/epic-story-review`, and the new `/epic-story-plan`
+  no longer error out when required args are missing — instead they
+  list the available options (filtered to each command's eligible-
+  status set) and ask the operator to pick. The operator is still
+  always the one choosing — nothing is auto-inferred — so the anti-
+  bias intent is preserved while the re-invocation friction is
+  removed. `/epic-new-story` also gets a menu fallback for the PLAN
+  argument (5 most recent files in `~/.claude/plans/` by mtime).
 - Claude Code `/plugin` install path. Repo now ships a
   `.claude-plugin/plugin.json` manifest and a top-level `skills/`
   symlink pointing at `claude/skills/`, so Claude Code's plugin loader
@@ -40,6 +62,22 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   and installs to `<path>/.claude/skills/` and `<path>/.agents/skills/`.
 
 ### Changed
+- `docs/epic-conventions.md` argument table restructured around the new
+  "arg or menu" pattern. The old "no — explicit by design" rows become
+  "operator-explicit (arg or menu)" rows for `/epic-new-story`,
+  `/epic-review`, `/epic-story-review`, plus the new `/epic-story-plan`.
+  Commands that auto-infer from running context (`/epic-claim`,
+  `/epic-resume`, `/epic-pr`, `/epic-squash`) are unchanged.
+- `README.md` lifecycle diagram redrawn with the planning chain
+  (`/epic-plan` → `/epic-story-plan` → `/epic-new-story`) stacked above
+  `⚪ TODO`, and `/epic-story-review` + `/epic-review` promoted to
+  discrete blocks with dashed-connector verdict paths.
+  `🔄 IN PROG` and `🟣 IN REV` are now on the same horizontal row.
+- `docs/epic-lifecycle.md` gets a "Planning phase (pre-⚪ TODO)" section
+  describing the `/epic-plan` → `/epic-story-plan` → `/epic-new-story`
+  chain that feeds the first tracker row.
+- `/epic-new-story` edge-case forward reference updated from the
+  aspirational `/epic-new` to the now-implemented `/epic-plan`.
 - `codex/skills/<name>/SKILL.md` is now the single source of truth for
   Codex commands. The legacy `codex/prompts/<name>.md` files are
   auto-generated and must not be hand-edited. Lint fails on stale generated

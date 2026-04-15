@@ -5,6 +5,28 @@ single source of truth for what each status means and which commands
 transition between them. When the rules in a command's body and the rules
 here disagree, **this document wins** — open a PR to fix the command.
 
+## Planning phase (pre-⚪ TODO)
+
+Before a story enters the `⚪ TODO` state, it passes through a linear
+planning chain:
+
+1. **`/epic-plan`** — once per epic. Bootstraps the epic directory and
+   the `MASTER.md` skeleton (header, goal/context, legend, empty story
+   tracker). Never touches story files or tracker rows. Aborts if the
+   epic directory already exists.
+2. **`/epic-story-plan EPIC=<slug>`** — once per story. Interview-driven
+   draft that produces a plan file at
+   `~/.claude/plans/<epic>-<story-slug>.md`. Never touches the epic
+   directory or any tracker row. The operator can review and edit the
+   plan file before advancing.
+3. **`/epic-new-story EPIC=<slug>`** — once per story. Consumes the plan
+   file, writes `story-NN-<slug>.md`, and appends a `⚪ TODO` row to
+   `MASTER.md`. This is the transition into the state machine below.
+
+This phase is entirely upstream of the state-machine states — the two
+new commands are not states and do not appear as transitions in the
+state diagram. They feed the first row of the tracker, nothing more.
+
 ## Status values
 
 | Status | Meaning |

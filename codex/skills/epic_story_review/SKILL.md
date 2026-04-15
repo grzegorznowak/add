@@ -52,37 +52,52 @@ If the plan is wrong, say so in the log's `Key findings` and recommend the
 operator edit the spec sections themselves. Do not rewrite the plan inside
 the log.
 
-## Why this command requires explicit args
+## Why operator-explicit (arg or menu) selection
 
-`epic_story_review` deliberately requires both `EPIC` and `STORY` to be
-passed explicitly. Like `epic_review`, plan review must come from a fresh,
-independent perspective. The same session that just wrote the plan will
-rationalize it, not scrutinize it — it will read every section as evidence
-for the conclusions it already reached during planning.
+`epic_story_review` never auto-infers the epic or the story. The operator
+explicitly chooses — either by passing `$EPIC` and `$STORY` as arguments or
+by picking from the menu this skill shows when either is absent. The menu
+is **not** inference: it lists the legal candidates (filtered to `⚪ TODO`)
+and asks the operator to pick.
 
-The arg requirement is a **forcing function**: if you find yourself typing
-the epic and story numbers manually, you have just been nudged to consider
-opening a fresh session for the review. **Do that.** Auto-inference here
-would defeat the entire purpose of separating planner from plan reviewer.
+The reasoning: plan review must come from a fresh, independent perspective.
+The same session that just wrote the plan will rationalize it, not
+scrutinize it — it will read every section as evidence for the
+conclusions it already reached during planning. Auto-inferring "the
+current story" would silently pick whatever the session was last
+planning — exactly the coupling we want to avoid.
 
-Operators who insist on running plan review from the planning session can
-still do so — the args make it possible — but the friction is intentional
-and any future change that adds inference here must be rejected.
+A gentle nudge: if you find yourself picking from the menu in the same
+Codex session that wrote the plan, consider opening a Codex fresh session
+for the review. The menu still makes it possible to run plan review from
+the planning session, but the friction is intentional and any future
+change that adds silent auto-inference here must be rejected.
 
 ## Resolution
 
-1. Resolve the epic directory as:
-   - `<cwd>/agent_coordination/epics/$EPIC`
-2. If `$STORY` is empty, abort fast and ask for `STORY` as either a `Step`
-   value or a `Spec` value from `<epic>/MASTER.md`
-3. Use `<epic>/MASTER.md` as the only lookup table
-4. First try to match exactly one row whose `Step` value equals `$STORY`
+1. **EPIC resolution (menu fallback):**
+   - If `$EPIC` was passed, resolve `<cwd>/agent_coordination/epics/$EPIC`.
+   - If `$EPIC` was not passed, list every directory under
+     `<cwd>/agent_coordination/epics/` whose `MASTER.md` has at least one
+     row with status `⚪ TODO`. For each, print:
+     `<slug> — <N stories TODO, last-touched YYYY-MM-DD>`. If the
+     filtered list is empty, abort with:
+     `no epics have stories ready for plan review (nothing at ⚪ TODO)`.
+     Otherwise ask the operator to pick (number or slug).
+2. **STORY resolution (menu fallback):**
+   - If `$STORY` was passed, continue to step 3.
+   - If `$STORY` was not passed, list every row in `<epic>/MASTER.md`
+     whose status is `⚪ TODO`. For each, print: `<Step> — <Deliverable>`.
+     If the filtered list is empty, abort with: `no stories at ⚪ TODO in <epic>`.
+     Otherwise ask the operator to pick (number or slug).
+3. Use `<epic>/MASTER.md` as the only lookup table.
+4. First try to match exactly one row whose `Step` value equals `$STORY`.
 5. If no row matches by `Step`, try to match exactly one row whose `Spec`
-   value equals `$STORY`
+   value equals `$STORY`.
 6. If neither lookup finds a row, abort fast and report the unresolved
-   selector plus the available `Step` and `Spec` values from `MASTER.md`
+   selector plus the available `Step` and `Spec` values from `MASTER.md`.
 7. If the `Step` lookup and `Spec` lookup both match but point to different
-   rows, abort fast and report the ambiguity
+   rows, abort fast and report the ambiguity.
 8. Resolve the story file as:
    - `<epic>/<matched row Spec value>`
 9. If that path does not exist, abort fast and report the exact missing

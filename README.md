@@ -8,11 +8,13 @@ with one command.
 
 ## What this gives you
 
-Seven coordinated workflow commands plus two small utilities:
+Nine coordinated workflow commands plus two small utilities:
 
 | Command | What it does |
 |---|---|
-| `/epic-new-story` | Scaffold a new story file from the current Claude Code plan, preserving every research finding so implementation does not have to re-discover it. |
+| `/epic-plan` | Interview-driven bootstrap for a new epic. Produces the `agent_coordination/epics/<slug>/MASTER.md` skeleton after a grillme-style walkthrough. Never overwrites an existing epic. |
+| `/epic-story-plan` | Interview-driven draft of a new story plan for an existing epic. Produces a plan file in `~/.claude/plans/` matching the shape `/epic-new-story` consumes. |
+| `/epic-new-story` | Scaffold a new story file from a plan file, preserving every research finding so implementation does not have to re-discover it. |
 | `/epic-story-review` | Read-only review of a `⚪ TODO` story's plan (Purpose / Acceptance / Critical Files / Locked Decisions) against the live repo, before `/epic-claim`. Records the verdict into the coordination file. |
 | `/epic-claim` | Pick one ready, unclaimed story from an epic, claim it, execute it end-to-end, and leave a clean handoff for the next session. |
 | `/epic-resume` | Resume one already-in-progress story (or one whose PR has requested changes). |
@@ -142,42 +144,70 @@ yourself is left untouched.
 ## Lifecycle (one diagram)
 
 ```
-                         ┌─────────────┐  ◀─── /epic-story-review (optional, logs verdict)
-                         │   ⚪ TODO    │
-                         └──────┬──────┘
-                                │ /epic-claim
-                                ▼
-                         ┌─────────────┐  ◀─── /epic-resume
-                         │ 🔄 IN PROG  │
-                         └──────┬──────┘
-                                │ implementation done
-                                ▼
-                         ┌─────────────┐
-                         │ 🟣 IN REV   │
-                         └──────┬──────┘
-                                │
-                ┌───────────────┴───────────────┐
-                │                               │
-        no PR stage                      /epic-pr (optional)
-                │                               │
-                │                               ▼
-                │                       ┌─────────────┐
-                │                       │  🔵 IN PR   │ ◀──┐
-                │                       └──────┬──────┘    │
-                │                              │           │
-                │                       ┌──────┴──────┐    │
-                │                       │             │    │
-                │                  PR merged   PR requests changes
-                │                       │             │    │
-                │                       ▼             ▼    │
-                │               ┌─────────────┐  ┌─────────┘
-                │               │  ✅ DONE     │  /epic-resume
-                │               └─────────────┘  /epic-pr (resync)
-                │                       ▲
-                └───────────────────────┘
+                   (once per epic, not per story)
+                   ┌──────────────┐
+                   │  /epic-plan  │   creates agent_coordination/epics/<slug>/MASTER.md
+                   └──────┬───────┘
+                          │
+                          │ (per story, from here down)
+                          ▼
+                ┌───────────────────┐
+                │ /epic-story-plan  │   drafts ~/.claude/plans/<epic>-<slug>.md
+                └─────────┬─────────┘
+                          │
+                          ▼
+                ┌───────────────────┐
+                │  /epic-new-story  │   writes story-NN-<slug>.md + MASTER.md row
+                └─────────┬─────────┘
+                          │
+                          ▼
+                ┌─────────────┐  ╌╌ review ╌╌▶  ┌──────────────────────┐
+                │   ⚪ TODO    │                 │  /epic-story-review  │
+                │             │  ◀╌ approve ╌╌  │     (optional)       │
+                └──────┬──────┘                 └──────────┬───────────┘
+                       │                                   │
+                       │ /epic-claim            blocked    │
+                       │                        verdict    ▼
+                       │                             (⛔ BLOCKED)
+                       ▼
+                ┌─────────────┐◀── /epic-resume  ┌─────────────┐
+                │ 🔄 IN PROG  │── impl done ───▶ │ 🟣 IN REV   │
+                └──────┬──────┘                  └──────┬──────┘
+                       ▲                                │ submit
+                       │                                ▼
+                       │                       ┌─────────────────┐
+                       │                       │  /epic-review   │ ╌╌ blocked ╌╌▶ (⛔ BLOCKED)
+                       │                       └──┬──────────┬───┘
+                       │                          │          │
+                       ╰╌╌ request_changes ╌╌╌╌╌╌╌╯       approve
+                                                              │
+                                                              ▼
+                              ┌───────────────────┴───────────────────┐
+                              │                                       │
+                        no PR stage                          /epic-pr (optional)
+                              │                                       │
+                              │                                       ▼
+                              │                              ┌─────────────┐
+                              │                              │  🔵 IN PR   │ ◀──┐
+                              │                              └──────┬──────┘    │
+                              │                                     │           │
+                              │                              ┌──────┴──────┐    │
+                              │                              │             │    │
+                              │                         PR merged    PR requests changes
+                              │                              │             │    │
+                              │                              ▼             ▼    │
+                              │                      ┌─────────────┐  ┌─────────┘
+                              │                      │  ✅ DONE     │  /epic-resume
+                              │                      └─────────────┘  /epic-pr (resync)
+                              │                              ▲
+                              └──────────────────────────────┘
 
-       ⛔ BLOCKED is a side-state reachable from any of the above
-       when an external blocker prevents progress.
+       ⛔ BLOCKED is a side-state reachable from any of the above when an
+       external blocker prevents progress. /epic-story-review and
+       /epic-review can each route a story directly to ⛔ BLOCKED.
+
+       Dashed connectors  ╌╌╌  indicate optional transitions or verdict
+       loopbacks. Solid connectors indicate the main flow.
 ```
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).

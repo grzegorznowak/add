@@ -232,24 +232,37 @@ original story files of every story that has been folded into
 to point into `archive/` so the trail back to the original story prose is
 preserved.
 
-## Argument inference rules
+## Argument resolution rules
 
-Each command in this repo has a defined position on whether it auto-detects
-the active epic and story when invoked without explicit args. This is the
-canonical reference. Future commands declare their position in the same
-table.
+Each command in this repo has a defined resolution strategy for its
+epic/story arguments. Two strategies exist:
 
-| Command | Auto-detects epic? | Auto-detects story? | Eligible-status filter | Notes |
-|---|---|---|---|---|
-| `/epic-claim` | yes (single active) | yes (first ready unclaimed) | `⚪ TODO` | Standard "single-context" inference. |
-| `/epic-resume` | yes (single active) | yes (single in-progress, or in-pr `changes_requested`) | `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
-| `/epic-review` | **no — explicit by design** | **no — explicit by design** | n/a | Required args are intentional friction. They force a context-switch into a fresh reviewer session, which is the entire point of separating implementer from reviewer. Do not "fix". |
-| `/epic-story-review` | **no — explicit by design** | **no — explicit by design** | `⚪ TODO` | Same forcing function as `/epic-review`, applied one phase earlier: a fresh session must scrutinize the plan, not the one that wrote it. Do not "fix". |
-| `/epic-pr` | yes (single active) | yes (single eligible) | `🟣 IN REVIEW`, `🔵 IN PR` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode after operator confirmation. |
-| `/epic-squash` | yes (single active) | n/a (operates on every `✅ DONE` row) | `✅ DONE` | The "story" axis doesn't apply — the command consumes every done story in one pass. |
-| `/epic-new-story` | no — explicit by design | n/a (creates) | n/a | Creating a new story should never be guessed. The operator must name the epic explicitly. |
+- **Auto-inferred from running context** — for commands that continue
+  running work (`/epic-claim`, `/epic-resume`, `/epic-pr`, `/epic-squash`).
+  These operate on whatever is already active; guessing the context is
+  the whole point.
+- **Operator-explicit (arg or menu)** — for commands that *create* or
+  *review* (`/epic-plan`, `/epic-story-plan`, `/epic-new-story`,
+  `/epic-review`, `/epic-story-review`). These never auto-infer. The
+  operator must make the decision — either by passing the arg or by
+  picking from a filtered menu the skill shows when the arg is absent.
+  The menu lists only legal candidates (filtered to each command's
+  eligible-status set) and asks the operator to pick. Nothing is ever
+  selected silently.
 
-**Inference rules for the "yes" rows**:
+| Command | Resolution strategy | Eligible-status filter | Notes |
+|---|---|---|---|
+| `/epic-plan` | operator-explicit (optional NAME arg) | n/a — creates a new epic | If `NAME` is omitted, the interview asks for the slug. Never overwrites an existing epic. |
+| `/epic-story-plan` | operator-explicit (arg or menu) | any epic with a `MASTER.md` | EPIC menu lists all epics under `agent_coordination/epics/`. Never edits `MASTER.md` or story files. |
+| `/epic-new-story` | operator-explicit (arg or menu) | any epic with a `MASTER.md`; PLAN menu is 5 most recent files in `~/.claude/plans/` | Both EPIC and PLAN have menu fallbacks. Creating a story is a decision that should never be guessed. |
+| `/epic-review` | operator-explicit (arg or menu) | `🟣 IN REVIEW` | Review must come from a fresh, independent perspective. The menu lists only stories at `🟣 IN REVIEW`. |
+| `/epic-story-review` | operator-explicit (arg or menu) | `⚪ TODO` | Plan review must come from a fresh, independent perspective. The menu lists only stories at `⚪ TODO`. |
+| `/epic-claim` | auto-inferred (running context) | `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference. |
+| `/epic-resume` | auto-inferred (running context) | `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
+| `/epic-pr` | auto-inferred (running context) | `🟣 IN REVIEW`, `🔵 IN PR` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode after operator confirmation. |
+| `/epic-squash` | auto-inferred (running context) | `✅ DONE` | The "story" axis doesn't apply — the command consumes every done story in one pass. |
+
+**Rules for the "auto-inferred" rows**:
 
 1. **Active epic**: an epic is active if its `MASTER.md` tracker has at
    least one row whose status is not `✅ DONE` and whose `Spec` link does
@@ -266,9 +279,24 @@ table.
    single resolved-context block before any destructive step, so the
    operator can verify what was inferred.
 
-The "no — explicit by design" rows are **load-bearing**: they document
-deliberate friction, not bugs to fix later. Any future PR that adds
-inference to those commands must be rejected.
+**Rules for the "operator-explicit (arg or menu)" rows**:
+
+1. **Arg takes priority**: if the operator passes the arg, use it
+   directly (after validating it resolves to something real).
+2. **Menu fallback**: if the arg is missing, the skill lists the legal
+   candidates filtered by the command's eligible-status column, formats
+   each row with a short summary (step / deliverable / status / last-
+   touched), and asks the operator to pick by number or slug.
+3. **Zero-row abort**: if the filtered menu is empty, abort fast with a
+   pointer to the next concrete action (e.g. "no epics found; run
+   `/epic-plan` to bootstrap one first", "no stories at ⚪ TODO; run
+   `/epic-story-plan` to draft one").
+4. **Never silent**: the menu never pre-selects a row the operator
+   hasn't confirmed, even if there is only one eligible candidate.
+   Picking is always an explicit operator action. Auto-inference for
+   these commands must continue to be rejected — the menu pattern
+   replaces typing friction with menu friction, it does not replace
+   operator-explicit choice with silent guessing.
 
 ## What the commands will NOT do
 
@@ -281,6 +309,12 @@ inference to those commands must be rejected.
 - Modify the plan file that `/epic-new-story` consumed
 - Mark a story `✅ DONE` while its PR is open
 - Archive a `🔵 IN PR` story
-- Auto-infer arguments for `/epic-review`, `/epic-story-review`, or
-  `/epic-new-story` (see the "Argument inference rules" table above for
-  the deliberate exceptions)
+- Auto-infer arguments for any command in the "operator-explicit (arg or
+  menu)" rows of the Argument resolution rules table. The menu pattern
+  replaces the old "required explicit" friction but preserves the rule
+  that the operator — not the skill — is the one making the choice.
+- Overwrite an existing `MASTER.md` from `/epic-plan`. The epic directory
+  must not already exist; collisions abort fast.
+- Edit `MASTER.md` or any story file from `/epic-story-plan`. It writes
+  only a plan file to `~/.claude/plans/` for `/epic-new-story` to
+  consume.

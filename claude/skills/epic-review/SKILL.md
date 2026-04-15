@@ -16,26 +16,30 @@ Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file>`. Both requi
 
 You can only change the coordination files in the epic, **never** the source code of the app. Review is inherently a read-only process.
 
-## Why this command requires explicit args
+## Why operator-explicit (arg or menu) selection
 
-`/epic-review` deliberately requires both `<epic>` and `<story>` to be passed explicitly. Unlike `/epic-pr` — which is mostly mechanical PR-body rephrasing and infers the active story from the session context — review must come from a fresh, independent perspective. The same session that just implemented a story will rationalize its own work, not scrutinize it.
+`/epic-review` never auto-infers the epic or the story. The operator explicitly chooses — either by passing `<epic> <story>` as arguments or by picking from the menu this skill shows when either is absent. The menu is **not** inference: it lists the legal candidates (filtered to `🟣 IN REVIEW`) and asks the operator to pick.
 
-The arg requirement is a **forcing function**: if you find yourself typing the epic and story numbers manually, you have just been nudged to consider opening a fresh session for the review. **Do that.** Auto-inference here would defeat the entire purpose of separating implementer from reviewer.
+The reasoning: review must come from a fresh, independent perspective. The same session that just implemented a story will rationalize its own work, not scrutinize it. Auto-inferring "the current story" would silently pick whatever the session was last working on — exactly the coupling we want to avoid.
 
-Users who insist on running review from the implementation session can still do so — the args make it possible — but the friction is intentional and any future change that adds inference here must be rejected.
+A gentle nudge: if you find yourself picking from the menu in the same session that just wrote the implementation, consider opening a fresh session for the review. The menu still makes it possible to run review from the implementation session, but the friction is intentional and any future change that adds silent auto-inference here must be rejected.
 
 ## Resolution
 
-1. Parse `$ARGUMENTS` as `<epic> <story>`
-2. Resolve the epic directory as `<cwd>/agent_coordination/epics/<epic>`
-3. If `<story>` is empty, abort fast and ask for it as either a `Step` value or a `Spec` value from `<epic>/MASTER.md`
-4. Use `<epic>/MASTER.md` as the only lookup table
-5. First try to match exactly one row whose `Step` value equals `<story>`
-6. If no row matches by `Step`, try to match exactly one row whose `Spec` value equals `<story>`
-7. If neither lookup finds a row, abort fast and report the unresolved selector plus the available `Step` and `Spec` values from `MASTER.md`
-8. If the `Step` lookup and `Spec` lookup both match but point to different rows, abort fast and report the ambiguity
-9. Resolve the step file as `<epic>/<matched row Spec value>`
-10. If that path does not exist, abort fast and report the exact missing path
+1. Parse `$ARGUMENTS` as `<epic> <story>` (both optional).
+2. **EPIC resolution (menu fallback):**
+   - If `<epic>` was passed, resolve `<cwd>/agent_coordination/epics/<epic>`.
+   - If `<epic>` was not passed, list every directory under `<cwd>/agent_coordination/epics/` whose `MASTER.md` has at least one row with status `🟣 IN REVIEW`. For each, print: `<slug> — <N stories IN REVIEW, last-touched YYYY-MM-DD>`. If the filtered list is empty, abort with: `no epics have stories ready for review (nothing at 🟣 IN REVIEW)`. Otherwise ask the operator to pick (number or slug).
+3. **STORY resolution (menu fallback):**
+   - If `<story>` was passed, continue to resolution step 4.
+   - If `<story>` was not passed, list every row in `<epic>/MASTER.md` whose status is `🟣 IN REVIEW`. For each, print: `<Step> — <Deliverable>`. If the filtered list is empty, abort with: `no stories at 🟣 IN REVIEW in <epic>`. Otherwise ask the operator to pick (number or slug).
+4. Use `<epic>/MASTER.md` as the only lookup table.
+5. First try to match exactly one row whose `Step` value equals `<story>`.
+6. If no row matches by `Step`, try to match exactly one row whose `Spec` value equals `<story>`.
+7. If neither lookup finds a row, abort fast and report the unresolved selector plus the available `Step` and `Spec` values from `MASTER.md`.
+8. If the `Step` lookup and `Spec` lookup both match but point to different rows, abort fast and report the ambiguity.
+9. Resolve the step file as `<epic>/<matched row Spec value>`.
+10. If that path does not exist, abort fast and report the exact missing path.
 
 ## Read first
 
