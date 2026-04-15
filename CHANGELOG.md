@@ -77,6 +77,22 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - Non-interactive install path: `--agents`, `--codex-flavor`, `--yes` flags
   for CI / devcontainer use. `--project <path>` is unified across runtimes
   and installs to `<path>/.claude/skills/` and `<path>/.agents/skills/`.
+- Multi-project workspace support for the worktree preflight in
+  `/epic-claim`, `/epic-resume`, and `/epic-review` (Claude + Codex).
+  Workspaces where `<cwd>` is not itself a git repo but contains
+  `projects/<name>/.git` sub-repos are now first-class. `/epic-claim`
+  parses the selected step's `## Scope` for `projects/<name>/` tokens,
+  resolves them against `<cwd>/projects/*/.git` to build a target-repo
+  set, and creates one worktree per dirty target sub-repo on the
+  story-specific branch `<epic>/<story-slug>`. A story that touches
+  two dirty sub-repos produces two worktrees, each on its own repo.
+  Coordination files under `agent_coordination/` always anchor at
+  `<cwd>` (the workspace root) regardless of any sub-repo worktrees.
+- Repeated `WORKTREE="<basename>=<path>"` argument form for explicit
+  per-repo worktree paths in `/epic-claim`, `/epic-resume`, and
+  `/epic-review`. The legacy `WORKTREE="<path>"` single form is still
+  accepted but only when exactly one target repo is discovered;
+  mixing the two forms in a single invocation aborts fast.
 
 ### Changed
 - `docs/epic-conventions.md` argument table restructured around the new
@@ -105,6 +121,30 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - `scripts/uninstall.sh` now scans `~/.codex/skills/` in addition to
   `~/.codex/prompts/`, and (with `--project <path>`) scans
   `<path>/.agents/skills/` in addition to `<path>/.claude/skills/`.
+- `## Active Claim` worktree bullet is now plural. New format:
+  `- Worktrees:` parent bullet with one `- <repo-basename>: <path>`
+  child per repo whose value is an actual worktree (clean main-tree
+  repos are not listed). Legacy single `- Worktree: <path>` bullets
+  are still read for back-compat by `/epic-resume` and `/epic-review`;
+  the next `/epic-resume` refresh on a legacy story rewrites the
+  bullet as the new plural form. New claims (`/epic-claim`) never
+  write the singular form.
+- `/epic-claim`, `/epic-resume`, and `/epic-review` worktree preflight
+  rewritten around per-repo decisions. The single `<project_root>`
+  variable is replaced by `<workspace_root>` (always `<cwd>`, anchor
+  for `agent_coordination/` reads/writes) plus `<project_root_map>`
+  (one entry per target repo, value is either a worktree path or the
+  main-tree path). `/epic-claim` shows ONE batched prompt when
+  multiple repos are dirty (instead of N separate prompts) and aborts
+  on partial worktree creation failure without auto-cleaning the
+  worktrees that already succeeded — the operator decides whether to
+  keep them. `/epic-review` aborts when a target repo is dirty without
+  a recorded `Worktrees:` entry, with a remediation message pointing
+  at `/epic-resume` or an explicit `WORKTREE=` override.
+- `docs/epic-conventions.md` documents the new plural `Worktrees:`
+  format, the back-compat read for legacy single `Worktree:`, the
+  multi-project-workspace per-repo discovery rule, and the
+  partial-failure-no-auto-cleanup invariant.
 
 ### Deprecated
 - `~/.codex/prompts/` install path and the `codex/prompts/` source

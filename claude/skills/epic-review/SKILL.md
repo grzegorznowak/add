@@ -10,7 +10,7 @@ allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git diff:*) Bash(git 
 
 Review one epic story implementation against its step spec, current repo state, and recorded handoff context. Record the verdict back into the coordination file.
 
-Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [WORKTREE="<path>"]`. Both positional args are required. `WORKTREE="<path>"` is an optional opt-in that overrides the preflight's worktree lookup; see `## Worktree preflight`. When absent, the preflight auto-reads any `Worktree:` bullet from the story's `## Active Claim`.
+Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [WORKTREE="<basename>=<path>"]...`. Both positional args are required (a menu fallback is shown when either is omitted, see `## Resolution`). `WORKTREE=` is an optional, repeatable opt-in that overrides the preflight's worktree lookup per target repo. Two forms are accepted: `WORKTREE="<basename>=<path>"` (multi form, repeatable, preferred) and legacy `WORKTREE="<path>"` (valid only when the story has exactly one target repo; the path is applied to that sole repo). Mixing the two forms in a single invocation is an error. When `WORKTREE=` is absent, the preflight reads any `- Worktrees:` list from the story's `## Active Claim`, falling back to a legacy `- Worktree:` singular bullet for stories claimed before the multi-worktree format.
 
 ## Important
 
@@ -29,10 +29,12 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
 1. Parse `$ARGUMENTS`:
    - `<epic>`: optional, the first positional token (epic name)
    - `<story>`: optional, the second positional token (story number or spec file)
-   - `<explicit_wt_path>`: optional, from `WORKTREE="<path>"` if present
+   - The raw list of `WORKTREE="<value>"` occurrences (parsed in `## Worktree preflight` step 3 into `<explicit_worktree_map>` and/or `<legacy_worktree>`)
+
+   Set `<workspace_root>` = `<cwd>`. `<workspace_root>` is never re-anchored; coordination files always live here.
 2. **EPIC resolution (menu fallback):**
-   - If `<epic>` was passed, resolve `<cwd>/agent_coordination/epics/<epic>`.
-   - If `<epic>` was not passed, list every directory under `<cwd>/agent_coordination/epics/` whose `MASTER.md` has at least one row with status `🟣 IN REVIEW`. For each, print: `<slug> — <N stories IN REVIEW, last-touched YYYY-MM-DD>`. If the filtered list is empty, abort with: `no epics have stories ready for review (nothing at 🟣 IN REVIEW)`. Otherwise ask the operator to pick (number or slug).
+   - If `<epic>` was passed, resolve `<workspace_root>/agent_coordination/epics/<epic>`.
+   - If `<epic>` was not passed, list every directory under `<workspace_root>/agent_coordination/epics/` whose `MASTER.md` has at least one row with status `🟣 IN REVIEW`. For each, print: `<slug> — <N stories IN REVIEW, last-touched YYYY-MM-DD>`. If the filtered list is empty, abort with: `no epics have stories ready for review (nothing at 🟣 IN REVIEW)`. Otherwise ask the operator to pick (number or slug).
 3. **STORY resolution (menu fallback):**
    - If `<story>` was passed, continue to resolution step 4.
    - If `<story>` was not passed, list every row in `<epic>/MASTER.md` whose status is `🟣 IN REVIEW`. For each, print: `<Step> — <Deliverable>`. If the filtered list is empty, abort with: `no stories at 🟣 IN REVIEW in <epic>`. Otherwise ask the operator to pick (number or slug).
@@ -72,27 +74,46 @@ If the story is clearly not reviewable yet, abort fast with a concise reason. Ex
 
 ## Worktree preflight
 
-After reading the story's `## Active Claim`, decide whether the review runs from `<cwd>` (the main tree) or from the implementer's linked worktree. This command **never creates** a worktree; it only reuses the one the implementer recorded or a path the operator passed explicitly.
+After reading the story's `## Active Claim`, build `<project_root_map>` from what the claim recorded plus any explicit overrides. This command **never creates** a worktree; it only reuses what the implementer recorded or what the operator passed explicitly.
 
-1. **Not a git repo**. Run `git -C <cwd> rev-parse --is-inside-work-tree`. If non-zero, set `<project_root>` = `<cwd>` and skip the rest of this section.
+**Invariant**: `<workspace_root>` = `<cwd>`, always. All reads under `agent_coordination/...` anchor at `<workspace_root>` unconditionally, regardless of any worktrees referenced below. The review verdict and `## Review Log` write-back also anchor at `<workspace_root>/agent_coordination/...`.
 
-2. **Read `Worktree:` from the story's `## Active Claim`**. If there is a bullet of the form `- Worktree: <path>`, store it as `<active_wt_path>`. Else `<active_wt_path>` is unset.
+1. **Read `Worktrees:` from `## Active Claim`**. Parse the story file for a `- Worktrees:` bullet under `## Active Claim`. For each child bullet of the form `- <basename>: <path>`, record `<recorded_worktree_map>[<basename>]` = `<path>` (normalized absolute). If no `- Worktrees:` bullet exists, `<recorded_worktree_map>` is empty.
 
-3. **Dirtiness check**. Run `git -C <cwd> status --porcelain`. `<dirty>` = output non-empty.
+2. **Back-compat read for legacy single-form**. If `<recorded_worktree_map>` is empty, look for a legacy `- Worktree: <path>` (singular) bullet. If present, set `<recorded_worktree_map>[basename(<path>)]` = `<path>`. Review never rewrites the claim, so back-compat mode just reads the legacy bullet without changing the file.
 
-4. **Decision**:
+3. **Parse explicit `WORKTREE=` arguments** into `<explicit_worktree_map>`. Collect every `WORKTREE="<value>"` occurrence from `$ARGUMENTS`. For each value:
+   - If it contains `=`, split on the FIRST `=` into `<basename>` and `<path>`. Normalize `<path>` to an absolute path and record as `<explicit_worktree_map>[<basename>]` = `<path>`.
+   - Otherwise treat it as the legacy single form and record as `<legacy_worktree>` (normalized absolute path).
 
-   a. **`<explicit_wt_path>` is set**: verify the directory exists and appears in `git -C <cwd> worktree list --porcelain`. If valid, `<project_root>` = `<explicit_wt_path>`. If not, abort with the verbatim verification failure and suggest the operator omit `WORKTREE=` or point at a valid worktree.
+   Validation:
+   - Mixing both forms (some `WORKTREE=` with `=`, some without) is an error: abort with "mix of `WORKTREE=\"path\"` and `WORKTREE=\"basename=path\"` forms is not allowed; use one or the other".
+   - If `<legacy_worktree>` is set, defer its application until `<target_repos>` is computed in step 4; it is only valid when exactly one `<target_repo>` is discovered.
 
-   b. **`<explicit_wt_path>` unset, `<active_wt_path>` set**: verify `<active_wt_path>` the same way. If valid, `<project_root>` = `<active_wt_path>`. If stale (directory missing or not in `git worktree list`), abort with: "recorded Worktree: `<active_wt_path>` is missing or unregistered; clean the main tree and retry, ask the implementer to `/epic-resume` (which will recreate it), or pass `WORKTREE=<path>` explicitly".
+4. **Compute `<story-slug>` and `<target_repos>`**:
+   - `<story-slug>` = strip `.md` from the resolved step's spec file.
+   - If `<recorded_worktree_map>` is non-empty, build `<target_repos>` from its basenames: for each `<basename>`, resolve to `<workspace_root>/projects/<basename>` if `<workspace_root>/projects/<basename>/.git` exists, or to `<workspace_root>` if `<basename>` matches `basename(<workspace_root>)` AND `<workspace_root>` is itself a git repo.
+   - Else fall back to the same `## Scope` strict parse + target-resolution logic as `/epic-claim` (Worktree preflight steps 2–3): parse `## Scope` for `projects/[A-Za-z0-9_-]+/` tokens, intersect with real `<workspace_root>/projects/<name>/.git` repos, additionally include `<workspace_root>` if it is itself a git repo.
 
-   c. **Both unset, `<dirty>` is false**: `<project_root>` = `<cwd>`. Review runs on the main tree as today.
+   If `<legacy_worktree>` is set (from step 3), it is now applied: `<explicit_worktree_map>[basename(<sole_target_repo>)]` = `<legacy_worktree>` if `<target_repos>` has exactly one element, otherwise abort with "`WORKTREE=\"<path>\"` requires exactly one target repo; found N (basenames: ...). Pass `WORKTREE=\"<basename>=<path>\"` form to specify which repo".
 
-   d. **Both unset, `<dirty>` is true**: abort with: "can't review on a dirty main tree without a recorded `Worktree:` in the story's `## Active Claim`. Clean `<cwd>`, have the implementer `/epic-resume` (which records a Worktree: bullet), or pass `WORKTREE=<path>` explicitly pointing at a worktree with the story's branch checked out".
+5. **Build `<project_root_map>` from recorded + explicit entries**. Initialize empty. For each `<basename>` in the union of `<recorded_worktree_map>` keys and `<explicit_worktree_map>` keys:
+   - Effective path = `<explicit_worktree_map>[<basename>]` if present (explicit wins for the overridden basename only), else `<recorded_worktree_map>[<basename>]`.
+   - Resolve `<target_repo>` for `<basename>`: `<workspace_root>/projects/<basename>` if `<basename>` resolves to a sub-repo, else `<workspace_root>` if it matches `basename(<workspace_root>)`. If neither, abort with "claimed worktree for `<basename>` cannot be matched to any repo on disk".
+   - Verify the effective path exists on disk AND appears in `git -C <target_repo> worktree list --porcelain`.
+   - Verify the worktree's HEAD is on branch `<epic-name>/<story-slug>` via `git -C <effective path> rev-parse --abbrev-ref HEAD`. Tolerate a detached HEAD with a warning ("worktree for `<basename>` is in detached HEAD state — review will run against the checked-out commit").
+   - On any verification failure: abort with "worktree for `<basename>` is missing, unregistered, or on the wrong branch: <verbatim detail>. Clean the main tree and retry, ask the implementer to `/epic-resume` (which recreates stale worktrees), or pass `WORKTREE=\"<basename>=<path>\"` explicitly". **Never create a worktree in review.**
+   - On success: `<project_root_map>[<basename>]` = effective path.
 
-5. **Update `<epic>` if switched**. If `<project_root>` != `<cwd>`, update `<epic>` to `<project_root>/agent_coordination/epics/<epic-name>` and re-read `<epic>/MASTER.md` and the resolved step file from there. The worktree's branch may have newer `## Progress Log`, `## Session Handoff`, or `## Review Log` entries than main — the review verdict is written back to the worktree's copy.
+6. **Handle scope-scan repos not in any map**. For each `<target_repo>` from step 4 whose basename is NOT yet in `<project_root_map>`:
+   - Run `git -C <target_repo> status --porcelain`.
+   - If the output is non-empty (dirty): abort with "can't review dirty `<basename>` without a recorded worktree. Clean `<target_repo>`, have the implementer `/epic-resume` (which records a Worktrees entry), or pass `WORKTREE=\"<basename>=<path>\"` explicitly pointing at a worktree with the story's branch checked out".
+   - If clean: `<project_root_map>[<basename>]` = `<target_repo>` (main tree — review inspects the implementation in place).
 
-6. **Done**. `<project_root>` is set. All git commands in `## Review process` (below) run as `git -C <project_root> ...`. Every file read/write uses `<project_root>/...` as its anchor.
+7. **Done**. `<project_root_map>` is set. All downstream resolution uses these rules:
+   - `<epic>/MASTER.md`, the resolved step file, dependency step files, and anything under `agent_coordination/...` → read/write at `<workspace_root>/agent_coordination/...` unconditionally. The `## Review Log` write-back also lands at this anchor.
+   - Code at `projects/<name>/foo/bar` → if `<project_root_map>` has `<name>`, route to `<project_root_map>[<name>]/foo/bar`; else (clean main-tree fallback from step 6) route to `<workspace_root>/projects/<name>/foo/bar`.
+   - Git commands targeting repo `<name>`: `git -C <project_root_map>[<name>] ...`.
 
 ## Source-of-truth hierarchy
 
@@ -106,7 +127,7 @@ Do not infer identity from filename shape or naming conventions that are not exp
 ## Review process
 
 1. Use code search and direct reading to understand the story's implementation and impacted surfaces
-2. Use `git -C <project_root> status`, `git -C <project_root> diff`, and targeted file reads to inspect what was actually changed (all git commands run against `<project_root>`, which the preflight set to either `<cwd>` or the implementer's worktree)
+2. Use `git -C <project_root_map>[<basename>] status`, `git -C <project_root_map>[<basename>] diff`, and targeted file reads to inspect what was actually changed. When the story spans multiple repos, run status/diff per repo (iterating over `<project_root_map>` in sorted basename order) and group findings per-repo in the review write-back. Each `<basename>` resolves to either an implementer's worktree (most common) or the main tree at `<workspace_root>/projects/<basename>` (clean main-tree fallback case from the preflight).
 3. Never speculate about code you haven't read
 4. Break the reviewed implementation into logical groups; explain the grouping briefly
 5. Review each group sequentially

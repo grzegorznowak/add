@@ -116,22 +116,55 @@ one `Active Claim` section per file.
 - Claimed at: <UTC ISO timestamp>
 - Claimed by: <Claude or Codex> <fresh|continuation> session
 - Scope: <one sentence for this work chunk>
-- Worktree: </absolute/path/to/linked/worktree>   (optional; see below)
+- Worktrees:
+  - <repo-basename>: </absolute/path/to/linked/worktree>
+  - <repo-basename>: </absolute/path/to/linked/worktree>
 - Primary write surfaces: <paths>
 ```
 
-The `Worktree:` bullet is **optional**. It is present only when the
-story is being implemented in a linked `git worktree` (typically because
-the main tree was dirty at claim time, or because the operator passed
-`WORKTREE="<path>"` explicitly). When present, it records the absolute
-path of the worktree so `/epic-resume` and `/epic-review` can reattach
-to the same checkout in future sessions. When `<project_root>` equals
-`<cwd>` (the main tree), the bullet must be omitted entirely. Once
-written, the bullet must not be deleted by subsequent runs of
-`/epic-resume` or `/epic-review` — other sessions depend on it to find
-the worktree — though `/epic-resume` may refresh the path if the
-recorded worktree is stale and the operator chooses to recreate it at a
-new location.
+The `- Worktrees:` parent bullet is **optional and plural**. It is
+present only when the story is being implemented in one or more linked
+`git worktrees` — typically because one or more target repos were dirty
+at claim time, or because the operator passed
+`WORKTREE="<basename>=<path>"` explicitly for that repo. Each child
+bullet has the form `- <repo-basename>: <absolute path>` and records
+where work for that specific repo is happening so `/epic-resume` and
+`/epic-review` can reattach to the same checkouts in future sessions.
+
+The discovery rule for which repos appear here lives in the
+`## Worktree preflight` section of `/epic-claim` and `/epic-resume`: a
+repo is included if it is named in the story's `## Scope` (via a
+`projects/<name>/` token) AND has uncommitted changes at claim time.
+Repos that are clean at claim time are written to directly and do NOT
+appear in this list — their absence implies main-tree mode. When
+**no** repos have worktrees (every target was clean, the story has no
+target repos, or the operator declined the prompt for every dirty
+repo), the entire `- Worktrees:` parent bullet must be omitted. Never
+write the parent bullet with no children.
+
+Multi-project workspaces (where `<cwd>` is not itself a git repo but
+contains `projects/<name>/.git` sub-repos) are first-class: the
+preflight discovers each dirty target sub-repo and creates one worktree
+per repo. A story that touches two dirty sub-repos produces two child
+bullets, each pointing at a different `<repo-basename>` and worktree
+path. Coordination files under `agent_coordination/` always anchor at
+`<cwd>` (the workspace root) regardless of any sub-repo worktrees, so
+`MASTER.md` and the story file itself never live inside a worktree.
+
+Once written, child bullets must not be deleted by subsequent runs of
+`/epic-resume` or `/epic-review` — other sessions depend on them to
+find the worktrees. `/epic-resume` may refresh a child bullet's path
+if the recorded worktree is stale and the operator chooses to recreate
+it at a new location, and may add new children if the operator passes
+`WORKTREE="<basename>=<path>"` for a previously-unrecorded repo.
+
+**Back-compat read**: stories claimed before the multi-worktree format
+have a singular `- Worktree: <path>` bullet (no parent). `/epic-resume`
+and `/epic-review` accept this legacy form by reading it as a single
+implicit entry whose basename is `basename(<path>)`. The next
+`/epic-resume` refresh on such a story rewrites the legacy bullet as a
+`- Worktrees:` list — that is the one place legacy stories migrate
+forward. New claims (`/epic-claim`) never write the singular form.
 
 #### `## Progress Log`
 
@@ -333,13 +366,18 @@ epic/story arguments. Two strategies exist:
   only a plan file to `~/.claude/plans/` for `/epic-story-save` to
   consume.
 - Delete or silently relocate an existing linked worktree from
-  `/epic-claim`, `/epic-resume`, or `/epic-review`. The `Worktree:`
-  bullet in `## Active Claim` is the authoritative record of where the
-  story's implementation lives; the only command that may change its
-  value is `/epic-resume`, and only when the operator explicitly chooses
-  to recreate a stale worktree at a new location. `/epic-review` may
-  **never** create a worktree — it only reuses what the implementer
-  recorded or a `WORKTREE="<path>"` override.
+  `/epic-claim`, `/epic-resume`, or `/epic-review`. The `- Worktrees:`
+  list in `## Active Claim` (or the legacy singular `- Worktree:`
+  bullet for back-compat) is the authoritative record of where the
+  story's implementation lives. The only command that may change a
+  recorded entry is `/epic-resume`, and only when the operator
+  explicitly chooses to recreate a stale worktree at a new location.
+  `/epic-review` may **never** create a worktree — it only reuses
+  what the implementer recorded or a `WORKTREE="<basename>=<path>"`
+  override. On partial worktree creation failure (one repo's worktree
+  succeeds and another fails), no command auto-cleans the successful
+  worktrees; the operator decides whether to keep them.
 - Create a worktree branch `<epic>/<story-slug>` that already exists
-  from `/epic-claim`. If the branch is present, `/epic-claim` aborts
-  fast and redirects the operator to `/epic-resume`.
+  from `/epic-claim`. If the branch is present in any target repo,
+  `/epic-claim` aborts fast and redirects the operator to
+  `/epic-resume`.
