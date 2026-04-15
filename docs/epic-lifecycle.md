@@ -45,7 +45,7 @@ statuses and exited back to whichever was correct when work resumes.
 
 ```
                          ┌─────────────┐  ◀─── /epic-story-review (optional, logs verdict)
-                         │   ⚪ TODO    │
+                         │   ⚪ TODO   │
                          └──────┬──────┘
                                 │ /epic-claim
                                 ▼
@@ -73,7 +73,7 @@ statuses and exited back to whichever was correct when work resumes.
                 │                       │             │    │
                 │                       ▼             ▼    │
                 │               ┌─────────────┐  ┌─────────┘
-                │               │  ✅ DONE     │  /epic-resume
+                │               │  ✅ DONE    │  /epic-resume
                 │               └─────────────┘  /epic-pr (resync)
                 │                       ▲
                 └───────────────────────┘

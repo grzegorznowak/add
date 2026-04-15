@@ -162,7 +162,7 @@ yourself is left untouched.
                           │
                           ▼
                 ┌─────────────┐  ╌╌ review ╌╌▶  ┌──────────────────────┐
-                │   ⚪ TODO    │                 │  /epic-story-review  │
+                │   ⚪ TODO   │                 │  /epic-story-review  │
                 │             │  ◀╌ approve ╌╌  │     (optional)       │
                 └──────┬──────┘                 └──────────┬───────────┘
                        │                                   │
@@ -197,7 +197,7 @@ yourself is left untouched.
                               │                              │             │    │
                               │                              ▼             ▼    │
                               │                      ┌─────────────┐  ┌─────────┘
-                              │                      │  ✅ DONE     │  /epic-resume
+                              │                      │  ✅ DONE    │  /epic-resume
                               │                      └─────────────┘  /epic-pr (resync)
                               │                              ▲
                               └──────────────────────────────┘
