@@ -2,7 +2,8 @@
 
 A personal, pluggable collection of agent prompts and Skills for managing
 software work via the **epic / story** lifecycle. Authored once, installed
-into both **Claude Code** (as Anthropic Skills) and **Codex** (as prompts)
+into both **Claude Code** (as Anthropic Skills) and **Codex** (as skills,
+with a legacy prompts fallback during the transition to Codex ≥ 0.117)
 with one command.
 
 ## What this gives you
@@ -32,15 +33,50 @@ git clone https://github.com/grzegorznowak/add.git ~/.local/share/add
 ~/.local/share/add/scripts/install.sh
 ```
 
-The installer creates symlinks:
+Run with no arguments on a TTY and the installer enters an **interactive
+wizard** that asks:
 
-- `claude/skills/<name>/` → `~/.claude/skills/<name>` (Claude Code user-level Skills)
-- `codex/prompts/<name>.md` → `~/.codex/prompts/<name>.md` (Codex user-level prompts)
+1. Which agents to install for (Claude Code, Codex, or both)
+2. User-level vs project-level scope (project mode prompts for a path)
+3. For Codex: which **flavor** to install — `legacy` (`~/.codex/prompts/`,
+   for Codex pre-0.117), `new` (`~/.codex/skills/` plus per-project
+   `.agents/skills/`, for Codex ≥ 0.117), or `both`. The wizard runs
+   `codex --version` and pre-selects the right answer.
+4. A confirmation screen before any filesystem changes.
+
+The installer creates symlinks at one or more of these locations:
+
+- `claude/skills/<name>/` → `~/.claude/skills/<name>` (Claude user-level)
+- `claude/skills/<name>/` → `<project>/.claude/skills/<name>` (Claude project)
+- `codex/skills/<name>/` → `~/.codex/skills/<name>` (Codex new, user-level)
+- `codex/skills/<name>/` → `<project>/.agents/skills/<name>` (Codex new, project)
+- `codex/prompts/<name>.md` → `~/.codex/prompts/<name>.md` (Codex legacy)
 
 It is idempotent and refuses to clobber non-symlink targets unless you pass
-`--force`. Pass `--project <path>` to install Claude Skills into
-`<path>/.claude/skills/` instead of the user-level location (Claude Code's
-project scope takes precedence over user scope).
+`--force`.
+
+### Non-interactive install (CI / devcontainer)
+
+When invoked with any flag, or when stdin is not a TTY, the installer runs
+in scripted mode:
+
+```bash
+~/.local/share/add/scripts/install.sh \
+  --yes \
+  --agents both \
+  --codex-flavor new \
+  --project /workspaces/myproject
+```
+
+Flags:
+
+- `--agents claude|codex|both` — which runtimes (default: both)
+- `--codex-flavor legacy|new|both` — which Codex format (default: new)
+- `--project <path>` — also link into `<path>/.claude/skills/` and
+  `<path>/.agents/skills/` (unified across both runtimes)
+- `--yes` — skip the confirmation prompt
+- `--force` — overwrite non-symlink targets
+- `--dry-run` — show what would happen, change nothing
 
 ### Devcontainer one-liner
 
@@ -48,7 +84,7 @@ Drop this into `.devcontainer/devcontainer.json`:
 
 ```json
 {
-  "postCreateCommand": "git clone https://github.com/grzegorznowak/add.git ~/.local/share/add && ~/.local/share/add/scripts/install.sh"
+  "postCreateCommand": "git clone https://github.com/grzegorznowak/add.git ~/.local/share/add && ~/.local/share/add/scripts/install.sh --yes --agents both --codex-flavor new"
 }
 ```
 
@@ -130,8 +166,12 @@ See [`docs/epic-conventions.md`](docs/epic-conventions.md) for the full schema.
 
 To add a new command, see [`docs/adding-a-command.md`](docs/adding-a-command.md).
 The short version: write the Claude Skill at `claude/skills/<name>/SKILL.md`
-**and** the Codex prompt at `codex/prompts/<name>.md`, then run
-`scripts/lint.sh` until it passes.
+**and** the Codex skill at `codex/skills/<name>/SKILL.md` (with a
+`legacy-argument-hint:` frontmatter field), create
+`codex/skills/<name>/agents/openai.yaml`, then run
+`scripts/regen-prompts.sh` followed by `scripts/lint.sh` until it passes.
+The legacy `codex/prompts/<name>.md` files are auto-generated from the
+canonical Codex skills — never hand-edit them.
 
 ## Why "add"
 

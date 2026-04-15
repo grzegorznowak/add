@@ -1,6 +1,14 @@
 ---
+name: grillme
 description: Interview the user relentlessly about a plan or design until reaching shared understanding, resolving each branch of the decision tree. Use when user wants to stress-test a plan, get grilled on their design, or mentions "grill me".
 ---
+
+This skill was migrated one-to-one from the former custom prompt `grillme.md`.
+Invoke it explicitly with `$grillme`.
+
+Original argument hint: *(none)*
+
+If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
 Interview me relentlessly about every aspect of this plan until
 we reach a shared understanding. Walk down each branch of the design

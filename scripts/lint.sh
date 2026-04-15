@@ -2,12 +2,19 @@
 # lint.sh — validate that the repo is in a shippable state.
 #
 # Checks:
-#   1. Frontmatter shape on every Claude SKILL.md and every Codex prompt.
-#   2. Pairing — every Claude skill has a Codex counterpart and vice versa,
-#      except for entries on the explicit known-singletons list.
-#   3. Phase-heading parity between paired files (drift signal).
-#   4. No `cure_workspace` absolute paths anywhere.
-#   5. Skill directory name matches the `name:` field inside its SKILL.md.
+#   1. Frontmatter shape on every Claude SKILL.md and every Codex SKILL.md.
+#   2. agents/openai.yaml present on every Codex skill with
+#      allow_implicit_invocation: false.
+#   3. Pairing — every Claude skill has a Codex skill counterpart and vice
+#      versa, except for entries on the explicit known-singletons list.
+#   4. Phase-heading parity between paired files (drift signal).
+#   5. Codex skill directory name matches the `name:` field inside its
+#      SKILL.md.
+#   6. Generated codex/prompts/ files are fresh
+#      (scripts/regen-prompts.sh --check).
+#   7. No `cure_workspace` absolute paths anywhere.
+#   8. Claude skill directory name matches the `name:` field inside its
+#      SKILL.md.
 #
 # Exit codes:
 #   0 — clean
@@ -17,6 +24,7 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_SKILLS="${REPO_ROOT}/claude/skills"
+CODEX_SKILLS="${REPO_ROOT}/codex/skills"
 CODEX_PROMPTS="${REPO_ROOT}/codex/prompts"
 
 # Singletons: entries that legitimately only exist on one side. Names use the
@@ -108,25 +116,44 @@ else
 fi
 
 echo
-echo "lint: codex/prompts/"
+echo "lint: codex/skills/"
 declare -a CODEX_NAMES=()
-if [[ ! -d "$CODEX_PROMPTS" ]]; then
-  fail "missing directory: $CODEX_PROMPTS"
+if [[ ! -d "$CODEX_SKILLS" ]]; then
+  fail "missing directory: $CODEX_SKILLS"
 else
-  for prompt in "$CODEX_PROMPTS"/*.md; do
-    [[ -f "$prompt" ]] || continue
-    base="$(basename "$prompt" .md)"
+  for skill_dir in "$CODEX_SKILLS"/*/; do
+    [[ -d "$skill_dir" ]] || continue
+    dir_name="$(basename "$skill_dir")"
+    skill_md="$skill_dir/SKILL.md"
+    openai_yaml="$skill_dir/agents/openai.yaml"
 
-    check_frontmatter_fields "$prompt" description
-
-    # argument-hint is conventional but not strictly required for trivial prompts
-    # (e.g. memorize, grillme); only check for it on epic_* prompts
-    if [[ "$base" == epic_* ]]; then
-      check_frontmatter_fields "$prompt" argument-hint
+    if [[ ! -f "$skill_md" ]]; then
+      fail "$skill_dir: missing SKILL.md"
+      continue
     fi
 
-    ok "$base"
-    CODEX_NAMES+=("$base")
+    check_frontmatter_fields "$skill_md" name description
+
+    declared_name="$(extract_name "$skill_md")"
+    if [[ -z "$declared_name" ]]; then
+      fail "$skill_md: empty or unparsable name field"
+      continue
+    elif [[ "$declared_name" != "$dir_name" ]]; then
+      fail "$skill_md: name '$declared_name' does not match directory '$dir_name'"
+      continue
+    fi
+
+    if [[ ! -f "$openai_yaml" ]]; then
+      fail "$skill_dir: missing agents/openai.yaml"
+      continue
+    fi
+    if ! grep -Eq '^[[:space:]]*allow_implicit_invocation:[[:space:]]*false' "$openai_yaml"; then
+      fail "$openai_yaml: missing or wrong 'allow_implicit_invocation: false'"
+      continue
+    fi
+
+    ok "$dir_name"
+    CODEX_NAMES+=("$dir_name")
   done
 fi
 
@@ -162,7 +189,7 @@ for cn in "${CLAUDE_NAMES[@]:-}"; do
   expected_codex="$(hyphen_to_underscore "$cn")"
   in_array "$expected_codex" "${CODEX_NAMES[@]:-}" || continue
   claude_md="$CLAUDE_SKILLS/$cn/SKILL.md"
-  codex_md="$CODEX_PROMPTS/$expected_codex.md"
+  codex_md="$CODEX_SKILLS/$expected_codex/SKILL.md"
   claude_phases="$(extract_phase_headings "$claude_md" | sed -E 's/[[:space:]]+/ /g')"
   codex_phases="$(extract_phase_headings "$codex_md" | sed -E 's/[[:space:]]+/ /g')"
   if [[ "$claude_phases" != "$codex_phases" ]]; then
@@ -173,8 +200,17 @@ for cn in "${CLAUDE_NAMES[@]:-}"; do
 done
 
 echo
+echo "lint: codex/prompts/ freshness"
+if bash "$REPO_ROOT/scripts/regen-prompts.sh" --check >/dev/null 2>&1; then
+  ok "codex/prompts/ in sync with codex/skills/"
+else
+  fail "codex/prompts/ is stale. Run: bash scripts/regen-prompts.sh"
+  bash "$REPO_ROOT/scripts/regen-prompts.sh" --check 2>&1 | sed 's/^/  /' >&2 || true
+fi
+
+echo
 echo "lint: no cure_workspace absolute paths"
-if grep -RIn 'cure_workspace' "$CLAUDE_SKILLS" "$CODEX_PROMPTS" "$REPO_ROOT/docs" "$REPO_ROOT/README.md" 2>/dev/null; then
+if grep -RIn 'cure_workspace' "$CLAUDE_SKILLS" "$CODEX_SKILLS" "$CODEX_PROMPTS" "$REPO_ROOT/docs" "$REPO_ROOT/README.md" 2>/dev/null; then
   fail "found 'cure_workspace' references (above) — strip project-specific paths"
 else
   ok "no cure_workspace leakage"

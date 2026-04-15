@@ -1,50 +1,61 @@
 #!/usr/bin/env bash
-# install.sh — symlink Claude Skills and Codex prompts from this repo into the
-# user's agent runtime directories. Idempotent. Refuses to clobber non-symlink
-# targets unless --force is passed.
+# install.sh — install Claude Skills and Codex skills/prompts from this repo
+# into the user's agent runtime directories. Idempotent.
 #
-# Usage:
-#   scripts/install.sh                 # user-level install (default)
-#   scripts/install.sh --project PATH  # also install Claude Skills into PATH/.claude/skills/
-#   scripts/install.sh --force         # overwrite non-symlink targets at the destination
-#   scripts/install.sh --dry-run       # show what would happen, change nothing
+# Two modes:
+#   - Wizard (default on TTY, no args): asks which agents, scope, and Codex
+#     flavor to install.
+#   - Scripted (any args, or non-TTY): flag-driven for CI / devcontainers.
+#
+# Scripted-mode flags:
+#   --agents <claude|codex|both>     which runtimes to install (default: both)
+#   --codex-flavor <legacy|new|both> Codex install path (default: new)
+#                                    legacy = ~/.codex/prompts/<name>.md
+#                                    new    = ~/.codex/skills/<name>/ (and
+#                                             optionally <project>/.agents/skills/<name>/)
+#   --project <path>                 also install into project scope
+#                                    (<path>/.claude/skills/ for Claude,
+#                                     <path>/.agents/skills/ for Codex new)
+#   --yes                            skip the confirmation prompt
+#   --force                          overwrite non-symlink targets
+#   --dry-run                        show what would happen, change nothing
+#   --help                           show this message
 
-set -euo pipefail
+set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_SKILLS_SRC="${REPO_ROOT}/claude/skills"
+CODEX_SKILLS_SRC="${REPO_ROOT}/codex/skills"
 CODEX_PROMPTS_SRC="${REPO_ROOT}/codex/prompts"
 
-CLAUDE_DEST="${HOME}/.claude/skills"
-CODEX_DEST="${HOME}/.codex/prompts"
+CLAUDE_USER_DEST="${HOME}/.claude/skills"
+CODEX_PROMPTS_USER_DEST="${HOME}/.codex/prompts"
+CODEX_SKILLS_USER_DEST="${HOME}/.codex/skills"
 
+AGENTS=""           # claude | codex | both
+CODEX_FLAVOR=""     # legacy | new | both
+PROJECT_PATH=""
+YES=0
 FORCE=0
 DRY_RUN=0
-PROJECT_DEST=""
+HAVE_FLAGS=0
 
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --force) FORCE=1; shift ;;
-    --dry-run) DRY_RUN=1; shift ;;
-    --project)
-      [[ $# -ge 2 ]] || { echo "error: --project requires a path" >&2; exit 2; }
-      PROJECT_DEST="${2%/}/.claude/skills"
-      shift 2
-      ;;
-    -h|--help)
-      sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'
-      exit 0
-      ;;
-    *)
-      echo "error: unknown argument: $1" >&2
-      exit 2
-      ;;
-  esac
-done
-
-log() { printf '%s\n' "$*"; }
+log()  { printf '%s\n' "$*"; }
 warn() { printf 'warn: %s\n' "$*" >&2; }
-err() { printf 'error: %s\n' "$*" >&2; }
+err()  { printf 'error: %s\n' "$*" >&2; }
+banner() {
+  printf '\n=== %s ===\n' "$*"
+}
+deprecation_banner() {
+  printf '\n'
+  printf '  ┌────────────────────────────────────────────────────────────────────┐\n'
+  printf '  │ DEPRECATION: ~/.codex/prompts/ is deprecated upstream (Codex CLI). │\n'
+  printf '  │ The new home is ~/.codex/skills/ and per-project .agents/skills/.  │\n'
+  printf '  │ Re-run with --codex-flavor new (or "both") to install the new      │\n'
+  printf '  │ format. Legacy stays available until pre-0.117 Codex is gone.      │\n'
+  printf '  └────────────────────────────────────────────────────────────────────┘\n'
+  printf '\n'
+}
 
 run() {
   if [[ $DRY_RUN -eq 1 ]]; then
@@ -94,6 +105,8 @@ link_one() {
   run ln -s "$src" "$dest"
 }
 
+# ---------- Installers ----------
+
 install_claude_into() {
   local dest_root="$1"
   ensure_dir "$dest_root"
@@ -111,30 +124,291 @@ install_claude_into() {
   done
 }
 
-install_codex() {
-  ensure_dir "$CODEX_DEST"
-  log "Codex prompts → $CODEX_DEST"
+install_codex_skills_into() {
+  local dest_root="$1"
+  ensure_dir "$dest_root"
+  log "Codex skills (new) → $dest_root"
+  for skill_dir in "$CODEX_SKILLS_SRC"/*/; do
+    [[ -d "$skill_dir" ]] || continue
+    local name
+    name="$(basename "$skill_dir")"
+    local skill_md="$skill_dir/SKILL.md"
+    if [[ ! -f "$skill_md" ]]; then
+      warn "skip  $name (no SKILL.md inside)"
+      continue
+    fi
+    link_one "${skill_dir%/}" "$dest_root/$name" "dir"
+  done
+}
+
+install_codex_legacy_prompts() {
+  ensure_dir "$CODEX_PROMPTS_USER_DEST"
+  log "Codex prompts (legacy) → $CODEX_PROMPTS_USER_DEST"
   for prompt in "$CODEX_PROMPTS_SRC"/*.md; do
     [[ -f "$prompt" ]] || continue
     local name
     name="$(basename "$prompt")"
-    link_one "$prompt" "$CODEX_DEST/$name" "file"
+    link_one "$prompt" "$CODEX_PROMPTS_USER_DEST/$name" "file"
   done
 }
 
-log "add (Agentic Driven Development) — install"
-log "repo: $REPO_ROOT"
+# ---------- Codex version detection ----------
+
+# Print "legacy", "new", or "unknown" based on `codex --version`.
+detect_codex_flavor() {
+  if ! command -v codex >/dev/null 2>&1; then
+    echo "unknown"
+    return
+  fi
+  local out
+  out="$(codex --version 2>/dev/null)" || { echo "unknown"; return; }
+  local ver
+  ver="$(printf '%s\n' "$out" | grep -oE '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)"
+  if [[ -z "$ver" ]]; then
+    echo "unknown"
+    return
+  fi
+  # Compare $ver against 0.117 with sort -V
+  local lower
+  lower="$(printf '%s\n%s\n' "$ver" "0.117" | sort -V | head -1)"
+  if [[ "$lower" == "0.117" ]]; then
+    # ver >= 0.117
+    echo "new"
+  else
+    echo "legacy"
+  fi
+}
+
+# ---------- Wizard ----------
+
+# $1 = prompt, $2 = options string (e.g. "1=foo  2=bar"), $3 = default key
+# Echoes the chosen key on stdout.
+ask_choice() {
+  local prompt="$1" options="$2" default="$3"
+  local reply
+  while true; do
+    printf '\n%s\n' "$prompt"
+    printf '%s\n' "$options"
+    printf '[default: %s] > ' "$default"
+    if ! IFS= read -r reply; then
+      reply=""
+    fi
+    [[ -z "$reply" ]] && reply="$default"
+    case "$reply" in
+      1|2|3) printf '%s' "$reply"; return 0 ;;
+      *) printf '  unrecognized choice; try again\n' >&2 ;;
+    esac
+  done
+}
+
+ask_yes_no() {
+  local prompt="$1" default="$2"  # default = "y" or "n"
+  local reply
+  printf '\n%s [%s] > ' "$prompt" "$default"
+  if ! IFS= read -r reply; then
+    reply=""
+  fi
+  [[ -z "$reply" ]] && reply="$default"
+  [[ "$reply" =~ ^[Yy] ]]
+}
+
+ask_path() {
+  local prompt="$1" reply
+  while true; do
+    printf '\n%s\n> ' "$prompt"
+    if ! IFS= read -r reply; then
+      reply=""
+    fi
+    if [[ -z "$reply" ]]; then
+      printf '  path is required; try again\n' >&2
+      continue
+    fi
+    if [[ ! -d "$reply" ]]; then
+      printf '  path does not exist or is not a directory; try again\n' >&2
+      continue
+    fi
+    printf '%s' "$reply"
+    return 0
+  done
+}
+
+run_wizard() {
+  banner "add (Agentic Driven Development) — install wizard"
+  log "repo: $REPO_ROOT"
+
+  local choice
+
+  # Q1: agents
+  choice="$(ask_choice "Install for which agents?" \
+    "  1) Claude Code only
+  2) Codex only
+  3) Both (Claude Code + Codex)" "3")"
+  case "$choice" in
+    1) AGENTS="claude" ;;
+    2) AGENTS="codex" ;;
+    3) AGENTS="both" ;;
+  esac
+
+  # Q2: scope
+  choice="$(ask_choice "Install scope?" \
+    "  1) User-level (~/.claude/skills, ~/.codex/skills, ~/.codex/prompts)
+  2) Project-level (also link into <project>/.claude/skills and <project>/.agents/skills)" "1")"
+  if [[ "$choice" == "2" ]]; then
+    PROJECT_PATH="$(ask_path "Project path:")"
+  fi
+
+  # Q3: codex flavor (only if Codex selected)
+  if [[ "$AGENTS" == "codex" || "$AGENTS" == "both" ]]; then
+    local detected
+    detected="$(detect_codex_flavor)"
+    local default_key="3"
+    local detected_label="not detected"
+    case "$detected" in
+      legacy) default_key="1"; detected_label="detected: pre-0.117" ;;
+      new)    default_key="2"; detected_label="detected: 0.117+" ;;
+      unknown) default_key="3"; detected_label="codex CLI not found" ;;
+    esac
+    choice="$(ask_choice "Codex flavor? ($detected_label)" \
+      "  1) Legacy only — ~/.codex/prompts/ (Codex pre-0.117)
+  2) New only — ~/.codex/skills/ (+ project .agents/skills/) (Codex 0.117+)
+  3) Both flavors (transition install)" "$default_key")"
+    case "$choice" in
+      1) CODEX_FLAVOR="legacy" ;;
+      2) CODEX_FLAVOR="new" ;;
+      3) CODEX_FLAVOR="both" ;;
+    esac
+  fi
+
+  # Confirmation
+  banner "Confirmation"
+  print_install_plan
+  if ! ask_yes_no "Proceed?" "y"; then
+    log "aborted by user"
+    exit 0
+  fi
+  YES=1
+}
+
+# ---------- Plan printer ----------
+
+print_install_plan() {
+  log "  agents:        $AGENTS"
+  if [[ "$AGENTS" == "codex" || "$AGENTS" == "both" ]]; then
+    log "  codex-flavor:  $CODEX_FLAVOR"
+  fi
+  if [[ -n "$PROJECT_PATH" ]]; then
+    log "  project path:  $PROJECT_PATH"
+  fi
+  log
+  log "Targets:"
+  if [[ "$AGENTS" == "claude" || "$AGENTS" == "both" ]]; then
+    log "  - $CLAUDE_USER_DEST/<skill>"
+    [[ -n "$PROJECT_PATH" ]] && log "  - $PROJECT_PATH/.claude/skills/<skill>"
+  fi
+  if [[ "$AGENTS" == "codex" || "$AGENTS" == "both" ]]; then
+    if [[ "$CODEX_FLAVOR" == "new" || "$CODEX_FLAVOR" == "both" ]]; then
+      log "  - $CODEX_SKILLS_USER_DEST/<skill>          (new format)"
+      [[ -n "$PROJECT_PATH" ]] && log "  - $PROJECT_PATH/.agents/skills/<skill>  (new format)"
+    fi
+    if [[ "$CODEX_FLAVOR" == "legacy" || "$CODEX_FLAVOR" == "both" ]]; then
+      log "  - $CODEX_PROMPTS_USER_DEST/<prompt>.md     (legacy format)"
+      [[ -n "$PROJECT_PATH" ]] && warn "legacy Codex prompts have no project scope; project path is ignored for the legacy flavor"
+    fi
+  fi
+  log
+}
+
+# ---------- Scripted-mode argument parsing ----------
+
+parse_flags() {
+  while [[ $# -gt 0 ]]; do
+    HAVE_FLAGS=1
+    case "$1" in
+      --agents)
+        [[ $# -ge 2 ]] || { err "--agents requires a value"; exit 2; }
+        case "$2" in
+          claude|codex|both) AGENTS="$2" ;;
+          *) err "--agents must be claude|codex|both"; exit 2 ;;
+        esac
+        shift 2
+        ;;
+      --codex-flavor)
+        [[ $# -ge 2 ]] || { err "--codex-flavor requires a value"; exit 2; }
+        case "$2" in
+          legacy|new|both) CODEX_FLAVOR="$2" ;;
+          *) err "--codex-flavor must be legacy|new|both"; exit 2 ;;
+        esac
+        shift 2
+        ;;
+      --project)
+        [[ $# -ge 2 ]] || { err "--project requires a path"; exit 2; }
+        PROJECT_PATH="${2%/}"
+        if [[ ! -d "$PROJECT_PATH" ]]; then
+          err "--project path does not exist: $PROJECT_PATH"; exit 2
+        fi
+        shift 2
+        ;;
+      --yes|-y) YES=1; shift ;;
+      --force)  FORCE=1; shift ;;
+      --dry-run) DRY_RUN=1; shift ;;
+      -h|--help)
+        sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
+        exit 0
+        ;;
+      *)
+        err "unknown argument: $1"; exit 2 ;;
+    esac
+  done
+  # Defaults for scripted mode (any unset value)
+  [[ -z "$AGENTS" ]] && AGENTS="both"
+  [[ -z "$CODEX_FLAVOR" ]] && CODEX_FLAVOR="new"
+}
+
+# ---------- Main ----------
+
+if [[ $# -eq 0 && -t 0 ]]; then
+  run_wizard
+else
+  parse_flags "$@"
+fi
+
+if [[ $YES -ne 1 && $DRY_RUN -ne 1 ]]; then
+  banner "Install plan"
+  print_install_plan
+  if ! ask_yes_no "Proceed?" "y"; then
+    log "aborted by user"
+    exit 0
+  fi
+fi
+
 [[ $DRY_RUN -eq 1 ]] && log "(dry run — no filesystem changes)"
 log
 
-install_claude_into "$CLAUDE_DEST"
-log
-
-if [[ -n "$PROJECT_DEST" ]]; then
-  install_claude_into "$PROJECT_DEST"
+# Claude
+if [[ "$AGENTS" == "claude" || "$AGENTS" == "both" ]]; then
+  install_claude_into "$CLAUDE_USER_DEST"
   log
+  if [[ -n "$PROJECT_PATH" ]]; then
+    install_claude_into "${PROJECT_PATH}/.claude/skills"
+    log
+  fi
 fi
 
-install_codex
-log
+# Codex
+if [[ "$AGENTS" == "codex" || "$AGENTS" == "both" ]]; then
+  if [[ "$CODEX_FLAVOR" == "new" || "$CODEX_FLAVOR" == "both" ]]; then
+    install_codex_skills_into "$CODEX_SKILLS_USER_DEST"
+    log
+    if [[ -n "$PROJECT_PATH" ]]; then
+      install_codex_skills_into "${PROJECT_PATH}/.agents/skills"
+      log
+    fi
+  fi
+  if [[ "$CODEX_FLAVOR" == "legacy" || "$CODEX_FLAVOR" == "both" ]]; then
+    install_codex_legacy_prompts
+    log
+    deprecation_banner
+  fi
+fi
+
 log "done."

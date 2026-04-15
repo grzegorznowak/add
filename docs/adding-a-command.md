@@ -21,10 +21,16 @@ process**, not for thinking out loud.
 A new command called `<name>` (using the Claude hyphenated form) requires:
 
 1. `claude/skills/<name>/SKILL.md` — Anthropic Skill format
-2. `codex/prompts/<name_with_underscores>.md` — Codex prompt format
+2. `codex/skills/<name_with_underscores>/SKILL.md` — Codex skill format
+3. `codex/skills/<name_with_underscores>/agents/openai.yaml` — Codex policy
+   file (`allow_implicit_invocation: false`)
 
-Both files. No exceptions, except for the explicit known-singletons list in
-`scripts/lint.sh` (currently just `memorize`).
+All three files. No exceptions, except for the explicit known-singletons
+list in `scripts/lint.sh` (currently just `memorize`, which is Codex-only).
+
+The legacy `codex/prompts/<name_with_underscores>.md` file is **auto-
+generated** from the canonical Codex skill by `scripts/regen-prompts.sh`.
+Never hand-edit it. Lint fails on stale generated prompts.
 
 ## Claude Skill template
 
@@ -79,13 +85,33 @@ Argument: `$ARGUMENTS` — <what the user passes>.
 - End with a `## Final response` section describing what the operator
   should see when the command finishes.
 
-## Codex prompt template
+## Codex skill template
+
+The new Codex CLI (≥ 0.117) discovers skills from `.agents/skills/` per
+project root. Each skill is a directory with two files:
+
+```
+codex/skills/<name>/
+├── SKILL.md
+└── agents/
+    └── openai.yaml
+```
+
+`SKILL.md` template:
 
 ```md
 ---
-description: <one-sentence description, same as Claude side>
-argument-hint: [ARG1="<value>"] [ARG2="<value>"]
+name: <name>
+description: <one-sentence description>
+legacy-argument-hint: '[ARG1="<value>"] [ARG2="<value>"]'
 ---
+
+This skill was migrated one-to-one from the former custom prompt `<name>.md`.
+Invoke it explicitly with `$<name>`.
+
+Original argument hint: `[ARG1="<value>"] [ARG2="<value>"]`
+
+If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
 <Title>: $ARG1 / $ARG2
 
@@ -97,16 +123,32 @@ Treat `$ARG1` as ...
 1. ...
 ```
 
+`agents/openai.yaml`:
+
+```yaml
+policy:
+  allow_implicit_invocation: false
+```
+
 ### Frontmatter rules
 
-- **`description:`** identical to the Claude side.
-- **`argument-hint:`** Codex's autocomplete uses this. Use named args
-  (`ARG1="<value>"`) instead of `$ARGUMENTS` so the Codex prompt picker can
-  prefill.
+- **`name:`** must match the directory name (`codex/skills/<name>/`).
+  `lint.sh` enforces this.
+- **`description:`** the short Codex form (existing convention is shorter
+  than the Claude side; lint does not enforce parity).
+- **`legacy-argument-hint:`** the old-style argument hint, kept here so the
+  generator can round-trip it into `codex/prompts/<name>.md`. Codex CLI
+  itself ignores unknown frontmatter fields. Omit this field if the
+  command takes no arguments — the body's preamble must then say
+  `Original argument hint: *(none)*`.
 
 ### Body conventions
 
-- Same phase headings as the Claude side. The lint script enforces parity.
+- The 7-line migration preamble is **mandatory**. The generator strips
+  exactly those 7 lines when producing `codex/prompts/<name>.md`. Deviating
+  from the preamble shape causes `scripts/regen-prompts.sh` to abort.
+- Same phase headings as the Claude side (when present). The lint script
+  enforces phase-heading parity between the two sides.
 - Use `$ARG1`, `$ARG2`, etc. for argument substitution instead of
   `$ARGUMENTS`.
 - Use Codex's name where Claude says "Claude" (e.g. "Codex fresh session").
@@ -124,11 +166,14 @@ silently — the explicit list is the documentation.
 ## Lint and ship
 
 ```bash
-bash scripts/lint.sh
+bash scripts/regen-prompts.sh   # regenerate codex/prompts/ from skills
+bash scripts/lint.sh             # validate everything
 ```
 
-If it exits 0, you can commit. If not, fix the reported items — they are
-exactly the conditions a reviewer would call out.
+Run `regen-prompts.sh` whenever you edit a Codex skill — `lint.sh` will
+fail on stale generated prompts. If lint exits 0, you can commit. If not,
+fix the reported items — they are exactly the conditions a reviewer would
+call out.
 
 For additional cross-runtime conventions (lifecycle, MASTER.md schema,
 story file shapes), see [`epic-lifecycle.md`](epic-lifecycle.md) and

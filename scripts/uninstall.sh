@@ -1,31 +1,34 @@
 #!/usr/bin/env bash
 # uninstall.sh — remove only the symlinks that point at this repo. Anything
-# you authored yourself in ~/.claude/skills or ~/.codex/prompts is left alone.
+# you authored yourself in ~/.claude/skills, ~/.codex/skills, or
+# ~/.codex/prompts is left alone.
 #
 # Usage:
 #   scripts/uninstall.sh
 #   scripts/uninstall.sh --project PATH    # also remove from PATH/.claude/skills/
+#                                          # and PATH/.agents/skills/
 #   scripts/uninstall.sh --dry-run
 
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_DEST="${HOME}/.claude/skills"
-CODEX_DEST="${HOME}/.codex/prompts"
+CODEX_PROMPTS_DEST="${HOME}/.codex/prompts"
+CODEX_SKILLS_DEST="${HOME}/.codex/skills"
 
 DRY_RUN=0
-PROJECT_DEST=""
+PROJECT_PATH=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --dry-run) DRY_RUN=1; shift ;;
     --project)
       [[ $# -ge 2 ]] || { echo "error: --project requires a path" >&2; exit 2; }
-      PROJECT_DEST="${2%/}/.claude/skills"
+      PROJECT_PATH="${2%/}"
       shift 2
       ;;
     -h|--help)
-      sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,10p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
@@ -71,8 +74,12 @@ log "repo: $REPO_ROOT"
 log
 
 remove_links_pointing_at_repo "$CLAUDE_DEST"
-[[ -n "$PROJECT_DEST" ]] && remove_links_pointing_at_repo "$PROJECT_DEST"
-remove_links_pointing_at_repo "$CODEX_DEST"
+remove_links_pointing_at_repo "$CODEX_PROMPTS_DEST"
+remove_links_pointing_at_repo "$CODEX_SKILLS_DEST"
+if [[ -n "$PROJECT_PATH" ]]; then
+  remove_links_pointing_at_repo "${PROJECT_PATH}/.claude/skills"
+  remove_links_pointing_at_repo "${PROJECT_PATH}/.agents/skills"
+fi
 
 log
 log "done."
