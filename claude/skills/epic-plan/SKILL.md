@@ -8,7 +8,7 @@ allowed-tools: Read Grep Glob Write Bash(git status:*) Bash(git log:*)
 
 # Epic Plan
 
-Bootstrap a new epic for this project by interviewing the operator through the epic's purpose, scope, constraints, and rough story roadmap — then write a clean `MASTER.md` skeleton to `agent_coordination/epics/<slug>/MASTER.md`. No stories are created here; `/epic-plan` only produces the coordination file that subsequent `/epic-story-plan` → `/epic-new-story` invocations append to.
+Bootstrap a new epic for this project by interviewing the operator through the epic's purpose, scope, constraints, and rough story roadmap — then write a clean `MASTER.md` skeleton to `agent_coordination/epics/<slug>/MASTER.md`. No stories are created here; `/epic-plan` only produces the coordination file that subsequent `/epic-story-plan` → `/epic-story-save` invocations append to.
 
 Argument: `$ARGUMENTS` — optional `[NAME="<slug>"]`. If provided, the interview uses it as the initial slug candidate and may still confirm or tweak it. If omitted, the very first interview question is "what should we call this epic?".
 

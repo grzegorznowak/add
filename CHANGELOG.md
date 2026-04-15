@@ -33,17 +33,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - `epic-story-plan` paired command (Claude Skill + Codex skill).
   Interview-driven draft of a new story plan for an existing epic.
   Produces a plan file in `~/.claude/plans/<epic>-<story-slug>.md`
-  matching the shape `/epic-new-story` consumes. Takes optional
+  matching the shape `/epic-story-save` consumes. Takes optional
   `[EPIC="<epic>"]`; if omitted, the skill lists available epics from
   `agent_coordination/epics/` and asks the operator to pick.
-- Menu pattern for operator-explicit commands. `/epic-new-story`,
+- Menu pattern for operator-explicit commands. `/epic-story-save`,
   `/epic-review`, `/epic-story-review`, and the new `/epic-story-plan`
   no longer error out when required args are missing — instead they
   list the available options (filtered to each command's eligible-
   status set) and ask the operator to pick. The operator is still
   always the one choosing — nothing is auto-inferred — so the anti-
   bias intent is preserved while the re-invocation friction is
-  removed. `/epic-new-story` also gets a menu fallback for the PLAN
+  removed. `/epic-story-save` also gets a menu fallback for the PLAN
   argument (5 most recent files in `~/.claude/plans/` by mtime).
 - Claude Code `/plugin` install path. Repo now ships a
   `.claude-plugin/plugin.json` manifest and a top-level `skills/`
@@ -65,7 +65,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   has a `SKILL.md` (with `name` / `description` / `legacy-argument-hint`
   frontmatter) and `agents/openai.yaml` (`allow_implicit_invocation:
   false`). Nine skills migrated from `codex/prompts/`: `epic_claim`,
-  `epic_new_story`, `epic_pr`, `epic_resume`, `epic_review`, `epic_squash`,
+  `epic_story_save`, `epic_pr`, `epic_resume`, `epic_review`, `epic_squash`,
   `epic_story_review`, `grillme`, `memorize`.
 - `scripts/regen-prompts.sh` generates the legacy `codex/prompts/<name>.md`
   files from the canonical `codex/skills/<name>/SKILL.md` files. `--check`
@@ -81,19 +81,19 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ### Changed
 - `docs/epic-conventions.md` argument table restructured around the new
   "arg or menu" pattern. The old "no — explicit by design" rows become
-  "operator-explicit (arg or menu)" rows for `/epic-new-story`,
+  "operator-explicit (arg or menu)" rows for `/epic-story-save`,
   `/epic-review`, `/epic-story-review`, plus the new `/epic-story-plan`.
   Commands that auto-infer from running context (`/epic-claim`,
   `/epic-resume`, `/epic-pr`, `/epic-squash`) are unchanged.
 - `README.md` lifecycle diagram redrawn with the planning chain
-  (`/epic-plan` → `/epic-story-plan` → `/epic-new-story`) stacked above
+  (`/epic-plan` → `/epic-story-plan` → `/epic-story-save`) stacked above
   `⚪ TODO`, and `/epic-story-review` + `/epic-review` promoted to
   discrete blocks with dashed-connector verdict paths.
   `🔄 IN PROG` and `🟣 IN REV` are now on the same horizontal row.
 - `docs/epic-lifecycle.md` gets a "Planning phase (pre-⚪ TODO)" section
-  describing the `/epic-plan` → `/epic-story-plan` → `/epic-new-story`
+  describing the `/epic-plan` → `/epic-story-plan` → `/epic-story-save`
   chain that feeds the first tracker row.
-- `/epic-new-story` edge-case forward reference updated from the
+- `/epic-story-save` edge-case forward reference updated from the
   aspirational `/epic-new` to the now-implemented `/epic-plan`.
 - `codex/skills/<name>/SKILL.md` is now the single source of truth for
   Codex commands. The legacy `codex/prompts/<name>.md` files are
@@ -140,7 +140,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - 6 epic_* commands authored as Claude Skills (`claude/skills/<name>/SKILL.md`)
   and as Codex prompts (`codex/prompts/<name>.md`):
   `epic-claim`, `epic-resume`, `epic-review`, `epic-pr`, `epic-squash`,
-  `epic-new-story`.
+  `epic-story-save`.
 - `grillme` utility command in both Claude and Codex form.
 - `memorize` Codex-only utility prompt.
 - `scripts/install.sh` — idempotent symlink installer for both Claude Skills

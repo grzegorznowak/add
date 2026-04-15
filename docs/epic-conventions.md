@@ -74,16 +74,16 @@ read or write.
 Status: `todo`
 
 > **Plan source**: `<plan path>` (mtime `<plan mtime ISO>`)
-> Story scaffolded by `/epic-new-story` from the plan above.
+> Story scaffolded by `/epic-story-save` from the plan above.
 ```
 
 `Status:` is the file's local copy of the tracker status. It can drift
 from `MASTER.md` and `/epic-squash` will reconcile.
 
-### Spec sections (created by `/epic-new-story`)
+### Spec sections (created by `/epic-story-save`)
 
 These are the planning surfaces. They are written once at story creation
-time by `/epic-new-story` from a Claude Code plan, and they are read by
+time by `/epic-story-save` from a Claude Code plan, and they are read by
 every other command.
 
 | Section | Purpose |
@@ -103,7 +103,7 @@ every other command.
 ### Runtime sections (created by `/epic-claim`, `/epic-resume`, `/epic-review`, `/epic-pr`)
 
 These are written by the runtime commands as work progresses. They must
-**never** be seeded by `/epic-new-story` — they are owned by the flows
+**never** be seeded by `/epic-story-save` — they are owned by the flows
 that create them.
 
 #### `## Active Claim`
@@ -181,7 +181,7 @@ Append-only entries written by `/epic-review`.
 
 Append-only entries written **only** by `/epic-story-review`. Parallel in
 shape to `## Review Log` but records plan-quality verdicts made at
-`⚪ TODO`, before implementation begins. Never seeded by `/epic-new-story`;
+`⚪ TODO`, before implementation begins. Never seeded by `/epic-story-save`;
 never touched by any other command. Each re-run of `/epic-story-review`
 after operator edits appends a new entry — the log is the story's plan
 revision history.
@@ -256,7 +256,7 @@ epic/story arguments. Two strategies exist:
   These operate on whatever is already active; guessing the context is
   the whole point.
 - **Operator-explicit (arg or menu)** — for commands that *create* or
-  *review* (`/epic-plan`, `/epic-story-plan`, `/epic-new-story`,
+  *review* (`/epic-plan`, `/epic-story-plan`, `/epic-story-save`,
   `/epic-review`, `/epic-story-review`). These never auto-infer. The
   operator must make the decision — either by passing the arg or by
   picking from a filtered menu the skill shows when the arg is absent.
@@ -268,7 +268,7 @@ epic/story arguments. Two strategies exist:
 |---|---|---|---|
 | `/epic-plan` | operator-explicit (optional NAME arg) | n/a — creates a new epic | If `NAME` is omitted, the interview asks for the slug. Never overwrites an existing epic. |
 | `/epic-story-plan` | operator-explicit (arg or menu) | any epic with a `MASTER.md` | EPIC menu lists all epics under `agent_coordination/epics/`. Never edits `MASTER.md` or story files. |
-| `/epic-new-story` | operator-explicit (arg or menu) | any epic with a `MASTER.md`; PLAN menu is 5 most recent files in `~/.claude/plans/` | Both EPIC and PLAN have menu fallbacks. Creating a story is a decision that should never be guessed. |
+| `/epic-story-save` | operator-explicit (arg or menu) | any epic with a `MASTER.md`; PLAN menu is 5 most recent files in `~/.claude/plans/` | Both EPIC and PLAN have menu fallbacks. Creating a story is a decision that should never be guessed. |
 | `/epic-review` | operator-explicit (arg or menu) | `🟣 IN REVIEW` | Review must come from a fresh, independent perspective. The menu lists only stories at `🟣 IN REVIEW`. |
 | `/epic-story-review` | operator-explicit (arg or menu) | `⚪ TODO` | Plan review must come from a fresh, independent perspective. The menu lists only stories at `⚪ TODO`. |
 | `/epic-claim` | auto-inferred (running context) | `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference. |
@@ -320,7 +320,7 @@ epic/story arguments. Two strategies exist:
 - Touch product code from `/epic-pr` or `/epic-squash` (except optional
   per-fix approval in `/epic-squash` Phase 6, and the optional `gh pr
   create` call in `/epic-pr` open mode)
-- Modify the plan file that `/epic-new-story` consumed
+- Modify the plan file that `/epic-story-save` consumed
 - Mark a story `✅ DONE` while its PR is open
 - Archive a `🔵 IN PR` story
 - Auto-infer arguments for any command in the "operator-explicit (arg or
@@ -330,7 +330,7 @@ epic/story arguments. Two strategies exist:
 - Overwrite an existing `MASTER.md` from `/epic-plan`. The epic directory
   must not already exist; collisions abort fast.
 - Edit `MASTER.md` or any story file from `/epic-story-plan`. It writes
-  only a plan file to `~/.claude/plans/` for `/epic-new-story` to
+  only a plan file to `~/.claude/plans/` for `/epic-story-save` to
   consume.
 - Delete or silently relocate an existing linked worktree from
   `/epic-claim`, `/epic-resume`, or `/epic-review`. The `Worktree:`

@@ -112,7 +112,7 @@ of these hold:
   `⚪ TODO` — say "this story is past plan review; use `epic_review`
   instead"
 - the story file has no `> **Plan source**:` header line — say "story was
-  not scaffolded by `epic_new_story`; plan review assumes that shape"
+  not scaffolded by `epic_story_save`; plan review assumes that shape"
 - the story file is missing `## Purpose` or `## Acceptance` — say which
   section is missing
 - any runtime section already exists on the story file (`## Active Claim`,
@@ -190,7 +190,7 @@ Before approving, verify every item:
 13. **`Implementation Notes` are internally consistent** with `## Acceptance`
     and `## Scope` (the plan's own self-consistency).
 14. **No `<TODO: missing from plan — ...>` placeholders** left by
-    `epic_new_story`. If any remain, verdict is at minimum `request_changes`.
+    `epic_story_save`. If any remain, verdict is at minimum `request_changes`.
 
 ## Status transitions
 
@@ -202,7 +202,7 @@ this review, but only within a narrow policy:
 - `request_changes` → leave status at `⚪ TODO`. Tell the operator to edit
   the specific spec sections you named in the findings and re-run
   `epic_story_review` from a fresh session. For a ground-up rewrite,
-  recommend deleting the story file and re-running `epic_new_story`.
+  recommend deleting the story file and re-running `epic_story_save`.
 - `blocked` → move to `⛔ BLOCKED` in both `MASTER.md` and the story file's
   `Status:` header. Use this only when the plan is unsalvageable as written
   and the operator needs to pause on this story (e.g., the plan depends on

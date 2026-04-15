@@ -1,20 +1,21 @@
 ---
-name: epic_new_story
+name: epic_story_save
 description: Append a new story row to an epic's MASTER.md tracker AND create a properly-scaffolded story file from a plan, preserving all research findings (code smells, file references, decisions) so implementation does not have to re-discover them.
 legacy-argument-hint: 'EPIC="<epic_name>" [PLAN="<path>"] [TITLE="<override>"] [DEPENDS="<list>"] [SLUG="<kebab>"]'
 ---
 
-This skill was migrated one-to-one from the former custom prompt `epic_new_story.md`.
-Invoke it explicitly with `$epic_new_story`.
+This skill was migrated one-to-one from the former custom prompt `epic_story_save.md`.
+Invoke it explicitly with `$epic_story_save`.
 
 Original argument hint: `EPIC="<epic_name>" [PLAN="<path>"] [TITLE="<override>"] [DEPENDS="<list>"] [SLUG="<kebab>"]`
 
 If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
-New Story: $EPIC
+Story Save: $EPIC
 
-Create a new story in `$EPIC` by mapping a plan into the epic's story-file
-conventions, preserving every research finding from the plan with high fidelity.
+Save a drafted plan as a new story in `$EPIC` by mapping the plan into the
+epic's story-file conventions, preserving every research finding from the
+plan with high fidelity.
 
 Treat `$EPIC` as the exact directory name of an epic under the agent's current
 working directory at:
@@ -182,7 +183,7 @@ Build the story file. Required header:
 Status: `todo`
 
 > **Plan source**: `<plan path>` (mtime `<plan mtime ISO>`)
-> Story scaffolded by `epic_new_story` from the plan above. Do not lose the discovery
+> Story scaffolded by `epic_story_save` from the plan above. Do not lose the discovery
 > notes recorded here — they exist so implementation does not have to re-research what
 > the plan already established.
 ```
@@ -253,7 +254,7 @@ State:
 Status: `todo`
 
 > **Plan source**: `<plan path>` (mtime `<plan mtime ISO>`)
-> Story scaffolded by `epic_new_story` from the plan above. Do not lose the discovery
+> Story scaffolded by `epic_story_save` from the plan above. Do not lose the discovery
 > notes recorded here — they exist so implementation does not have to re-research what
 > the plan already established.
 

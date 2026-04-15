@@ -1,6 +1,6 @@
 ---
 name: epic-story-plan
-description: Interview-driven draft of a new story plan for an existing epic — produces a plan file in ~/.claude/plans/ matching the shape /epic-new-story consumes. Use when you want to add a new story to an epic but don't yet have a plan file to feed into /epic-new-story.
+description: Interview-driven draft of a new story plan for an existing epic — produces a plan file in ~/.claude/plans/ matching the shape /epic-story-save consumes. Use when you want to add a new story to an epic but don't yet have a plan file to feed into /epic-story-save.
 disable-model-invocation: true
 argument-hint: '[EPIC="<epic_name>"]'
 allowed-tools: Read Grep Glob Write Bash(git status:*) Bash(git log:*)
@@ -8,7 +8,7 @@ allowed-tools: Read Grep Glob Write Bash(git status:*) Bash(git log:*)
 
 # Epic Story Plan
 
-Draft a new story plan for an existing epic by interviewing the operator through the spec sections `/epic-new-story` consumes (`Purpose`, `Triggering Need`, `Expected Prerequisites`, `Scope`, `Out of Scope`, `Acceptance`, `Verification`, `Discovery Notes`, `Critical Files`, `Implementation Notes`, `Locked Decisions`). The output is a plan file at `~/.claude/plans/<epic>-<story-slug>.md` that the operator then feeds into `/epic-new-story EPIC=<epic>` to produce the actual story file and tracker row.
+Draft a new story plan for an existing epic by interviewing the operator through the spec sections `/epic-story-save` consumes (`Purpose`, `Triggering Need`, `Expected Prerequisites`, `Scope`, `Out of Scope`, `Acceptance`, `Verification`, `Discovery Notes`, `Critical Files`, `Implementation Notes`, `Locked Decisions`). The output is a plan file at `~/.claude/plans/<epic>-<story-slug>.md` that the operator then feeds into `/epic-story-save EPIC=<epic>` to produce the actual story file and tracker row.
 
 Argument: `$ARGUMENTS` — optional `[EPIC="<epic_name>"]`. If provided, the skill resolves that epic directly. If omitted, the skill lists the available epics under `<cwd>/agent_coordination/epics/` and asks the operator to pick one.
 
@@ -21,7 +21,7 @@ This command writes exactly one file: `~/.claude/plans/<epic>-<story-slug>.md`, 
 - the `agent_coordination/` directory at all
 - plan files other than the one it is writing
 
-`MASTER.md` updates and story-file scaffolding are the job of `/epic-new-story`, which consumes the plan this command produces. Keep the concerns separate.
+`MASTER.md` updates and story-file scaffolding are the job of `/epic-story-save`, which consumes the plan this command produces. Keep the concerns separate.
 
 ## Why operator-explicit (arg or menu) selection
 
@@ -77,7 +77,7 @@ Walk the operator through each of the questions below in order. For every questi
 
 ### Question 1 — Story slug and one-line title
 
-Ask the operator for the story's short hyphenated slug (e.g. `refresh-token-issuance`) and a one-line human title. Probe `MASTER.md` for the highest existing `Step` number and report "next free Step would be `NN`" — but do not claim that number. Numbering is `/epic-new-story`'s job; this command only produces the plan file.
+Ask the operator for the story's short hyphenated slug (e.g. `refresh-token-issuance`) and a one-line human title. Probe `MASTER.md` for the highest existing `Step` number and report "next free Step would be `NN`" — but do not claim that number. Numbering is `/epic-story-save`'s job; this command only produces the plan file.
 
 ### Question 2 — Purpose
 
@@ -149,7 +149,7 @@ Re-use the grep output from Q8 to populate Discovery Notes with paths and names 
 
 ## Draft plan file
 
-Assemble the plan file body with section names matching `docs/epic-conventions.md` story-file section names **verbatim**. This gives `/epic-new-story`'s Phase 3 parser an exact-match path through its mapping table (no fuzzy matching required):
+Assemble the plan file body with section names matching `docs/epic-conventions.md` story-file section names **verbatim**. This gives `/epic-story-save`'s Phase 3 parser an exact-match path through its mapping table (no fuzzy matching required):
 
 ```md
 # <human title from Q1>
@@ -197,7 +197,7 @@ Show the operator:
 - Target path: `~/.claude/plans/<epic>-<story-slug>.md`
 - The full drafted plan file content
 - Section list with a note next to each indicating whether it came from a real answer, a `skip` default, or a `draft now` placeholder
-- Next-step reminder: "after confirming, the next command is `/epic-new-story EPIC=<epic>` to scaffold the story file and tracker row"
+- Next-step reminder: "after confirming, the next command is `/epic-story-save EPIC=<epic>` to scaffold the story file and tracker row"
 
 **CHECKPOINT**: explicit y/n before proceeding. If the operator rejects, return to the interview loop at the question they want to revisit. If they accept, continue to the write step.
 
@@ -215,7 +215,7 @@ State clearly:
 
 - Path of the written plan file
 - Epic slug and story title
-- Exact next command to run: `/epic-new-story EPIC=<epic>`
-- Note that the operator can review or edit the plan file before running `/epic-new-story`, and that `/epic-new-story` will pick it up from `~/.claude/plans/` by mtime if no `PLAN` arg is passed.
+- Exact next command to run: `/epic-story-save EPIC=<epic>`
+- Note that the operator can review or edit the plan file before running `/epic-story-save`, and that `/epic-story-save` will pick it up from `~/.claude/plans/` by mtime if no `PLAN` arg is passed.
 
 Keep it short — three or four sentences is enough.

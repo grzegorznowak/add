@@ -3,10 +3,11 @@ description: Append a new story row to an epic's MASTER.md tracker AND create a 
 argument-hint: EPIC="<epic_name>" [PLAN="<path>"] [TITLE="<override>"] [DEPENDS="<list>"] [SLUG="<kebab>"]
 ---
 
-New Story: $EPIC
+Story Save: $EPIC
 
-Create a new story in `$EPIC` by mapping a plan into the epic's story-file
-conventions, preserving every research finding from the plan with high fidelity.
+Save a drafted plan as a new story in `$EPIC` by mapping the plan into the
+epic's story-file conventions, preserving every research finding from the
+plan with high fidelity.
 
 Treat `$EPIC` as the exact directory name of an epic under the agent's current
 working directory at:
@@ -174,7 +175,7 @@ Build the story file. Required header:
 Status: `todo`
 
 > **Plan source**: `<plan path>` (mtime `<plan mtime ISO>`)
-> Story scaffolded by `epic_new_story` from the plan above. Do not lose the discovery
+> Story scaffolded by `epic_story_save` from the plan above. Do not lose the discovery
 > notes recorded here — they exist so implementation does not have to re-research what
 > the plan already established.
 ```
@@ -245,7 +246,7 @@ State:
 Status: `todo`
 
 > **Plan source**: `<plan path>` (mtime `<plan mtime ISO>`)
-> Story scaffolded by `epic_new_story` from the plan above. Do not lose the discovery
+> Story scaffolded by `epic_story_save` from the plan above. Do not lose the discovery
 > notes recorded here — they exist so implementation does not have to re-research what
 > the plan already established.
 

@@ -1,12 +1,12 @@
 ---
-name: epic-new-story
+name: epic-story-save
 description: Append a new story row to an epic's MASTER.md tracker AND create a properly-scaffolded story file from a plan, preserving all research findings (code smells, file references, decisions) so implementation does not have to re-discover them.
 disable-model-invocation: true
 argument-hint: "EPIC=<name> [PLAN=<path>] [TITLE=<override>] [DEPENDS=<list>] [SLUG=<kebab>]"
 allowed-tools: Read Edit Write Grep Glob
 ---
 
-# Epic New Story
+# Epic Story Save
 
 Create a new story in an epic by mapping a Claude Code plan into the epic's story-file conventions, preserving every research finding from the plan with high fidelity.
 
@@ -119,7 +119,7 @@ Build the story file. Required header:
 Status: `todo`
 
 > **Plan source**: `<plan path>` (mtime `<plan mtime ISO>`)
-> Story scaffolded by `/epic-new-story` from the plan above. Do not lose the discovery
+> Story scaffolded by `/epic-story-save` from the plan above. Do not lose the discovery
 > notes recorded here — they exist so implementation does not have to re-research what
 > the plan already established.
 ```
@@ -178,7 +178,7 @@ State:
 Status: `todo`
 
 > **Plan source**: `<plan path>` (mtime `<plan mtime ISO>`)
-> Story scaffolded by `/epic-new-story` from the plan above. Do not lose the discovery
+> Story scaffolded by `/epic-story-save` from the plan above. Do not lose the discovery
 > notes recorded here — they exist so implementation does not have to re-research what
 > the plan already established.
 

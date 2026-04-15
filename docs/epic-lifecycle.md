@@ -19,7 +19,7 @@ planning chain:
    `~/.claude/plans/<epic>-<story-slug>.md`. Never touches the epic
    directory or any tracker row. The operator can review and edit the
    plan file before advancing.
-3. **`/epic-new-story EPIC=<slug>`** — once per story. Consumes the plan
+3. **`/epic-story-save EPIC=<slug>`** — once per story. Consumes the plan
    file, writes `story-NN-<slug>.md`, and appends a `⚪ TODO` row to
    `MASTER.md`. This is the transition into the state machine below.
 

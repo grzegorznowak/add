@@ -13,7 +13,7 @@ If the user supplies text alongside the explicit skill invocation, treat that te
 
 # Epic Plan: $NAME
 
-Bootstrap a new epic for this project by interviewing the operator through the epic's purpose, scope, constraints, and rough story roadmap — then write a clean `MASTER.md` skeleton to `agent_coordination/epics/<slug>/MASTER.md`. No stories are created here; `$epic_plan` only produces the coordination file that subsequent `$epic_story_plan` → `$epic_new_story` invocations append to.
+Bootstrap a new epic for this project by interviewing the operator through the epic's purpose, scope, constraints, and rough story roadmap — then write a clean `MASTER.md` skeleton to `agent_coordination/epics/<slug>/MASTER.md`. No stories are created here; `$epic_plan` only produces the coordination file that subsequent `$epic_story_plan` → `$epic_story_save` invocations append to.
 
 Treat `$NAME` as an optional slug hint. If present, use it as the initial slug candidate and still confirm the human title during the interview. If absent, the very first interview question is "what should we call this epic?".
 

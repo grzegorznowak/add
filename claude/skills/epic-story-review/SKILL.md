@@ -1,6 +1,6 @@
 ---
 name: epic-story-review
-description: Review the plan for a ⚪ TODO story before implementation begins — validate Purpose / Acceptance / Verification / Critical Files / Locked Decisions against the live repo and record a Plan Review verdict. Use when a story has been scaffolded by /epic-new-story and you want a fresh-session sanity check before /epic-claim.
+description: Review the plan for a ⚪ TODO story before implementation begins — validate Purpose / Acceptance / Verification / Critical Files / Locked Decisions against the live repo and record a Plan Review verdict. Use when a story has been scaffolded by /epic-story-save and you want a fresh-session sanity check before /epic-claim.
 disable-model-invocation: true
 argument-hint: "<epic-name> <story-number-or-spec-file>"
 allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git log:*)
@@ -60,7 +60,7 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
 Before doing the full plan review, abort fast with a concise reason if any of these hold:
 
 - the story's status in `MASTER.md` (or its `Status:` header line) is not `⚪ TODO` — say "this story is past plan review; use `/epic-review` instead"
-- the story file has no `> **Plan source**:` header line — say "story was not scaffolded by `/epic-new-story`; plan review assumes that shape"
+- the story file has no `> **Plan source**:` header line — say "story was not scaffolded by `/epic-story-save`; plan review assumes that shape"
 - the story file is missing `## Purpose` or `## Acceptance` — say which section is missing
 - any runtime section already exists on the story file (`## Active Claim`, `## Progress Log`, `## Session Handoff`, `## Review Log`, `## PR Tracking`) — say "story has already been claimed or reviewed; plan review runs before implementation begins"
 
@@ -101,14 +101,14 @@ Before approving, verify every item:
 11. **`Locked Decisions` don't contradict `AGENTS.md` or established patterns.** Read `AGENTS.md` and spot-check each decision.
 12. **No hidden gotchas in `Critical Files`.** Skim each Critical File for things the plan didn't mention but should have: migrations, public APIs, existing tests that would break, cross-module coupling.
 13. **`Implementation Notes` are internally consistent** with `## Acceptance` and `## Scope` (the plan's own self-consistency).
-14. **No `<TODO: missing from plan — ...>` placeholders** left by `/epic-new-story`. If any remain, verdict is at minimum `request_changes`.
+14. **No `<TODO: missing from plan — ...>` placeholders** left by `/epic-story-save`. If any remain, verdict is at minimum `request_changes`.
 
 ## Status transitions
 
 You may update `MASTER.md` and the story file's `Status:` header as part of this review, but only within a narrow policy:
 
 - `approve` → leave status at `⚪ TODO`. Tell the operator the next action is `/epic-claim <epic>` from a fresh session.
-- `request_changes` → leave status at `⚪ TODO`. Tell the operator to edit the specific spec sections you named in the findings and re-run `/epic-story-review <epic> <story>` from a fresh session. For a ground-up rewrite, recommend deleting the story file and re-running `/epic-new-story`.
+- `request_changes` → leave status at `⚪ TODO`. Tell the operator to edit the specific spec sections you named in the findings and re-run `/epic-story-review <epic> <story>` from a fresh session. For a ground-up rewrite, recommend deleting the story file and re-running `/epic-story-save`.
 - `blocked` → move to `⛔ BLOCKED` in both `MASTER.md` and the story file's `Status:` header. Use this only when the plan is unsalvageable as written and the operator needs to pause on this story (e.g., the plan depends on an upstream story that does not exist, or a `## Locked Decision` directly contradicts the architecture and the plan cannot be minimally amended).
 - `not_reviewable` → leave status at `⚪ TODO`. Say what context is missing (e.g., `AGENTS.md` unreadable, dependency story files missing) and recommend how to unblock.
 
