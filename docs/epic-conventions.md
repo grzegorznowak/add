@@ -163,6 +163,26 @@ Append-only entries written by `/epic-review`.
   - Next action: <one concrete recommendation>
 ```
 
+#### `## Plan Review Log`
+
+Append-only entries written **only** by `/epic-story-review`. Parallel in
+shape to `## Review Log` but records plan-quality verdicts made at
+`⚪ TODO`, before implementation begins. Never seeded by `/epic-new-story`;
+never touched by any other command. Each re-run of `/epic-story-review`
+after operator edits appends a new entry — the log is the story's plan
+revision history.
+
+```md
+## Plan Review Log
+- 2026-04-15T09:30:00Z Plan review run by Claude fresh session
+  - Verdict: approve | request_changes | blocked | not_reviewable
+  - Status transition: ⚪ TODO -> ⚪ TODO
+  - Sections reviewed: Purpose, Acceptance, Verification, Critical Files, Locked Decisions, Discovery Notes, Expected Prerequisites, Scope
+  - Key findings:
+    - <short bullet>
+  - Next action: <one concrete recommendation — typically "/epic-claim <epic>" or "edit <sections> and re-run">
+```
+
 #### `## PR Tracking`
 
 Written by `/epic-pr` only. There is exactly one `PR Tracking` section per
@@ -224,6 +244,7 @@ table.
 | `/epic-claim` | yes (single active) | yes (first ready unclaimed) | `⚪ TODO` | Standard "single-context" inference. |
 | `/epic-resume` | yes (single active) | yes (single in-progress, or in-pr `changes_requested`) | `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
 | `/epic-review` | **no — explicit by design** | **no — explicit by design** | n/a | Required args are intentional friction. They force a context-switch into a fresh reviewer session, which is the entire point of separating implementer from reviewer. Do not "fix". |
+| `/epic-story-review` | **no — explicit by design** | **no — explicit by design** | `⚪ TODO` | Same forcing function as `/epic-review`, applied one phase earlier: a fresh session must scrutinize the plan, not the one that wrote it. Do not "fix". |
 | `/epic-pr` | yes (single active) | yes (single eligible) | `🟣 IN REVIEW`, `🔵 IN PR` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode after operator confirmation. |
 | `/epic-squash` | yes (single active) | n/a (operates on every `✅ DONE` row) | `✅ DONE` | The "story" axis doesn't apply — the command consumes every done story in one pass. |
 | `/epic-new-story` | no — explicit by design | n/a (creates) | n/a | Creating a new story should never be guessed. The operator must name the epic explicitly. |
@@ -252,13 +273,14 @@ inference to those commands must be rejected.
 ## What the commands will NOT do
 
 - Rename or renumber existing stories
-- Delete `Progress Log`, `Active Claim`, `Session Handoff`, or `Review Log`
-  entries
+- Delete `Progress Log`, `Active Claim`, `Session Handoff`, `Review Log`,
+  or `Plan Review Log` entries
 - Touch product code from `/epic-pr` or `/epic-squash` (except optional
   per-fix approval in `/epic-squash` Phase 6, and the optional `gh pr
   create` call in `/epic-pr` open mode)
 - Modify the plan file that `/epic-new-story` consumed
 - Mark a story `✅ DONE` while its PR is open
 - Archive a `🔵 IN PR` story
-- Auto-infer arguments for `/epic-review` or `/epic-new-story` (see the
-  "Argument inference rules" table above for the deliberate exceptions)
+- Auto-infer arguments for `/epic-review`, `/epic-story-review`, or
+  `/epic-new-story` (see the "Argument inference rules" table above for
+  the deliberate exceptions)

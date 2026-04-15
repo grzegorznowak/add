@@ -7,11 +7,12 @@ with one command.
 
 ## What this gives you
 
-Six coordinated workflow commands plus two small utilities:
+Seven coordinated workflow commands plus two small utilities:
 
 | Command | What it does |
 |---|---|
 | `/epic-new-story` | Scaffold a new story file from the current Claude Code plan, preserving every research finding so implementation does not have to re-discover it. |
+| `/epic-story-review` | Read-only review of a `⚪ TODO` story's plan (Purpose / Acceptance / Critical Files / Locked Decisions) against the live repo, before `/epic-claim`. Records the verdict into the coordination file. |
 | `/epic-claim` | Pick one ready, unclaimed story from an epic, claim it, execute it end-to-end, and leave a clean handoff for the next session. |
 | `/epic-resume` | Resume one already-in-progress story (or one whose PR has requested changes). |
 | `/epic-review` | Read-only review of one story's implementation against its spec. Records the verdict back into the coordination file. |
@@ -73,7 +74,7 @@ yourself is left untouched.
 ## Lifecycle (one diagram)
 
 ```
-                         ┌─────────────┐
+                         ┌─────────────┐  ◀─── /epic-story-review (optional, logs verdict)
                          │   ⚪ TODO    │
                          └──────┬──────┘
                                 │ /epic-claim

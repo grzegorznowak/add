@@ -5,6 +5,18 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- `epic-story-review` paired command (Claude Skill + Codex prompt). Runs at
+  `⚪ TODO` — before `/epic-claim` — to validate a story's plan against the
+  live repo: Purpose / Acceptance / Verification / Critical Files / Locked
+  Decisions. Records verdict in a new `## Plan Review Log` section on the
+  story file. Opt-in; `/epic-claim` is unchanged.
+- `## Plan Review Log` runtime section documented in
+  `docs/epic-conventions.md`, owned exclusively by `/epic-story-review`.
+- `docs/epic-lifecycle.md` clarifies that `⛔ BLOCKED` may be entered when
+  `/epic-story-review` determines a plan is not implementable as specified,
+  and adds an authority-table column for the new command.
+
 ### Changed
 - `epic-pr` now infers the active epic and story when invoked without
   arguments, matching the behavior of `epic-claim` / `epic-resume` /

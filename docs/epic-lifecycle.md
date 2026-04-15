@@ -14,7 +14,7 @@ here disagree, **this document wins** — open a PR to fix the command.
 | `🟣 IN REVIEW` | Implementation is done enough to review. Local review may still find issues. |
 | `🔵 IN PR` | **Optional.** Local review passed and the changes are in a GitHub PR awaiting remote review and merge. Skip this stage entirely if a story does not need a PR. |
 | `✅ DONE` | Implementation and review are both complete. If a PR stage was used, the PR is merged. |
-| `⛔ BLOCKED` | An external blocker prevents progress. The story definition is unchanged and work resumes once the blocker clears. |
+| `⛔ BLOCKED` | An external blocker prevents progress, or `/epic-story-review` has determined the plan is not implementable as specified. The story definition may be revised and work resumes once the blocker clears. |
 
 `⛔ BLOCKED` is a side state. It can be entered from any of the active
 statuses and exited back to whichever was correct when work resumes.
@@ -22,7 +22,7 @@ statuses and exited back to whichever was correct when work resumes.
 ## State diagram
 
 ```
-                         ┌─────────────┐
+                         ┌─────────────┐  ◀─── /epic-story-review (optional, logs verdict)
                          │   ⚪ TODO    │
                          └──────┬──────┘
                                 │ /epic-claim
@@ -63,17 +63,18 @@ Each command has a defined window of which transitions it is allowed to
 make. Sticking to these windows prevents two commands from racing on the
 same row.
 
-| From → To | `/epic-claim` | `/epic-resume` | `/epic-review` | `/epic-pr` | `/epic-squash` |
-|---|---|---|---|---|---|
-| `⚪ TODO` → `🔄 IN PROGRESS` | ✅ | — | — | — | — |
-| `🔄 IN PROGRESS` → `🟣 IN REVIEW` | ✅ | ✅ | ✅ | — | — |
-| `🟣 IN REVIEW` → `✅ DONE` (no PR stage) | — | ✅ | ✅ | — | — |
-| `🟣 IN REVIEW` → `🔵 IN PR` | — | — | — | ✅ | — |
-| `🔵 IN PR` → `🔄 IN PROGRESS` (changes requested) | — | — | — | ✅ | — |
-| `🔵 IN PR` → `✅ DONE` (PR merged) | — | — | — | ✅ | — |
-| `🔵 IN PR` → `🔵 IN PR` (refresh) | — | — | — | ✅ | — |
-| `*` → `⛔ BLOCKED` | ✅ | ✅ | ✅ | — | — |
-| `✅ DONE` → archived | — | — | — | — | ✅ |
+| From → To | `/epic-claim` | `/epic-resume` | `/epic-story-review` | `/epic-review` | `/epic-pr` | `/epic-squash` |
+|---|---|---|---|---|---|---|
+| `⚪ TODO` → `⚪ TODO` (plan review logged) | — | — | ✅ | — | — | — |
+| `⚪ TODO` → `🔄 IN PROGRESS` | ✅ | — | — | — | — | — |
+| `🔄 IN PROGRESS` → `🟣 IN REVIEW` | ✅ | ✅ | — | ✅ | — | — |
+| `🟣 IN REVIEW` → `✅ DONE` (no PR stage) | — | ✅ | — | ✅ | — | — |
+| `🟣 IN REVIEW` → `🔵 IN PR` | — | — | — | — | ✅ | — |
+| `🔵 IN PR` → `🔄 IN PROGRESS` (changes requested) | — | — | — | — | ✅ | — |
+| `🔵 IN PR` → `✅ DONE` (PR merged) | — | — | — | — | ✅ | — |
+| `🔵 IN PR` → `🔵 IN PR` (refresh) | — | — | — | — | ✅ | — |
+| `*` → `⛔ BLOCKED` | ✅ | ✅ | ✅ | ✅ | — | — |
+| `✅ DONE` → archived | — | — | — | — | — | ✅ |
 
 `/epic-squash` does not transition statuses; it archives stories whose status
 is already `✅ DONE` and folds their contract terms into the merged
@@ -93,6 +94,10 @@ is already `✅ DONE` and folds their contract terms into the merged
    failure mode.** `/epic-squash` flags it as part of Phase 1.
 5. **`MASTER.md` is the lookup table.** Story file headers are advisory; if
    the two disagree, `MASTER.md` wins until `/epic-squash` reconciles them.
+6. **`/epic-story-review` never advances a story.** Its only allowed
+   transitions are `⚪ TODO` → `⚪ TODO` (logged review) and
+   `⚪ TODO` → `⛔ BLOCKED` (unsalvageable plan). It must never move a
+   story into `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR`, or `✅ DONE`.
 
 ## The Legend block
 
