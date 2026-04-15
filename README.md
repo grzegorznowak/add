@@ -28,6 +28,18 @@ and [`docs/epic-conventions.md`](docs/epic-conventions.md).
 
 ## Install
 
+There are two installation paths, and they coexist cleanly:
+
+1. **Claude Code plugin** — for users who only want the Claude side and
+   prefer the first-party `/plugin` flow. See
+   [Plugin install](#plugin-install-claude-code-only) below.
+2. **Paired installer** — the custom shell script in this repo. Installs
+   both the Claude skills and the Codex skills (legacy or new format) in
+   one pass, user-level or project-level. Required if you want the Codex
+   side.
+
+### Paired installer (Claude + Codex)
+
 ```bash
 git clone https://github.com/grzegorznowak/add.git ~/.local/share/add
 ~/.local/share/add/scripts/install.sh
@@ -89,6 +101,26 @@ Drop this into `.devcontainer/devcontainer.json`:
 ```
 
 Every fresh devcontainer comes up with the full epic flow installed.
+
+### Plugin install (Claude Code only)
+
+If you only use Claude Code and don't need the Codex side, you can
+install via the first-party plugin flow. The repo ships a minimal
+`.claude-plugin/plugin.json` manifest plus a `skills/` symlink pointing
+at `claude/skills/`, so Claude Code's plugin loader discovers all the
+skills at their expected `skills/<name>/SKILL.md` location.
+
+```bash
+/plugin install grzegorznowak/add@github
+```
+
+(Exact invocation depends on the marketplace / loader you use. For
+local development, point Claude Code at a checkout of this repo.)
+
+The Codex prompts and Codex skills are **not** installed by the plugin
+path — that's paired-installer-only. Mix freely: use `/plugin` for the
+Claude side and `scripts/install.sh --agents codex` for the Codex side
+if that split matches your workflow.
 
 ## Updating
 

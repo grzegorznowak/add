@@ -6,6 +6,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- Claude Code `/plugin` install path. Repo now ships a
+  `.claude-plugin/plugin.json` manifest and a top-level `skills/`
+  symlink pointing at `claude/skills/`, so Claude Code's plugin loader
+  discovers the skills at their expected `skills/<name>/SKILL.md`
+  location. Coexists with `scripts/install.sh`; the plugin path is
+  Claude-only and the paired installer is still required for Codex.
 - `epic-story-review` paired command (Claude Skill + Codex skill). Runs at
   `⚪ TODO` — before `/epic-claim` — to validate a story's plan against the
   live repo: Purpose / Acceptance / Verification / Critical Files / Locked
