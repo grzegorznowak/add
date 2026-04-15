@@ -10,7 +10,7 @@ allowed-tools: Read Edit Write Grep Glob Bash
 
 Continue exactly one already-ongoing epic step, following the existing handoff / review guidance, and leave the coordination docs in a state the next fresh session can trust.
 
-Argument: `$ARGUMENTS` — `<epic_name> [<story_number_or_spec_file>]`. The epic name is required. The story selector is optional; when omitted and there is exactly one in-progress step, it is selected automatically.
+Argument: `$ARGUMENTS` — `<epic_name> [<story_number_or_spec_file>] [WORKTREE="<path>"]`. The epic name is required. The story selector is optional; when omitted and there is exactly one in-progress step, it is selected automatically. `WORKTREE="<path>"` is an optional opt-in that overrides the preflight's default decision (see `## Worktree preflight`). When absent, the preflight auto-reads any `Worktree:` bullet recorded in the story's `## Active Claim`.
 
 Do **not** claim a new step. Do **not** rediscover or redefine the epic from scratch.
 
@@ -24,10 +24,13 @@ Do **not** claim a new step. Do **not** rediscover or redefine the epic from scr
 
 ## Resolution
 
-1. Parse `$ARGUMENTS` as `<epic> [<story>]`
-2. Resolve the epic directory as `<cwd>/agent_coordination/epics/<epic>`
-3. If that directory does not exist, stop and report the exact missing path
-4. Read first:
+1. Parse `$ARGUMENTS`:
+   - `<epic-name>`: required, the first positional token
+   - `<story>`: optional, the second positional token (story number or spec file)
+   - `<explicit_wt_path>`: optional, from `WORKTREE="<path>"` if present
+2. Resolve `<epic>` = `<cwd>/agent_coordination/epics/<epic-name>`. This is the **initial** anchor; the `## Worktree preflight` section may re-anchor `<epic>` to a worktree path after the Active Claim is read.
+3. If `<epic>` does not exist, stop and report the exact missing path.
+4. Read first (from `<cwd>` at this point):
    - the main repo `AGENTS.md` for the repo you will touch
    - `<epic>/MASTER.md`
 
@@ -64,6 +67,76 @@ After the step is resolved, read:
 
 If the step is `🔵 IN PR` and the PR is requesting code changes, treat the PR review comments as the authoritative CTA for this continuation and move the step back to `🔄 IN PROGRESS` for the duration of the session.
 
+## Worktree preflight
+
+After reading the story file's `## Active Claim`, decide whether to continue from `<cwd>` or from an existing / newly-created linked git worktree on the story's branch.
+
+1. **Not a git repo**. Run `git -C <cwd> rev-parse --is-inside-work-tree`. If non-zero, set `<project_root>` = `<cwd>` and skip the rest of this section.
+
+2. **Read `Worktree:` from the story's `## Active Claim`**. If there is a bullet of the form `- Worktree: <path>`, store it as `<active_wt_path>`. Else `<active_wt_path>` is unset.
+
+3. **Compute `<story-slug>`**. Strip the `.md` extension from the resolved step's spec file. Example: `story-03-bootstrap-and-docs-rewrite.md` → `story-03-bootstrap-and-docs-rewrite`.
+
+4. **Compute default path**:
+   - `<repo-root>` = `git -C <cwd> rev-parse --show-toplevel`
+   - `<repo-basename>` = `basename <repo-root>`
+   - `<default-path>` = `/tmp/add-worktrees/<repo-basename>-<epic-name>-<story-slug>`
+
+5. **Dirtiness check**. `git -C <cwd> status --porcelain`. `<dirty>` = output non-empty.
+
+6. **Decision**:
+
+   a. **`<active_wt_path>` is set**:
+      - Verify it with `git -C <cwd> worktree list --porcelain`. If there is a `worktree <active_wt_path>` line AND that path exists on disk, set `<wt-path>` = `<active_wt_path>` and go to step 8 (reattach skipped — worktree already exists and is registered).
+      - Otherwise the recorded worktree is stale. If `<explicit_wt_path>` is set, use it (`<wt-path>` = `<explicit_wt_path>`, go to step 7). Else prompt the operator:
+
+        ```
+        Recorded Worktree: <active_wt_path> is missing or not a registered git worktree.
+        Recreate for this story?
+          Default path: <default-path>  (recorded path: <active_wt_path>)
+        Reply with a path, `default`, `recorded`, or `no`.
+        ```
+
+        - On `no`: warn, set `<project_root>` = `<cwd>`, skip to step 10.
+        - On `default`: `<wt-path>` = `<default-path>`.
+        - On `recorded`: `<wt-path>` = `<active_wt_path>`.
+        - On a path: `<wt-path>` = that path (normalized absolute).
+        - Proceed to step 7.
+
+   b. **`<active_wt_path>` is unset, `<explicit_wt_path>` is set**:
+      - `<wt-path>` = `<explicit_wt_path>`. Go to step 7.
+
+   c. **`<active_wt_path>` and `<explicit_wt_path>` both unset, `<dirty>` is true**:
+      - Prompt the operator (same shape as `/epic-claim`):
+
+        ```
+        Main tree has uncommitted changes:
+          <indented git status --porcelain output>
+        This story has no recorded Worktree. Create one?
+          Default path: <default-path>
+        Reply with a path, `default`, or `no`.
+        ```
+
+        - On `no`: warn, set `<project_root>` = `<cwd>`, skip to step 10.
+        - Else: `<wt-path>` = resolved path. Proceed to step 7.
+
+   d. **All unset, `<dirty>` is false**:
+      - Set `<project_root>` = `<cwd>`, skip to step 10.
+
+7. **Create or reattach the worktree**:
+   - `mkdir -p "$(dirname <wt-path>)"`.
+   - Try reattach first (the branch likely already exists from the original `/epic-claim`): `git -C <cwd> worktree add <wt-path> <epic-name>/<story-slug>`
+   - If that fails because the branch `<epic-name>/<story-slug>` does not exist, fall back to create: `git -C <cwd> worktree add -b <epic-name>/<story-slug> <wt-path>`.
+   - If either succeeds, continue. If both fail, report the git error verbatim and abort.
+
+8. **Set `<project_root>`**. `<project_root>` = `<wt-path>`. Update `<epic>` to `<project_root>/agent_coordination/epics/<epic-name>`.
+
+9. **Re-read the story's current state from `<project_root>`**. Re-read `<epic>/MASTER.md` and the step file. The worktree's branch may have newer `## Progress Log`, `## Review Log`, or `## Session Handoff` entries than main — those are the ones that matter for this continuation. Subsequent "Resume intent" prioritization (below) operates on the worktree's copy.
+
+10. **Pending coordination edits warning**. If `<project_root>` != `<cwd>` AND step 5 showed modified or staged files under `agent_coordination/` on main, warn: "pending changes to `agent_coordination/` on main will NOT be in the worktree — commit them on main and rerun, or proceed knowing they are stranded".
+
+At the end of this section, `<project_root>` is set. All downstream file reads/writes use `<project_root>/...` (or `<epic>/...` derived from it). Git commands in later sections run with `git -C <project_root> ...`.
+
 ## Source-of-truth hierarchy
 
 1. `<epic>/MASTER.md`
@@ -94,8 +167,11 @@ Before deep implementation work:
 - Claimed at: <UTC ISO timestamp>
 - Claimed by: Claude continuation session
 - Scope: <one sentence for this pickup chunk>
+- Worktree: <project_root>  (preserve / refresh this bullet when <project_root> != <cwd>; omit it otherwise)
 - Primary write surfaces: <paths>
 ```
+
+The `Worktree:` bullet must reflect the current `<project_root>`: if the preflight reused an existing worktree, keep the recorded path as-is; if it recreated a stale one at a new location, update the path; if `<project_root>` == `<cwd>`, omit the bullet entirely. Never delete a `Worktree:` bullet when `<project_root>` points at a worktree — other sessions depend on it for reattachment.
 
 2. Append a new timestamped bullet under `## Progress Log`:
 

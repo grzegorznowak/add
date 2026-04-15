@@ -116,8 +116,22 @@ one `Active Claim` section per file.
 - Claimed at: <UTC ISO timestamp>
 - Claimed by: <Claude or Codex> <fresh|continuation> session
 - Scope: <one sentence for this work chunk>
+- Worktree: </absolute/path/to/linked/worktree>   (optional; see below)
 - Primary write surfaces: <paths>
 ```
+
+The `Worktree:` bullet is **optional**. It is present only when the
+story is being implemented in a linked `git worktree` (typically because
+the main tree was dirty at claim time, or because the operator passed
+`WORKTREE="<path>"` explicitly). When present, it records the absolute
+path of the worktree so `/epic-resume` and `/epic-review` can reattach
+to the same checkout in future sessions. When `<project_root>` equals
+`<cwd>` (the main tree), the bullet must be omitted entirely. Once
+written, the bullet must not be deleted by subsequent runs of
+`/epic-resume` or `/epic-review` — other sessions depend on it to find
+the worktree — though `/epic-resume` may refresh the path if the
+recorded worktree is stale and the operator chooses to recreate it at a
+new location.
 
 #### `## Progress Log`
 
@@ -318,3 +332,14 @@ epic/story arguments. Two strategies exist:
 - Edit `MASTER.md` or any story file from `/epic-story-plan`. It writes
   only a plan file to `~/.claude/plans/` for `/epic-new-story` to
   consume.
+- Delete or silently relocate an existing linked worktree from
+  `/epic-claim`, `/epic-resume`, or `/epic-review`. The `Worktree:`
+  bullet in `## Active Claim` is the authoritative record of where the
+  story's implementation lives; the only command that may change its
+  value is `/epic-resume`, and only when the operator explicitly chooses
+  to recreate a stale worktree at a new location. `/epic-review` may
+  **never** create a worktree — it only reuses what the implementer
+  recorded or a `WORKTREE="<path>"` override.
+- Create a worktree branch `<epic>/<story-slug>` that already exists
+  from `/epic-claim`. If the branch is present, `/epic-claim` aborts
+  fast and redirects the operator to `/epic-resume`.

@@ -1,13 +1,13 @@
 ---
 name: epic_claim
 description: Claim one ready epic step and execute it
-legacy-argument-hint: '[EPIC="<epic_name>"]'
+legacy-argument-hint: '[EPIC="<epic_name>"] [WORKTREE="<path>"]'
 ---
 
 This skill was migrated one-to-one from the former custom prompt `epic_claim.md`.
 Invoke it explicitly with `$epic_claim`.
 
-Original argument hint: `[EPIC="<epic_name>"]`
+Original argument hint: `[EPIC="<epic_name>"] [WORKTREE="<path>"]`
 
 If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
@@ -16,6 +16,8 @@ Implementation: $EPIC
 Treat `$EPIC` as the exact directory name of an epic under the agent's current
 working directory at:
 `agent_coordination/epics`
+
+`$WORKTREE` is an optional explicit opt-in. When non-empty, the `## Worktree preflight` section creates a linked git worktree at `$WORKTREE` regardless of whether the main tree is dirty. When empty, the preflight only triggers if `git status --porcelain` is non-empty.
 
 Your job is to pick exactly one ready and unclaimed step from that epic,
 claim it in the coordination docs, execute it, and leave behind a clean handoff.
@@ -31,10 +33,9 @@ The workflow is:
 6. leave the step file in a state that the next fresh session can continue
 
 ## Resolution
-1. Resolve the epic directory as:
-   - `<cwd>/agent_coordination/epics/$EPIC`
-2. If that directory does not exist, stop and report the exact missing path.
-3. Read first:
+1. Resolve `<epic>` = `<cwd>/agent_coordination/epics/$EPIC`. This is the **initial** anchor; the `## Worktree preflight` section may re-anchor `<epic>` to a worktree path after step selection.
+2. If `<epic>` does not exist, stop and report the exact missing path.
+3. Read first (from `<cwd>` at this point):
    - the main repo `AGENTS.md` for the repo you will touch
    - `<epic>/MASTER.md`
 
@@ -62,6 +63,54 @@ If no such step exists:
   - blocked steps
   - next step that must complete first
 
+## Worktree preflight
+
+After picking a step but before writing any claim, decide whether to continue from `<cwd>` (the main tree) or from a linked git worktree on a story-specific branch. Implementation work then happens in a clean branch isolated from whatever else was in the main tree.
+
+1. **Not a git repo**. Run `git -C <cwd> rev-parse --is-inside-work-tree`. If non-zero, set `<project_root>` = `<cwd>` and skip the rest of this section.
+
+2. **Compute `<story-slug>`**. Strip the `.md` extension from the selected step's spec file. Example: `story-03-bootstrap-and-docs-rewrite.md` → `story-03-bootstrap-and-docs-rewrite`.
+
+3. **Compute default path**:
+   - `<repo-root>` = `git -C <cwd> rev-parse --show-toplevel`
+   - `<repo-basename>` = `basename <repo-root>`
+   - `<default-path>` = `/tmp/add-worktrees/<repo-basename>-$EPIC-<story-slug>`
+
+4. **Dirtiness check**. Run `git -C <cwd> status --porcelain`. `<dirty>` = output non-empty.
+
+5. **Trigger decision**:
+   - If `$WORKTREE` is non-empty, `<wt-path>` = `$WORKTREE`. Proceed to step 6.
+   - Else if `<dirty>` is true, show the operator:
+
+     ```
+     Main tree has uncommitted changes:
+       <indented git status --porcelain output>
+     Create a worktree for this story?
+       Default path: <default-path>
+     Reply with a path, `default`, or `no`.
+     ```
+
+     On `no`: `<project_root>` = `<cwd>`, warn "proceeding on dirty main tree", skip to step 10. On `default`: `<wt-path>` = `<default-path>`. On a path: `<wt-path>` = that path (normalized absolute). Proceed to step 6.
+   - Else (clean tree, no opt-in): `<project_root>` = `<cwd>`, skip to step 10.
+
+6. **Create parent dir**: `mkdir -p "$(dirname <wt-path>)"`.
+
+7. **Create the worktree**:
+   ```
+   git -C <cwd> worktree add -b $EPIC/<story-slug> <wt-path>
+   ```
+   - If it fails because the branch `$EPIC/<story-slug>` already exists, abort with: "story branch `$EPIC/<story-slug>` already exists; this looks like a resumable story — run `$epic_resume EPIC=\"$EPIC\"` instead". No `MASTER.md` or story-file writes have happened yet in this session, so aborting is safe.
+   - If it fails for any other reason, report the git error verbatim and abort.
+
+8. **Set `<project_root>`**. `<project_root>` = `<wt-path>`. Update `<epic>` to `<project_root>/agent_coordination/epics/$EPIC`.
+
+9. **Sanity checks** (worktree mode only):
+   - Run `git -C <project_root> ls-files --error-unmatch agent_coordination/epics/$EPIC/MASTER.md`. Failure means `agent_coordination/` is gitignored or not committed on main. Abort with: "agent_coordination/ appears to be ignored or uncommitted on main; commit the epic files first, then re-run `$epic_claim`".
+   - Re-read `<epic>/MASTER.md` and the selected step file from `<project_root>` so subsequent edits use the worktree copies.
+   - If any files under `agent_coordination/` appeared in the step 4 output, warn: "pending changes to `agent_coordination/` on main will NOT be in the worktree — commit them on main and rerun, or proceed knowing they are stranded".
+
+10. **Done**. `<project_root>` is set. All downstream file reads/writes use `<project_root>/...` (or `<epic>/...` derived from it). Git commands in later sections run with `git -C <project_root> ...`.
+
 ## Claim protocol
 Before deep implementation work:
 1. Update the selected row in `MASTER.md` to:
@@ -73,6 +122,7 @@ Before deep implementation work:
 - Claimed at: <UTC ISO timestamp>
 - Claimed by: Codex fresh session
 - Scope: <one sentence>
+- Worktree: <project_root>  (omit this bullet when <project_root> == <cwd>)
 - Primary write surfaces: <paths>
 
 ## Progress Log

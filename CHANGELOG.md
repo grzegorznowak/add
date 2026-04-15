@@ -6,6 +6,23 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- Linked `git worktree` preflight for `/epic-claim`, `/epic-resume`, and
+  `/epic-review` (Claude + Codex). When the main tree is dirty (any
+  `git status --porcelain` output) or when the operator passes
+  `WORKTREE="<path>"` explicitly, each command creates or reattaches to
+  a linked worktree on a story-specific branch `<epic>/<story-slug>`
+  and runs the rest of its flow from there. Default worktree path is
+  `/tmp/add-worktrees/<repo-basename>-<epic>-<story-slug>`, overridable
+  at the prompt. `/epic-claim` creates a new branch from HEAD and
+  aborts with an `/epic-resume` redirect if the branch already exists.
+  `/epic-resume` reads the `Worktree:` bullet from `## Active Claim`
+  and reattaches to that path (prompting to recreate if stale).
+  `/epic-review` only reuses — never creates — a worktree, and aborts
+  if the main tree is dirty without a recorded `Worktree:`.
+- New optional `Worktree: <path>` bullet in the `## Active Claim`
+  section. Written by `/epic-claim` (on worktree creation) and
+  refreshed by `/epic-resume`; omitted when the story is implemented
+  directly in the main tree. Documented in `docs/epic-conventions.md`.
 - `epic-plan` paired command (Claude Skill + Codex skill). Interview-
   driven bootstrap for a new epic. Produces the
   `agent_coordination/epics/<slug>/MASTER.md` skeleton (header,

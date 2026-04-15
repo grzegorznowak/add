@@ -1,6 +1,6 @@
 ---
 description: Review one implemented epic step against its story spec
-argument-hint: [EPIC="<epic_name>"] [STORY="<story_number_or_spec_file>"]
+argument-hint: [EPIC="<epic_name>"] [STORY="<story_number_or_spec_file>"] [WORKTREE="<path>"]
 ---
 
 Review: $EPIC / $STORY
@@ -14,6 +14,8 @@ Treat `$STORY` as the story selector. It may be either:
   example `03`
 - the exact spec file name from the `Spec` column in `<epic>/MASTER.md`, for
   example `story-03-bootstrap-and-docs-rewrite.md`
+
+`$WORKTREE` is an optional override. When non-empty, the `## Worktree preflight` section uses `$WORKTREE` as the resolved worktree path without checking the story's `## Active Claim`. When empty, the preflight auto-reads any `Worktree:` bullet recorded in the story's `## Active Claim`; review **never** creates a new worktree from this command — it only reuses.
 
 You are a maintainer reviewing one epic story implementation against its step
 spec, current repo state, and recorded handoff context.
@@ -102,6 +104,30 @@ Examples of not-reviewable:
 - step is blocked by an unmet dependency and the code cannot be sensibly judged
 - there is no credible mapping from the step spec to any code or tests yet
 
+## Worktree preflight
+
+After reading the story's `## Active Claim`, decide whether the review runs from `<cwd>` (the main tree) or from the implementer's linked worktree. This command **never creates** a worktree; it only reuses the one the implementer recorded or a path the operator passed explicitly.
+
+1. **Not a git repo**. Run `git -C <cwd> rev-parse --is-inside-work-tree`. If non-zero, `<project_root>` = `<cwd>` and skip the rest of this section.
+
+2. **Read `Worktree:` from the story's `## Active Claim`**. If a bullet of the form `- Worktree: <path>` is present, store it as `<active_wt_path>`. Else `<active_wt_path>` is unset.
+
+3. **Dirtiness check**. `git -C <cwd> status --porcelain`. `<dirty>` = output non-empty.
+
+4. **Decision**:
+
+   a. **`$WORKTREE` is non-empty**: verify the directory exists and appears in `git -C <cwd> worktree list --porcelain`. If valid, `<project_root>` = `$WORKTREE`. If not, abort with the verbatim verification failure and suggest unsetting `$WORKTREE` or pointing at a valid worktree.
+
+   b. **`$WORKTREE` empty, `<active_wt_path>` set**: verify `<active_wt_path>` the same way. If valid, `<project_root>` = `<active_wt_path>`. If stale (directory missing or not in `git worktree list`), abort with: "recorded Worktree: `<active_wt_path>` is missing or unregistered; clean the main tree and retry, ask the implementer to `$epic_resume` (which will recreate it), or pass `WORKTREE=<path>` explicitly".
+
+   c. **Both unset, `<dirty>` is false**: `<project_root>` = `<cwd>`. Review runs on the main tree as today.
+
+   d. **Both unset, `<dirty>` is true**: abort with: "can't review on a dirty main tree without a recorded `Worktree:` in the story's `## Active Claim`. Clean `<cwd>`, have the implementer `$epic_resume` (which records a Worktree: bullet), or pass `WORKTREE=<path>` explicitly pointing at a worktree with the story's branch checked out".
+
+5. **Update `<epic>` if switched**. If `<project_root>` != `<cwd>`, update `<epic>` to `<project_root>/agent_coordination/epics/$EPIC` and re-read `<epic>/MASTER.md` and the resolved step file from there. The worktree's branch may have newer `## Progress Log`, `## Session Handoff`, or `## Review Log` entries than main — the review verdict is written back to the worktree's copy.
+
+6. **Done**. `<project_root>` is set. All git commands in `## Review process` (below) run as `git -C <project_root> ...`. Every file read/write uses `<project_root>/...` as its anchor.
+
 ## Source-of-truth hierarchy
 1. `<epic>/MASTER.md`
 2. the resolved step file
@@ -114,8 +140,10 @@ explicitly recorded in `MASTER.md`.
 ## Review process
 1. Use code research/search and direct code reading to understand the story's
    implementation and impacted surfaces.
-2. Use `git status`, `git diff`, and targeted file reads to inspect what was
-   actually changed.
+2. Use `git -C <project_root> status`, `git -C <project_root> diff`, and
+   targeted file reads to inspect what was actually changed (all git commands
+   run against `<project_root>`, which the preflight set to either `<cwd>` or
+   the implementer's worktree).
 3. Never speculate about code you haven't read.
 4. Break the reviewed implementation into logical groups and explain the
    grouping briefly.

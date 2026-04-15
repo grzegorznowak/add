@@ -3,14 +3,14 @@ name: epic-review
 description: Review one implemented epic step against its story spec, current repo state, and recorded handoff context. Read-only for code; updates only the step's coordination file.
 disable-model-invocation: true
 argument-hint: "<epic-name> <story-number-or-spec-file>"
-allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git diff:*) Bash(git log:*)
+allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git diff:*) Bash(git log:*) Bash(git rev-parse:*) Bash(git worktree:*) Bash(basename:*)
 ---
 
 # Epic Review
 
 Review one epic story implementation against its step spec, current repo state, and recorded handoff context. Record the verdict back into the coordination file.
 
-Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file>`. Both required.
+Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [WORKTREE="<path>"]`. Both positional args are required. `WORKTREE="<path>"` is an optional opt-in that overrides the preflight's worktree lookup; see `## Worktree preflight`. When absent, the preflight auto-reads any `Worktree:` bullet from the story's `## Active Claim`.
 
 ## Important
 
@@ -26,7 +26,10 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
 
 ## Resolution
 
-1. Parse `$ARGUMENTS` as `<epic> <story>` (both optional).
+1. Parse `$ARGUMENTS`:
+   - `<epic>`: optional, the first positional token (epic name)
+   - `<story>`: optional, the second positional token (story number or spec file)
+   - `<explicit_wt_path>`: optional, from `WORKTREE="<path>"` if present
 2. **EPIC resolution (menu fallback):**
    - If `<epic>` was passed, resolve `<cwd>/agent_coordination/epics/<epic>`.
    - If `<epic>` was not passed, list every directory under `<cwd>/agent_coordination/epics/` whose `MASTER.md` has at least one row with status `🟣 IN REVIEW`. For each, print: `<slug> — <N stories IN REVIEW, last-touched YYYY-MM-DD>`. If the filtered list is empty, abort with: `no epics have stories ready for review (nothing at 🟣 IN REVIEW)`. Otherwise ask the operator to pick (number or slug).
@@ -67,6 +70,30 @@ If the story is clearly not reviewable yet, abort fast with a concise reason. Ex
 - step is blocked by an unmet dependency and the code cannot be sensibly judged
 - no credible mapping from the step spec to any code or tests yet
 
+## Worktree preflight
+
+After reading the story's `## Active Claim`, decide whether the review runs from `<cwd>` (the main tree) or from the implementer's linked worktree. This command **never creates** a worktree; it only reuses the one the implementer recorded or a path the operator passed explicitly.
+
+1. **Not a git repo**. Run `git -C <cwd> rev-parse --is-inside-work-tree`. If non-zero, set `<project_root>` = `<cwd>` and skip the rest of this section.
+
+2. **Read `Worktree:` from the story's `## Active Claim`**. If there is a bullet of the form `- Worktree: <path>`, store it as `<active_wt_path>`. Else `<active_wt_path>` is unset.
+
+3. **Dirtiness check**. Run `git -C <cwd> status --porcelain`. `<dirty>` = output non-empty.
+
+4. **Decision**:
+
+   a. **`<explicit_wt_path>` is set**: verify the directory exists and appears in `git -C <cwd> worktree list --porcelain`. If valid, `<project_root>` = `<explicit_wt_path>`. If not, abort with the verbatim verification failure and suggest the operator omit `WORKTREE=` or point at a valid worktree.
+
+   b. **`<explicit_wt_path>` unset, `<active_wt_path>` set**: verify `<active_wt_path>` the same way. If valid, `<project_root>` = `<active_wt_path>`. If stale (directory missing or not in `git worktree list`), abort with: "recorded Worktree: `<active_wt_path>` is missing or unregistered; clean the main tree and retry, ask the implementer to `/epic-resume` (which will recreate it), or pass `WORKTREE=<path>` explicitly".
+
+   c. **Both unset, `<dirty>` is false**: `<project_root>` = `<cwd>`. Review runs on the main tree as today.
+
+   d. **Both unset, `<dirty>` is true**: abort with: "can't review on a dirty main tree without a recorded `Worktree:` in the story's `## Active Claim`. Clean `<cwd>`, have the implementer `/epic-resume` (which records a Worktree: bullet), or pass `WORKTREE=<path>` explicitly pointing at a worktree with the story's branch checked out".
+
+5. **Update `<epic>` if switched**. If `<project_root>` != `<cwd>`, update `<epic>` to `<project_root>/agent_coordination/epics/<epic-name>` and re-read `<epic>/MASTER.md` and the resolved step file from there. The worktree's branch may have newer `## Progress Log`, `## Session Handoff`, or `## Review Log` entries than main — the review verdict is written back to the worktree's copy.
+
+6. **Done**. `<project_root>` is set. All git commands in `## Review process` (below) run as `git -C <project_root> ...`. Every file read/write uses `<project_root>/...` as its anchor.
+
 ## Source-of-truth hierarchy
 
 1. `<epic>/MASTER.md`
@@ -79,7 +106,7 @@ Do not infer identity from filename shape or naming conventions that are not exp
 ## Review process
 
 1. Use code search and direct reading to understand the story's implementation and impacted surfaces
-2. Use `git status`, `git diff`, and targeted file reads to inspect what was actually changed
+2. Use `git -C <project_root> status`, `git -C <project_root> diff`, and targeted file reads to inspect what was actually changed (all git commands run against `<project_root>`, which the preflight set to either `<cwd>` or the implementer's worktree)
 3. Never speculate about code you haven't read
 4. Break the reviewed implementation into logical groups; explain the grouping briefly
 5. Review each group sequentially
