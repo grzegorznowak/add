@@ -9,4 +9,6 @@ tree resolving dependencies between decisions one by one.
 If a question can be answered by exploring the codebase, explore
 the codebase instead.
 
-For each question, provide your recommended answer.
+For each question, provide your recommended answer. Include a brief
+plain-language explanation of the trade-off, and — when it helps ground
+the choice — a concrete example, short snippet, or small ASCII diagram.
