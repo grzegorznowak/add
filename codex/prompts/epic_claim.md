@@ -149,6 +149,7 @@ Before deep implementation work:
 - Worktrees:
   - <repo-basename>: <absolute-worktree-path>
   - <repo-basename>: <absolute-worktree-path>
+- Main-tree targets: <repo-basename>, <repo-basename>
 - Primary write surfaces: <paths>
 
 ## Progress Log
@@ -156,6 +157,8 @@ Before deep implementation work:
 ```
 
 The `- Worktrees:` parent bullet is present if and only if at least one entry in `<project_root_map>` resolves to a real worktree (i.e. `<project_root_map>[<basename>]` != `<workspace_root>/projects/<basename>` and != `<workspace_root>`). List only those repos whose value is an actual worktree; repos resolved to main tree are NOT listed (their absence implies main-tree mode). If `<project_root_map>` has no worktree entries (all targets clean, or no targets, or operator answered `no` for every dirty repo), omit the `- Worktrees:` bullet entirely — do not write it with no children.
+
+The `- Main-tree targets:` bullet lists every repo basename from `<project_root_map>` whose value is the repo's own main tree (i.e. NOT a worktree). This tells `$epic_review` that these repos were intentionally written to directly — their dirtiness at review time is the implementation itself. Omit this bullet when there are no main-tree target repos (all targets got worktrees, or no targets at all).
 
 3. Do not claim more than one step in a single session.
 4. Do not silently switch to a different step once work has started.

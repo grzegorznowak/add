@@ -105,14 +105,17 @@ After reading the story's `## Active Claim`, build `<project_root_map>` from wha
    - On any verification failure: abort with "worktree for `<basename>` is missing, unregistered, or on the wrong branch: <verbatim detail>. Clean the main tree and retry, ask the implementer to `/epic-resume` (which recreates stale worktrees), or pass `WORKTREE=\"<basename>=<path>\"` explicitly". **Never create a worktree in review.**
    - On success: `<project_root_map>[<basename>]` = effective path.
 
-6. **Handle scope-scan repos not in any map**. For each `<target_repo>` from step 4 whose basename is NOT yet in `<project_root_map>`:
-   - Run `git -C <target_repo> status --porcelain`.
-   - If the output is non-empty (dirty): abort with "can't review dirty `<basename>` without a recorded worktree. Clean `<target_repo>`, have the implementer `/epic-resume` (which records a Worktrees entry), or pass `WORKTREE=\"<basename>=<path>\"` explicitly pointing at a worktree with the story's branch checked out".
-   - If clean: `<project_root_map>[<basename>]` = `<target_repo>` (main tree — review inspects the implementation in place).
+6. **Read `Main-tree targets:` from `## Active Claim`**. Parse the story file for a `- Main-tree targets:` bullet under `## Active Claim`. Split its value on commas and trim whitespace to produce `<main_tree_targets>` — a set of repo basenames that the implementer explicitly wrote to on the main tree (no worktree). If the bullet is absent, `<main_tree_targets>` is empty.
 
-7. **Done**. `<project_root_map>` is set. All downstream resolution uses these rules:
+7. **Handle scope-scan repos not in any map**. For each `<target_repo>` from step 4 whose basename is NOT yet in `<project_root_map>`:
+   - `<project_root_map>[<basename>]` = `<target_repo>` (main tree).
+   - If `<basename>` is in `<main_tree_targets>`: the implementer recorded that this repo was written to directly on main. If the main tree is dirty, emit a note: "reviewing `<basename>` on main tree (recorded as a main-tree target by the implementer)". If clean, no note needed. Either way, review proceeds.
+   - Else if `<main_tree_targets>` is empty (legacy story or claim predating this bullet): fall back to accepting the main tree regardless of dirtiness. If dirty, emit a note: "reviewing `<basename>` on dirty main tree (no `Main-tree targets:` bullet in claim — assuming implementation was done directly on main)". Review proceeds.
+   - Else (`<main_tree_targets>` is non-empty but does NOT include `<basename>`): this repo was not declared as a main-tree target and has no recorded worktree. If clean, proceed silently. If dirty, warn: "`<basename>` is dirty and was not recorded as a main-tree target or worktree — the dirty state may include unrelated changes. Review proceeds but findings should be checked carefully."
+
+8. **Done**. `<project_root_map>` is set. All downstream resolution uses these rules:
    - `<epic>/MASTER.md`, the resolved step file, dependency step files, and anything under `agent_coordination/...` → read/write at `<workspace_root>/agent_coordination/...` unconditionally. The `## Review Log` write-back also lands at this anchor.
-   - Code at `projects/<name>/foo/bar` → if `<project_root_map>` has `<name>`, route to `<project_root_map>[<name>]/foo/bar`; else (clean main-tree fallback from step 6) route to `<workspace_root>/projects/<name>/foo/bar`.
+   - Code at `projects/<name>/foo/bar` → if `<project_root_map>` has `<name>`, route to `<project_root_map>[<name>]/foo/bar`; else route to `<workspace_root>/projects/<name>/foo/bar`.
    - Git commands targeting repo `<name>`: `git -C <project_root_map>[<name>] ...`.
 
 ## Source-of-truth hierarchy

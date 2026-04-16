@@ -225,10 +225,13 @@ Before deep implementation work:
 - Worktrees:
   - <repo-basename>: <absolute-worktree-path>
   - <repo-basename>: <absolute-worktree-path>
+- Main-tree targets: <repo-basename>, <repo-basename>
 - Primary write surfaces: <paths>
 ```
 
 The `- Worktrees:` parent bullet must reflect the current `<project_root_map>`: list one child entry per repo whose value is an actual worktree (not the main tree). If the preflight reused recorded worktrees, keep their paths as-is; if it recreated stale entries at new locations, update those paths; if it added new entries (because the operator passed `$WORKTREE` for a previously-unrecorded repo or the scope expanded), include them. If `<project_root_map>` has no worktree entries, omit the `- Worktrees:` bullet entirely. Never delete a worktree entry that other sessions depend on for reattachment unless step 11 of the preflight explicitly retained it for manual review (in which case keep it). If the preflight read the story in back-compat mode (legacy singular `- Worktree:` bullet), this refresh rewrites it as the new `- Worktrees:` list — that is the one place legacy stories are migrated forward.
+
+The `- Main-tree targets:` bullet lists every repo basename from `<project_root_map>` whose value is the repo's own main tree (i.e. NOT a worktree). This tells `$epic_review` that these repos were intentionally written to directly — their dirtiness at review time is the implementation itself. Omit when there are no main-tree target repos. If the previous claim had a `- Main-tree targets:` bullet, refresh it to reflect the current `<project_root_map>`.
 
 2. Append a new timestamped bullet under `## Progress Log`, for example:
 
