@@ -167,6 +167,8 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Implement the claimed step end-to-end when feasible
 - Prefer code changes over restating plans
 - If you discover an epic-wide architectural contradiction, update `MASTER.md` minimally and note it in the step file
+- If you discover non-material proof-path drift, update the story's `## Verification` matrix immediately and record why in `## Progress Log` before continuing
+- If you discover material contract drift, pause feature work, record a replanning checkpoint in `## Progress Log`, update the story contract, and only then continue implementation
 - If the claimed step is blocked by an unmet dependency or hard contradiction, stop broadening scope and mark it `⛔ BLOCKED`
 
 ## Progress tracking
@@ -175,6 +177,8 @@ Append concise timestamped bullets under `## Progress Log` after meaningful mile
 - design change locked
 - files patched
 - tests added/updated
+- proof matrix updated to match implementation reality
+- replanning checkpoint recorded after material contract drift
 - blocker discovered
 - epic-wide finding recorded in `MASTER.md`
 

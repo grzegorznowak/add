@@ -66,11 +66,13 @@ Do **not** rediscover the epic from scratch. Your job is to:
 Before doing a full review:
 - inspect the row for the resolved step in `MASTER.md`
 - inspect any `Active Claim`, `Progress Log`, `Session Handoff`, and `PR Tracking` sections in the step file
+- inspect the story's `## Acceptance` and `## Verification` contract before treating the implementation as review-ready
 
 If the story is clearly not reviewable yet, abort fast with a concise reason. Examples:
 - step is still `TODO` and there is no implementation / handoff evidence
 - step is blocked by an unmet dependency and the code cannot be sensibly judged
 - no credible mapping from the step spec to any code or tests yet
+- any acceptance id has no proof row, or any proof row is still `provisional`
 
 ## Worktree preflight
 
@@ -132,9 +134,10 @@ Do not infer identity from filename shape or naming conventions that are not exp
 1. Use code search and direct reading to understand the story's implementation and impacted surfaces
 2. Use `git -C <project_root_map>[<basename>] status`, `git -C <project_root_map>[<basename>] diff`, and targeted file reads to inspect what was actually changed. When the story spans multiple repos, run status/diff per repo (iterating over `<project_root_map>` in sorted basename order) and group findings per-repo in the review write-back. Each `<basename>` resolves to either an implementer's worktree (most common) or the main tree at `<workspace_root>/projects/<basename>` (clean main-tree fallback case from the preflight).
 3. Never speculate about code you haven't read
-4. Break the reviewed implementation into logical groups; explain the grouping briefly
-5. Review each group sequentially
-6. Prioritize:
+4. If the final implementation or final proof matrix clearly differs from the earlier planned proof path, consult `## Progress Log` and `## Session Handoff` to confirm the change was recorded and justified
+5. Break the reviewed implementation into logical groups; explain the grouping briefly
+6. Review each group sequentially
+7. Prioritize:
    - correctness
    - regressions
    - architectural consistency
@@ -155,6 +158,9 @@ Before approving, verify:
 - Are follow-on status transitions accurate in `MASTER.md` and the step file?
 - Are there adequate tests for the change?
 - Are there hidden packaging / runtime / ops implications not captured in the step?
+- Is every acceptance id still covered by the final proof matrix?
+- Are any matrix rows still `provisional`?
+- If proof paths changed, was the story updated and the drift logged?
 
 ## Status transitions
 
@@ -183,6 +189,12 @@ Append or update a `## Review Log` section in the step file with a new entry:
 ```
 
 If a `Review Log` section does not exist, create it.
+
+Approval is not allowed if the proof contract is still unresolved. A story is only eligible for approval when:
+- every acceptance id remains covered
+- every proof row is `final`
+- the matrix matches the actual implementation and verification surfaces
+- any apparent proof drift was logged when it happened
 
 ## Output format
 

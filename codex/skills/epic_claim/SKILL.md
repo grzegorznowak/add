@@ -1,15 +1,7 @@
 ---
 name: epic_claim
 description: Claim one ready epic step and execute it
-legacy-argument-hint: '[EPIC="<epic_name>"] [WORKTREE="<basename>=<path>[,<basename>=<path>...]"]'
 ---
-
-This skill was migrated one-to-one from the former custom prompt `epic_claim.md`.
-Invoke it explicitly with `$epic_claim`.
-
-Original argument hint: `[EPIC="<epic_name>"] [WORKTREE="<basename>=<path>[,<basename>=<path>...]"]`
-
-If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
 Implementation: $EPIC
 
@@ -179,6 +171,12 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Prefer code changes over restating plans.
 - If you discover an epic-wide architectural contradiction, update `MASTER.md`
   minimally and note it in the step file.
+- If you discover non-material proof-path drift, update the story's
+  `## Verification` matrix immediately and record why in `## Progress Log`
+  before continuing.
+- If you discover material contract drift, pause feature work, record a
+  replanning checkpoint in `## Progress Log`, update the story contract, and
+  only then continue implementation.
 - If the claimed step turns out to be blocked by an unmet dependency or hard
   contradiction, stop broadening scope and mark it clearly as blocked.
 
@@ -190,6 +188,8 @@ milestones, for example:
 - design change locked
 - files patched
 - tests added/updated
+- proof matrix updated to match implementation reality
+- replanning checkpoint recorded after material contract drift
 - blocker discovered
 - epic-wide finding recorded in `MASTER.md`
 

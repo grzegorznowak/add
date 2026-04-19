@@ -94,7 +94,16 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   accepted but only when exactly one target repo is discovered;
   mixing the two forms in a single invocation aborts fast.
 
+### Removed
+- Codex prompt compatibility layer removed. `codex/skills/<name>/SKILL.md`
+  is now the only supported Codex command surface; generated
+  `codex/prompts/*.md` artifacts and `scripts/regen-prompts.sh` are gone.
+
 ### Changed
+- `scripts/install.sh` now installs Codex skills only, and no longer exposes
+  the legacy `--codex-flavor` switch or prompt-path wizard branch.
+- `docs/adding-a-command.md` and `README.md` now describe a skills-only Codex
+  workflow and no longer ask contributors to regenerate prompt artifacts.
 - `docs/epic-conventions.md` argument table restructured around the new
   "arg or menu" pattern. The old "no — explicit by design" rows become
   "operator-explicit (arg or menu)" rows for `/epic-story-save`,

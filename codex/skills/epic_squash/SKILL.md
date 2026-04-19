@@ -1,15 +1,7 @@
 ---
 name: epic_squash
 description: Squash non-archived DONE stories of an epic into its merged CONTRACT.md, verifying every claim against the codebase, detecting/fixing discrepancies, and archiving the stories.
-legacy-argument-hint: '[EPIC="<epic_name>"]'
 ---
-
-This skill was migrated one-to-one from the former custom prompt `epic_squash.md`.
-Invoke it explicitly with `$epic_squash`.
-
-Original argument hint: `[EPIC="<epic_name>"]`
-
-If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
 Squash: $EPIC
 

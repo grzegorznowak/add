@@ -1,15 +1,7 @@
 ---
 name: epic_story_save
 description: Append a new story row to an epic's MASTER.md tracker AND create a properly-scaffolded story file from a plan, preserving all research findings (code smells, file references, decisions) so implementation does not have to re-discover them.
-legacy-argument-hint: 'EPIC="<epic_name>" [PLAN="<path>"] [TITLE="<override>"] [DEPENDS="<list>"] [SLUG="<kebab>"]'
 ---
-
-This skill was migrated one-to-one from the former custom prompt `epic_story_save.md`.
-Invoke it explicitly with `$epic_story_save`.
-
-Original argument hint: `EPIC="<epic_name>" [PLAN="<path>"] [TITLE="<override>"] [DEPENDS="<list>"] [SLUG="<kebab>"]`
-
-If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
 Story Save: $EPIC
 
@@ -48,27 +40,31 @@ implementation time.
    possible; rephrased only when section mapping requires it. **Never drop
    plan content.** When in doubt, preserve under the catch-all
    `## Discovery Notes` section.
-3. **No content invention.** Do not write Acceptance criteria the plan did
-   not state. If a section has no source material, leave a clearly-flagged
-   `<TODO: missing from plan — ...>` placeholder so the operator can see
-   what needs filling in.
-4. **Plan provenance is recorded.** The story file references the source
+3. **No content invention.** Do not write Acceptance criteria or proof-matrix
+   rows the plan did not state. `## Acceptance` and `## Verification` are
+   load-bearing contract sections: if either is missing or malformed, abort
+   instead of inserting placeholders or repairing it here.
+4. **Proof contract must already be valid.** `epic_story_save` is a
+   persistence step, not a planner. It must hard-fail when the source plan
+   lacks stable acceptance ids, one matrix row per acceptance id, required
+   proof-matrix columns, or valid proof-maturity values.
+5. **Plan provenance is recorded.** The story file references the source
    plan path and its mtime so future readers can audit the lineage.
-5. **Never overwrite an existing story file.** If the resolved filename
+6. **Never overwrite an existing story file.** If the resolved filename
    exists, abort with the path.
-6. **Never silently renumber.** Story number = `max(existing tracker
+7. **Never silently renumber.** Story number = `max(existing tracker
    numbers, max archived numbers) + 1`. Show the operator the chosen number
    before writing.
-7. **Never seed runtime sections.** No `## Active Claim`, `## Progress Log`,
+8. **Never seed runtime sections.** No `## Active Claim`, `## Progress Log`,
    `## Session Handoff`, `## Review Log`, `## PR Tracking`. Those belong to
    the runtime flows that create them.
-8. **Mirror sibling-story conventions.** Read at least one existing story
+9. **Mirror sibling-story conventions.** Read at least one existing story
    file in the same epic and use its top-level section list as the
    template. Use the default scaffold only if the epic has no prior story
    files.
-9. **The plan file is left untouched.** Do not move, rename, or delete it
+10. **The plan file is left untouched.** Do not move, rename, or delete it
    after the story is created.
-10. **Checkpoint before writing.** Show the resolved filename, story number,
+11. **Checkpoint before writing.** Show the resolved filename, story number,
     plan-content coverage report, dependency validation, and the drafted
     file. The operator confirms before any file is touched.
 
@@ -107,6 +103,19 @@ implementation time.
      pick a stale plan by accident.
 4. Read the plan file fully.
 5. Capture: source path, mtime, plan H1 title.
+6. Validate the plan's acceptance/proof contract before any mapping work:
+   - `## Acceptance` exists and every bullet begins with `A<n>:`
+   - `## Verification` exists and contains exact `### Verification Commands`
+     and `### Acceptance Proof Matrix` subsections
+   - the matrix uses the required columns:
+     `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`
+   - every acceptance id appears in at least one matrix row
+   - every `Proof Maturity` value is `final` or `provisional`
+   - every `provisional` row has non-blank `Open Detail`
+   - there are no `<TODO: ...>` placeholders in `## Acceptance` or
+     `## Verification`
+   Abort immediately if any check fails. This command does not invent or
+   normalize a broken proof contract.
 
 ## Phase 2 — Convention learning
 
@@ -131,7 +140,7 @@ fuzzy matching:
 | `Deliverable`, `Goal`, `Outcome` | `## Purpose` (merge with above if needed) |
 | `Approach`, `Strategy`, `Implementation`, `Implementation Plan`, `Implementation Steps`, `Steps`, `Phases` | `## Implementation Notes` (preserved verbatim) |
 | `Critical files`, `Files to modify`, `Files`, `Write surfaces` | `## Critical Files` (preserved verbatim with paths intact) |
-| `Verification`, `How to verify`, `Testing`, `Test plan` | `## Verification` |
+| `Verification`, `How to verify`, `Testing`, `Test plan` | `## Verification` (must preserve `### Verification Commands` + `### Acceptance Proof Matrix` intact) |
 | `Out of scope`, `Non-goals` | `## Out of Scope` |
 | `Acceptance`, `Acceptance criteria`, `Done when` | `## Acceptance` |
 | `Decisions`, `Locked decisions`, `Architecture decisions`, `Trade-offs` | `## Locked Decisions` (preserved verbatim) |
@@ -140,6 +149,10 @@ fuzzy matching:
 **Key rule**: any section the plan contains that doesn't have an obvious
 mapping goes into `## Discovery Notes`. Never drop a section. Never
 collapse a section into a one-line summary.
+
+For `## Acceptance` and `## Verification`, prefer exact preservation over
+fuzzy reconstruction. If the plan's proof contract is malformed, abort from
+Phase 1 rather than trying to salvage it here.
 
 **Inline content extraction** (in addition to section mapping):
 - Every `path/like/this.py:123` reference → preserved in `## Critical Files`
@@ -202,6 +215,10 @@ always appear in plan-sourced stories:
 If the plan had no content for one of these sections, write
 `<TODO: missing from plan — ...>` rather than omitting the section.
 
+Exception: never insert placeholders into `## Acceptance` or `## Verification`.
+Those two sections must already be complete and valid before this command may
+write anything.
+
 ## Phase 6 — Checkpoint
 
 Show the operator:
@@ -214,6 +231,8 @@ Show the operator:
   - which plan sections were mapped to which story sections
   - which plan sections went to `## Discovery Notes` (catch-all)
   - any `<TODO: missing from plan — ...>` placeholders that were inserted
+  - acceptance/proof contract validation summary (acceptance ids found, matrix
+    rows found, any `provisional` rows retained)
 - Dependency validation report (validated / soft-warned / cross-epic
   unverified)
 - The drafted story file content
@@ -274,10 +293,17 @@ Status: `todo`
 <bulleted list of what is deliberately not in scope>
 
 ## Acceptance
-<observable criteria a reviewer can verify>
+- A1: <observable criterion a reviewer can verify>
 
 ## Verification
-<test commands or manual checks a reviewer can run>
+### Verification Commands
+- <test command or exact manual/file-read action a reviewer can run>
+
+### Acceptance Proof Matrix
+| Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail |
+|---|---|---|---|---|---|---|
+| A1 | final | file-read | <exact reviewer action> | <exact expected evidence> | <paths / commands / surfaces> | |
+| A2 | provisional | automated | <exact reviewer action> | <red/green or equivalent evidence> | <paths / commands / surfaces> | <what remains undecided> |
 
 ## Discovery Notes
 <all research findings preserved verbatim from the plan — do not paraphrase away>
@@ -326,7 +352,10 @@ doesn't know why X was chosen will eventually re-litigate it.
 | `$DEPENDS` lists a story that's currently `🔵 IN PR` | Soft-warn: "depends on a story not yet merged; consider waiting." |
 | Plan file exists but contains only an H1 and no sections | Abort. "Plan is too thin to source a story from." |
 | Plan has sections that map to the same story section (e.g. two `Context` blocks) | Concatenate them in order, separated by `---`. Never drop. |
-| Plan has no `Acceptance`-shaped section | Insert `<TODO: missing from plan — add observable acceptance criteria>` placeholder. Flag in the coverage report. |
+| Plan has no `Acceptance`-shaped section | Abort. `epic_story_save` does not invent missing acceptance criteria. Finish the plan in `$epic_story_plan` first. |
+| Plan has `Acceptance` bullets without `A<n>` ids | Abort. Stable acceptance ids are required before story save. |
+| Plan has an `Acceptance Proof Matrix` row with `provisional` maturity and blank `Open Detail` | Abort. `provisional` rows must say what remains undecided. |
+| Plan has a matrix that does not cover every acceptance id | Abort. Every acceptance id needs at least one proof row before story save. |
 | Plan references files that don't exist in the codebase | Preserve in `## Critical Files` anyway with a `(not found in codebase as of <date>)` note. The plan saw something we should look at. |
 | Plan has multiple H1s (composite plan) | Abort. "Plan has multiple top-level titles. Pass a single-story plan or split first." |
 | Multiple plans have the same mtime (Phase 1 branch 3) | Sort by filename descending and pick the first. Surface the ambiguity in the confirmation prompt. |

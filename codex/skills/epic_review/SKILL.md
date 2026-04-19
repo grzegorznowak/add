@@ -1,15 +1,7 @@
 ---
 name: epic_review
 description: Review one implemented epic step against its story spec
-legacy-argument-hint: '[EPIC="<epic_name>"] [STORY="<story_number_or_spec_file>"] [WORKTREE="<basename>=<path>[,<basename>=<path>...]"]'
 ---
-
-This skill was migrated one-to-one from the former custom prompt `epic_review.md`.
-Invoke it explicitly with `$epic_review`.
-
-Original argument hint: `[EPIC="<epic_name>"] [STORY="<story_number_or_spec_file>"] [WORKTREE="<basename>=<path>[,<basename>=<path>...]"]`
-
-If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
 Review: $EPIC / $STORY
 
@@ -104,6 +96,8 @@ Before doing a full review:
 - inspect the row for the resolved step in `MASTER.md`
 - inspect any `Active Claim`, `Progress Log`, and `Session Handoff` sections in
   the step file
+- inspect the story's `## Acceptance` and `## Verification` contract before
+  treating the implementation as review-ready
 
 If the story is clearly not reviewable yet, abort fast with a concise reason.
 
@@ -111,6 +105,7 @@ Examples of not-reviewable:
 - step is still `TODO` and there is no implementation/handoff evidence
 - step is blocked by an unmet dependency and the code cannot be sensibly judged
 - there is no credible mapping from the step spec to any code or tests yet
+- any acceptance id has no proof row, or any proof row is still `provisional`
 
 ## Worktree preflight
 
@@ -177,10 +172,13 @@ explicitly recorded in `MASTER.md`.
    common) or the main tree at `<workspace_root>/projects/<basename>` (clean
    main-tree fallback case from the preflight).
 3. Never speculate about code you haven't read.
-4. Break the reviewed implementation into logical groups and explain the
+4. If the final implementation or final proof matrix clearly differs from the
+   earlier planned proof path, consult `## Progress Log` and
+   `## Session Handoff` to confirm the change was recorded and justified.
+5. Break the reviewed implementation into logical groups and explain the
    grouping briefly.
-5. Review each group sequentially.
-6. Prioritize:
+6. Review each group sequentially.
+7. Prioritize:
    - correctness
    - regressions
    - architectural consistency
@@ -200,6 +198,9 @@ Before approving, verify:
 - Are follow-on status transitions accurate in `MASTER.md` and the step file?
 - Are there adequate tests for the change?
 - Are there hidden packaging/runtime/ops implications not captured in the step?
+- Is every acceptance id still covered by the final proof matrix?
+- Are any matrix rows still `provisional`?
+- If proof paths changed, was the story updated and the drift logged?
 
 ## Status transitions
 You may update `MASTER.md` as part of the review.
@@ -238,6 +239,13 @@ Add a new entry like:
 ```
 
 If a `Review Log` section does not exist, create it.
+
+Approval is not allowed if the proof contract is still unresolved. A story is
+only eligible for approval when:
+- every acceptance id remains covered
+- every proof row is `final`
+- the matrix matches the actual implementation and verification surfaces
+- any apparent proof drift was logged when it happened
 
 ## Output format
 Start with findings, ordered by severity, with file references.

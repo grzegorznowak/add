@@ -219,11 +219,23 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Prefer code changes over restating plans
 - If the step is in progress because of review feedback, address that feedback first
 - If you discover an epic-wide architectural contradiction, update `MASTER.md` minimally and note it in the step file
+- If you discover non-material proof-path drift, update the story's `## Verification` matrix immediately and record why in `## Progress Log` before continuing
+- If you discover material contract drift, pause feature work, record a replanning checkpoint in `## Progress Log`, update the story contract, and only then continue implementation
 - If the step is blocked by a hard external dependency or contradiction, stop broadening scope and mark it `⛔ BLOCKED`
 
 ## Progress tracking
 
-Append concise timestamped bullets under `## Progress Log` after meaningful milestones. Do not wait until the end to record progress.
+Append concise timestamped bullets under `## Progress Log` after meaningful milestones. Examples:
+- design change locked
+- files patched
+- tests added/updated
+- proof matrix updated to match implementation reality
+- replanning checkpoint recorded after material contract drift
+- blocker discovered
+- epic-wide finding recorded in `MASTER.md`
+- review feedback addressed
+
+Do not wait until the end to record progress.
 
 ## Parallelism guard
 

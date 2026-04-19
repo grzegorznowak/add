@@ -93,12 +93,59 @@ every other command.
 | `## Expected Prerequisites` | Bulleted list of dependency story numbers and titles. |
 | `## Scope` | What is in scope. |
 | `## Out of Scope` | What is deliberately not in scope. |
-| `## Acceptance` | Observable criteria a reviewer can verify. |
-| `## Verification` | Test commands or manual checks a reviewer can run. |
+| `## Acceptance` | Observable criteria a reviewer can verify. Every bullet uses a stable `A<n>` id and covers exactly one independently provable behavior. |
+| `## Verification` | Reviewer-facing proof contract. Must contain `### Verification Commands` and `### Acceptance Proof Matrix`. |
 | `## Discovery Notes` | The catch-all for plan content that doesn't fit elsewhere. Code smells, gotchas, references to existing patterns, named functions/classes with explanatory context. **This is the section that prevents re-discovery.** |
 | `## Critical Files` | Every file path the plan referenced, with line numbers when present. |
 | `## Implementation Notes` | The plan's approach / strategy / phases preserved verbatim. |
 | `## Locked Decisions` | What was decided during planning, plus the alternatives considered and rejected. |
+
+#### `## Acceptance`
+
+- Every acceptance bullet must start with a stable id: `A1`, `A2`, ...
+- Each bullet must be atomic. If two parts could fail independently, split them.
+- Every bullet must remain observable by command, file read, or direct reviewer observation.
+
+Example:
+
+```md
+## Acceptance
+- A1: `/epic-story-save` preserves the proof matrix verbatim from the plan file.
+- A2: `/epic-review` rejects approval when any acceptance id has no proof row.
+```
+
+#### `## Verification`
+
+`## Verification` is no longer a loose list of checks. It is the story's
+reviewer-facing proof contract and must contain these exact subsections:
+
+```md
+## Verification
+
+### Verification Commands
+- <exact command or exact manual/file-read action>
+
+### Acceptance Proof Matrix
+| Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail |
+|---|---|---|---|---|---|---|
+| A1 | final | file-read | <exact reviewer action> | <exact expected evidence> | <paths / commands / surfaces> | |
+| A2 | provisional | automated | <exact reviewer action> | <red/green or equivalent evidence> | <paths / commands / surfaces> | <what is still undecided> |
+```
+
+Rules:
+
+- Every acceptance id must appear in the matrix at least once. Missing rows are
+  invalid.
+- A matrix row may reference multiple acceptance ids only as an exception, and
+  only when the same proof action and failure signal genuinely cover all listed
+  ids without reducing clarity.
+- `Proof Maturity` uses only `final` or `provisional`.
+- `Open Detail` may be blank for `final` rows.
+- `Open Detail` is required for `provisional` rows and must state what remains
+  undecided about the proof path.
+- All rows may be `provisional` during planning if they are still anchored to
+  the real owning surface and concrete enough to guide implementation.
+- By `/epic-review`, every row must be `final`.
 
 ### Runtime sections (created by `/epic-claim`, `/epic-resume`, `/epic-review`, `/epic-pr`)
 
@@ -119,6 +166,7 @@ one `Active Claim` section per file.
 - Worktrees:
   - <repo-basename>: </absolute/path/to/linked/worktree>
   - <repo-basename>: </absolute/path/to/linked/worktree>
+- Main-tree targets: <repo-basename>, <repo-basename>
 - Primary write surfaces: <paths>
 ```
 
@@ -177,7 +225,16 @@ implementation. Written by `/epic-claim`, `/epic-resume`, and `/epic-pr`.
 - 2026-04-12T11:14:00Z Locked design choice on retry behavior.
 - 2026-04-12T11:48:00Z Patched core module and added tests.
 - 2026-04-12T12:01:00Z Moved step to `🔵 IN PR` — https://github.com/.../pull/42
+- 2026-04-12T12:09:00Z Refined proof matrix for `A2` after implementation moved the real assertion seam.
+- 2026-04-12T12:16:00Z Recorded replanning checkpoint: original acceptance contract for `A3` bundled two independently failing behaviors and was split before implementation continued.
 ```
+
+When implementation discovers contract drift:
+
+- **Non-material proof drift**: update `## Verification` immediately and log
+  what changed and why.
+- **Material contract drift**: pause normal feature work, record a replanning
+  checkpoint in `## Progress Log`, refresh the story contract, then continue.
 
 #### `## Session Handoff`
 

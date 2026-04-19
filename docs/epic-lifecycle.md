@@ -17,11 +17,14 @@ planning chain:
 2. **`/epic-story-plan EPIC=<slug>`** — once per story. Interview-driven
    draft that produces a plan file at
    `~/.claude/plans/<epic>-<story-slug>.md`. Never touches the epic
-   directory or any tracker row. The operator can review and edit the
-   plan file before advancing.
+   directory or any tracker row. The plan must already contain the
+   implementation-ready `Acceptance` contract and `Verification` proof
+   matrix before it can be saved.
 3. **`/epic-story-save EPIC=<slug>`** — once per story. Consumes the plan
    file, writes `story-NN-<slug>.md`, and appends a `⚪ TODO` row to
-   `MASTER.md`. This is the transition into the state machine below.
+   `MASTER.md`. It must fail on malformed or incomplete acceptance/proof
+   contracts rather than inventing missing structure. This is the
+   transition into the state machine below.
 
 This phase is entirely upstream of the state-machine states — the two
 new commands are not states and do not appear as transitions in the
@@ -32,8 +35,8 @@ state diagram. They feed the first row of the tracker, nothing more.
 | Status | Meaning |
 |---|---|
 | `⚪ TODO` | Not started yet. The default state for newly created stories. |
-| `🔄 IN PROGRESS` | A session is actively working on this story. |
-| `🟣 IN REVIEW` | Implementation is done enough to review. Local review may still find issues. |
+| `🔄 IN PROGRESS` | A session is actively working on this story. Contract drift discovered here must be logged and resolved before review. |
+| `🟣 IN REVIEW` | Implementation is done enough to review and the proof matrix is fully finalized. Local review may still find issues. |
 | `🔵 IN PR` | **Optional.** Local review passed and the changes are in a GitHub PR awaiting remote review and merge. Skip this stage entirely if a story does not need a PR. |
 | `✅ DONE` | Implementation and review are both complete. If a PR stage was used, the PR is merged. |
 | `⛔ BLOCKED` | An external blocker prevents progress, or `/epic-story-review` has determined the plan is not implementable as specified. The story definition may be revised and work resumes once the blocker clears. |
@@ -120,6 +123,9 @@ is already `✅ DONE` and folds their contract terms into the merged
    transitions are `⚪ TODO` → `⚪ TODO` (logged review) and
    `⚪ TODO` → `⛔ BLOCKED` (unsalvageable plan). It must never move a
    story into `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR`, or `✅ DONE`.
+7. **Proof contracts must be final before local implementation review passes.**
+   Planning may use `provisional` proof rows, but `/epic-review` cannot approve
+   while any row remains provisional.
 
 ## The Legend block
 

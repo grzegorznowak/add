@@ -1,15 +1,7 @@
 ---
 name: epic_plan
 description: Interview-driven bootstrap for a new epic — produces a MASTER.md skeleton under agent_coordination/epics/<slug>/.
-legacy-argument-hint: '[NAME="<slug>"]'
 ---
-
-This skill was migrated one-to-one from the former custom prompt `epic_plan.md`.
-Invoke it explicitly with `$epic_plan`.
-
-Original argument hint: `[NAME="<slug>"]`
-
-If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
 # Epic Plan: $NAME
 

@@ -1,7 +1,7 @@
 # Adding a New Command
 
 This repo holds **paired** commands: every workflow ships as both a Claude
-Code Skill and a Codex prompt so the same operation works on whichever
+Code Skill and a Codex skill so the same operation works on whichever
 runtime the operator is using. Adding a command means writing both halves
 and getting `scripts/lint.sh` to pass.
 
@@ -27,10 +27,6 @@ A new command called `<name>` (using the Claude hyphenated form) requires:
 
 All three files. No exceptions, except for the explicit known-singletons
 list in `scripts/lint.sh` (currently just `memorize`, which is Codex-only).
-
-The legacy `codex/prompts/<name_with_underscores>.md` file is **auto-
-generated** from the canonical Codex skill by `scripts/regen-prompts.sh`.
-Never hand-edit it. Lint fails on stale generated prompts.
 
 ## Claude Skill template
 
@@ -67,7 +63,7 @@ Argument: `$ARGUMENTS` — <what the user passes>.
   repo. These are operator-driven workflows with explicit checkpoints, not
   background capabilities Claude should auto-launch.
 - **`argument-hint:`** is the hint shown in the `/` autocomplete picker.
-  Mirror the Codex side's `argument-hint` so the two stay aligned.
+  Mirror the Codex side's documented argument shape so the two stay aligned.
 - **`allowed-tools:`** lists only what the Skill actually uses. Be
   conservative — narrow `Bash(...)` patterns are fine and reduce permission
   prompts. Read-only commands should not list `Edit` / `Write`.
@@ -87,8 +83,8 @@ Argument: `$ARGUMENTS` — <what the user passes>.
 
 ## Codex skill template
 
-The new Codex CLI (≥ 0.117) discovers skills from `.agents/skills/` per
-project root. Each skill is a directory with two files:
+Codex discovers skills from `.agents/skills/` per project root. Each skill is
+a directory with two files:
 
 ```
 codex/skills/<name>/
@@ -103,15 +99,7 @@ codex/skills/<name>/
 ---
 name: <name>
 description: <one-sentence description>
-legacy-argument-hint: '[ARG1="<value>"] [ARG2="<value>"]'
 ---
-
-This skill was migrated one-to-one from the former custom prompt `<name>.md`.
-Invoke it explicitly with `$<name>`.
-
-Original argument hint: `[ARG1="<value>"] [ARG2="<value>"]`
-
-If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
 <Title>: $ARG1 / $ARG2
 
@@ -136,27 +124,21 @@ policy:
   `lint.sh` enforces this.
 - **`description:`** the short Codex form (existing convention is shorter
   than the Claude side; lint does not enforce parity).
-- **`legacy-argument-hint:`** the old-style argument hint, kept here so the
-  generator can round-trip it into `codex/prompts/<name>.md`. Codex CLI
-  itself ignores unknown frontmatter fields. Omit this field if the
-  command takes no arguments — the body's preamble must then say
-  `Original argument hint: *(none)*`.
 
 ### Body conventions
 
-- The 7-line migration preamble is **mandatory**. The generator strips
-  exactly those 7 lines when producing `codex/prompts/<name>.md`. Deviating
-  from the preamble shape causes `scripts/regen-prompts.sh` to abort.
 - Same phase headings as the Claude side (when present). The lint script
   enforces phase-heading parity between the two sides.
 - Use `$ARG1`, `$ARG2`, etc. for argument substitution instead of
   `$ARGUMENTS`.
+- If the skill takes arguments, explain them near the top of the body in the
+  same concrete style you expect the operator to invoke.
 - Use Codex's name where Claude says "Claude" (e.g. "Codex fresh session").
 
 ## Pairing the two
 
 The base name normalization is hyphen ↔ underscore: a Claude Skill named
-`epic-claim` pairs with a Codex prompt named `epic_claim.md`. The lint
+`epic-claim` pairs with a Codex skill named `epic_claim`. The lint
 script does this conversion automatically.
 
 Singletons (Codex-only or Claude-only) must be added to the relevant
@@ -166,14 +148,11 @@ silently — the explicit list is the documentation.
 ## Lint and ship
 
 ```bash
-bash scripts/regen-prompts.sh   # regenerate codex/prompts/ from skills
 bash scripts/lint.sh             # validate everything
 ```
 
-Run `regen-prompts.sh` whenever you edit a Codex skill — `lint.sh` will
-fail on stale generated prompts. If lint exits 0, you can commit. If not,
-fix the reported items — they are exactly the conditions a reviewer would
-call out.
+If lint exits 0, you can commit. If not, fix the reported items — they are
+exactly the conditions a reviewer would call out.
 
 For additional cross-runtime conventions (lifecycle, MASTER.md schema,
 story file shapes), see [`epic-lifecycle.md`](epic-lifecycle.md) and

@@ -1,9 +1,8 @@
 # add — Agentic Driven Development
 
-A personal, pluggable collection of agent prompts and Skills for managing
+A personal, pluggable collection of agent skills for managing
 software work via the **epic / story** lifecycle. Authored once, installed
-into both **Claude Code** (as Anthropic Skills) and **Codex** (as skills,
-with a legacy prompts fallback during the transition to Codex ≥ 0.117)
+into both **Claude Code** (as Anthropic Skills) and **Codex** (as skills)
 with one command.
 
 ## What this gives you
@@ -13,9 +12,9 @@ Nine coordinated workflow commands plus two small utilities:
 | Command | What it does |
 |---|---|
 | `/epic-plan` | Interview-driven bootstrap for a new epic. Produces the `agent_coordination/epics/<slug>/MASTER.md` skeleton after a grillme-style walkthrough. Never overwrites an existing epic. |
-| `/epic-story-plan` | Interview-driven draft of a new story plan for an existing epic. Produces a plan file in `~/.claude/plans/` matching the shape `/epic-story-save` consumes. |
-| `/epic-story-save` | Scaffold a new story file from a plan file, preserving every research finding so implementation does not have to re-discover it. |
-| `/epic-story-review` | Read-only review of a `⚪ TODO` story's plan (Purpose / Acceptance / Critical Files / Locked Decisions) against the live repo, before `/epic-claim`. Records the verdict into the coordination file. |
+| `/epic-story-plan` | Interview-driven draft of a new story plan for an existing epic. Produces a plan file in `~/.claude/plans/` with atomic acceptance IDs plus a reviewer-facing proof matrix that `/epic-story-save` consumes verbatim. |
+| `/epic-story-save` | Scaffold a new story file from a plan file, preserving every research finding and acceptance/proof contract exactly. Fails instead of inventing malformed or incomplete proof structure. |
+| `/epic-story-review` | Read-only review of a `⚪ TODO` story's plan against the live repo, with explicit scrutiny of acceptance quality, proof-matrix completeness, and proof-seam realism before `/epic-claim`. Records the verdict into the coordination file. |
 | `/epic-claim` | Pick one ready, unclaimed story from an epic, claim it, execute it end-to-end, and leave a clean handoff for the next session. |
 | `/epic-resume` | Resume one already-in-progress story (or one whose PR has requested changes). |
 | `/epic-review` | Read-only review of one story's implementation against its spec. Records the verdict back into the coordination file. |
@@ -36,9 +35,8 @@ There are two installation paths, and they coexist cleanly:
    prefer the first-party `/plugin` flow. See
    [Plugin install](#plugin-install-claude-code-only) below.
 2. **Paired installer** — the custom shell script in this repo. Installs
-   both the Claude skills and the Codex skills (legacy or new format) in
-   one pass, user-level or project-level. Required if you want the Codex
-   side.
+   both the Claude skills and the Codex skills in one pass, user-level or
+   project-level. Required if you want the Codex side.
 
 ### Paired installer (Claude + Codex)
 
@@ -52,19 +50,14 @@ wizard** that asks:
 
 1. Which agents to install for (Claude Code, Codex, or both)
 2. User-level vs project-level scope (project mode prompts for a path)
-3. For Codex: which **flavor** to install — `legacy` (`~/.codex/prompts/`,
-   for Codex pre-0.117), `new` (`~/.codex/skills/` plus per-project
-   `.agents/skills/`, for Codex ≥ 0.117), or `both`. The wizard runs
-   `codex --version` and pre-selects the right answer.
-4. A confirmation screen before any filesystem changes.
+3. A confirmation screen before any filesystem changes.
 
 The installer creates symlinks at one or more of these locations:
 
 - `claude/skills/<name>/` → `~/.claude/skills/<name>` (Claude user-level)
 - `claude/skills/<name>/` → `<project>/.claude/skills/<name>` (Claude project)
-- `codex/skills/<name>/` → `~/.codex/skills/<name>` (Codex new, user-level)
-- `codex/skills/<name>/` → `<project>/.agents/skills/<name>` (Codex new, project)
-- `codex/prompts/<name>.md` → `~/.codex/prompts/<name>.md` (Codex legacy)
+- `codex/skills/<name>/` → `~/.codex/skills/<name>` (Codex user-level)
+- `codex/skills/<name>/` → `<project>/.agents/skills/<name>` (Codex project)
 
 It is idempotent and refuses to clobber non-symlink targets unless you pass
 `--force`.
@@ -78,14 +71,12 @@ in scripted mode:
 ~/.local/share/add/scripts/install.sh \
   --yes \
   --agents both \
-  --codex-flavor new \
   --project /workspaces/myproject
 ```
 
 Flags:
 
 - `--agents claude|codex|both` — which runtimes (default: both)
-- `--codex-flavor legacy|new|both` — which Codex format (default: new)
 - `--project <path>` — also link into `<path>/.claude/skills/` and
   `<path>/.agents/skills/` (unified across both runtimes)
 - `--yes` — skip the confirmation prompt
@@ -98,7 +89,7 @@ Drop this into `.devcontainer/devcontainer.json`:
 
 ```json
 {
-  "postCreateCommand": "git clone https://github.com/grzegorznowak/add.git ~/.local/share/add && ~/.local/share/add/scripts/install.sh --yes --agents both --codex-flavor new"
+  "postCreateCommand": "git clone https://github.com/grzegorznowak/add.git ~/.local/share/add && ~/.local/share/add/scripts/install.sh --yes --agents both"
 }
 ```
 
@@ -119,10 +110,10 @@ skills at their expected `skills/<name>/SKILL.md` location.
 (Exact invocation depends on the marketplace / loader you use. For
 local development, point Claude Code at a checkout of this repo.)
 
-The Codex prompts and Codex skills are **not** installed by the plugin
-path — that's paired-installer-only. Mix freely: use `/plugin` for the
-Claude side and `scripts/install.sh --agents codex` for the Codex side
-if that split matches your workflow.
+The Codex skills are **not** installed by the plugin path — that's
+paired-installer-only. Mix freely: use `/plugin` for the Claude side and
+`scripts/install.sh --agents codex` for the Codex side if that split matches
+your workflow.
 
 ## Updating
 
@@ -139,7 +130,8 @@ cd ~/.local/share/add && git pull
 ```
 
 Only symlinks pointing at this repo are removed. Anything you authored
-yourself is left untouched.
+yourself is left untouched. Historical `~/.codex/prompts` symlinks from
+older installs are cleaned up too.
 
 ## Lifecycle (one diagram)
 
@@ -212,6 +204,11 @@ yourself is left untouched.
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
 
+Planning note: the diagram intentionally shows only lifecycle transitions.
+Before a story reaches `⚪ TODO`, `/epic-story-plan` must already produce an
+implementation-ready `Acceptance` contract plus `Verification` proof matrix,
+and `/epic-story-save` must fail instead of inventing missing proof structure.
+
 ## Conventions
 
 The commands all read and write a small set of well-defined files inside
@@ -228,12 +225,9 @@ See [`docs/epic-conventions.md`](docs/epic-conventions.md) for the full schema.
 
 To add a new command, see [`docs/adding-a-command.md`](docs/adding-a-command.md).
 The short version: write the Claude Skill at `claude/skills/<name>/SKILL.md`
-**and** the Codex skill at `codex/skills/<name>/SKILL.md` (with a
-`legacy-argument-hint:` frontmatter field), create
-`codex/skills/<name>/agents/openai.yaml`, then run
-`scripts/regen-prompts.sh` followed by `scripts/lint.sh` until it passes.
-The legacy `codex/prompts/<name>.md` files are auto-generated from the
-canonical Codex skills — never hand-edit them.
+**and** the Codex skill at `codex/skills/<name>/SKILL.md`, create
+`codex/skills/<name>/agents/openai.yaml`, then run `scripts/lint.sh` until it
+passes.
 
 ## Why "add"
 

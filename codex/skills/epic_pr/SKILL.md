@@ -1,15 +1,7 @@
 ---
 name: epic_pr
 description: Move one epic step from local review into a GitHub PR, recording PR metadata on the step file. Optional stage between IN REVIEW and DONE.
-legacy-argument-hint: '[EPIC="<epic_name>"] [STORY="<story_number_or_spec_file>"] [PR_URL="<github_pr_url>"]'
 ---
-
-This skill was migrated one-to-one from the former custom prompt `epic_pr.md`.
-Invoke it explicitly with `$epic_pr`.
-
-Original argument hint: `[EPIC="<epic_name>"] [STORY="<story_number_or_spec_file>"] [PR_URL="<github_pr_url>"]`
-
-If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
 Open PR: $EPIC / $STORY
 

@@ -10,8 +10,7 @@
 #   4. Phase-heading parity between paired files (drift signal).
 #   5. Codex skill directory name matches the `name:` field inside its
 #      SKILL.md.
-#   6. Generated codex/prompts/ files are fresh
-#      (scripts/regen-prompts.sh --check).
+#   6. Codex skills do not carry prompt-era compatibility scaffolding.
 #   7. No `cure_workspace` absolute paths anywhere.
 #   8. Claude skill directory name matches the `name:` field inside its
 #      SKILL.md.
@@ -25,7 +24,6 @@ set -uo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_SKILLS="${REPO_ROOT}/claude/skills"
 CODEX_SKILLS="${REPO_ROOT}/codex/skills"
-CODEX_PROMPTS="${REPO_ROOT}/codex/prompts"
 
 # Singletons: entries that legitimately only exist on one side. Names use the
 # Codex form (underscored). The Claude form is the same string with underscores
@@ -178,7 +176,7 @@ for cn in "${CODEX_NAMES[@]:-}"; do
   elif in_array "$cn" "${SINGLETONS_CODEX_ONLY[@]:-}"; then
     ok "$cn (codex-only singleton)"
   else
-    fail "codex prompt '$cn' has no claude counterpart (expected '$expected_claude')"
+    fail "codex skill '$cn' has no claude counterpart (expected '$expected_claude')"
   fi
 done
 
@@ -200,17 +198,17 @@ for cn in "${CLAUDE_NAMES[@]:-}"; do
 done
 
 echo
-echo "lint: codex/prompts/ freshness"
-if bash "$REPO_ROOT/scripts/regen-prompts.sh" --check >/dev/null 2>&1; then
-  ok "codex/prompts/ in sync with codex/skills/"
+echo "lint: codex skill content hygiene"
+if grep -RInE '^(legacy-argument-hint:)|^This skill was migrated one-to-one from the former custom prompt|^Original argument hint:' "$CODEX_SKILLS" >/dev/null 2>&1; then
+  fail "prompt-era Codex scaffolding found in codex/skills/ (matches below)"
+  grep -RInE '^(legacy-argument-hint:)|^This skill was migrated one-to-one from the former custom prompt|^Original argument hint:' "$CODEX_SKILLS" 2>&1 | sed 's/^/  /' >&2 || true
 else
-  fail "codex/prompts/ is stale. Run: bash scripts/regen-prompts.sh"
-  bash "$REPO_ROOT/scripts/regen-prompts.sh" --check 2>&1 | sed 's/^/  /' >&2 || true
+  ok "no prompt-era Codex scaffolding"
 fi
 
 echo
 echo "lint: no cure_workspace absolute paths"
-if grep -RIn 'cure_workspace' "$CLAUDE_SKILLS" "$CODEX_SKILLS" "$CODEX_PROMPTS" "$REPO_ROOT/docs" "$REPO_ROOT/README.md" 2>/dev/null; then
+if grep -RIn 'cure_workspace' "$CLAUDE_SKILLS" "$CODEX_SKILLS" "$REPO_ROOT/docs" "$REPO_ROOT/README.md" 2>/dev/null; then
   fail "found 'cure_workspace' references (above) — strip project-specific paths"
 else
   ok "no cure_workspace leakage"

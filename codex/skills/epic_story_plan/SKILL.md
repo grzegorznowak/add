@@ -1,19 +1,11 @@
 ---
 name: epic_story_plan
 description: Interview-driven draft of a new story plan for an existing epic — produces a plan file in ~/.claude/plans/ matching the shape $epic_story_save consumes.
-legacy-argument-hint: '[EPIC="<epic_name>"]'
 ---
-
-This skill was migrated one-to-one from the former custom prompt `epic_story_plan.md`.
-Invoke it explicitly with `$epic_story_plan`.
-
-Original argument hint: `[EPIC="<epic_name>"]`
-
-If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
 # Epic Story Plan: $EPIC
 
-Draft a new story plan for an existing epic by interviewing the operator through the spec sections `$epic_story_save` consumes (`Purpose`, `Triggering Need`, `Expected Prerequisites`, `Scope`, `Out of Scope`, `Acceptance`, `Verification`, `Discovery Notes`, `Critical Files`, `Implementation Notes`, `Locked Decisions`). The output is a plan file at `~/.claude/plans/<epic>-<story-slug>.md` that the operator then feeds into `$epic_story_save EPIC=<epic>` to produce the actual story file and tracker row.
+Draft a new story plan for an existing epic by interviewing the operator through the spec sections `$epic_story_save` consumes (`Purpose`, `Triggering Need`, `Expected Prerequisites`, `Scope`, `Out of Scope`, `Acceptance`, `Verification`, `Discovery Notes`, `Critical Files`, `Implementation Notes`, `Locked Decisions`). The output is a plan file at `~/.claude/plans/<epic>-<story-slug>.md` that already contains the implementation-ready acceptance/proof contract `$epic_story_save` will persist verbatim into the story file and tracker row.
 
 Treat `$EPIC` as optional. If present, resolve that epic directly. If absent, list the available epics under `<cwd>/agent_coordination/epics/` and ask the operator to pick one.
 
@@ -76,9 +68,11 @@ Walk the operator through each of the questions below in order. For every questi
 - **Propose a recommended answer with a brief plain-language explanation of the trade-off.**
 - **Where it helps ground the choice, include a concrete example, short snippet, or small ASCII diagram.**
 - Probe the codebase before asking if the answer can be derived from it.
-- **Every question offers two escape hatches the operator may invoke at any point:**
+- **Every question offers two escape hatches the operator may invoke at any point, except for `Acceptance` and `Verification`:**
   - `skip` — use the proposed default for this section and move to the next question.
   - `draft now` — stop asking, jump to `## Draft plan file` and fill in `<TODO: ...>` placeholders for everything that was not answered yet.
+- `## Acceptance` and `## Verification` are load-bearing contract sections. Keep interviewing until they are structurally complete. Do not write the plan file with placeholders or missing coverage in either section.
+- **Exception:** `skip` / `draft now` are NOT allowed for `## Acceptance` or `## Verification`. The plan file cannot be written until those two sections are structurally complete.
 
 ### Question 1 — Story slug and one-line title
 
@@ -110,18 +104,31 @@ Also ask what is deliberately **out of scope**. A non-empty Out of Scope section
 
 ### Question 6 — Acceptance criteria
 
-Ask: "how will a reviewer know this story is done?" Every acceptance bullet must be checkable by a command, a file read, or a direct observation. Reject:
+Ask: "how will a reviewer know this story is done?" Every acceptance bullet must be checkable by a command, a file read, or a direct observation. Every bullet must start with a stable id (`A1`, `A2`, ...) and cover exactly one independently provable behavior. Reject:
 
 - "works correctly" (not observable)
 - "is performant" (no threshold)
 - "is clean" (subjective)
 - "tests pass" (which tests? on what command?)
+- compound bullets that hide multiple independently failing behaviors
 
-Propose observable rewrites: "the existing test suite under `tests/auth/` passes with zero failures when run with `bun test tests/auth/`". Iterate until every bullet names a concrete check.
+Propose observable rewrites: "A1: the existing test suite under `tests/auth/` passes with zero failures when run with `bun test tests/auth/`". Iterate until every bullet names a concrete check, uses an `A<n>` id, and stays atomic.
 
-### Question 7 — Verification
+### Question 7 — Verification contract
 
-Ask for the concrete commands a reviewer will run to verify acceptance. Confirm any test files the operator names actually exist. If they name a file that does not exist, tell them and ask for an alternative.
+Build `## Verification` in two parts:
+
+1. `### Verification Commands`
+   - Ask for the exact commands or exact manual/file-read actions a reviewer can run.
+   - Confirm any existing test files or named surfaces actually exist when they are claimed as current seams.
+2. `### Acceptance Proof Matrix`
+   - Every acceptance id must have at least one row before the plan can be saved.
+   - Required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`
+   - `Proof Maturity` must be `final` or `provisional`.
+   - `Open Detail` may be blank for `final` rows and is required for `provisional` rows.
+   - A row may cover multiple acceptance ids only as an exception when the same proof action and failure signal genuinely cover all of them.
+
+Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers instead of the real acceptance surface. Provisional rows are allowed, but every acceptance id still needs a row and every provisional row must state what remains undecided.
 
 ### Question 8 — Critical Files
 
@@ -141,6 +148,8 @@ For files the operator says need to be created (that do not yet exist in the cod
 Ask for the approach. Strategy, phases, alternatives considered. Free-form prose; this is the section that preserves design context for the implementer.
 
 Push back if the operator leaves out the "alternatives considered" angle — the Locked Decisions section depends on knowing what was rejected, and those two sections pair tightly.
+
+Also ask whether any acceptance proof rows are expected to remain `provisional` through planning, and if so whether the operator has already identified what implementation discovery will need to resolve. This is not a substitute for the matrix row itself; it is supporting context for the implementer.
 
 ### Question 10 — Locked Decisions
 
@@ -175,10 +184,17 @@ Assemble the plan file body with section names matching `docs/epic-conventions.m
 <bullets from Q5>
 
 ## Acceptance
-<observable bullets from Q6>
+- A1: <observable bullet from Q6>
 
 ## Verification
-<concrete commands from Q7>
+### Verification Commands
+- <concrete command or exact manual/file-read action from Q7>
+
+### Acceptance Proof Matrix
+| Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail |
+|---|---|---|---|---|---|---|
+| A1 | final | file-read | <exact reviewer action> | <exact expected evidence> | <paths / commands / surfaces> | |
+| A2 | provisional | automated | <exact reviewer action> | <red/green or equivalent evidence> | <paths / commands / surfaces> | <what remains undecided> |
 
 ## Discovery Notes
 <code smells, reusable code, gotchas from Q8 and Q11>
@@ -195,6 +211,8 @@ Assemble the plan file body with section names matching `docs/epic-conventions.m
 
 For sections where the operator `skip`ped or `draft now`-ed before answering, insert an explicit `<TODO: missing from interview — ...>` placeholder. Do not omit the section.
 
+Exception: `## Acceptance` and `## Verification` must never contain placeholders. If they are incomplete, keep interviewing instead of drafting the file.
+
 ## Checkpoint
 
 Show the operator:
@@ -202,6 +220,7 @@ Show the operator:
 - Target path: `~/.claude/plans/<epic>-<story-slug>.md`
 - The full drafted plan file content
 - Section list with a note next to each indicating whether it came from a real answer, a `skip` default, or a `draft now` placeholder
+- Acceptance/proof coverage check: every acceptance id listed, whether it has at least one matrix row, and whether any rows remain `provisional`
 - Next-step reminder: "after confirming, the next command is `$epic_story_save EPIC=<epic>` to scaffold the story file and tracker row"
 
 **CHECKPOINT**: explicit y/n before proceeding. If the operator rejects, return to the interview loop at the question they want to revisit. If they accept, continue to the write step.
@@ -210,7 +229,15 @@ Show the operator:
 
 1. Resolve the write path: `${HOME}/.claude/plans/<epic>-<story-slug>.md`
 2. If a file already exists at that path, abort with: `plan file already exists at <path>; rename or remove it and re-run`.
-3. Write the drafted plan file content to that path.
+3. Before writing, validate the acceptance/proof contract:
+   - every acceptance bullet begins with `A<n>:`
+   - every acceptance bullet is covered by at least one matrix row
+   - the matrix uses the required columns
+   - every `Proof Maturity` value is `final` or `provisional`
+   - every `provisional` row has non-blank `Open Detail`
+   - there are no `<TODO: ...>` placeholders in `## Acceptance` or `## Verification`
+   If any check fails, abort with a concise explanation and continue the interview rather than writing a malformed plan.
+4. Write the drafted plan file content to that path.
 
 No other files are created. `MASTER.md` is not touched. No story file is created. The operator's next command produces those.
 

@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # uninstall.sh — remove only the symlinks that point at this repo. Anything
-# you authored yourself in ~/.claude/skills, ~/.codex/skills, or
-# ~/.codex/prompts is left alone.
+# you authored yourself in ~/.claude/skills or ~/.codex/skills is left alone.
+# Historical ~/.codex/prompts symlinks from older installs are also cleaned up
+# if they still point at this repo.
 #
 # Usage:
 #   scripts/uninstall.sh
@@ -13,7 +14,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_DEST="${HOME}/.claude/skills"
-CODEX_PROMPTS_DEST="${HOME}/.codex/prompts"
+LEGACY_CODEX_PROMPTS_DEST="${HOME}/.codex/prompts"
 CODEX_SKILLS_DEST="${HOME}/.codex/skills"
 
 DRY_RUN=0
@@ -74,7 +75,7 @@ log "repo: $REPO_ROOT"
 log
 
 remove_links_pointing_at_repo "$CLAUDE_DEST"
-remove_links_pointing_at_repo "$CODEX_PROMPTS_DEST"
+remove_links_pointing_at_repo "$LEGACY_CODEX_PROMPTS_DEST"
 remove_links_pointing_at_repo "$CODEX_SKILLS_DEST"
 if [[ -n "$PROJECT_PATH" ]]; then
   remove_links_pointing_at_repo "${PROJECT_PATH}/.claude/skills"

@@ -1,15 +1,7 @@
 ---
 name: epic_story_review
 description: Review a ⚪ TODO story's plan before implementation.
-legacy-argument-hint: '[EPIC="<epic_name>"] [STORY="<story_number_or_spec_file>"]'
 ---
-
-This skill was migrated one-to-one from the former custom prompt `epic_story_review.md`.
-Invoke it explicitly with `$epic_story_review`.
-
-Original argument hint: `[EPIC="<epic_name>"] [STORY="<story_number_or_spec_file>"]`
-
-If the user supplies text alongside the explicit skill invocation, treat that text as additional context for the instructions below.
 
 Plan review: $EPIC / $STORY
 
@@ -26,7 +18,9 @@ Treat `$STORY` as the story selector. It may be either:
 You are a maintainer reviewing one `⚪ TODO` story's **plan** — its Purpose,
 Acceptance, Verification, Critical Files, Locked Decisions, and surrounding
 spec sections — against the live repository, before any implementation has
-started.
+started. The highest-leverage part of this review is the acceptance/proof
+contract: atomic acceptance ids plus a reviewer-facing proof matrix that is
+credible enough to drive implementation without drifting into fake seams.
 
 This prompt is intended to work well from a fresh session. It can also be
 run multiple times on the same story after the operator edits the spec
@@ -121,7 +115,8 @@ of these hold:
   instead"
 - the story file has no `> **Plan source**:` header line — say "story was
   not scaffolded by `epic_story_save`; plan review assumes that shape"
-- the story file is missing `## Purpose` or `## Acceptance` — say which
+- the story file is missing `## Purpose`, `## Acceptance`, or
+  `## Verification` — say which
   section is missing
 - any runtime section already exists on the story file (`## Active Claim`,
   `## Progress Log`, `## Session Handoff`, `## Review Log`,
@@ -149,17 +144,22 @@ explicitly recorded in `MASTER.md`.
    does not already have reusable implementations the plan missed, confirm
    `## Locked Decisions` do not contradict `AGENTS.md` or established
    patterns.
-3. Use `git status` to confirm the worktree is not mid-implementation (if
+3. Treat `## Verification` as a proof-design contract, not as proof that the
+   implementation already exists. Do not run the planned tests expecting them
+   to pass at this phase. Instead, validate whether the commands, seams, and
+   owning surfaces are concrete, plausible, and aimed at the real acceptance
+   behavior rather than a mocked caricature of it.
+4. Use `git status` to confirm the worktree is not mid-implementation (if
    there are large pending changes, note it — plan review on a dirty
    worktree is a warning signal).
-4. Use `git log` to skim recent history for related work the plan should
+5. Use `git log` to skim recent history for related work the plan should
    have referenced but did not.
-5. Never speculate about code you haven't read. If a claim in the plan can
+6. Never speculate about code you haven't read. If a claim in the plan can
    be checked, check it.
-6. If the plan looks structurally wrong, verdict is `request_changes` with
+7. If the plan looks structurally wrong, verdict is `request_changes` with
    a pointer to which sections to edit. Do not rewrite the plan inside the
    log.
-7. Walk the full validation checklist below before settling on a verdict.
+8. Walk the full validation checklist below before settling on a verdict.
 
 ## Critical checks
 
@@ -179,25 +179,45 @@ Before approving, verify every item:
 6. **`Acceptance` criteria are observable.** Each bullet must be checkable
    by a command, a file read, or a UI observation. Fails on "works
    correctly" / "is clean" / "is performant" with no measurable threshold.
-7. **`Verification` has real commands.** Fails if it says "run the tests"
-   with no command, or names a test file that doesn't exist.
-8. **`Critical Files` exist.** Resolve every path. Missing or renamed files
+7. **`Acceptance` ids are stable and atomic.** Every bullet must start with
+   `A<n>:` and cover one independently provable behavior. Split any bullet
+   whose parts could fail independently.
+8. **`Verification` uses the required proof-contract shape.** `## Verification`
+   must contain exact `### Verification Commands` and
+   `### Acceptance Proof Matrix` subsections.
+9. **The proof matrix covers every acceptance id.** Every acceptance id must
+   appear in at least one matrix row. Shared rows are allowed only when the
+   same proof action and failure signal genuinely cover all listed ids.
+10. **Proof-matrix rows are concrete.** Every row must have a real proof
+    method, reviewer action, expected evidence, and relevant surfaces. Fails
+    on vague instructions like "run the relevant tests" or "check manually".
+11. **`Proof Maturity` is valid.** Only `final` or `provisional` are allowed.
+    `provisional` rows are acceptable during story review, even if all rows
+    are provisional, but every provisional row must state its unresolved part
+    in `Open Detail`.
+12. **Proof seams target the real contract.** Reject rows that mainly validate
+    mocked helpers, monkeypatched internals, or synthetic seams that would not
+    meaningfully exercise the promised acceptance behavior.
+13. **Feasibility is grounded when possible.** Probe referenced commands,
+    files, and surfaces against the live repo. Existing seams should exist;
+    planned seams should still point at the right owning surface.
+14. **`Critical Files` exist.** Resolve every path. Missing or renamed files
    are plan-staleness signals.
-9. **`Critical Files` are the right surfaces.** Grep the plan's domain
+15. **`Critical Files` are the right surfaces.** Grep the plan's domain
    keywords; if obvious owners of that domain are missing from the list,
    flag it.
-10. **`Discovery Notes` mentions reusable existing code.** Search the repo
+16. **`Discovery Notes` mentions reusable existing code.** Search the repo
     for 2–3 domain terms from the plan and cross-reference against
     `## Discovery Notes`. If the plan invents something that clearly exists
     already, that is a `request_changes` finding.
-11. **`Locked Decisions` don't contradict `AGENTS.md` or established
+17. **`Locked Decisions` don't contradict `AGENTS.md` or established
     patterns.** Read `AGENTS.md` and spot-check each decision.
-12. **No hidden gotchas in `Critical Files`.** Skim each Critical File for
+18. **No hidden gotchas in `Critical Files`.** Skim each Critical File for
     things the plan didn't mention but should have: migrations, public
     APIs, existing tests that would break, cross-module coupling.
-13. **`Implementation Notes` are internally consistent** with `## Acceptance`
+19. **`Implementation Notes` are internally consistent** with `## Acceptance`
     and `## Scope` (the plan's own self-consistency).
-14. **No `<TODO: missing from plan — ...>` placeholders** left by
+20. **No `<TODO: missing from plan — ...>` placeholders** left by
     `epic_story_save`. If any remain, verdict is at minimum `request_changes`.
 
 ## Status transitions
