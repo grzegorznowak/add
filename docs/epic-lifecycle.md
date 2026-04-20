@@ -22,7 +22,12 @@ planning chain:
    matrix before it can be saved. Planning is proof-first: the proof
    surfaces must be concrete enough that an implementer can inspect the
    repo and choose a smallest focused red seam without re-planning the
-   story.
+   story. If the story spans multiple product surfaces, variants, modes,
+   or orchestration branches, the plan must expand that risk surface into
+   a `Surface / Branch Proof Matrix`. If shared helpers or multiple
+   callsites are involved, the plan must distinguish helper, routing, and
+   behavior proofs. If the feature is prompt- or placeholder-driven, the
+   plan must include fail-open checks.
 3. **`/epic-story-save EPIC=<slug>`** — once per story. Consumes the plan
    file, writes `story-NN-<slug>.md`, and appends a `⚪ TODO` row to
    `MASTER.md`. It must fail on malformed or incomplete acceptance/proof
@@ -129,6 +134,14 @@ is already `✅ DONE` and folds their contract terms into the merged
 7. **Proof contracts must be final before local implementation review passes.**
    Planning may use `provisional` proof rows, but `/epic-review` cannot approve
    while any row remains provisional.
+8. **Helper proof is not routing proof.** For multi-callsite or
+   orchestration-heavy features, approval requires explicit proof that the
+   supported callsites or branches actually route through the intended helper or
+   branch logic.
+9. **Fail-open prompt risks need explicit proof.** Prompt-driven or
+   placeholder-driven stories are incomplete unless the proof contract checks
+   for unresolved placeholders, silent no-op behavior on enabled paths, and
+   unchanged behavior on an appropriate disabled/default path.
 
 ## The Legend block
 

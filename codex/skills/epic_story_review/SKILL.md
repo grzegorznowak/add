@@ -187,7 +187,9 @@ Before approving, verify every item:
    whose parts could fail independently.
 8. **`Verification` uses the required proof-contract shape.** `## Verification`
    must contain exact `### Verification Commands` and
-   `### Acceptance Proof Matrix` subsections.
+   `### Acceptance Proof Matrix` subsections, plus any required
+   `### Surface / Branch Proof Matrix` and `### Fail-open Checks` subsections
+   when the story's risk surface calls for them.
 9. **The proof matrix covers every acceptance id.** Every acceptance id must
    appear in at least one matrix row. Shared rows are allowed only when the
    same proof action and failure signal genuinely cover all listed ids.
@@ -198,37 +200,51 @@ Before approving, verify every item:
     `provisional` rows are acceptable during story review, even if all rows
     are provisional, but every provisional row must state its unresolved part
     in `Open Detail`.
-12. **Proof seams target the real contract and are focused enough for
+12. **Multi-surface stories expand into branch-aware proof.** If the story
+    spans multiple supported surfaces, variants, modes, or orchestration
+    branches, `## Verification` must include `### Surface / Branch Proof
+    Matrix` with rows for each in-scope combination or an explicit exclusion.
+13. **Helper proof is not routing proof.** When multiple supported callsites or
+    orchestration paths exist, the surface / branch matrix must explicitly
+    distinguish `helper`, `routing`, and `behavior` proof classes. Helper-only
+    proof is insufficient; at least one routing proof must show that the
+    supported callsites actually invoke the intended helper or branch logic.
+14. **Fail-open prompt risks are covered when relevant.** Prompt-, template-,
+    or placeholder-driven stories must include `### Fail-open Checks` proving
+    supported renders leave no unresolved placeholders or raw tokens, enabled
+    supported paths actually activate the feature, and an appropriate
+    disabled/default path remains unchanged.
+15. **Proof seams target the real contract and are focused enough for
     red-first execution.** Reject rows that mainly validate mocked helpers,
     monkeypatched internals, or synthetic seams that would not meaningfully
     exercise the promised acceptance behavior. The plan must still leave room
     for the implementer to choose the smallest focused seam after reading
     sources.
-13. **Feasibility is grounded when possible.** Probe referenced commands,
+16. **Feasibility is grounded when possible.** Probe referenced commands,
     files, and surfaces against the live repo. Existing seams should exist;
     planned seams should still point at the right owning surface.
-14. **`Implementation Notes` make red-first the default implementation
+17. **`Implementation Notes` make red-first the default implementation
     method.** The plan must clearly say implementation inspects sources first,
     chooses the smallest focused seam it can make fail, turns it green, then
     broadens verification. If the plan anticipates a reason red-first may be
     infeasible, it must require an explicit written exception before deviating.
-15. **`Critical Files` exist.** Resolve every path. Missing or renamed files
+18. **`Critical Files` exist.** Resolve every path. Missing or renamed files
     are plan-staleness signals.
-16. **`Critical Files` are the right surfaces.** Grep the plan's domain
+19. **`Critical Files` are the right surfaces.** Grep the plan's domain
     keywords; if obvious owners of that domain are missing from the list,
     flag it.
-17. **`Discovery Notes` mentions reusable existing code.** Search the repo
+20. **`Discovery Notes` mentions reusable existing code.** Search the repo
     for 2–3 domain terms from the plan and cross-reference against
     `## Discovery Notes`. If the plan invents something that clearly exists
     already, that is a `request_changes` finding.
-18. **`Locked Decisions` don't contradict `AGENTS.md` or established
+21. **`Locked Decisions` don't contradict `AGENTS.md` or established
     patterns.** Read `AGENTS.md` and spot-check each decision.
-19. **No hidden gotchas in `Critical Files`.** Skim each Critical File for
+22. **No hidden gotchas in `Critical Files`.** Skim each Critical File for
     things the plan didn't mention but should have: migrations, public
     APIs, existing tests that would break, cross-module coupling.
-20. **`Implementation Notes` are internally consistent** with `## Acceptance`
+23. **`Implementation Notes` are internally consistent** with `## Acceptance`
     and `## Scope` (the plan's own self-consistency).
-21. **No `<TODO: missing from plan — ...>` placeholders** left by
+24. **No `<TODO: missing from plan — ...>` placeholders** left by
     `epic_story_save`. If any remain, verdict is at minimum `request_changes`.
 
 ## Status transitions

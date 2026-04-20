@@ -143,6 +143,9 @@ Do not infer identity from filename shape or naming conventions that are not exp
    - architectural consistency
    - duplication / missed reuse
    - status / progress drift from the step spec
+   - branch-coverage drift from the planned proof surface
+   - missing routing completeness across supported callsites
+   - fail-open prompt regressions where relevant
    - red-first workflow drift or undocumented exceptions
    - missing tests
    - rollout / operational risks where relevant
@@ -163,6 +166,9 @@ Before approving, verify:
 - Are there hidden packaging / runtime / ops implications not captured in the step?
 - Is every acceptance id still covered by the final proof matrix?
 - Are any matrix rows still `provisional`?
+- If the story spans multiple surfaces / variants / branches, does the final proof contract still cover every in-scope row from the `Surface / Branch Proof Matrix`, or log an explicit intentional exclusion?
+- If shared helpers or multiple callsites were in scope, is there explicit routing proof showing that each supported callsite actually reaches the intended helper or branch logic rather than only proving helper correctness?
+- If the story is prompt/template/placeholder-driven, do the final tests or reviewer actions prove there are no unresolved placeholders on supported paths, that enabled paths actually activate the feature, and that an appropriate disabled/default path stays unchanged?
 - If proof paths changed, was the story updated and the drift logged?
 
 ## Status transitions
@@ -197,6 +203,9 @@ Approval is not allowed if the proof contract is still unresolved. A story is on
 - every acceptance id remains covered
 - every proof row is `final`
 - the matrix matches the actual implementation and verification surfaces
+- every required surface / variant / branch row is covered or explicitly excluded
+- routing completeness is proven when multiple supported callsites or orchestration paths exist
+- required fail-open checks are satisfied for prompt/template/placeholder-driven features
 - any apparent proof drift was logged when it happened
 - the step file records either the focused red seam that was used or an explicit written exception with the alternative proof path
 

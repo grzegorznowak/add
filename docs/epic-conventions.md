@@ -94,7 +94,7 @@ every other command.
 | `## Scope` | What is in scope. |
 | `## Out of Scope` | What is deliberately not in scope. |
 | `## Acceptance` | Observable criteria a reviewer can verify. Every bullet uses a stable `A<n>` id and covers exactly one independently provable behavior. |
-| `## Verification` | Reviewer-facing proof contract. Must contain `### Verification Commands` and `### Acceptance Proof Matrix`, and be concrete enough to support red-first implementation after source inspection. |
+| `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands` and `### Acceptance Proof Matrix`, and must add `### Surface / Branch Proof Matrix` and/or `### Fail-open Checks` when the story's risk surface requires them. |
 | `## Discovery Notes` | The catch-all for plan content that doesn't fit elsewhere. Code smells, gotchas, references to existing patterns, named functions/classes with explanatory context. **This is the section that prevents re-discovery.** |
 | `## Critical Files` | Every file path the plan referenced, with line numbers when present. |
 | `## Implementation Notes` | The plan's approach / strategy / phases preserved verbatim. |
@@ -117,7 +117,8 @@ Example:
 #### `## Verification`
 
 `## Verification` is no longer a loose list of checks. It is the story's
-reviewer-facing proof contract and must contain these exact subsections:
+reviewer-facing proof contract. It must always contain these core
+subsections:
 
 ```md
 ## Verification
@@ -153,6 +154,43 @@ Rules:
 - Implementation is red-first by default. After source inspection, the
   implementer chooses the smallest focused seam they can make fail, turns it
   green, and only then broadens verification.
+
+Add this subsection whenever the story spans multiple user-visible surfaces,
+supported variants/profiles/modes, or internal orchestration branches:
+
+```md
+### Surface / Branch Proof Matrix
+| Surface | Supported Variant | Internal Execution Branch | Proof Class | Owning Proof Seam | Why This Seam Is Sufficient | Out of Scope Notes |
+|---|---|---|---|---|---|---|
+| <surface> | <variant / profile / mode> | <branch / callsite / orchestration path> | <helper | routing | behavior> | <test / command / file-read seam> | <why this proves the branch> | |
+| <surface> | <variant / profile / mode> | <intentionally excluded branch> | behavior | <n/a or explicit proof seam> | <why exclusion is safe> | <explicit exclusion reason> |
+```
+
+Rules for `### Surface / Branch Proof Matrix`:
+
+- Every in-scope surface / variant / internal branch combination must appear at
+  least once.
+- A row may mark a branch as intentionally excluded only when the exclusion is
+  explicit in the story contract.
+- `Proof Class` must distinguish `helper`, `routing`, and `behavior` proofs.
+- Helper proof alone is insufficient when multiple supported callsites or
+  orchestration branches exist. At least one `routing` proof must show that the
+  supported callsites actually invoke the shared helper or branch logic.
+- The matrix must be specific enough that a reviewer can tell which supported
+  branches are covered, and which are intentionally out of scope, from the
+  story alone.
+
+Add this subsection whenever the feature depends on prompt placeholders,
+template variables, string substitution, or other fail-open prompt assembly:
+
+```md
+### Fail-open Checks
+- Supported renders leave no unresolved feature placeholders or raw tokens.
+- Enabled supported paths prove the feature is active, not silently ignored.
+- At least one disabled or default path proves baseline behavior stays intact.
+- Any supported profile or mode that intentionally excludes the feature is
+  called out explicitly.
+```
 
 ### Runtime sections (created by `/epic-claim`, `/epic-resume`, `/epic-review`, `/epic-pr`)
 

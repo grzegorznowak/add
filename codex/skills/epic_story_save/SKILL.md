@@ -49,7 +49,9 @@ implementation time.
 4. **Proof contract must already be valid.** `epic_story_save` is a
    persistence step, not a planner. It must hard-fail when the source plan
    lacks stable acceptance ids, one matrix row per acceptance id, required
-   proof-matrix columns, or valid proof-maturity values.
+   proof-matrix columns, valid proof-maturity values, the conditional
+   `Surface / Branch Proof Matrix` for multi-surface or multi-branch work, or
+   the conditional `Fail-open Checks` for prompt-driven work.
 5. **Plan provenance is recorded.** The story file references the source
    plan path and its mtime so future readers can audit the lineage.
 6. **Never overwrite an existing story file.** If the resolved filename
@@ -114,6 +116,13 @@ implementation time.
    - every acceptance id appears in at least one matrix row
    - every `Proof Maturity` value is `final` or `provisional`
    - every `provisional` row has non-blank `Open Detail`
+   - if the story spans multiple surfaces / variants / branches, `## Verification`
+     also contains `### Surface / Branch Proof Matrix` with required columns:
+     `Surface | Supported Variant | Internal Execution Branch | Proof Class | Owning Proof Seam | Why This Seam Is Sufficient | Out of Scope Notes`
+   - if multiple supported callsites or orchestration paths exist, the surface /
+     branch matrix includes at least one `routing` proof row
+   - if the feature is prompt/template/placeholder-driven, `## Verification`
+     also contains `### Fail-open Checks`
    - there are no `<TODO: ...>` placeholders in `## Acceptance` or
      `## Verification`
    Abort immediately if any check fails. This command does not invent or
@@ -142,7 +151,7 @@ fuzzy matching:
 | `Deliverable`, `Goal`, `Outcome` | `## Purpose` (merge with above if needed) |
 | `Approach`, `Strategy`, `Implementation`, `Implementation Plan`, `Implementation Steps`, `Steps`, `Phases` | `## Implementation Notes` (preserved verbatim) |
 | `Critical files`, `Files to modify`, `Files`, `Write surfaces` | `## Critical Files` (preserved verbatim with paths intact) |
-| `Verification`, `How to verify`, `Testing`, `Test plan` | `## Verification` (must preserve `### Verification Commands` + `### Acceptance Proof Matrix` intact) |
+| `Verification`, `How to verify`, `Testing`, `Test plan` | `## Verification` (must preserve `### Verification Commands`, `### Acceptance Proof Matrix`, and any `### Surface / Branch Proof Matrix` / `### Fail-open Checks` blocks intact) |
 | `Out of scope`, `Non-goals` | `## Out of Scope` |
 | `Acceptance`, `Acceptance criteria`, `Done when` | `## Acceptance` |
 | `Decisions`, `Locked decisions`, `Architecture decisions`, `Trade-offs` | `## Locked Decisions` (preserved verbatim) |
@@ -237,6 +246,10 @@ Show the operator:
   - any `<TODO: missing from plan — ...>` placeholders that were inserted
   - acceptance/proof contract validation summary (acceptance ids found, matrix
     rows found, any `provisional` rows retained)
+  - if present, surface/branch coverage summary (rows found, routing rows found,
+    explicit exclusions retained)
+  - if present, fail-open coverage summary (placeholder/token checks, enabled
+    path checks, disabled/default path checks)
 - Dependency validation report (validated / soft-warned / cross-epic
   unverified)
 - The drafted story file content
@@ -308,6 +321,18 @@ Status: `todo`
 |---|---|---|---|---|---|---|
 | A1 | final | file-read | <exact reviewer action> | <exact expected evidence> | <paths / commands / surfaces> | |
 | A2 | provisional | automated | <exact reviewer action> | <red/green or equivalent evidence> | <paths / commands / surfaces> | <what remains undecided> |
+
+### Surface / Branch Proof Matrix
+<required when multiple surfaces / variants / internal branches are in scope>
+| Surface | Supported Variant | Internal Execution Branch | Proof Class | Owning Proof Seam | Why This Seam Is Sufficient | Out of Scope Notes |
+|---|---|---|---|---|---|---|
+| <surface> | <variant / profile / mode> | <branch / callsite> | <helper | routing | behavior> | <exact seam> | <why this proves the branch> | |
+
+### Fail-open Checks
+<required when the feature is prompt/template/placeholder-driven>
+- <supported render leaves no unresolved placeholders or raw tokens>
+- <enabled supported path proves the feature is active>
+- <disabled/default path proves baseline behavior is unchanged>
 
 ## Discovery Notes
 <all research findings preserved verbatim from the plan — do not paraphrase away>

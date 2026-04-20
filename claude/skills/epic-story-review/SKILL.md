@@ -78,7 +78,7 @@ Do not infer identity from filename shape or naming conventions that are not exp
 
 1. Read every spec section of the story file. Treat each one as a claim that must hold against the live repo.
 2. Use `Read`, `Grep`, and `Glob` to probe the repository — confirm `## Critical Files` paths resolve, confirm the domain the plan covers does not already have reusable implementations the plan missed, confirm `## Locked Decisions` do not contradict `AGENTS.md` or established patterns.
-3. Treat `## Verification` plus `## Implementation Notes` as the proof-design and implementation-method contract, not as proof that the implementation already exists. Do not run the planned tests expecting them to pass at this phase. Instead, validate whether the commands, seams, and owning surfaces are concrete, plausible, aimed at the real acceptance behavior rather than a mocked caricature of it, and specific enough to support red-first implementation after source inspection.
+3. Treat `## Verification` plus `## Implementation Notes` as the proof-design and implementation-method contract, not as proof that the implementation already exists. Do not run the planned tests expecting them to pass at this phase. Instead, validate whether the commands, seams, owning surfaces, branch decomposition, routing proofs, and fail-open checks are concrete, plausible, aimed at the real acceptance behavior rather than a mocked caricature of it, and specific enough to support red-first implementation after source inspection.
 4. Use `git status` to confirm the worktree is not mid-implementation (if there are large pending changes, note it — plan review on a dirty worktree is a warning signal).
 5. Use `git log` to skim recent history for related work the plan should have referenced but did not.
 6. Never speculate about code you haven't read. If a claim in the plan can be checked, check it.
@@ -95,19 +95,22 @@ Before approving, verify every item:
 4. **`Scope` is atomic.** Fails if the scope reads like multiple independent stories.
 5. **`Out of Scope` is non-empty and meaningful.** A missing `## Out of Scope` is a warning, not a failure.
 6. **`Acceptance` criteria are observable, atomic, and stable.** Each bullet must begin with `A<n>`, be checkable by a command, a file read, or a UI observation, and cover exactly one independently provable behavior. Fails on vague thresholds or compound bullets that could fail independently.
-7. **`Verification` has the required shape.** It must contain exact `### Verification Commands` and `### Acceptance Proof Matrix` subsections.
+7. **`Verification` has the required shape.** It must contain exact `### Verification Commands` and `### Acceptance Proof Matrix` subsections, plus any required `### Surface / Branch Proof Matrix` and `### Fail-open Checks` subsections when the story's risk surface calls for them.
 8. **Every acceptance id is covered by the matrix.** Missing rows are a `request_changes` finding, even when the prose acceptance section looks reasonable.
 9. **Matrix rows are structurally valid.** `Proof Maturity` must be `final` or `provisional`; `provisional` rows require non-blank `Open Detail`; shared rows are valid only when the same proof action and failure signal genuinely cover all listed acceptance ids.
-10. **Proof seams are credible and focused.** Reject rows that mainly validate mocked helpers or otherwise disconnected seams instead of the real acceptance surface. Provisional rows are allowed if they still anchor to the right owning surface and are concrete enough to guide implementation toward a smallest focused red seam after source inspection.
-11. **`Verification Commands` are real reviewer actions.** Fails if the story says "run the tests" with no command, or claims an existing test file that does not exist.
-12. **`Implementation Notes` make red-first the default implementation method.** The plan must clearly say implementation inspects sources first, chooses the smallest focused seam it can make fail, turns it green, then broadens verification. If the plan anticipates a reason red-first may be infeasible, it must require an explicit written exception before deviating.
-13. **`Critical Files` exist.** Resolve every path with `Read` or `Glob`. Missing or renamed files are plan-staleness signals.
-14. **`Critical Files` are the right surfaces.** Grep the plan's domain keywords; if obvious owners of that domain are missing from the list, flag it.
-15. **`Discovery Notes` mentions reusable existing code.** Search the repo for 2–3 domain terms from the plan and cross-reference against `## Discovery Notes`. If the plan invents something that clearly exists already, that is a `request_changes` finding.
-16. **`Locked Decisions` don't contradict `AGENTS.md` or established patterns.** Read `AGENTS.md` and spot-check each decision.
-17. **No hidden gotchas in `Critical Files`.** Skim each Critical File for things the plan didn't mention but should have: migrations, public APIs, existing tests that would break, cross-module coupling.
-18. **`Implementation Notes` are internally consistent** with `## Acceptance` and `## Scope` (the plan's own self-consistency).
-19. **No `<TODO: missing from plan — ...>` placeholders** left by `/epic-story-save`. If any remain, verdict is at minimum `request_changes`.
+10. **Multi-surface stories expand into branch-aware proof.** If the story spans multiple supported surfaces, variants, modes, or orchestration branches, `## Verification` must include `### Surface / Branch Proof Matrix` with rows for each in-scope combination or an explicit exclusion.
+11. **Helper proof is not routing proof.** When multiple supported callsites or orchestration paths exist, the surface / branch matrix must explicitly distinguish `helper`, `routing`, and `behavior` proof classes. Helper-only proof is insufficient; at least one routing proof must show that the supported callsites actually invoke the intended helper or branch logic.
+12. **Fail-open prompt risks are covered when relevant.** Prompt-, template-, or placeholder-driven stories must include `### Fail-open Checks` proving supported renders leave no unresolved placeholders or raw tokens, enabled supported paths actually activate the feature, and an appropriate disabled/default path remains unchanged.
+13. **Proof seams are credible and focused.** Reject rows that mainly validate mocked helpers or otherwise disconnected seams instead of the real acceptance surface. Provisional rows are allowed if they still anchor to the right owning surface and are concrete enough to guide implementation toward a smallest focused red seam after source inspection.
+14. **`Verification Commands` are real reviewer actions.** Fails if the story says "run the tests" with no command, or claims an existing test file that does not exist.
+15. **`Implementation Notes` make red-first the default implementation method.** The plan must clearly say implementation inspects sources first, chooses the smallest focused seam it can make fail, turns it green, then broadens verification. If the plan anticipates a reason red-first may be infeasible, it must require an explicit written exception before deviating.
+16. **`Critical Files` exist.** Resolve every path with `Read` or `Glob`. Missing or renamed files are plan-staleness signals.
+17. **`Critical Files` are the right surfaces.** Grep the plan's domain keywords; if obvious owners of that domain are missing from the list, flag it.
+18. **`Discovery Notes` mentions reusable existing code.** Search the repo for 2–3 domain terms from the plan and cross-reference against `## Discovery Notes`. If the plan invents something that clearly exists already, that is a `request_changes` finding.
+19. **`Locked Decisions` don't contradict `AGENTS.md` or established patterns.** Read `AGENTS.md` and spot-check each decision.
+20. **No hidden gotchas in `Critical Files`.** Skim each Critical File for things the plan didn't mention but should have: migrations, public APIs, existing tests that would break, cross-module coupling.
+21. **`Implementation Notes` are internally consistent** with `## Acceptance` and `## Scope` (the plan's own self-consistency).
+22. **No `<TODO: missing from plan — ...>` placeholders** left by `/epic-story-save`. If any remain, verdict is at minimum `request_changes`.
 
 ## Status transitions
 

@@ -119,7 +119,7 @@ Propose observable rewrites: "A1: the existing test suite under `tests/auth/` pa
 
 ### Question 7 — Verification contract
 
-Build `## Verification` in two parts:
+Build `## Verification` around two required parts and any conditional proof sections the story needs:
 
 1. `### Verification Commands`
    - Ask for the exact commands or exact manual/file-read actions a reviewer can run.
@@ -131,8 +131,19 @@ Build `## Verification` in two parts:
    - `Proof Maturity` must be `final` or `provisional`.
    - `Open Detail` may be blank for `final` rows and is required for `provisional` rows.
    - A row may cover multiple acceptance ids only as an exception when the same proof action and failure signal genuinely cover all of them.
+3. `### Surface / Branch Proof Matrix` when the story spans multiple user-visible surfaces, supported variants/profiles/modes, or internal orchestration branches.
+   - Required columns: `Surface | Supported Variant | Internal Execution Branch | Proof Class | Owning Proof Seam | Why This Seam Is Sufficient | Out of Scope Notes`
+   - Every in-scope surface / variant / branch combination must appear.
+   - `Proof Class` must be one of `helper`, `routing`, or `behavior`.
+   - Helper proof alone is insufficient when multiple supported callsites or orchestration paths exist. Require at least one routing proof that shows the supported callsites actually reach the shared helper or branch logic.
+   - If a branch is intentionally excluded, the exclusion must be explicit in `Out of Scope Notes`.
+4. `### Fail-open Checks` when the feature depends on prompt placeholders, template variables, string substitution, or other fail-open prompt assembly.
+   - Require a concrete negative proof that supported renders do not leave unresolved placeholders or raw feature tokens behind.
+   - Require a proof that enabled supported paths actually activate the feature.
+   - Require at least one disabled/default path proof showing baseline behavior is unchanged.
+   - Any intentionally unsupported profile or mode must be called out explicitly.
 
-Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers instead of the real acceptance surface. Provisional rows are allowed, but every acceptance id still needs a row and every provisional row must state what remains undecided. Do not fake precision about the exact first failing command when the current repo facts do not support it; the plan sets the red-first method and proof surfaces, and the implementer chooses the exact first seam after reading sources.
+Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers instead of the real acceptance surface. Provisional rows are allowed, but every acceptance id still needs a row and every provisional row must state what remains undecided. Helper correctness is not enough when the feature fans out across multiple callsites; require routing completeness as its own proof obligation. Do not fake precision about the exact first failing command when the current repo facts do not support it; the plan sets the red-first method and proof surfaces, and the implementer chooses the exact first seam after reading sources.
 
 ### Question 8 — Critical Files
 
@@ -202,6 +213,18 @@ Assemble the plan file body with section names matching `docs/epic-conventions.m
 | A1 | final | file-read | <exact reviewer action> | <exact expected evidence> | <paths / commands / surfaces> | |
 | A2 | provisional | automated | <exact reviewer action> | <red/green or equivalent evidence> | <paths / commands / surfaces> | <what remains undecided> |
 
+### Surface / Branch Proof Matrix
+<required when multiple surfaces / variants / internal branches are in scope>
+| Surface | Supported Variant | Internal Execution Branch | Proof Class | Owning Proof Seam | Why This Seam Is Sufficient | Out of Scope Notes |
+|---|---|---|---|---|---|---|
+| <surface> | <variant / profile / mode> | <branch / callsite> | <helper | routing | behavior> | <exact seam> | <why this proves the branch> | |
+
+### Fail-open Checks
+<required when the feature is prompt/template/placeholder-driven>
+- <supported render leaves no unresolved placeholders or raw tokens>
+- <enabled supported path proves the feature is active>
+- <disabled/default path proves baseline behavior is unchanged>
+
 ## Discovery Notes
 <code smells, reusable code, gotchas from Q8 and Q11>
 
@@ -227,6 +250,8 @@ Show the operator:
 - The full drafted plan file content
 - Section list with a note next to each indicating whether it came from a real answer, a `skip` default, or a `draft now` placeholder
 - Acceptance/proof coverage check: every acceptance id listed, whether it has at least one matrix row, and whether any rows remain `provisional`
+- If present, surface/branch coverage check: every in-scope surface / variant / branch listed, whether routing proof exists where multiple callsites are supported, and whether any exclusions are explicit
+- If present, fail-open check summary: placeholder/token checks, enabled-path checks, disabled/default-path checks
 - Next-step reminder: "after confirming, the next command is `/epic-story-save EPIC=<epic>` to scaffold the story file and tracker row"
 
 **CHECKPOINT**: explicit y/n before proceeding. If the operator rejects, return to the interview loop at the question they want to revisit. If they accept, continue to the write step.
@@ -241,6 +266,8 @@ Show the operator:
    - the matrix uses the required columns
    - every `Proof Maturity` value is `final` or `provisional`
    - every `provisional` row has non-blank `Open Detail`
+   - if the story spans multiple surfaces / variants / branches, `## Verification` also contains `### Surface / Branch Proof Matrix` with the required columns and explicit routing proof where multiple callsites exist
+   - if the feature is prompt/template/placeholder-driven, `## Verification` also contains `### Fail-open Checks`
    - there are no `<TODO: ...>` placeholders in `## Acceptance` or `## Verification`
    If any check fails, abort with a concise explanation and continue the interview rather than writing a malformed plan.
 4. `Write` the drafted plan file content to that path.

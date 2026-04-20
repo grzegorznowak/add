@@ -184,6 +184,9 @@ explicitly recorded in `MASTER.md`.
    - architectural consistency
    - duplication / missed reuse
    - status/progress drift from the step spec
+   - branch-coverage drift from the planned proof surface
+   - missing routing completeness across supported callsites
+   - fail-open prompt regressions where relevant
    - red-first workflow drift or undocumented exceptions
    - missing tests
    - rollout / operational risks where relevant
@@ -205,6 +208,16 @@ Before approving, verify:
 - Are there hidden packaging/runtime/ops implications not captured in the step?
 - Is every acceptance id still covered by the final proof matrix?
 - Are any matrix rows still `provisional`?
+- If the story spans multiple surfaces / variants / branches, does the final
+  proof contract still cover every in-scope row from the `Surface / Branch
+  Proof Matrix`, or log an explicit intentional exclusion?
+- If shared helpers or multiple callsites were in scope, is there explicit
+  routing proof showing that each supported callsite actually reaches the
+  intended helper or branch logic rather than only proving helper correctness?
+- If the story is prompt/template/placeholder-driven, do the final tests or
+  reviewer actions prove there are no unresolved placeholders on supported
+  paths, that enabled paths actually activate the feature, and that an
+  appropriate disabled/default path stays unchanged?
 - If proof paths changed, was the story updated and the drift logged?
 
 ## Status transitions
