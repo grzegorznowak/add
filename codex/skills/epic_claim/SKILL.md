@@ -20,9 +20,10 @@ The workflow is:
 1. read the epic master
 2. pick one ready step
 3. claim it
-4. work only that step plus required dependencies
-5. move it to `IN REVIEW` after implementation is complete
-6. leave the step file in a state that the next fresh session can continue
+4. inspect sources and choose the smallest focused red seam
+5. work only that step plus required dependencies
+6. move it to `IN REVIEW` after implementation is complete
+7. leave the step file in a state that the next fresh session can continue
 
 ## Resolution
 1. Set `<workspace_root>` = `<cwd>` and resolve `<epic>` = `<workspace_root>/agent_coordination/epics/$EPIC`. `<workspace_root>` and `<epic>` are never re-anchored; coordination files always live here.
@@ -167,6 +168,13 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Treat `MASTER.md` plus the claimed step file as the source of truth.
 - Read dependency step files for context, but do not widen scope unless required
   to finish the claimed step correctly.
+- Inspect the relevant code and tests before the first change. Use the story's
+  `## Verification`, `## Critical Files`, and `## Discovery Notes` to choose
+  the smallest focused seam that covers the next behavior.
+- Default to red-first: make that focused seam fail, implement until it
+  passes, then broaden verification.
+- Do not jump straight to broad suites or code-first implementation if a
+  smaller focused seam is available.
 - Implement the claimed step end-to-end when feasible.
 - Prefer code changes over restating plans.
 - If you discover an epic-wide architectural contradiction, update `MASTER.md`
@@ -177,6 +185,9 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - If you discover material contract drift, pause feature work, record a
   replanning checkpoint in `## Progress Log`, update the story contract, and
   only then continue implementation.
+- If red-first is not feasible, record an explicit written exception in
+  `## Progress Log` before proceeding. Name the reason, the alternative proof
+  seam, and the verification path you will use instead.
 - If the claimed step turns out to be blocked by an unmet dependency or hard
   contradiction, stop broadening scope and mark it clearly as blocked.
 
@@ -185,11 +196,14 @@ While working, keep the claimed step file updated.
 
 Append concise timestamped bullets under `## Progress Log` after meaningful
 milestones, for example:
+- focused red seam chosen
+- focused seam turned green
 - design change locked
 - files patched
 - tests added/updated
 - proof matrix updated to match implementation reality
 - replanning checkpoint recorded after material contract drift
+- red-first exception recorded with alternative proof seam
 - blocker discovered
 - epic-wide finding recorded in `MASTER.md`
 
@@ -209,6 +223,7 @@ At the end of the session, update the claimed step file with:
 - Status: done | blocked | in progress | in review
 - What changed: <short bullets>
 - Files touched: <paths>
+- Red-first path: <focused seam + red/green outcome, or explicit exception + alternative proof path>
 - Tests run: <commands/results or not run>
 - Remaining work: <short bullets>
 - Blockers / risks: <short bullets>
@@ -220,6 +235,7 @@ Then update `MASTER.md` status for the claimed row using this lifecycle:
   - implementation is still actively underway
 - `🟣 IN REVIEW`
   - implementation is done enough for review
+  - the focused red seam is green or an explicit exception is recorded
   - run final verification, review the touched files, and tighten any rough edges
   - do not mark `DONE` before this pass
 - `🔵 IN PR` (optional)

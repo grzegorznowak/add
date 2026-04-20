@@ -19,7 +19,10 @@ planning chain:
    `~/.claude/plans/<epic>-<story-slug>.md`. Never touches the epic
    directory or any tracker row. The plan must already contain the
    implementation-ready `Acceptance` contract and `Verification` proof
-   matrix before it can be saved.
+   matrix before it can be saved. Planning is proof-first: the proof
+   surfaces must be concrete enough that an implementer can inspect the
+   repo and choose a smallest focused red seam without re-planning the
+   story.
 3. **`/epic-story-save EPIC=<slug>`** — once per story. Consumes the plan
    file, writes `story-NN-<slug>.md`, and appends a `⚪ TODO` row to
    `MASTER.md`. It must fail on malformed or incomplete acceptance/proof
@@ -35,8 +38,8 @@ state diagram. They feed the first row of the tracker, nothing more.
 | Status | Meaning |
 |---|---|
 | `⚪ TODO` | Not started yet. The default state for newly created stories. |
-| `🔄 IN PROGRESS` | A session is actively working on this story. Contract drift discovered here must be logged and resolved before review. |
-| `🟣 IN REVIEW` | Implementation is done enough to review and the proof matrix is fully finalized. Local review may still find issues. |
+| `🔄 IN PROGRESS` | A session is actively working on this story. Default method is red-first: inspect sources, choose the smallest focused failing seam, turn it green, then broaden verification. Contract drift or any explicit exception to red-first must be logged before review. |
+| `🟣 IN REVIEW` | Implementation is done enough to review, the focused red-first path or explicit exception is recorded, and the proof matrix is fully finalized. Local review may still find issues. |
 | `🔵 IN PR` | **Optional.** Local review passed and the changes are in a GitHub PR awaiting remote review and merge. Skip this stage entirely if a story does not need a PR. |
 | `✅ DONE` | Implementation and review are both complete. If a PR stage was used, the PR is merged. |
 | `⛔ BLOCKED` | An external blocker prevents progress, or `/epic-story-review` has determined the plan is not implementable as specified. The story definition may be revised and work resumes once the blocker clears. |
@@ -136,8 +139,8 @@ automatically the first time they touch an epic that doesn't have it:
 ```md
 ## Legend
 - `⚪ TODO` — not started yet
-- `🔄 IN PROGRESS` — actively being worked
-- `🟣 IN REVIEW` — implementation or evidence is ready for review/verification
+- `🔄 IN PROGRESS` — actively being worked; red-first path underway or exception recorded
+- `🟣 IN REVIEW` — focused seam is green or exception is recorded; implementation/evidence ready for review
 - `🔵 IN PR` — local review passed, PR opened, awaiting GitHub review + merge
 - `✅ DONE` — completed with linked evidence or verification
 - `⛔ BLOCKED` — a concrete blocker exists; the story resumes once it is cleared

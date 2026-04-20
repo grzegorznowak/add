@@ -25,16 +25,19 @@ Do **not** auto-fix product code without explicit per-fix approval.
    the code, the story is wrong — OR the code has regressed; flag both.
 2. **Never skip verification.** Even for stories marked `done`, verify every
    concrete claim against the code before folding anything.
-3. **Never auto-fix product code.** Code-level fixes require explicit per-fix
+3. **Do not ignore workflow evidence drift.** Missing focused red-seam
+   evidence or a missing explicit written exception is a story discrepancy
+   during consolidation.
+4. **Never auto-fix product code.** Code-level fixes require explicit per-fix
    approval at the Phase 6 checkpoint. Contract edits and code edits live on
    different blast-radius tiers.
-4. **Never archive on failing tests.** If Phase 6 runs tests and any fail, stop
+5. **Never archive on failing tests.** If Phase 6 runs tests and any fail, stop
    before Phase 7.
-5. **Preserve appendix history.** Add new Appendix A / B / C entries; never
+6. **Preserve appendix history.** Add new Appendix A / B / C entries; never
    renumber or delete existing ones.
-6. **Use the minimum number of subagents.** One well-structured exploration
+7. **Use the minimum number of subagents.** One well-structured exploration
    pass beats three ad-hoc ones.
-7. **Checkpoint before irreversible or high-blast-radius actions.** The phases
+8. **Checkpoint before irreversible or high-blast-radius actions.** The phases
    below mark each explicit checkpoint — do not skip them.
 
 ## Phase 0 — Sanity check and bootstrap
@@ -131,8 +134,9 @@ Build three discrepancy lists:
   (obsolete config keys, stale routing rules, old field tables). These MUST be
   fixed during the squash.
 - **Story discrepancies**: claims in stories that don't match the codebase.
-  Codebase wins; update the squashed contract to match the code, and report
-  the story drift.
+  Missing focused red-seam evidence or a missing explicit written exception in
+  `## Progress Log` / `## Session Handoff` also counts here. Codebase wins;
+  update the squashed contract to match the code, and report the story drift.
 - **Code-level discrepancies**: stale defaults in legacy compat paths, dead
   code left over from removed approaches, file-vs-tracker status drift. These
   are candidates for Phase 6.

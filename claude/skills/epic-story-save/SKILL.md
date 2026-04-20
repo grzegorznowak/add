@@ -28,7 +28,7 @@ SLUG="<kebab-case>"            optional — filename slug; auto-derived from tit
 ## Non-negotiable rules
 
 1. **Plan is mandatory.** No plan in `~/.claude/plans/`, no in-session plan, AND no `PLAN` arg → abort with: `No plan found. Pass PLAN=<path> or create a plan first via plan mode.`
-2. **High-fidelity preservation.** Every code smell, gotcha, file path, function/class name, pattern reference, decision, and alternative recorded in the plan must appear in the story file. Verbatim where possible; rephrased only when section mapping requires it. **Never drop plan content.** When in doubt, preserve under the catch-all `## Discovery Notes` section.
+2. **High-fidelity preservation.** Every code smell, gotcha, file path, function/class name, pattern reference, decision, and alternative recorded in the plan must appear in the story file. Verbatim where possible; rephrased only when section mapping requires it. **Never drop plan content.** When in doubt, preserve under the catch-all `## Discovery Notes` section. If the plan says red-first is the default implementation method or requires a written exception before deviating, preserve that wording exactly.
 3. **No content invention.** Do not write Acceptance criteria or proof-matrix rows the plan did not state. `## Acceptance` and `## Verification` are load-bearing contract sections: if either is missing or malformed, abort instead of inserting placeholders or repairing it here.
 4. **Proof contract must already be valid.** `/epic-story-save` is a persistence step, not a planner. It must hard-fail when the source plan lacks stable acceptance ids, one matrix row per acceptance id, required proof-matrix columns, or valid proof-maturity values.
 5. **Plan provenance is recorded.** The story file references the source plan path and its mtime so future readers can audit the lineage.
@@ -100,7 +100,7 @@ Walk the plan file and classify each section by header. Use case-insensitive fuz
 
 **Key rule**: any section the plan contains that doesn't have an obvious mapping goes into `## Discovery Notes`. Never drop a section. Never collapse a section into a one-line summary.
 
-For `## Acceptance` and `## Verification`, prefer exact preservation over fuzzy reconstruction. If the plan's proof contract is malformed, abort from Phase 1 rather than trying to salvage it here.
+For `## Acceptance`, `## Verification`, and `## Implementation Notes`, prefer exact preservation over fuzzy reconstruction. If the plan's proof contract is malformed, abort from Phase 1 rather than trying to salvage it here. Do not soften or paraphrase away red-first/default-exception instructions that the plan already established.
 
 **Inline content extraction** (in addition to section mapping):
 - Every `path/like/this.py:123` reference → preserved in `## Critical Files` even if the plan didn't have a dedicated section for it

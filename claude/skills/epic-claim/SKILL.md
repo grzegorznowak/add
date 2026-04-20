@@ -18,9 +18,10 @@ Do **not** try to rediscover or redefine the epic from scratch. Do **not** claim
 1. Read the epic `MASTER.md`
 2. Pick one ready step
 3. Claim it
-4. Work only that step plus required dependencies
-5. Move it to `🟣 IN REVIEW` after implementation is complete
-6. Leave the step file in a state the next fresh session can continue
+4. Inspect sources and choose the smallest focused red seam
+5. Work only that step plus required dependencies
+6. Move it to `🟣 IN REVIEW` after implementation is complete
+7. Leave the step file in a state the next fresh session can continue
 
 ## Resolution
 
@@ -164,21 +165,28 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 
 - Treat `MASTER.md` plus the claimed step file as the source of truth
 - Read dependency step files for context; do not widen scope unless required to finish the claimed step correctly
+- Inspect the relevant code and tests before the first change. Use the story's `## Verification`, `## Critical Files`, and `## Discovery Notes` to choose the smallest focused seam that covers the next behavior.
+- Default to red-first: make that focused seam fail, implement until it passes, then broaden verification.
+- Do not jump straight to broad suites or code-first implementation if a smaller focused seam is available.
 - Implement the claimed step end-to-end when feasible
 - Prefer code changes over restating plans
 - If you discover an epic-wide architectural contradiction, update `MASTER.md` minimally and note it in the step file
 - If you discover non-material proof-path drift, update the story's `## Verification` matrix immediately and record why in `## Progress Log` before continuing
 - If you discover material contract drift, pause feature work, record a replanning checkpoint in `## Progress Log`, update the story contract, and only then continue implementation
+- If red-first is not feasible, record an explicit written exception in `## Progress Log` before proceeding. Name the reason, the alternative proof seam, and the verification path you will use instead.
 - If the claimed step is blocked by an unmet dependency or hard contradiction, stop broadening scope and mark it `⛔ BLOCKED`
 
 ## Progress tracking
 
 Append concise timestamped bullets under `## Progress Log` after meaningful milestones:
+- focused red seam chosen
+- focused seam turned green
 - design change locked
 - files patched
 - tests added/updated
 - proof matrix updated to match implementation reality
 - replanning checkpoint recorded after material contract drift
+- red-first exception recorded with alternative proof seam
 - blocker discovered
 - epic-wide finding recorded in `MASTER.md`
 
@@ -197,6 +205,7 @@ At the end of the session, update the step file:
 - Status: done | blocked | in progress | in review
 - What changed: <short bullets>
 - Files touched: <paths>
+- Red-first path: <focused seam + red/green outcome, or explicit exception + alternative proof path>
 - Tests run: <commands/results or not run>
 - Remaining work: <short bullets>
 - Blockers / risks: <short bullets>
@@ -205,14 +214,14 @@ At the end of the session, update the step file:
 
 Then update `MASTER.md` status using this lifecycle:
 - `🔄 IN PROGRESS` — implementation still actively underway
-- `🟣 IN REVIEW` — implementation done enough for review; run final verification, review the touched files, tighten rough edges
+- `🟣 IN REVIEW` — implementation done enough for review; the focused red seam is green or an explicit exception is recorded; run final verification, review the touched files, tighten rough edges
 - `🔵 IN PR` (optional) — local review passed and changes are in a GitHub PR awaiting remote review and merge. **Do not set this status from `/epic-claim`**; use `/epic-pr` to record PR metadata.
 - `✅ DONE` — implementation and review complete; if a PR stage was used, the PR is merged
 - `⛔ BLOCKED` — an external blocker prevents completion or review
 
 **Default rule:**
 1. Claim as `🔄 IN PROGRESS`
-2. Once implementation is complete, move to `🟣 IN REVIEW`
+2. Once the chosen focused seam is green and implementation is complete, move to `🟣 IN REVIEW`
 3. Then either:
    - move straight to `✅ DONE` if no GitHub PR stage is needed, or
    - use `/epic-pr` to transition to `🔵 IN PR` and move to `✅ DONE` only after the PR is merged

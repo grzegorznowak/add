@@ -184,6 +184,7 @@ explicitly recorded in `MASTER.md`.
    - architectural consistency
    - duplication / missed reuse
    - status/progress drift from the step spec
+   - red-first workflow drift or undocumented exceptions
    - missing tests
    - rollout / operational risks where relevant
 
@@ -196,6 +197,10 @@ Before approving, verify:
 - Are there any security implications in the implementation or operational model?
 - Are there any performance or scalability regressions in the changed path?
 - Are follow-on status transitions accurate in `MASTER.md` and the step file?
+- Does the step file record the focused red seam that was used, or an explicit
+  written exception with the alternative proof path?
+- If red-first was bypassed, was the exception recorded before proceeding and
+  was the alternative proof path concrete?
 - Are there adequate tests for the change?
 - Are there hidden packaging/runtime/ops implications not captured in the step?
 - Is every acceptance id still covered by the final proof matrix?
@@ -246,6 +251,8 @@ only eligible for approval when:
 - every proof row is `final`
 - the matrix matches the actual implementation and verification surfaces
 - any apparent proof drift was logged when it happened
+- the step file records either the focused red seam that was used or an
+  explicit written exception with the alternative proof path
 
 ## Output format
 Start with findings, ordered by severity, with file references.

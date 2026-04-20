@@ -16,11 +16,12 @@ Argument: `$ARGUMENTS` — the epic path (e.g. `agent_coordination/epics/<epic-n
 
 1. **The codebase is the source of truth.** Always. Story text and CONTRACT.md text lose to the code when they disagree. If a story's claim doesn't match the code, the story is wrong — OR the code has regressed; flag both possibilities.
 2. **Never skip verification.** Even for stories marked `done`, verify their concrete claims against the code before folding anything.
-3. **Never auto-fix product code.** Code-level fixes require explicit per-fix approval at the Phase 6 checkpoint. Contract edits and code edits live on different blast-radius tiers.
-4. **Never archive on failing tests.** If Phase 6 runs tests and they fail, stop before Phase 7.
-5. **Preserve appendix history.** Add new Appendix A / B / C entries; never renumber or delete existing ones.
-6. **Use the minimum number of subagents.** One well-structured Explore agent beats three ad-hoc ones.
-7. **Checkpoint before irreversible or high-blast-radius actions.** The phases below mark each explicit checkpoint — do not skip them.
+3. **Do not ignore workflow evidence drift.** Missing focused red-seam evidence or a missing explicit written exception is a story discrepancy during consolidation.
+4. **Never auto-fix product code.** Code-level fixes require explicit per-fix approval at the Phase 6 checkpoint. Contract edits and code edits live on different blast-radius tiers.
+5. **Never archive on failing tests.** If Phase 6 runs tests and they fail, stop before Phase 7.
+6. **Preserve appendix history.** Add new Appendix A / B / C entries; never renumber or delete existing ones.
+7. **Use the minimum number of subagents.** One well-structured Explore agent beats three ad-hoc ones.
+8. **Checkpoint before irreversible or high-blast-radius actions.** The phases below mark each explicit checkpoint — do not skip them.
 
 ## Phase 0 — Sanity check and bootstrap
 
@@ -78,7 +79,7 @@ For each in-scope story, categorize contract impact as one of:
 
 Build three discrepancy lists:
 - **Contract discrepancies**: `CONTRACT.md` text that contradicts the codebase (e.g. obsolete config keys, stale routing rules, old field tables). These MUST be fixed during the squash.
-- **Story discrepancies**: claims in stories that don't match the codebase. Codebase wins; update the squashed contract to match the code, and report the story drift.
+- **Story discrepancies**: claims in stories that don't match the codebase, or required workflow evidence that is missing from `## Progress Log` / `## Session Handoff` (focused red seam or explicit written exception). Codebase wins; update the squashed contract to match the code, and report the story drift.
 - **Code-level discrepancies**: stale defaults in legacy compat paths, dead code left over from removed approaches, file-vs-tracker status drift, etc. These are candidates for Phase 6.
 
 Present all three lists plus the story classification. **CHECKPOINT 2**: confirm classification and discrepancy lists before editing anything.

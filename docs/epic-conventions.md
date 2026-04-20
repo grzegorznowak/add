@@ -94,7 +94,7 @@ every other command.
 | `## Scope` | What is in scope. |
 | `## Out of Scope` | What is deliberately not in scope. |
 | `## Acceptance` | Observable criteria a reviewer can verify. Every bullet uses a stable `A<n>` id and covers exactly one independently provable behavior. |
-| `## Verification` | Reviewer-facing proof contract. Must contain `### Verification Commands` and `### Acceptance Proof Matrix`. |
+| `## Verification` | Reviewer-facing proof contract. Must contain `### Verification Commands` and `### Acceptance Proof Matrix`, and be concrete enough to support red-first implementation after source inspection. |
 | `## Discovery Notes` | The catch-all for plan content that doesn't fit elsewhere. Code smells, gotchas, references to existing patterns, named functions/classes with explanatory context. **This is the section that prevents re-discovery.** |
 | `## Critical Files` | Every file path the plan referenced, with line numbers when present. |
 | `## Implementation Notes` | The plan's approach / strategy / phases preserved verbatim. |
@@ -146,6 +146,13 @@ Rules:
 - All rows may be `provisional` during planning if they are still anchored to
   the real owning surface and concrete enough to guide implementation.
 - By `/epic-review`, every row must be `final`.
+- Planning is proof-first, not guess-first. The plan must anchor the real
+  owning surfaces and the focused test/proof area the implementer should
+  inspect first, but it must not invent a fake exact first failing command when
+  the repo facts do not support that level of precision.
+- Implementation is red-first by default. After source inspection, the
+  implementer chooses the smallest focused seam they can make fail, turns it
+  green, and only then broadens verification.
 
 ### Runtime sections (created by `/epic-claim`, `/epic-resume`, `/epic-review`, `/epic-pr`)
 
@@ -222,11 +229,13 @@ implementation. Written by `/epic-claim`, `/epic-resume`, and `/epic-pr`.
 ```md
 ## Progress Log
 - 2026-04-12T10:32:00Z Claimed step and started implementation.
-- 2026-04-12T11:14:00Z Locked design choice on retry behavior.
+- 2026-04-12T10:41:00Z Chose `tests/auth/test_refresh.py -k expired_token_rejected` as the focused red seam after source inspection.
+- 2026-04-12T11:14:00Z Focused red seam turned green; broadening verification to the surrounding auth suite.
 - 2026-04-12T11:48:00Z Patched core module and added tests.
 - 2026-04-12T12:01:00Z Moved step to `🔵 IN PR` — https://github.com/.../pull/42
 - 2026-04-12T12:09:00Z Refined proof matrix for `A2` after implementation moved the real assertion seam.
 - 2026-04-12T12:16:00Z Recorded replanning checkpoint: original acceptance contract for `A3` bundled two independently failing behaviors and was split before implementation continued.
+- 2026-04-12T12:21:00Z Recorded explicit red-first exception: fixture bootstrap cannot go red-first safely; using smoke command `uv run pytest tests/bootstrap/test_install.py` as the alternative proof path.
 ```
 
 When implementation discovers contract drift:
@@ -235,6 +244,9 @@ When implementation discovers contract drift:
   what changed and why.
 - **Material contract drift**: pause normal feature work, record a replanning
   checkpoint in `## Progress Log`, refresh the story contract, then continue.
+- **Red-first infeasible**: record an explicit written exception in
+  `## Progress Log` before proceeding. Name the reason, the alternative proof
+  seam, and the verification path that will be used instead.
 
 #### `## Session Handoff`
 
@@ -246,6 +258,7 @@ entries over a story's lifetime; only the most recent one is authoritative.
 - Status: done | blocked | in progress | in review
 - What changed: <short bullets>
 - Files touched: <paths>
+- Red-first path: <focused seam + red/green outcome, or explicit exception + alternative proof path>
 - Tests run: <commands/results or not run>
 - Remaining work: <short bullets>
 - Blockers / risks: <short bullets>

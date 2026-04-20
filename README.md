@@ -12,12 +12,12 @@ Nine coordinated workflow commands plus two small utilities:
 | Command | What it does |
 |---|---|
 | `/epic-plan` | Interview-driven bootstrap for a new epic. Produces the `agent_coordination/epics/<slug>/MASTER.md` skeleton after a grillme-style walkthrough. Never overwrites an existing epic. |
-| `/epic-story-plan` | Interview-driven draft of a new story plan for an existing epic. Produces a plan file in `~/.claude/plans/` with atomic acceptance IDs plus a reviewer-facing proof matrix that `/epic-story-save` consumes verbatim. |
+| `/epic-story-plan` | Interview-driven draft of a new story plan for an existing epic. Produces a plan file in `~/.claude/plans/` with atomic acceptance IDs, a reviewer-facing proof matrix, and implementation notes that make red-first the default delivery method. |
 | `/epic-story-save` | Scaffold a new story file from a plan file, preserving every research finding and acceptance/proof contract exactly. Fails instead of inventing malformed or incomplete proof structure. |
 | `/epic-story-review` | Read-only review of a `⚪ TODO` story's plan against the live repo, with explicit scrutiny of acceptance quality, proof-matrix completeness, and proof-seam realism before `/epic-claim`. Records the verdict into the coordination file. |
-| `/epic-claim` | Pick one ready, unclaimed story from an epic, claim it, execute it end-to-end, and leave a clean handoff for the next session. |
-| `/epic-resume` | Resume one already-in-progress story (or one whose PR has requested changes). |
-| `/epic-review` | Read-only review of one story's implementation against its spec. Records the verdict back into the coordination file. |
+| `/epic-claim` | Pick one ready, unclaimed story from an epic, claim it, inspect sources, start from the smallest focused red seam, execute it end-to-end, and leave a clean handoff for the next session. |
+| `/epic-resume` | Resume one already-in-progress story (or one whose PR has requested changes) using the same red-first default or an explicit written exception. |
+| `/epic-review` | Read-only review of one story's implementation against its spec, including whether the red-first path or explicit written exception was recorded correctly. Records the verdict back into the coordination file. |
 | `/epic-pr` | Optional `IN REVIEW` → `IN PR` transition. Opens or attaches a GitHub PR with a **product-focused** body (not an implementation diary). |
 | `/epic-squash` | Fold every `DONE` story of an epic into its merged `CONTRACT.md`, verifying claims against the codebase, then archive the stories. Supports bootstrap mode for first-time consolidation. |
 | `/grillme` | Get the agent to interview you relentlessly about a plan or design until shared understanding is reached. |
@@ -208,6 +208,12 @@ Planning note: the diagram intentionally shows only lifecycle transitions.
 Before a story reaches `⚪ TODO`, `/epic-story-plan` must already produce an
 implementation-ready `Acceptance` contract plus `Verification` proof matrix,
 and `/epic-story-save` must fail instead of inventing missing proof structure.
+Planning is proof-first; implementation is red-first. The plan defines the
+owning proof surfaces, then `/epic-claim` or `/epic-resume` must inspect the
+real code and tests, choose the smallest focused failing seam, and only
+broaden verification after that seam turns green. If red-first is infeasible,
+the session must record an explicit written exception before proceeding
+differently.
 
 ## Conventions
 

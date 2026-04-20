@@ -16,11 +16,12 @@ Treat `$STORY` as the story selector. It may be either:
   example `story-03-bootstrap-and-docs-rewrite.md`
 
 You are a maintainer reviewing one `⚪ TODO` story's **plan** — its Purpose,
-Acceptance, Verification, Critical Files, Locked Decisions, and surrounding
+Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, and surrounding
 spec sections — against the live repository, before any implementation has
 started. The highest-leverage part of this review is the acceptance/proof
 contract: atomic acceptance ids plus a reviewer-facing proof matrix that is
-credible enough to drive implementation without drifting into fake seams.
+credible enough to drive red-first implementation without drifting into fake
+seams.
 
 This prompt is intended to work well from a fresh session. It can also be
 run multiple times on the same story after the operator edits the spec
@@ -144,11 +145,13 @@ explicitly recorded in `MASTER.md`.
    does not already have reusable implementations the plan missed, confirm
    `## Locked Decisions` do not contradict `AGENTS.md` or established
    patterns.
-3. Treat `## Verification` as a proof-design contract, not as proof that the
+3. Treat `## Verification` plus `## Implementation Notes` as the
+   proof-design and implementation-method contract, not as proof that the
    implementation already exists. Do not run the planned tests expecting them
    to pass at this phase. Instead, validate whether the commands, seams, and
-   owning surfaces are concrete, plausible, and aimed at the real acceptance
-   behavior rather than a mocked caricature of it.
+   owning surfaces are concrete, plausible, aimed at the real acceptance
+   behavior rather than a mocked caricature of it, and specific enough to
+   support red-first implementation after source inspection.
 4. Use `git status` to confirm the worktree is not mid-implementation (if
    there are large pending changes, note it — plan review on a dirty
    worktree is a warning signal).
@@ -195,29 +198,37 @@ Before approving, verify every item:
     `provisional` rows are acceptable during story review, even if all rows
     are provisional, but every provisional row must state its unresolved part
     in `Open Detail`.
-12. **Proof seams target the real contract.** Reject rows that mainly validate
-    mocked helpers, monkeypatched internals, or synthetic seams that would not
-    meaningfully exercise the promised acceptance behavior.
+12. **Proof seams target the real contract and are focused enough for
+    red-first execution.** Reject rows that mainly validate mocked helpers,
+    monkeypatched internals, or synthetic seams that would not meaningfully
+    exercise the promised acceptance behavior. The plan must still leave room
+    for the implementer to choose the smallest focused seam after reading
+    sources.
 13. **Feasibility is grounded when possible.** Probe referenced commands,
     files, and surfaces against the live repo. Existing seams should exist;
     planned seams should still point at the right owning surface.
-14. **`Critical Files` exist.** Resolve every path. Missing or renamed files
-   are plan-staleness signals.
-15. **`Critical Files` are the right surfaces.** Grep the plan's domain
-   keywords; if obvious owners of that domain are missing from the list,
-   flag it.
-16. **`Discovery Notes` mentions reusable existing code.** Search the repo
+14. **`Implementation Notes` make red-first the default implementation
+    method.** The plan must clearly say implementation inspects sources first,
+    chooses the smallest focused seam it can make fail, turns it green, then
+    broadens verification. If the plan anticipates a reason red-first may be
+    infeasible, it must require an explicit written exception before deviating.
+15. **`Critical Files` exist.** Resolve every path. Missing or renamed files
+    are plan-staleness signals.
+16. **`Critical Files` are the right surfaces.** Grep the plan's domain
+    keywords; if obvious owners of that domain are missing from the list,
+    flag it.
+17. **`Discovery Notes` mentions reusable existing code.** Search the repo
     for 2–3 domain terms from the plan and cross-reference against
     `## Discovery Notes`. If the plan invents something that clearly exists
     already, that is a `request_changes` finding.
-17. **`Locked Decisions` don't contradict `AGENTS.md` or established
+18. **`Locked Decisions` don't contradict `AGENTS.md` or established
     patterns.** Read `AGENTS.md` and spot-check each decision.
-18. **No hidden gotchas in `Critical Files`.** Skim each Critical File for
+19. **No hidden gotchas in `Critical Files`.** Skim each Critical File for
     things the plan didn't mention but should have: migrations, public
     APIs, existing tests that would break, cross-module coupling.
-19. **`Implementation Notes` are internally consistent** with `## Acceptance`
+20. **`Implementation Notes` are internally consistent** with `## Acceptance`
     and `## Scope` (the plan's own self-consistency).
-20. **No `<TODO: missing from plan — ...>` placeholders** left by
+21. **No `<TODO: missing from plan — ...>` placeholders** left by
     `epic_story_save`. If any remain, verdict is at minimum `request_changes`.
 
 ## Status transitions
@@ -253,7 +264,7 @@ entry:
 - <UTC ISO timestamp> Plan review run by Codex fresh session
   - Verdict: approve | request_changes | blocked | not_reviewable
   - Status transition: <from> -> <to>
-  - Sections reviewed: Purpose, Acceptance, Verification, Critical Files, Locked Decisions, Discovery Notes, Expected Prerequisites, Scope
+  - Sections reviewed: Purpose, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes, Expected Prerequisites, Scope
   - Key findings:
     - <short bullet>
     - <short bullet>

@@ -216,21 +216,28 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Treat `MASTER.md` plus the selected step file as the source of truth
 - Respect the latest review/handoff CTA before widening scope
 - Continue only this step plus required dependencies
+- Inspect the relevant code and tests before the first change in this session. Use the story's `## Verification`, `## Critical Files`, `## Discovery Notes`, and latest runtime notes to choose the smallest focused seam for the next behavior.
+- Default to red-first: make that focused seam fail, implement until it passes, then broaden verification.
+- Do not jump straight to broad suites or code-first implementation if a smaller focused seam is available.
 - Prefer code changes over restating plans
 - If the step is in progress because of review feedback, address that feedback first
 - If you discover an epic-wide architectural contradiction, update `MASTER.md` minimally and note it in the step file
 - If you discover non-material proof-path drift, update the story's `## Verification` matrix immediately and record why in `## Progress Log` before continuing
 - If you discover material contract drift, pause feature work, record a replanning checkpoint in `## Progress Log`, update the story contract, and only then continue implementation
+- If red-first is not feasible, record an explicit written exception in `## Progress Log` before proceeding. Name the reason, the alternative proof seam, and the verification path you will use instead.
 - If the step is blocked by a hard external dependency or contradiction, stop broadening scope and mark it `⛔ BLOCKED`
 
 ## Progress tracking
 
 Append concise timestamped bullets under `## Progress Log` after meaningful milestones. Examples:
+- focused red seam chosen
+- focused seam turned green
 - design change locked
 - files patched
 - tests added/updated
 - proof matrix updated to match implementation reality
 - replanning checkpoint recorded after material contract drift
+- red-first exception recorded with alternative proof seam
 - blocker discovered
 - epic-wide finding recorded in `MASTER.md`
 - review feedback addressed
@@ -250,6 +257,7 @@ At the end of the session:
 - Status: done | blocked | in progress | in review
 - What changed: <short bullets>
 - Files touched: <paths>
+- Red-first path: <focused seam + red/green outcome, or explicit exception + alternative proof path>
 - Tests run: <commands/results or not run>
 - Remaining work: <short bullets>
 - Blockers / risks: <short bullets>
@@ -258,14 +266,14 @@ At the end of the session:
 
 Update `MASTER.md` status using this lifecycle:
 - `🔄 IN PROGRESS` — implementation or requested-change work still underway
-- `🟣 IN REVIEW` — outstanding implementation work complete, ready for a fresh review pass
+- `🟣 IN REVIEW` — outstanding implementation work complete, focused seam green or exception recorded, ready for a fresh review pass
 - `🔵 IN PR` (optional) — local review passed, PR awaiting GitHub review + merge. **Do not set this status from `/epic-resume`**; use `/epic-pr` to record PR metadata.
 - `✅ DONE` — only if a real review pass completes and passes in this session AND any PR stage is merged
 - `⛔ BLOCKED` — external blocker prevents completion or review
 
 **Default rule:**
 1. Resume at `🔄 IN PROGRESS`
-2. Once outstanding implementation is complete, move to `🟣 IN REVIEW`
+2. Once the chosen focused seam is green and outstanding implementation is complete, move to `🟣 IN REVIEW`
 3. Then either move straight to `✅ DONE` if no PR stage is needed, or hand off to `/epic-pr` which transitions to `🔵 IN PR`
 4. If resuming a `🔵 IN PR` step that is requesting changes, move to `🔄 IN PROGRESS` while working, then back to `🔵 IN PR` via `/epic-pr` once the new push is ready for another review round
 5. If the session ends before review is complete, leave at `🟣 IN REVIEW`

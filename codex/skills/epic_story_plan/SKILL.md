@@ -121,6 +121,7 @@ Build `## Verification` in two parts:
 1. `### Verification Commands`
    - Ask for the exact commands or exact manual/file-read actions a reviewer can run.
    - Confirm any existing test files or named surfaces actually exist when they are claimed as current seams.
+   - Build this section so implementation can start red-first after source inspection. Anchor the real owning test/proof surfaces and the focused area the implementer should inspect first.
 2. `### Acceptance Proof Matrix`
    - Every acceptance id must have at least one row before the plan can be saved.
    - Required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`
@@ -128,7 +129,7 @@ Build `## Verification` in two parts:
    - `Open Detail` may be blank for `final` rows and is required for `provisional` rows.
    - A row may cover multiple acceptance ids only as an exception when the same proof action and failure signal genuinely cover all of them.
 
-Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers instead of the real acceptance surface. Provisional rows are allowed, but every acceptance id still needs a row and every provisional row must state what remains undecided.
+Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers instead of the real acceptance surface. Provisional rows are allowed, but every acceptance id still needs a row and every provisional row must state what remains undecided. Do not fake precision about the exact first failing command when the current repo facts do not support it; the plan sets the red-first method and proof surfaces, and the implementer chooses the exact first seam after reading sources.
 
 ### Question 8 — Critical Files
 
@@ -148,6 +149,8 @@ For files the operator says need to be created (that do not yet exist in the cod
 Ask for the approach. Strategy, phases, alternatives considered. Free-form prose; this is the section that preserves design context for the implementer.
 
 Push back if the operator leaves out the "alternatives considered" angle — the Locked Decisions section depends on knowing what was rejected, and those two sections pair tightly.
+
+Require the implementation method to be explicit: after source inspection, implementation starts red-first from the smallest focused seam it can make fail, turns that seam green, then broadens verification. If the operator already knows red-first may be infeasible in some part of the work, require the notes to say that the implementer must record an explicit written exception before proceeding differently.
 
 Also ask whether any acceptance proof rows are expected to remain `provisional` through planning, and if so whether the operator has already identified what implementation discovery will need to resolve. This is not a substitute for the matrix row itself; it is supporting context for the implementer.
 

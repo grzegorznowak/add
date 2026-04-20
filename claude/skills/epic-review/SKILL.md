@@ -143,6 +143,7 @@ Do not infer identity from filename shape or naming conventions that are not exp
    - architectural consistency
    - duplication / missed reuse
    - status / progress drift from the step spec
+   - red-first workflow drift or undocumented exceptions
    - missing tests
    - rollout / operational risks where relevant
 
@@ -156,6 +157,8 @@ Before approving, verify:
 - Are there security implications in the implementation or operational model?
 - Are there performance or scalability regressions in the changed path?
 - Are follow-on status transitions accurate in `MASTER.md` and the step file?
+- Does the step file record the focused red seam that was used, or an explicit written exception with the alternative proof path?
+- If red-first was bypassed, was the exception recorded before proceeding and was the alternative proof path concrete?
 - Are there adequate tests for the change?
 - Are there hidden packaging / runtime / ops implications not captured in the step?
 - Is every acceptance id still covered by the final proof matrix?
@@ -195,6 +198,7 @@ Approval is not allowed if the proof contract is still unresolved. A story is on
 - every proof row is `final`
 - the matrix matches the actual implementation and verification surfaces
 - any apparent proof drift was logged when it happened
+- the step file records either the focused red seam that was used or an explicit written exception with the alternative proof path
 
 ## Output format
 

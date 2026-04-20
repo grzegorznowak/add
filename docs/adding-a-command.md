@@ -78,6 +78,9 @@ Argument: `$ARGUMENTS` — <what the user passes>.
   high-blast-radius action.
 - State the source-of-truth hierarchy explicitly. The codebase wins over
   documents; documents win over assumptions.
+- For commands that govern implementation work, encode proof-first planning and
+  red-first execution explicitly. Do not leave test-first sequencing implicit;
+  require a written exception path when red-first is infeasible.
 - End with a `## Final response` section describing what the operator
   should see when the command finishes.
 

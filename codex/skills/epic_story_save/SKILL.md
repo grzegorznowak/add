@@ -39,7 +39,9 @@ implementation time.
    recorded in the plan must appear in the story file. Verbatim where
    possible; rephrased only when section mapping requires it. **Never drop
    plan content.** When in doubt, preserve under the catch-all
-   `## Discovery Notes` section.
+   `## Discovery Notes` section. If the plan says red-first is the default
+   implementation method or requires a written exception before deviating,
+   preserve that wording exactly.
 3. **No content invention.** Do not write Acceptance criteria or proof-matrix
    rows the plan did not state. `## Acceptance` and `## Verification` are
    load-bearing contract sections: if either is missing or malformed, abort
@@ -150,9 +152,11 @@ fuzzy matching:
 mapping goes into `## Discovery Notes`. Never drop a section. Never
 collapse a section into a one-line summary.
 
-For `## Acceptance` and `## Verification`, prefer exact preservation over
-fuzzy reconstruction. If the plan's proof contract is malformed, abort from
-Phase 1 rather than trying to salvage it here.
+For `## Acceptance`, `## Verification`, and `## Implementation Notes`, prefer
+exact preservation over fuzzy reconstruction. If the plan's proof contract is
+malformed, abort from Phase 1 rather than trying to salvage it here. Do not
+soften or paraphrase away red-first/default-exception instructions that the
+plan already established.
 
 **Inline content extraction** (in addition to section mapping):
 - Every `path/like/this.py:123` reference → preserved in `## Critical Files`
