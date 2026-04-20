@@ -128,7 +128,7 @@ You may update `MASTER.md` and the story file's `Status:` header as part of this
 Append or create a `## Plan Review Log` section on the story file with a new entry:
 
 ```md
-- <UTC ISO timestamp> Plan review run by Claude fresh session
+- <UTC ISO timestamp> Plan review run by fresh maintainer session
   - Verdict: approve | request_changes | blocked | not_reviewable
   - Status transition: <from> -> <to>
   - Sections reviewed: Purpose, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes, Expected Prerequisites, Scope

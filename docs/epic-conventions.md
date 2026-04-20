@@ -286,6 +286,10 @@ When implementation discovers contract drift:
   `## Progress Log` before proceeding. Name the reason, the alternative proof
   seam, and the verification path that will be used instead.
 
+When local review finds a mismatch between the implementation and epic-level
+commitments in `MASTER.md`, `CONTRACT.md`, dependencies, or relevant sibling
+stories, record that explicitly as `Epic contract drift` in `## Review Log`.
+
 #### `## Session Handoff`
 
 Refreshed at the end of every session. There may be multiple handoff
@@ -305,12 +309,17 @@ entries over a story's lifetime; only the most recent one is authoritative.
 
 #### `## Review Log`
 
-Append-only entries written by `/epic-review`.
+Append-only entries written by `/epic-review`. This is the canonical
+write-back schema for implementation review logs.
 
 ```md
 ## Review Log
-- 2026-04-12T13:05:00Z Review run by Claude fresh session
-  - Verdict: approve | request_changes | blocked | not_reviewable
+- 2026-04-12T13:05:00Z Review run by fresh maintainer session
+  - Decision: approve | request_changes | blocked | not_reviewable
+  - Approval gate: pass | fail
+  - Product verdict: approve | request_changes | reject | not_assessed
+  - Technical verdict: approve | request_changes | reject | not_assessed
+  - Epic contract drift: none | present
   - Status transition: 🟣 IN REVIEW -> ✅ DONE
   - Files reviewed: <paths>
   - Key findings:
@@ -329,7 +338,7 @@ revision history.
 
 ```md
 ## Plan Review Log
-- 2026-04-15T09:30:00Z Plan review run by Claude fresh session
+- 2026-04-15T09:30:00Z Plan review run by fresh maintainer session
   - Verdict: approve | request_changes | blocked | not_reviewable
   - Status transition: ⚪ TODO -> ⚪ TODO
   - Sections reviewed: Purpose, Acceptance, Verification, Critical Files, Locked Decisions, Discovery Notes, Expected Prerequisites, Scope

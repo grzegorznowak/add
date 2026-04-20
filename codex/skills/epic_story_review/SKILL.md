@@ -277,7 +277,7 @@ Append or create a `## Plan Review Log` section on the story file with a new
 entry:
 
 ```md
-- <UTC ISO timestamp> Plan review run by Codex fresh session
+- <UTC ISO timestamp> Plan review run by fresh maintainer session
   - Verdict: approve | request_changes | blocked | not_reviewable
   - Status transition: <from> -> <to>
   - Sections reviewed: Purpose, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes, Expected Prerequisites, Scope

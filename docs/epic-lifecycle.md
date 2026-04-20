@@ -44,7 +44,7 @@ state diagram. They feed the first row of the tracker, nothing more.
 |---|---|
 | `⚪ TODO` | Not started yet. The default state for newly created stories. |
 | `🔄 IN PROGRESS` | A session is actively working on this story. Default method is red-first: inspect sources, choose the smallest focused failing seam, turn it green, then broaden verification. Contract drift or any explicit exception to red-first must be logged before review. |
-| `🟣 IN REVIEW` | Implementation is done enough to review, the focused red-first path or explicit exception is recorded, and the proof matrix is fully finalized. Local review may still find issues. |
+| `🟣 IN REVIEW` | Implementation is done enough to review, the focused red-first path or explicit exception is recorded, the proof matrix is fully finalized, and any relevant epic-contract obligations are concrete enough to judge. Local review may still find issues, including epic contract drift. |
 | `🔵 IN PR` | **Optional.** Local review passed and the changes are in a GitHub PR awaiting remote review and merge. Skip this stage entirely if a story does not need a PR. |
 | `✅ DONE` | Implementation and review are both complete. If a PR stage was used, the PR is merged. |
 | `⛔ BLOCKED` | An external blocker prevents progress, or `/epic-story-review` has determined the plan is not implementable as specified. The story definition may be revised and work resumes once the blocker clears. |
@@ -142,6 +142,11 @@ is already `✅ DONE` and folds their contract terms into the merged
    placeholder-driven stories are incomplete unless the proof contract checks
    for unresolved placeholders, silent no-op behavior on enabled paths, and
    unchanged behavior on an appropriate disabled/default path.
+10. **Epic contract obligations are part of local review when present.**
+    If `CONTRACT.md`, dependency stories, or relevant sibling stories define
+    shared interfaces or invariants the story touches, `/epic-review` cannot
+    approve while those obligations are violated unless the intentional drift is
+    explicitly recorded and reflected in the review outcome.
 
 ## The Legend block
 

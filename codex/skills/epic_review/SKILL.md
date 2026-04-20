@@ -1,6 +1,6 @@
 ---
 name: epic_review
-description: Review one implemented epic step against its story spec
+description: Review one implemented epic step against its story spec, current repo state, and recorded handoff context. Read-only for code; updates only the step's coordination file.
 ---
 
 Review: $EPIC / $STORY
@@ -81,6 +81,8 @@ must be rejected.
 2. `<epic>/MASTER.md`
 3. the resolved step file
 4. dependency step files listed for the resolved step in `MASTER.md`
+5. `<epic>/CONTRACT.md` if present
+6. any sibling story files that define shared constraints, interfaces, or proof surfaces the resolved story claims to satisfy, when relevant
 
 ## Review intent
 Do **not** rediscover the epic from scratch.
@@ -88,16 +90,17 @@ Do **not** rediscover the epic from scratch.
 Your job is to:
 1. understand the story spec in the resolved step file for `$STORY`
 2. inspect the actual implementation and current worktree
-3. review the implementation against the step spec and surrounding architecture
-4. record the review result back into the coordination file
+3. inspect epic-wide contract and targeted sibling-story context when they materially constrain the story
+4. review the implementation against the step spec, epic contract, and surrounding architecture
+5. record the review result back into the coordination file
 
 ## Review readiness check
 Before doing a full review:
 - inspect the row for the resolved step in `MASTER.md`
-- inspect any `Active Claim`, `Progress Log`, and `Session Handoff` sections in
-  the step file
+- inspect any `Active Claim`, `Progress Log`, `Session Handoff`, and `PR Tracking` sections in the step file
 - inspect the story's `## Acceptance` and `## Verification` contract before
   treating the implementation as review-ready
+- if `<epic>/CONTRACT.md` exists, inspect the sections that define epic-wide invariants or shared obligations for this story
 
 If the story is clearly not reviewable yet, abort fast with a concise reason.
 
@@ -106,6 +109,7 @@ Examples of not-reviewable:
 - step is blocked by an unmet dependency and the code cannot be sensibly judged
 - there is no credible mapping from the step spec to any code or tests yet
 - any acceptance id has no proof row, or any proof row is still `provisional`
+- epic-wide obligations relevant to this story are still materially undefined
 
 ## Worktree preflight
 
@@ -154,8 +158,10 @@ After reading the story's `## Active Claim`, build `<project_root_map>` from wha
 ## Source-of-truth hierarchy
 1. `<epic>/MASTER.md`
 2. the resolved step file
-3. dependency step files
-4. actual code, tests, and worktree diff
+3. `<epic>/CONTRACT.md` when present
+4. dependency step files
+5. relevant sibling story files or contract sections the resolved story depends on
+6. actual code, tests, and worktree diff
 
 Do not infer identity from filename shape or naming conventions that are not
 explicitly recorded in `MASTER.md`.
@@ -172,15 +178,22 @@ explicitly recorded in `MASTER.md`.
    common) or the main tree at `<workspace_root>/projects/<basename>` (clean
    main-tree fallback case from the preflight).
 3. Never speculate about code you haven't read.
-4. If the final implementation or final proof matrix clearly differs from the
+4. When `<epic>/CONTRACT.md` exists, inspect the sections relevant to the
+   resolved story's owned surfaces and invariants.
+5. If the final implementation or final proof matrix clearly differs from the
    earlier planned proof path, consult `## Progress Log` and
    `## Session Handoff` to confirm the change was recorded and justified.
-5. Break the reviewed implementation into logical groups and explain the
+6. If sibling stories define shared interfaces, invariants, or proof surfaces
+   this story touches, inspect those targeted stories rather than assuming the
+   resolved step file is complete.
+7. Break the reviewed implementation into logical groups and explain the
    grouping briefly.
-6. Review each group sequentially.
-7. Prioritize:
+8. Review each group sequentially.
+9. Prioritize:
    - correctness
    - regressions
+   - product / acceptance drift from the requested outcome
+   - epic contract drift from `MASTER.md`, `CONTRACT.md`, or sibling-story commitments
    - architectural consistency
    - duplication / missed reuse
    - status/progress drift from the step spec
@@ -193,8 +206,8 @@ explicitly recorded in `MASTER.md`.
 
 ## Critical checks
 Before approving, verify:
-- Does the implementation actually satisfy the step spec?
-- Were any epic-wide architectural decisions violated?
+- Does the implementation actually satisfy the step spec and requested outcome?
+- Were any explicit epic-wide contract or architectural decisions violated?
 - Can existing code have been extended instead of creating new duplication?
 - Do the changes respect module boundaries and current patterns?
 - Are there any security implications in the implementation or operational model?
@@ -219,6 +232,9 @@ Before approving, verify:
   paths, that enabled paths actually activate the feature, and that an
   appropriate disabled/default path stays unchanged?
 - If proof paths changed, was the story updated and the drift logged?
+- If sibling stories or the epic contract declare shared interfaces or
+  obligations this story touches, does the implementation still match them, or
+  is any intentional drift explicitly recorded?
 
 ## Status transitions
 You may update `MASTER.md` as part of the review.
@@ -246,8 +262,12 @@ Append or update a `## Review Log` section in the step file.
 Add a new entry like:
 
 ```md
-- <UTC ISO timestamp> Review run by Codex fresh session
-  - Verdict: approve | request_changes | blocked | not_reviewable
+- <UTC ISO timestamp> Review run by fresh maintainer session
+  - Decision: approve | request_changes | blocked | not_reviewable
+  - Approval gate: pass | fail
+  - Product verdict: approve | request_changes | reject | not_assessed
+  - Technical verdict: approve | request_changes | reject | not_assessed
+  - Epic contract drift: none | present
   - Status transition: <from> -> <to>
   - Files reviewed: <paths>
   - Key findings:
@@ -263,31 +283,85 @@ only eligible for approval when:
 - every acceptance id remains covered
 - every proof row is `final`
 - the matrix matches the actual implementation and verification surfaces
+- every required surface / variant / branch row is covered or explicitly excluded
+- routing completeness is proven when multiple supported callsites or orchestration paths exist
+- required fail-open checks are satisfied for prompt/template/placeholder-driven features
 - any apparent proof drift was logged when it happened
 - the step file records either the focused red seam that was used or an
   explicit written exception with the alternative proof path
+- any relevant epic contract or sibling-story obligation touched by this story
+  remains satisfied, or the intentional drift is explicitly recorded and
+  reflected in the review verdict
+
+## Classification rules
+- `Gate Findings` contains readiness, proof-contract, state-transition, and
+  red-first/precondition failures. Any unresolved gate finding means
+  `**Approval Gate**: FAIL` and `**Decision**` cannot be `APPROVE`.
+- `Product Assessment` evaluates requested outcome, acceptance behavior,
+  user-visible correctness, and epic-contract obligations explicitly owned by
+  this story.
+- `Technical Assessment` evaluates correctness, regressions, architecture,
+  reuse, tests, security, performance, maintainability, and rollout safety.
+- `In Scope Issues` are issues the resolved story directly owns or must satisfy
+  to pass.
+- `Out of Scope Issues` are adjacent problems, follow-on work, or broader epic
+  concerns worth flagging but not required for this story to pass.
+- `Epic Contract Drift` is only for mismatches between this story and
+  epic-level commitments in `MASTER.md`, `CONTRACT.md`, dependencies, or
+  relevant sibling stories. Do not use it for generic cleanup or unrelated
+  debt.
+- Order findings in every issue list by severity, include file references, and
+  use `- None.` when a list is empty.
 
 ## Output format
-Start with findings, ordered by severity, with file references.
+Start with gate findings and issue lists, ordered by severity, with file
+references.
 
 Use:
 
 ```markdown
 **Decision**: [APPROVE | REQUEST CHANGES | BLOCKED | NOT REVIEWABLE]
 **Reviewed Story**: [Step <resolved_step_number> / <resolved_spec_file>]
+**Status Transition**: [<old> -> <new>]
 **Grouping**: [brief grouping logic]
+**Epic Context Used**: [MASTER.md, CONTRACT.md if present, dependency stories, sibling stories reviewed, handoff/progress sections]
+**Approval Gate**: [PASS | FAIL]
 
-**Findings**
-- [Severity] [file:line] issue
+## Gate Findings
+- [Severity] [path:line] readiness / proof / state / red-first / status-transition issue
+- None.
 
-**Summary**
+## Product Assessment
+**Verdict**: [APPROVE | REQUEST CHANGES | REJECT | NOT ASSESSED]
+
+### In Scope Issues
+- [Severity] [path:line] requested outcome, acceptance behavior, user-visible correctness, or explicitly-owned epic-contract issue
+- None.
+
+### Out of Scope Issues
+- [Severity] [path:line] adjacent product gap, follow-on story work, or broader epic concern worth flagging
+- None.
+
+## Technical Assessment
+**Verdict**: [APPROVE | REQUEST CHANGES | REJECT | NOT ASSESSED]
+
+### In Scope Issues
+- [Severity] [path:line] correctness, regression, architecture, duplication, contracts, tests, security, performance, rollout risk
+- None.
+
+### Out of Scope Issues
+- [Severity] [path:line] nearby debt, broader refactor, sibling inconsistency, or cleanup not required to approve this story
+- None.
+
+## Epic Contract Drift
+- [Severity] [path:line] mismatch between this story and epic-level contract / MASTER / sibling-story commitments
+- None.
+
+## Summary
 - [2-4 short bullets]
-
-**Status Transition**
-- [old -> new]
 
 **Next Action**
 - [single concrete next step]
 ```
 
-If there are no findings, say that explicitly.
+If there are no findings in a section, say that explicitly with `- None.`.
