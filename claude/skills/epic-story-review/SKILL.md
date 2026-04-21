@@ -82,8 +82,9 @@ Do not infer identity from filename shape or naming conventions that are not exp
 4. Use `git status` to confirm the worktree is not mid-implementation (if there are large pending changes, note it — plan review on a dirty worktree is a warning signal).
 5. Use `git log` to skim recent history for related work the plan should have referenced but did not.
 6. Never speculate about code you haven't read. If a claim in the plan can be checked, check it.
-7. If the plan looks structurally wrong, verdict is `request_changes` with a pointer to which sections to edit. Do not rewrite the plan inside the log.
-8. Walk the full validation checklist below before settling on a verdict.
+7. Run a Debt Friction check: ask whether the plan hides story-local friction from unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` finding when there is a causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
+8. If the plan looks structurally wrong, verdict is `request_changes` with a pointer to which sections to edit. Do not rewrite the plan inside the log.
+9. Walk the full validation checklist below before settling on a verdict.
 
 ## Critical checks
 
@@ -111,6 +112,7 @@ Before approving, verify every item:
 20. **No hidden gotchas in `Critical Files`.** Skim each Critical File for things the plan didn't mention but should have: migrations, public APIs, existing tests that would break, cross-module coupling.
 21. **`Implementation Notes` are internally consistent** with `## Acceptance` and `## Scope` (the plan's own self-consistency).
 22. **No `<TODO: missing from plan — ...>` placeholders** left by `/epic-story-save`. If any remain, verdict is at minimum `request_changes`.
+23. **Debt Friction is surfaced when it affects proof or scope.** If current story planning is made harder by debt, the finding must use the `docs/epic-conventions.md` shape in `## Plan Review Log`. A plan may be blocked for Debt Friction only when meaningful acceptance or proof planning is not possible.
 
 ## Status transitions
 
@@ -135,6 +137,7 @@ Append or create a `## Plan Review Log` section on the story file with a new ent
   - Key findings:
     - <short bullet>
     - <short bullet>
+  - Debt Friction: none | <decision + short title>
   - Next action: <one concrete recommendation>
 ```
 

@@ -186,10 +186,15 @@ explicitly recorded in `MASTER.md`.
 6. If sibling stories define shared interfaces, invariants, or proof surfaces
    this story touches, inspect those targeted stories rather than assuming the
    resolved step file is complete.
-7. Break the reviewed implementation into logical groups and explain the
+7. Run a Debt Friction check: ask whether implementation or review was made
+   harder by unclear ownership, duplicated behavior, weak or mocked tests,
+   missing seams, hidden behavior, or unsafe structure. Only record a
+   `Debt Friction` finding when there is a story-local causal link: current
+   story action -> concrete evidence -> delivery impact -> explicit decision.
+8. Break the reviewed implementation into logical groups and explain the
    grouping briefly.
-8. Review each group sequentially.
-9. Prioritize:
+9. Review each group sequentially.
+10. Prioritize:
    - correctness
    - regressions
    - product / acceptance drift from the requested outcome
@@ -235,6 +240,9 @@ Before approving, verify:
 - If sibling stories or the epic contract declare shared interfaces or
   obligations this story touches, does the implementation still match them, or
   is any intentional drift explicitly recorded?
+- If any `Debt Friction` entry used `fix-now`, did the cleanup stay within its
+  `Scope Justification`, remain enabling for this story, and have verification?
+  If not, request changes or split the debt into a follow-up recommendation.
 
 ## Status transitions
 You may update `MASTER.md` as part of the review.
@@ -273,6 +281,7 @@ Add a new entry like:
   - Key findings:
     - <short bullet>
     - <short bullet>
+  - Debt Friction: none | <decision + short title>
   - Next action: <one concrete recommendation>
 ```
 

@@ -144,9 +144,10 @@ Do not infer identity from filename shape or naming conventions that are not exp
 4. When `<epic>/CONTRACT.md` exists, inspect the sections relevant to the resolved story's owned surfaces and invariants
 5. If the final implementation or final proof matrix clearly differs from the earlier planned proof path, consult `## Progress Log` and `## Session Handoff` to confirm the change was recorded and justified
 6. If sibling stories define shared interfaces, invariants, or proof surfaces this story touches, inspect those targeted stories rather than assuming the resolved step file is complete
-7. Break the reviewed implementation into logical groups; explain the grouping briefly
-8. Review each group sequentially
-9. Prioritize:
+7. Run a Debt Friction check: ask whether implementation or review was made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` finding when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
+8. Break the reviewed implementation into logical groups; explain the grouping briefly
+9. Review each group sequentially
+10. Prioritize:
    - correctness
    - regressions
    - product / acceptance drift from the requested outcome
@@ -182,6 +183,7 @@ Before approving, verify:
 - If the story is prompt/template/placeholder-driven, do the final tests or reviewer actions prove there are no unresolved placeholders on supported paths, that enabled paths actually activate the feature, and that an appropriate disabled/default path stays unchanged?
 - If proof paths changed, was the story updated and the drift logged?
 - If sibling stories or the epic contract declare shared interfaces or obligations this story touches, does the implementation still match them, or is any intentional drift explicitly recorded?
+- If any `Debt Friction` entry used `fix-now`, did the cleanup stay within its `Scope Justification`, remain enabling for this story, and have verification? If not, request changes or split the debt into a follow-up recommendation.
 
 ## Status transitions
 
@@ -210,6 +212,7 @@ Append or update a `## Review Log` section in the step file with a new entry:
   - Key findings:
     - <short bullet>
     - <short bullet>
+  - Debt Friction: none | <decision + short title>
   - Next action: <one concrete recommendation>
 ```
 

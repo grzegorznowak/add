@@ -142,6 +142,8 @@ Build `## Verification` around two required parts and any conditional proof sect
 
 Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers instead of the real acceptance surface. Provisional rows are allowed, but every acceptance id still needs a row and every provisional row must state what remains undecided. Helper correctness is not enough when the feature fans out across multiple callsites; require routing completeness as its own proof obligation. Do not fake precision about the exact first failing command when the current repo facts do not support it; the plan sets the red-first method and proof surfaces, and the implementer chooses the exact first seam after reading sources.
 
+Debt Friction check: actively ask whether proof planning is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision. Use `## Discovery Notes` for evidence, `## Verification` when proof strategy is affected, and `## Locked Decisions` when a tradeoff is decided. Treat the plan as not ready only when debt friction prevents meaningful acceptance or proof planning.
+
 ### Question 8 — Critical Files
 
 This is the highest-leverage question in the interview. Actively probe the codebase:
@@ -172,6 +174,8 @@ Ask: "what has been decided, and what alternatives were considered and rejected?
 ### Question 11 — Discovery Notes
 
 Catch-all for code smells, reusable existing code, gotchas, and anything else that came up during the interview that does not fit cleanly elsewhere. Explicitly ask: "did the codebase probes in Q8 surface any gotchas, patterns, or reusable helpers that should land here so the implementer does not have to re-discover them?"
+
+If the story has Debt Friction, record it here using the `docs/epic-conventions.md` shape. Generic cleanup findings do not qualify unless they affect this story's planning, implementation, proof, review, or scope. Use `fix-now` only for enabling cleanup directly required to make this story correct, testable, reviewable, or safely maintainable.
 
 Re-use the grep output from Q8 to populate Discovery Notes with paths and names the operator should preserve verbatim.
 
@@ -223,7 +227,7 @@ Assemble the plan file body with section names matching `docs/epic-conventions.m
 - <disabled/default path proves baseline behavior is unchanged>
 
 ## Discovery Notes
-<code smells, reusable code, gotchas from Q8 and Q11>
+<code smells, reusable code, gotchas, and any Debt Friction entries from Q8 and Q11>
 
 ## Critical Files
 <file paths with line refs from Q8>

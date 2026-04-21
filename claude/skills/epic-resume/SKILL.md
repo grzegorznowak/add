@@ -217,6 +217,7 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Respect the latest review/handoff CTA before widening scope
 - Continue only this step plus required dependencies
 - Inspect the relevant code and tests before the first change in this session. Use the story's `## Verification`, `## Critical Files`, `## Discovery Notes`, and latest runtime notes to choose the smallest focused seam for the next behavior.
+- Run a Debt Friction check before the first patch in this session: ask whether implementation is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only write a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
 - Default to red-first: make that focused seam fail, implement until it passes, then broaden verification.
 - Do not jump straight to broad suites or code-first implementation if a smaller focused seam is available.
 - Prefer code changes over restating plans
@@ -225,6 +226,7 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - If you discover non-material proof-path drift, update the story's `## Verification` matrix immediately and record why in `## Progress Log` before continuing
 - If you discover material contract drift, pause feature work, record a replanning checkpoint in `## Progress Log`, update the story contract, and only then continue implementation
 - If red-first is not feasible, record an explicit written exception in `## Progress Log` before proceeding. Name the reason, the alternative proof seam, and the verification path you will use instead.
+- If Debt Friction exists, record it in `## Progress Log` using the `docs/epic-conventions.md` shape. Use `fix-now` only for enabling cleanup directly required to make this story correct, testable, reviewable, or safely maintainable; include `Scope Justification`. Use `split-story`, `defer-explicitly`, or `block` for debt that is non-enabling, too large, too non-local, or proof-blocking.
 - If the step is blocked by a hard external dependency or contradiction, stop broadening scope and mark it `⛔ BLOCKED`
 
 ## Progress tracking
@@ -238,6 +240,7 @@ Append concise timestamped bullets under `## Progress Log` after meaningful mile
 - proof matrix updated to match implementation reality
 - replanning checkpoint recorded after material contract drift
 - red-first exception recorded with alternative proof seam
+- Debt Friction recorded with decision and guardrail
 - blocker discovered
 - epic-wide finding recorded in `MASTER.md`
 - review feedback addressed
@@ -260,6 +263,7 @@ At the end of the session:
 - Red-first path: <focused seam + red/green outcome, or explicit exception + alternative proof path>
 - Tests run: <commands/results or not run>
 - Remaining work: <short bullets>
+- Unresolved Debt Friction: <split-story / defer-explicitly / block / unfinished fix-now entries, or none>
 - Blockers / risks: <short bullets>
 - Exact next step: <one concrete recommendation>
 ```

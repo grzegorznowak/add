@@ -192,6 +192,73 @@ template variables, string substitution, or other fail-open prompt assembly:
   called out explicitly.
 ```
 
+### Debt Friction
+
+`Debt Friction` is a story-local awareness protocol, not a generic cleanup
+backlog. It applies when the current story is made harder or riskier by
+codebase debt, such as unclear ownership, duplicated behavior, weak or mocked
+tests, missing seams, hidden behavior, or unsafe structure.
+
+Every entry must show this causal link:
+
+```text
+current story action -> concrete evidence -> delivery impact -> explicit decision
+```
+
+Generic cleanup findings do not qualify unless they affect the current story's
+planning, implementation, proof, review, scope, correctness, testability,
+reviewability, or safe maintainability.
+
+Write `Debt Friction` in the section owned by the command that found it:
+
+- `/epic-story-plan`: use `## Discovery Notes`; if proof is affected, encode it
+  in `## Verification`; if a tradeoff is locked, use `## Locked Decisions`.
+- `/epic-story-review`: use `## Plan Review Log`.
+- `/epic-claim` and `/epic-resume`: use `## Progress Log`.
+- `/epic-review`: use `## Review Log`.
+
+Use this minimum entry shape:
+
+```md
+### Debt Friction: <short title>
+
+**Current Story Action**
+<what was being planned, implemented, tested, or reviewed>
+
+**Friction Evidence**
+<files, symbols, tests, behaviors, or concrete unknowns>
+
+**Delivery Impact**
+<effect on correctness, testability, reviewability, scope, or safe maintainability>
+
+**Decision**
+fix-now | split-story | defer-explicitly | block | not-debt
+
+**Guardrail**
+<what prevents silent amplification>
+```
+
+Decision-specific fields:
+
+- `fix-now` requires `**Scope Justification**`. Use it only for enabling cleanup
+  directly required to make the current story correct, testable, reviewable, or
+  safely maintainable. It is not permission for broad or opportunistic
+  refactoring.
+- `split-story` requires `**Follow-up Recommendation**`. Use it for real debt
+  that is non-enabling, too large, or too non-local for the current story. Do
+  not auto-create the follow-up story from this entry.
+- `defer-explicitly` requires `**Deferral Reason**`.
+- `block` requires `**Blocker Condition**`.
+
+During planning, a story may be treated as not ready only when debt friction
+prevents meaningful acceptance or proof planning. During review, every
+`fix-now` entry must be audited against its scope justification and
+verification.
+
+Carry unresolved or decision-relevant entries into `## Session Handoff` when the
+decision is `split-story`, `defer-explicitly`, `block`, or an unfinished
+`fix-now`. Do not carry forward completed `fix-now` or `not-debt` entries.
+
 ### Runtime sections (created by `/epic-claim`, `/epic-resume`, `/epic-review`, `/epic-pr`)
 
 These are written by the runtime commands as work progresses. They must
@@ -274,6 +341,7 @@ implementation. Written by `/epic-claim`, `/epic-resume`, and `/epic-pr`.
 - 2026-04-12T12:09:00Z Refined proof matrix for `A2` after implementation moved the real assertion seam.
 - 2026-04-12T12:16:00Z Recorded replanning checkpoint: original acceptance contract for `A3` bundled two independently failing behaviors and was split before implementation continued.
 - 2026-04-12T12:21:00Z Recorded explicit red-first exception: fixture bootstrap cannot go red-first safely; using smoke command `uv run pytest tests/bootstrap/test_install.py` as the alternative proof path.
+- 2026-04-12T12:27:00Z Recorded Debt Friction: duplicated branch predicate would make `A2` inconsistent without enabling cleanup; decision `fix-now` with scope justification.
 ```
 
 When implementation discovers contract drift:
@@ -303,6 +371,7 @@ entries over a story's lifetime; only the most recent one is authoritative.
 - Red-first path: <focused seam + red/green outcome, or explicit exception + alternative proof path>
 - Tests run: <commands/results or not run>
 - Remaining work: <short bullets>
+- Unresolved Debt Friction: <split-story / defer-explicitly / block / unfinished fix-now entries, or none>
 - Blockers / risks: <short bullets>
 - Exact next step: <one concrete recommendation>
 ```
@@ -324,6 +393,7 @@ write-back schema for implementation review logs.
   - Files reviewed: <paths>
   - Key findings:
     - <short bullet>
+  - Debt Friction: none | <decision + short title>
   - Next action: <one concrete recommendation>
 ```
 
@@ -344,6 +414,7 @@ revision history.
   - Sections reviewed: Purpose, Acceptance, Verification, Critical Files, Locked Decisions, Discovery Notes, Expected Prerequisites, Scope
   - Key findings:
     - <short bullet>
+  - Debt Friction: none | <decision + short title>
   - Next action: <one concrete recommendation — typically "/epic-claim <epic>" or "edit <sections> and re-run">
 ```
 
