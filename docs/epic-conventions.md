@@ -111,7 +111,7 @@ Example:
 ```md
 ## Acceptance
 - A1: `/epic-story-save` preserves the proof matrix verbatim from the plan file.
-- A2: `/epic-review` rejects approval when any acceptance id has no proof row.
+- A2: `/epic-story-review` rejects approval when any acceptance id has no proof row.
 ```
 
 #### `## Verification`
@@ -146,7 +146,7 @@ Rules:
   undecided about the proof path.
 - All rows may be `provisional` during planning if they are still anchored to
   the real owning surface and concrete enough to guide implementation.
-- By `/epic-review`, every row must be `final`.
+- By `/epic-story-review`, every row must be `final`.
 - Planning is proof-first, not guess-first. The plan must anchor the real
   owning surfaces and the focused test/proof area the implementer should
   inspect first, but it must not invent a fake exact first failing command when
@@ -213,9 +213,9 @@ Write `Debt Friction` in the section owned by the command that found it:
 
 - `/epic-story-plan`: use `## Discovery Notes`; if proof is affected, encode it
   in `## Verification`; if a tradeoff is locked, use `## Locked Decisions`.
-- `/epic-story-review`: use `## Plan Review Log`.
-- `/epic-claim` and `/epic-resume`: use `## Progress Log`.
-- `/epic-review`: use `## Review Log`.
+- `/epic-story-plan-review`: use `## Plan Review Log`.
+- `/epic-story-claim` and `/epic-story-resume`: use `## Progress Log`.
+- `/epic-story-review`: use `## Review Log`.
 
 Use this minimum entry shape:
 
@@ -259,7 +259,7 @@ Carry unresolved or decision-relevant entries into `## Session Handoff` when the
 decision is `split-story`, `defer-explicitly`, `block`, or an unfinished
 `fix-now`. Do not carry forward completed `fix-now` or `not-debt` entries.
 
-### Runtime sections (created by `/epic-claim`, `/epic-resume`, `/epic-review`, `/epic-pr`)
+### Runtime sections (created by `/epic-story-claim`, `/epic-story-resume`, `/epic-story-review`, `/epic-story-pr`)
 
 These are written by the runtime commands as work progresses. They must
 **never** be seeded by `/epic-story-save` — they are owned by the flows
@@ -267,7 +267,7 @@ that create them.
 
 #### `## Active Claim`
 
-Written by `/epic-claim` (creation) and `/epic-resume` (refresh). Exactly
+Written by `/epic-story-claim` (creation) and `/epic-story-resume` (refresh). Exactly
 one `Active Claim` section per file.
 
 ```md
@@ -288,11 +288,11 @@ present only when the story is being implemented in one or more linked
 at claim time, or because the operator passed
 `WORKTREE="<basename>=<path>"` explicitly for that repo. Each child
 bullet has the form `- <repo-basename>: <absolute path>` and records
-where work for that specific repo is happening so `/epic-resume` and
-`/epic-review` can reattach to the same checkouts in future sessions.
+where work for that specific repo is happening so `/epic-story-resume` and
+`/epic-story-review` can reattach to the same checkouts in future sessions.
 
 The discovery rule for which repos appear here lives in the
-`## Worktree preflight` section of `/epic-claim` and `/epic-resume`: a
+`## Worktree preflight` section of `/epic-story-claim` and `/epic-story-resume`: a
 repo is included if it is named in the story's `## Scope` (via a
 `projects/<name>/` token) AND has uncommitted changes at claim time.
 Repos that are clean at claim time are written to directly and do NOT
@@ -312,24 +312,24 @@ path. Coordination files under `agent_coordination/` always anchor at
 `MASTER.md` and the story file itself never live inside a worktree.
 
 Once written, child bullets must not be deleted by subsequent runs of
-`/epic-resume` or `/epic-review` — other sessions depend on them to
-find the worktrees. `/epic-resume` may refresh a child bullet's path
+`/epic-story-resume` or `/epic-story-review` — other sessions depend on them to
+find the worktrees. `/epic-story-resume` may refresh a child bullet's path
 if the recorded worktree is stale and the operator chooses to recreate
 it at a new location, and may add new children if the operator passes
 `WORKTREE="<basename>=<path>"` for a previously-unrecorded repo.
 
 **Back-compat read**: stories claimed before the multi-worktree format
-have a singular `- Worktree: <path>` bullet (no parent). `/epic-resume`
-and `/epic-review` accept this legacy form by reading it as a single
+have a singular `- Worktree: <path>` bullet (no parent). `/epic-story-resume`
+and `/epic-story-review` accept this legacy form by reading it as a single
 implicit entry whose basename is `basename(<path>)`. The next
-`/epic-resume` refresh on such a story rewrites the legacy bullet as a
+`/epic-story-resume` refresh on such a story rewrites the legacy bullet as a
 `- Worktrees:` list — that is the one place legacy stories migrate
-forward. New claims (`/epic-claim`) never write the singular form.
+forward. New claims (`/epic-story-claim`) never write the singular form.
 
 #### `## Progress Log`
 
 Append-only timestamped bullets recording meaningful milestones during
-implementation. Written by `/epic-claim`, `/epic-resume`, and `/epic-pr`.
+implementation. Written by `/epic-story-claim`, `/epic-story-resume`, and `/epic-story-pr`.
 
 ```md
 ## Progress Log
@@ -378,7 +378,7 @@ entries over a story's lifetime; only the most recent one is authoritative.
 
 #### `## Review Log`
 
-Append-only entries written by `/epic-review`. This is the canonical
+Append-only entries written by `/epic-story-review`. This is the canonical
 write-back schema for implementation review logs.
 
 ```md
@@ -399,10 +399,10 @@ write-back schema for implementation review logs.
 
 #### `## Plan Review Log`
 
-Append-only entries written **only** by `/epic-story-review`. Parallel in
+Append-only entries written **only** by `/epic-story-plan-review`. Parallel in
 shape to `## Review Log` but records plan-quality verdicts made at
 `⚪ TODO`, before implementation begins. Never seeded by `/epic-story-save`;
-never touched by any other command. Each re-run of `/epic-story-review`
+never touched by any other command. Each re-run of `/epic-story-plan-review`
 after operator edits appends a new entry — the log is the story's plan
 revision history.
 
@@ -415,12 +415,12 @@ revision history.
   - Key findings:
     - <short bullet>
   - Debt Friction: none | <decision + short title>
-  - Next action: <one concrete recommendation — typically "/epic-claim <epic>" or "edit <sections> and re-run">
+  - Next action: <one concrete recommendation — typically "/epic-story-claim <epic>" or "edit <sections> and re-run">
 ```
 
 #### `## PR Tracking`
 
-Written by `/epic-pr` only. There is exactly one `PR Tracking` section per
+Written by `/epic-story-pr` only. There is exactly one `PR Tracking` section per
 file; refreshing the metadata updates the existing section in place.
 
 ```md
@@ -473,12 +473,12 @@ Each command in this repo has a defined resolution strategy for its
 epic/story arguments. Two strategies exist:
 
 - **Auto-inferred from running context** — for commands that continue
-  running work (`/epic-claim`, `/epic-resume`, `/epic-pr`, `/epic-squash`).
+  running work (`/epic-story-claim`, `/epic-story-resume`, `/epic-story-pr`, `/epic-squash`).
   These operate on whatever is already active; guessing the context is
   the whole point.
 - **Operator-explicit (arg or menu)** — for commands that *create* or
   *review* (`/epic-plan`, `/epic-story-plan`, `/epic-story-save`,
-  `/epic-review`, `/epic-story-review`). These never auto-infer. The
+  `/epic-story-review`, `/epic-story-plan-review`). These never auto-infer. The
   operator must make the decision — either by passing the arg or by
   picking from a filtered menu the skill shows when the arg is absent.
   The menu lists only legal candidates (filtered to each command's
@@ -490,11 +490,11 @@ epic/story arguments. Two strategies exist:
 | `/epic-plan` | operator-explicit (optional NAME arg) | n/a — creates a new epic | If `NAME` is omitted, the interview asks for the slug. Never overwrites an existing epic. |
 | `/epic-story-plan` | operator-explicit (arg or menu) | any epic with a `MASTER.md` | EPIC menu lists all epics under `agent_coordination/epics/`. Never edits `MASTER.md` or story files. |
 | `/epic-story-save` | operator-explicit (arg or menu) | any epic with a `MASTER.md`; PLAN menu is 5 most recent files in `~/.claude/plans/` | Both EPIC and PLAN have menu fallbacks. Creating a story is a decision that should never be guessed. |
-| `/epic-review` | operator-explicit (arg or menu) | `🟣 IN REVIEW` | Review must come from a fresh, independent perspective. The menu lists only stories at `🟣 IN REVIEW`. |
-| `/epic-story-review` | operator-explicit (arg or menu) | `⚪ TODO` | Plan review must come from a fresh, independent perspective. The menu lists only stories at `⚪ TODO`. |
-| `/epic-claim` | auto-inferred (running context) | `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference. |
-| `/epic-resume` | auto-inferred (running context) | `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
-| `/epic-pr` | auto-inferred (running context) | `🟣 IN REVIEW`, `🔵 IN PR` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode after operator confirmation. |
+| `/epic-story-review` | operator-explicit (arg or menu) | `🟣 IN REVIEW` | Review must come from a fresh, independent perspective. The menu lists only stories at `🟣 IN REVIEW`. |
+| `/epic-story-plan-review` | operator-explicit (arg or menu) | `⚪ TODO` | Plan review must come from a fresh, independent perspective. The menu lists only stories at `⚪ TODO`. |
+| `/epic-story-claim` | auto-inferred (running context) | `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference. |
+| `/epic-story-resume` | auto-inferred (running context) | `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
+| `/epic-story-pr` | auto-inferred (running context) | `🟣 IN REVIEW`, `🔵 IN PR` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode after operator confirmation. |
 | `/epic-squash` | auto-inferred (running context) | `✅ DONE` | The "story" axis doesn't apply — the command consumes every done story in one pass. |
 
 **Rules for the "auto-inferred" rows**:
@@ -506,7 +506,7 @@ epic/story arguments. Two strategies exist:
 2. **Eligible story**: only rows whose status is in the per-command
    eligible-status filter qualify. Exactly one eligible row → infer it.
    Zero or many → abort with a specific message that names the next
-   concrete action (e.g. "story X is in progress; run `/epic-review` first").
+   concrete action (e.g. "story X is in progress; run `/epic-story-review` first").
 3. **Explicit args always win**: passing `EPIC=...` / `STORY=...` (Codex)
    or the equivalent positional args (Claude) skips the corresponding
    inference pass entirely. Inference can never override explicit values.
@@ -538,9 +538,9 @@ epic/story arguments. Two strategies exist:
 - Rename or renumber existing stories
 - Delete `Progress Log`, `Active Claim`, `Session Handoff`, `Review Log`,
   or `Plan Review Log` entries
-- Touch product code from `/epic-pr` or `/epic-squash` (except optional
+- Touch product code from `/epic-story-pr` or `/epic-squash` (except optional
   per-fix approval in `/epic-squash` Phase 6, and the optional `gh pr
-  create` call in `/epic-pr` open mode)
+  create` call in `/epic-story-pr` open mode)
 - Modify the plan file that `/epic-story-save` consumed
 - Mark a story `✅ DONE` while its PR is open
 - Archive a `🔵 IN PR` story
@@ -554,18 +554,18 @@ epic/story arguments. Two strategies exist:
   only a plan file to `~/.claude/plans/` for `/epic-story-save` to
   consume.
 - Delete or silently relocate an existing linked worktree from
-  `/epic-claim`, `/epic-resume`, or `/epic-review`. The `- Worktrees:`
+  `/epic-story-claim`, `/epic-story-resume`, or `/epic-story-review`. The `- Worktrees:`
   list in `## Active Claim` (or the legacy singular `- Worktree:`
   bullet for back-compat) is the authoritative record of where the
   story's implementation lives. The only command that may change a
-  recorded entry is `/epic-resume`, and only when the operator
+  recorded entry is `/epic-story-resume`, and only when the operator
   explicitly chooses to recreate a stale worktree at a new location.
-  `/epic-review` may **never** create a worktree — it only reuses
+  `/epic-story-review` may **never** create a worktree — it only reuses
   what the implementer recorded or a `WORKTREE="<basename>=<path>"`
   override. On partial worktree creation failure (one repo's worktree
   succeeds and another fails), no command auto-cleans the successful
   worktrees; the operator decides whether to keep them.
 - Create a worktree branch `<epic>/<story-slug>` that already exists
-  from `/epic-claim`. If the branch is present in any target repo,
-  `/epic-claim` aborts fast and redirects the operator to
-  `/epic-resume`.
+  from `/epic-story-claim`. If the branch is present in any target repo,
+  `/epic-story-claim` aborts fast and redirects the operator to
+  `/epic-story-resume`.

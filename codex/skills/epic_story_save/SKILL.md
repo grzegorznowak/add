@@ -279,7 +279,7 @@ State:
 - plan-content coverage summary (X sections mapped, Y catch-alled, Z TODO
   placeholders)
 - dependency report
-- suggested next action: usually `epic_claim` once the operator is ready to
+- suggested next action: usually `epic_story_claim` once the operator is ready to
   start work
 
 ## Default scaffold (used only when the epic has no prior story files)
@@ -353,11 +353,11 @@ Status: `todo`
 elsewhere. Preserves prose, gotchas, code smells, references to existing
 patterns, named functions/classes with explanatory context. This is the
 section that prevents re-discovery. Creation-time only from this flow, but
-`epic_resume` may append new findings as implementation discovers them.
+`epic_story_resume` may append new findings as implementation discovers them.
 
 **`## Critical Files`** — every file path the plan named, with line numbers
 when present. Bullet list, no editorialization. The implementation flow
-(`epic_claim`) reads this first so it knows what surfaces to touch.
+(`epic_story_claim`) reads this first so it knows what surfaces to touch.
 
 **`## Implementation Notes`** — the plan's "approach" / "strategy" /
 "phases" preserved verbatim. Not a checklist for the implementer to tick

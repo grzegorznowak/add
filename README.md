@@ -14,11 +14,11 @@ Nine coordinated workflow commands plus two small utilities:
 | `/epic-plan` | Interview-driven bootstrap for a new epic. Produces the `agent_coordination/epics/<slug>/MASTER.md` skeleton after a grillme-style walkthrough. Never overwrites an existing epic. |
 | `/epic-story-plan` | Interview-driven draft of a new story plan for an existing epic. Produces a plan file in `~/.claude/plans/` with atomic acceptance IDs, a reviewer-facing proof matrix, and implementation notes that make red-first the default delivery method. |
 | `/epic-story-save` | Scaffold a new story file from a plan file, preserving every research finding and acceptance/proof contract exactly. Fails instead of inventing malformed or incomplete proof structure. |
-| `/epic-story-review` | Read-only review of a `⚪ TODO` story's plan against the live repo, with explicit scrutiny of acceptance quality, proof-matrix completeness, and proof-seam realism before `/epic-claim`. Records the verdict into the coordination file. |
-| `/epic-claim` | Pick one ready, unclaimed story from an epic, claim it, inspect sources, start from the smallest focused red seam, execute it end-to-end, and leave a clean handoff for the next session. |
-| `/epic-resume` | Resume one already-in-progress story (or one whose PR has requested changes) using the same red-first default or an explicit written exception. |
-| `/epic-review` | Read-only review of one story's implementation against its spec, including whether the red-first path or explicit written exception was recorded correctly. Records the verdict back into the coordination file. |
-| `/epic-pr` | Optional `IN REVIEW` → `IN PR` transition. Opens or attaches a GitHub PR with a **product-focused** body (not an implementation diary). |
+| `/epic-story-plan-review` | Read-only review of a `⚪ TODO` story's plan against the live repo, with explicit scrutiny of acceptance quality, proof-matrix completeness, and proof-seam realism before `/epic-story-claim`. Records the verdict into the coordination file. |
+| `/epic-story-claim` | Pick one ready, unclaimed story from an epic, claim it, inspect sources, start from the smallest focused red seam, execute it end-to-end, and leave a clean handoff for the next session. |
+| `/epic-story-resume` | Resume one already-in-progress story (or one whose PR has requested changes) using the same red-first default or an explicit written exception. |
+| `/epic-story-review` | Read-only review of one story's implementation against its spec, including whether the red-first path or explicit written exception was recorded correctly. Records the verdict back into the coordination file. |
+| `/epic-story-pr` | Optional `IN REVIEW` → `IN PR` transition. Opens or attaches a GitHub PR with a **product-focused** body (not an implementation diary). |
 | `/epic-squash` | Fold every `DONE` story of an epic into its merged `CONTRACT.md`, verifying claims against the codebase, then archive the stories. Supports bootstrap mode for first-time consolidation. |
 | `/grillme` | Get the agent to interview you relentlessly about a plan or design until shared understanding is reached. |
 | `/memorize` *(Codex only)* | Capture session knowledge into a proposed AGENTS.md / docs patch. |
@@ -154,21 +154,21 @@ older installs are cleaned up too.
                           │
                           ▼
                 ┌─────────────┐  ╌╌ review ╌╌▶  ┌──────────────────────┐
-                │   ⚪ TODO   │                 │  /epic-story-review  │
+                │   ⚪ TODO   │                 │  /epic-story-plan-review  │
                 │             │  ◀╌ approve ╌╌  │     (optional)       │
                 └──────┬──────┘                 └──────────┬───────────┘
                        │                                   │
-                       │ /epic-claim            blocked    │
+                       │ /epic-story-claim            blocked    │
                        │                        verdict    ▼
                        │                             (⛔ BLOCKED)
                        ▼
-                ┌─────────────┐◀── /epic-resume  ┌─────────────┐
+                ┌─────────────┐◀── /epic-story-resume  ┌─────────────┐
                 │ 🔄 IN PROG  │── impl done ───▶ │ 🟣 IN REV   │
                 └──────┬──────┘                  └──────┬──────┘
                        ▲                                │ submit
                        │                                ▼
                        │                       ┌─────────────────┐
-                       │                       │  /epic-review   │ ╌╌ blocked ╌╌▶ (⛔ BLOCKED)
+                       │                       │  /epic-story-review   │ ╌╌ blocked ╌╌▶ (⛔ BLOCKED)
                        │                       └──┬──────────┬───┘
                        │                          │          │
                        ╰╌╌ request_changes ╌╌╌╌╌╌╌╯       approve
@@ -176,7 +176,7 @@ older installs are cleaned up too.
                                                               ▼
                               ┌───────────────────┴───────────────────┐
                               │                                       │
-                        no PR stage                          /epic-pr (optional)
+                        no PR stage                          /epic-story-pr (optional)
                               │                                       │
                               │                                       ▼
                               │                              ┌─────────────┐
@@ -189,14 +189,14 @@ older installs are cleaned up too.
                               │                              │             │    │
                               │                              ▼             ▼    │
                               │                      ┌─────────────┐  ┌─────────┘
-                              │                      │  ✅ DONE    │  /epic-resume
-                              │                      └─────────────┘  /epic-pr (resync)
+                              │                      │  ✅ DONE    │  /epic-story-resume
+                              │                      └─────────────┘  /epic-story-pr (resync)
                               │                              ▲
                               └──────────────────────────────┘
 
        ⛔ BLOCKED is a side-state reachable from any of the above when an
-       external blocker prevents progress. /epic-story-review and
-       /epic-review can each route a story directly to ⛔ BLOCKED.
+       external blocker prevents progress. /epic-story-plan-review and
+       /epic-story-review can each route a story directly to ⛔ BLOCKED.
 
        Dashed connectors  ╌╌╌  indicate optional transitions or verdict
        loopbacks. Solid connectors indicate the main flow.
@@ -209,7 +209,7 @@ Before a story reaches `⚪ TODO`, `/epic-story-plan` must already produce an
 implementation-ready `Acceptance` contract plus `Verification` proof matrix,
 and `/epic-story-save` must fail instead of inventing missing proof structure.
 Planning is proof-first; implementation is red-first. The plan defines the
-owning proof surfaces, then `/epic-claim` or `/epic-resume` must inspect the
+owning proof surfaces, then `/epic-story-claim` or `/epic-story-resume` must inspect the
 real code and tests, choose the smallest focused failing seam, and only
 broaden verification after that seam turns green. If red-first is infeasible,
 the session must record an explicit written exception before proceeding

@@ -35,9 +35,9 @@ FAIL=0
 fail() { printf 'FAIL %s\n' "$*" >&2; FAIL=1; }
 ok()   { printf 'ok   %s\n' "$*"; }
 
-# Convert "epic-claim" to "epic_claim"
+# Convert "epic-story-claim" to "epic_story_claim"
 hyphen_to_underscore() { printf '%s' "${1//-/_}"; }
-# Convert "epic_claim" to "epic-claim"
+# Convert "epic_story_claim" to "epic-story-claim"
 underscore_to_hyphen() { printf '%s' "${1//_/-}"; }
 
 in_array() {

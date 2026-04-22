@@ -1,14 +1,14 @@
 ---
-name: epic-claim
-description: Claim one ready epic step and execute it end-to-end, leaving a clean handoff. Use when starting a fresh session on a new story from an epic's MASTER.md tracker.
+name: epic-story-claim
+description: Claim one ready story from an epic and execute it end-to-end, leaving a clean handoff. Use when starting a fresh session on a new story from an epic's MASTER.md tracker.
 disable-model-invocation: true
 argument-hint: "<epic-name>"
 allowed-tools: Read Edit Write Grep Glob Bash
 ---
 
-# Epic Claim
+# Epic Story Claim
 
-Pick exactly one ready, unclaimed step from an epic, claim it, execute it, and leave a clean handoff for the next session.
+Pick exactly one ready, unclaimed story from an epic, claim it, execute it, and leave a clean handoff for the next session.
 
 Argument: `$ARGUMENTS` — `<epic-name> [WORKTREE="<basename>=<path>"]...`. The epic name is the first bare positional token (e.g. `cure-core-review-pipeline`) and resolves to `agent_coordination/epics/<epic-name>`; if omitted and there is exactly one active epic under `agent_coordination/epics/`, default to that one. `WORKTREE=` is an optional, repeatable opt-in that forces a worktree to be created (or reused) at a specific path for a specific target repo. Two forms are accepted: `WORKTREE="<basename>=<path>"` (multi form, repeatable, preferred) and legacy `WORKTREE="<path>"` (valid only when the story has exactly one target repo; the path is applied to that sole repo). Mixing the two forms in a single invocation is an error. When `WORKTREE=` is absent, the `## Worktree preflight` section creates a worktree for any discovered target repo whose `git status --porcelain` is non-empty; clean target repos are written to directly.
 
@@ -107,14 +107,14 @@ After picking a step but before writing any claim, figure out which repos the st
    - Single token `default` or `all`: every pending repo gets its own `<default-path>`.
    - Single token `no`: every pending repo resolves to its `<target_repo>` (main tree) and is annotated "proceeding on dirty main tree for `<basename>`".
    - Multi-line form: each line must match `<repo-basename>: (default|no|<path>)`. Lines for basenames not in `<pending_prompt>` are ignored with a warning. Basenames in `<pending_prompt>` missing a line are an error.
-   - Anything else (unparseable, partial, or mixed): re-prompt ONCE with a clearer hint restating the three acceptable reply forms. On a second malformed reply, abort with "couldn't parse reply after two attempts; re-run /epic-claim". No MASTER.md or story-file writes have happened yet — aborting is safe.
+   - Anything else (unparseable, partial, or mixed): re-prompt ONCE with a clearer hint restating the three acceptable reply forms. On a second malformed reply, abort with "couldn't parse reply after two attempts; re-run /epic-story-claim". No MASTER.md or story-file writes have happened yet — aborting is safe.
 
    After parsing, for each pending repo: either set `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree mode) and warn, or resolve `<wt-path>` and mark for creation.
 
 8. **Create worktrees** for every repo marked for creation in step 6 or 7, iterating in sorted basename order for determinism:
    - `mkdir -p "$(dirname <wt-path>)"`
    - `git -C <target_repo> worktree add -b <epic-name>/<story-slug> <wt-path>`
-   - If it fails because the branch `<epic-name>/<story-slug>` already exists in `<target_repo>`, abort with: "story branch `<epic-name>/<story-slug>` already exists in repo `<repo-basename>`; this looks like a resumable story — run `/epic-resume <epic-name> <story>` instead". List any worktrees already created earlier in this loop as "successfully created but NOT cleaned up: <list>" so the operator can decide whether to keep them. No MASTER.md or story-file writes have happened yet.
+   - If it fails because the branch `<epic-name>/<story-slug>` already exists in `<target_repo>`, abort with: "story branch `<epic-name>/<story-slug>` already exists in repo `<repo-basename>`; this looks like a resumable story — run `/epic-story-resume <epic-name> <story>` instead". List any worktrees already created earlier in this loop as "successfully created but NOT cleaned up: <list>" so the operator can decide whether to keep them. No MASTER.md or story-file writes have happened yet.
    - If it fails for any other reason, report the git error verbatim, list successful worktrees as "NOT cleaned up", and abort. **Do NOT auto-clean up successful worktrees** on partial failure — preserve operator choice.
    - On success: `<project_root_map>[<repo-basename>]` = `<wt-path>`.
 
@@ -123,7 +123,7 @@ After picking a step but before writing any claim, figure out which repos the st
    - `<workspace_root>` is in `<target_repos>`,
    - `<project_root_map>[basename(<workspace_root>)]` is a worktree (not `<workspace_root>` itself).
 
-   Then run `git -C <project_root_map>[basename(<workspace_root>)] ls-files --error-unmatch agent_coordination/epics/<epic-name>/MASTER.md`. If it fails, abort with: "agent_coordination/ appears to be ignored or uncommitted in `<workspace_root>`'s repo; commit the epic files first, then re-run /epic-claim".
+   Then run `git -C <project_root_map>[basename(<workspace_root>)] ls-files --error-unmatch agent_coordination/epics/<epic-name>/MASTER.md`. If it fails, abort with: "agent_coordination/ appears to be ignored or uncommitted in `<workspace_root>`'s repo; commit the epic files first, then re-run /epic-story-claim".
 
    Additionally, if `<workspace_root>` is a git repo AND its step-6 porcelain output mentioned files under `agent_coordination/`, warn: "pending changes to `agent_coordination/` on `<workspace_root>` main will NOT be in any worktree — commit them on main and rerun, or proceed knowing they are stranded".
 
@@ -157,7 +157,7 @@ Before deep implementation work:
 
 The `- Worktrees:` parent bullet is present if and only if at least one entry in `<project_root_map>` resolves to a real worktree (i.e. `<project_root_map>[<basename>]` != `<workspace_root>/projects/<basename>` and != `<workspace_root>`). List only those repos whose value is an actual worktree; repos resolved to main tree are NOT listed (their absence implies main-tree mode). If `<project_root_map>` has no worktree entries (all targets clean, or no targets, or operator answered `no` for every dirty repo), omit the `- Worktrees:` bullet entirely — do not write it with no children.
 
-The `- Main-tree targets:` bullet lists every repo basename from `<project_root_map>` whose value is the repo's own main tree (i.e. NOT a worktree). This tells `/epic-review` that these repos were intentionally written to directly — their dirtiness at review time is the implementation itself. Omit this bullet when there are no main-tree target repos (all targets got worktrees, or no targets at all).
+The `- Main-tree targets:` bullet lists every repo basename from `<project_root_map>` whose value is the repo's own main tree (i.e. NOT a worktree). This tells `/epic-story-review` that these repos were intentionally written to directly — their dirtiness at review time is the implementation itself. Omit this bullet when there are no main-tree target repos (all targets got worktrees, or no targets at all).
 
 3. Do not silently switch to a different step once work has started.
 
@@ -219,7 +219,7 @@ At the end of the session, update the step file:
 Then update `MASTER.md` status using this lifecycle:
 - `🔄 IN PROGRESS` — implementation still actively underway
 - `🟣 IN REVIEW` — implementation done enough for review; the focused red seam is green or an explicit exception is recorded; run final verification, review the touched files, tighten rough edges
-- `🔵 IN PR` (optional) — local review passed and changes are in a GitHub PR awaiting remote review and merge. **Do not set this status from `/epic-claim`**; use `/epic-pr` to record PR metadata.
+- `🔵 IN PR` (optional) — local review passed and changes are in a GitHub PR awaiting remote review and merge. **Do not set this status from `/epic-story-claim`**; use `/epic-story-pr` to record PR metadata.
 - `✅ DONE` — implementation and review complete; if a PR stage was used, the PR is merged
 - `⛔ BLOCKED` — an external blocker prevents completion or review
 
@@ -228,7 +228,7 @@ Then update `MASTER.md` status using this lifecycle:
 2. Once the chosen focused seam is green and implementation is complete, move to `🟣 IN REVIEW`
 3. Then either:
    - move straight to `✅ DONE` if no GitHub PR stage is needed, or
-   - use `/epic-pr` to transition to `🔵 IN PR` and move to `✅ DONE` only after the PR is merged
+   - use `/epic-story-pr` to transition to `🔵 IN PR` and move to `✅ DONE` only after the PR is merged
 4. If the session ends before review is complete, leave at `🟣 IN REVIEW`
 5. If the session ends before implementation is complete, leave at `🔄 IN PROGRESS`
 

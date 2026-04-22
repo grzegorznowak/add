@@ -188,7 +188,7 @@ State:
 - sibling-convention source (which existing story it learned from)
 - plan-content coverage summary (X sections mapped, Y catch-alled, Z TODO placeholders)
 - dependency report
-- suggested next action: usually `/epic-claim <epic>` once the operator is ready to start work
+- suggested next action: usually `/epic-story-claim <epic>` once the operator is ready to start work
 
 ## Default scaffold (used only when the epic has no prior story files)
 
@@ -257,9 +257,9 @@ Status: `todo`
 
 ## Mandatory section explanations
 
-**`## Discovery Notes`** — the catch-all for plan content that doesn't fit elsewhere. Preserves prose, gotchas, code smells, references to existing patterns, named functions/classes with explanatory context. This is the section that prevents re-discovery. Creation-time only from this flow, but `/epic-resume` may append new findings as implementation discovers them.
+**`## Discovery Notes`** — the catch-all for plan content that doesn't fit elsewhere. Preserves prose, gotchas, code smells, references to existing patterns, named functions/classes with explanatory context. This is the section that prevents re-discovery. Creation-time only from this flow, but `/epic-story-resume` may append new findings as implementation discovers them.
 
-**`## Critical Files`** — every file path the plan named, with line numbers when present. Bullet list, no editorialization. The implementation flow (`/epic-claim`) reads this first so it knows what surfaces to touch.
+**`## Critical Files`** — every file path the plan named, with line numbers when present. Bullet list, no editorialization. The implementation flow (`/epic-story-claim`) reads this first so it knows what surfaces to touch.
 
 **`## Implementation Notes`** — the plan's "approach" / "strategy" / "phases" preserved verbatim. Not a checklist for the implementer to tick off — that's `## Acceptance`'s job — but a record of the design that emerged from research.
 

@@ -1,12 +1,12 @@
 ---
-name: epic-pr
-description: Move one epic step from local review into a GitHub PR, recording PR metadata on the step file. Optional stage between IN REVIEW and DONE.
+name: epic-story-pr
+description: Move one story from local review into a GitHub PR, recording PR metadata on the story file. Optional stage between IN REVIEW and DONE.
 disable-model-invocation: true
 argument-hint: "<epic-name> <story-number-or-spec-file> [pr-url|OPEN=true]"
 allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*)
 ---
 
-# Epic PR
+# Epic Story PR
 
 Transition a story from `🟣 IN REVIEW` to `🔵 IN PR`, recording GitHub PR metadata on the step file. This is the **optional** stage between local review acceptance and merged-to-main (`✅ DONE`).
 
@@ -27,7 +27,7 @@ This flow applies when a story has passed local review and the changes need to g
 
 ## Phase 0 — Resolution and inference
 
-This flow accepts three positional inputs in `$ARGUMENTS` — `<epic>`, `<story>`, and `<pr_url_or_OPEN=true>` — and runs three independent inference passes for any of them that is missing. **Explicit values always win and skip their corresponding inference pass.** The goal is that an operator who has just claimed or resumed exactly one story can run `/epic-pr` with no arguments at all.
+This flow accepts three positional inputs in `$ARGUMENTS` — `<epic>`, `<story>`, and `<pr_url_or_OPEN=true>` — and runs three independent inference passes for any of them that is missing. **Explicit values always win and skip their corresponding inference pass.** The goal is that an operator who has just claimed or resumed exactly one story can run `/epic-story-pr` with no arguments at all.
 
 Parse `$ARGUMENTS` first. Treat any of the three slots that is empty as a request to infer.
 
@@ -48,9 +48,9 @@ After the epic is known, read `<epic>/MASTER.md` and collect every story row who
 
 1. If exactly one row matches, use it. Print: `inferred story: <NN> — <title> (status: <emoji>)`.
 2. If zero rows match, do not just abort — emit a specific recovery hint based on the rest of the tracker:
-   - if exactly one row is `🔄 IN PROGRESS`, say: `no story is in review yet. Story <NN> — <title> is still in progress; finish implementation and run /epic-review <epic> <NN> first.`
-   - if multiple rows are `🔄 IN PROGRESS`, list them and recommend `/epic-review` for the one the operator means.
-   - if no rows are in progress either, say: `no story is in review or in progress. Run /epic-claim <epic> to start one.`
+   - if exactly one row is `🔄 IN PROGRESS`, say: `no story is in review yet. Story <NN> — <title> is still in progress; finish implementation and run /epic-story-review <epic> <NN> first.`
+   - if multiple rows are `🔄 IN PROGRESS`, list them and recommend `/epic-story-review` for the one the operator means.
+   - if no rows are in progress either, say: `no story is in review or in progress. Run /epic-story-claim <epic> to start one.`
 3. If multiple rows match the eligible set, list each candidate as `<step> | <status> | <title>` and abort with: `multiple stories are eligible; pass <story> explicitly to disambiguate.`
 
 ### Pass 3 — PR inference (when `<pr_url_or_OPEN=true>` is empty)
@@ -93,7 +93,7 @@ Once the story is resolved, abort fast if its current status is not `🟣 IN REV
 ### Known limitations
 
 - **Cross-repo PR detection is not supported.** The PR inference looks at the project repo derived from the story's `Primary write surfaces`. If a story's surfaces span multiple repos, pass the PR URL explicitly.
-- **Stories without an `Active Claim` section cannot have their project repo inferred.** This usually means the story has never been claimed via `/epic-claim` / `/epic-resume`. Pass the PR URL explicitly in that case.
+- **Stories without an `Active Claim` section cannot have their project repo inferred.** This usually means the story has never been claimed via `/epic-story-claim` / `/epic-story-resume`. Pass the PR URL explicitly in that case.
 
 ## PR description — product-focused, NOT implementation-focused
 
@@ -213,7 +213,7 @@ Do **not** create a duplicate `PR Tracking` section. If one already exists, upda
 If the step is already `🔵 IN PR` and the user reinvokes this flow, treat it as a refresh:
 - Re-query `gh pr view` if available and update `PR status`, `Merge commit`, and `Last synced`
 - If `PR status` is now `merged`, transition the step to `✅ DONE`
-- If `PR status` is `changes_requested` or the reviewer requested code changes, transition the step back to `🔄 IN PROGRESS` and record the reason under `## Progress Log`. Tell the user to rerun `/epic-resume` to address the feedback.
+- If `PR status` is `changes_requested` or the reviewer requested code changes, transition the step back to `🔄 IN PROGRESS` and record the reason under `## Progress Log`. Tell the user to rerun `/epic-story-resume` to address the feedback.
 - Otherwise leave the step at `🔵 IN PR` and update `Last synced`
 
 ## MASTER.md update
@@ -252,6 +252,6 @@ State:
 - whether `gh` enrichment was used
 - exactly what the user should do next:
   - wait on PR review
-  - rerun `/epic-resume` to address PR feedback
-  - rerun `/epic-pr` with the same PR URL to resync PR state
+  - rerun `/epic-story-resume` to address PR feedback
+  - rerun `/epic-story-pr` with the same PR URL to resync PR state
   - rerun `/epic-squash` once the story is `✅ DONE` and stable

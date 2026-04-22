@@ -1,6 +1,6 @@
 ---
-name: epic_resume
-description: Pick up one already in-progress epic step and continue it
+name: epic_story_resume
+description: Pick up one already in-progress story from an epic and continue it
 ---
 
 Resume: $EPIC / $STORY
@@ -17,7 +17,7 @@ Treat `$STORY` as an optional selector. When provided, it may be either:
 
 `$WORKTREE` is an optional override for forcing worktree paths per target repo. Two value forms are accepted: `WORKTREE="<basename>=<path>"` for a single repo override (preferred), or comma-separated `WORKTREE="<basename1>=<path1>,<basename2>=<path2>"` for multiple repos. The legacy bare-path form `WORKTREE="<path>"` is still accepted but only when the story has exactly one target repo. When `$WORKTREE` is empty, the `## Worktree preflight` section reads any `- Worktrees:` list recorded in the story's `## Active Claim`, falls back to a legacy `- Worktree:` singular bullet for stories claimed before the multi-worktree format, and creates new worktrees on demand for any dirty target repo without a recorded entry.
 
-Your job is to continue exactly one already ongoing epic step, follow the
+Your job is to continue exactly one already ongoing story, follow the
 existing handoff/review guidance, execute the next concrete chunk, and leave the
 coordination docs in a state that the next fresh session can trust.
 
@@ -85,7 +85,7 @@ After the step is resolved, read:
    - `## Progress Log`
    - `## Session Handoff`
    - `## Review Log`
-   - `## PR Tracking` (only present on steps that went through `epic_pr`)
+   - `## PR Tracking` (only present on steps that went through `epic_story_pr`)
 
 If the step is `🔵 IN PR` and the PR is requesting code changes, treat the
 PR review comments as the authoritative CTA for this continuation and move
@@ -111,7 +111,7 @@ After reading the story file's `## Active Claim`, build `<project_root_map>` for
 
 5. **Compute `<target_repos>`**:
    - If `<recorded_worktree_map>` is non-empty, build `<target_repos>` from its basenames: for each `<basename>`, resolve to `<workspace_root>/projects/<basename>` if `<workspace_root>/projects/<basename>/.git` exists, or to `<workspace_root>` if `<basename>` matches `basename(<workspace_root>)` AND `<workspace_root>` is itself a git repo. If a recorded basename resolves to neither, warn "recorded worktree for `<basename>` cannot be matched to any repo on disk" and retain it for downstream verification anyway.
-   - Else (legacy story or fresh resume with no recorded worktree), fall back to the same target-discovery flow as `$epic_claim` (Worktree preflight steps 2–3): parse `## Scope` of the step file for `projects/[A-Za-z0-9_-]+/` tokens, intersect with real `<workspace_root>/projects/<name>/.git` repos, and additionally include `<workspace_root>` if it is itself a git repo.
+   - Else (legacy story or fresh resume with no recorded worktree), fall back to the same target-discovery flow as `$epic_story_claim` (Worktree preflight steps 2–3): parse `## Scope` of the step file for `projects/[A-Za-z0-9_-]+/` tokens, intersect with real `<workspace_root>/projects/<name>/.git` repos, and additionally include `<workspace_root>` if it is itself a git repo.
 
    If `<legacy_worktree>` is set (from step 3), it is now applied: `<explicit_worktree_map>[basename(<sole_target_repo>)]` = `<legacy_worktree>` if `<target_repos>` has exactly one element, otherwise abort with "`WORKTREE=\"<path>\"` requires exactly one target repo; found N (basenames: ...). Use `WORKTREE=\"<basename>=<path>\"` to specify which repo".
 
@@ -140,7 +140,7 @@ After reading the story file's `## Active Claim`, build `<project_root_map>` for
 
    **(d) Neither recorded nor explicit, `<target_repo>` is dirty**: append `(<repo-basename>, <target_repo>, <default-path>, <porcelain output>)` to `<pending_prompt>` — decision deferred to the batched prompt.
 
-8. **Batched operator prompt** for case-(d) entries. If `<pending_prompt>` is non-empty, show ONE combined message (identical shape and parsing rules to `$epic_claim` step 7):
+8. **Batched operator prompt** for case-(d) entries. If `<pending_prompt>` is non-empty, show ONE combined message (identical shape and parsing rules to `$epic_story_claim` step 7):
 
    ```
    These target repos have uncommitted changes:
@@ -157,11 +157,11 @@ After reading the story file's `## Active Claim`, build `<project_root_map>` for
      - one line per repo: `<repo-basename>: default | no | <path>`
    ```
 
-   Parse the reply identically to `$epic_claim` step 7 (single token `default`/`all`/`no`, or multi-line `<repo-basename>: ...` form). On malformed input, re-prompt once with a clearer hint; on a second malformed reply, abort with "couldn't parse reply after two attempts; re-run `$epic_resume`". After parsing, for each pending repo: either set `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree mode) and warn, or resolve `<wt-path>` and mark for create-or-reattach in step 9.
+   Parse the reply identically to `$epic_story_claim` step 7 (single token `default`/`all`/`no`, or multi-line `<repo-basename>: ...` form). On malformed input, re-prompt once with a clearer hint; on a second malformed reply, abort with "couldn't parse reply after two attempts; re-run `$epic_story_resume`". After parsing, for each pending repo: either set `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree mode) and warn, or resolve `<wt-path>` and mark for create-or-reattach in step 9.
 
 9. **Create or reattach worktrees** for every repo marked in step 7 (cases a/b-stale-recreated) or step 8, iterating in sorted basename order:
    - `mkdir -p "$(dirname <wt-path>)"`
-   - **Reattach first** (the branch likely already exists from the original `$epic_claim`): `git -C <target_repo> worktree add <wt-path> $EPIC/<story-slug>`
+   - **Reattach first** (the branch likely already exists from the original `$epic_story_claim`): `git -C <target_repo> worktree add <wt-path> $EPIC/<story-slug>`
    - If reattach fails because the branch `$EPIC/<story-slug>` does not exist in `<target_repo>`, fall back to create: `git -C <target_repo> worktree add -b $EPIC/<story-slug> <wt-path>`.
    - If both fail with branch-already-exists in the create-fallback path (genuinely impossible after reattach failed), report the git error verbatim. List any worktrees already created earlier in this loop as "successfully created but NOT cleaned up: <list>" so the operator can decide whether to keep them, then abort. **Do NOT auto-clean up successful worktrees** on partial failure — preserve operator choice.
    - For any other git error: same verbatim-report-and-abort with "NOT cleaned up" list.
@@ -223,7 +223,7 @@ Before deep implementation work:
 
 The `- Worktrees:` parent bullet must reflect the current `<project_root_map>`: list one child entry per repo whose value is an actual worktree (not the main tree). If the preflight reused recorded worktrees, keep their paths as-is; if it recreated stale entries at new locations, update those paths; if it added new entries (because the operator passed `$WORKTREE` for a previously-unrecorded repo or the scope expanded), include them. If `<project_root_map>` has no worktree entries, omit the `- Worktrees:` bullet entirely. Never delete a worktree entry that other sessions depend on for reattachment unless step 11 of the preflight explicitly retained it for manual review (in which case keep it). If the preflight read the story in back-compat mode (legacy singular `- Worktree:` bullet), this refresh rewrites it as the new `- Worktrees:` list — that is the one place legacy stories are migrated forward.
 
-The `- Main-tree targets:` bullet lists every repo basename from `<project_root_map>` whose value is the repo's own main tree (i.e. NOT a worktree). This tells `$epic_review` that these repos were intentionally written to directly — their dirtiness at review time is the implementation itself. Omit when there are no main-tree target repos. If the previous claim had a `- Main-tree targets:` bullet, refresh it to reflect the current `<project_root_map>`.
+The `- Main-tree targets:` bullet lists every repo basename from `<project_root_map>` whose value is the repo's own main tree (i.e. NOT a worktree). This tells `$epic_story_review` that these repos were intentionally written to directly — their dirtiness at review time is the implementation itself. Omit when there are no main-tree target repos. If the previous claim had a `- Main-tree targets:` bullet, refresh it to reflect the current `<project_root_map>`.
 
 2. Append a new timestamped bullet under `## Progress Log`, for example:
 
@@ -327,7 +327,7 @@ Then update `MASTER.md` status for the selected row using this lifecycle:
 - `🔵 IN PR` (optional)
   - local review passed and changes are in a GitHub PR awaiting remote review
     and merge
-  - do not set this status from `epic_resume`; use the `epic_pr` flow to
+  - do not set this status from `epic_story_resume`; use the `epic_story_pr` flow to
     record PR metadata on the step file
 - `✅ DONE`
   - only use this if a real review pass is completed and passes in this
@@ -341,9 +341,9 @@ Default rule:
    to `🟣 IN REVIEW`
 3. then either:
    - move straight to `✅ DONE` if no GitHub PR stage is needed, or
-   - hand off to `epic_pr` which will transition to `🔵 IN PR`
+   - hand off to `epic_story_pr` which will transition to `🔵 IN PR`
 4. if resuming a `🔵 IN PR` step that is requesting code changes, move it to
-   `🔄 IN PROGRESS` while working, then back to `🔵 IN PR` via `epic_pr`
+   `🔄 IN PROGRESS` while working, then back to `🔵 IN PR` via `epic_story_pr`
    (passing the same `PR_URL`) once the new push is ready for another PR
    review round
 5. if the session ends before review is complete, leave it at `🟣 IN REVIEW`

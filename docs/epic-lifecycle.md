@@ -47,7 +47,7 @@ state diagram. They feed the first row of the tracker, nothing more.
 | `🟣 IN REVIEW` | Implementation is done enough to review, the focused red-first path or explicit exception is recorded, the proof matrix is fully finalized, and any relevant epic-contract obligations are concrete enough to judge. Local review may still find issues, including epic contract drift. |
 | `🔵 IN PR` | **Optional.** Local review passed and the changes are in a GitHub PR awaiting remote review and merge. Skip this stage entirely if a story does not need a PR. |
 | `✅ DONE` | Implementation and review are both complete. If a PR stage was used, the PR is merged. |
-| `⛔ BLOCKED` | An external blocker prevents progress, or `/epic-story-review` has determined the plan is not implementable as specified. The story definition may be revised and work resumes once the blocker clears. |
+| `⛔ BLOCKED` | An external blocker prevents progress, or `/epic-story-plan-review` has determined the plan is not implementable as specified. The story definition may be revised and work resumes once the blocker clears. |
 
 `⛔ BLOCKED` is a side state. It can be entered from any of the active
 statuses and exited back to whichever was correct when work resumes.
@@ -55,16 +55,16 @@ statuses and exited back to whichever was correct when work resumes.
 ## State diagram
 
 ```
-                         ┌─────────────┐  ◀─── /epic-story-review (optional, logs verdict)
+                         ┌─────────────┐  ◀─── /epic-story-plan-review (optional, logs verdict)
                          │   ⚪ TODO   │
                          └──────┬──────┘
-                                │ /epic-claim
+                                │ /epic-story-claim
                                 ▼
-                         ┌─────────────┐  ◀─── /epic-resume
+                         ┌─────────────┐  ◀─── /epic-story-resume
                          │ 🔄 IN PROG  │
                          └──────┬──────┘
                                 │ implementation done
-                                │   (via /epic-claim, /epic-resume, or /epic-review)
+                                │   (via /epic-story-claim, /epic-story-resume, or /epic-story-review)
                                 ▼
                          ┌─────────────┐
                          │ 🟣 IN REV   │
@@ -72,7 +72,7 @@ statuses and exited back to whichever was correct when work resumes.
                                 │
                 ┌───────────────┴───────────────┐
                 │                               │
-        no PR stage                      /epic-pr (optional)
+        no PR stage                      /epic-story-pr (optional)
                 │                               │
                 │                               ▼
                 │                       ┌─────────────┐
@@ -84,8 +84,8 @@ statuses and exited back to whichever was correct when work resumes.
                 │                       │             │    │
                 │                       ▼             ▼    │
                 │               ┌─────────────┐  ┌─────────┘
-                │               │  ✅ DONE    │  /epic-resume
-                │               └─────────────┘  /epic-pr (resync)
+                │               │  ✅ DONE    │  /epic-story-resume
+                │               └─────────────┘  /epic-story-pr (resync)
                 │                       ▲
                 └───────────────────────┘
 ```
@@ -96,7 +96,7 @@ Each command has a defined window of which transitions it is allowed to
 make. Sticking to these windows prevents two commands from racing on the
 same row.
 
-| From → To | `/epic-claim` | `/epic-resume` | `/epic-story-review` | `/epic-review` | `/epic-pr` | `/epic-squash` |
+| From → To | `/epic-story-claim` | `/epic-story-resume` | `/epic-story-plan-review` | `/epic-story-review` | `/epic-story-pr` | `/epic-squash` |
 |---|---|---|---|---|---|---|
 | `⚪ TODO` → `⚪ TODO` (plan review logged) | — | — | ✅ | — | — | — |
 | `⚪ TODO` → `🔄 IN PROGRESS` | ✅ | — | — | — | — | — |
@@ -116,7 +116,7 @@ is already `✅ DONE` and folds their contract terms into the merged
 ## Rules of thumb
 
 1. **Never mark `✅ DONE` while a PR is open.** If the story uses the PR
-   stage, only `/epic-pr` may move it to `✅ DONE`, and only after
+   stage, only `/epic-story-pr` may move it to `✅ DONE`, and only after
    `gh pr view --json state` reports `MERGED`.
 2. **Never archive a `🔵 IN PR` story.** `/epic-squash` skips them by design,
    and reports them in a "skipped" list so the operator knows to rerun after
@@ -127,12 +127,12 @@ is already `✅ DONE` and folds their contract terms into the merged
    failure mode.** `/epic-squash` flags it as part of Phase 1.
 5. **`MASTER.md` is the lookup table.** Story file headers are advisory; if
    the two disagree, `MASTER.md` wins until `/epic-squash` reconciles them.
-6. **`/epic-story-review` never advances a story.** Its only allowed
+6. **`/epic-story-plan-review` never advances a story.** Its only allowed
    transitions are `⚪ TODO` → `⚪ TODO` (logged review) and
    `⚪ TODO` → `⛔ BLOCKED` (unsalvageable plan). It must never move a
    story into `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR`, or `✅ DONE`.
 7. **Proof contracts must be final before local implementation review passes.**
-   Planning may use `provisional` proof rows, but `/epic-review` cannot approve
+   Planning may use `provisional` proof rows, but `/epic-story-review` cannot approve
    while any row remains provisional.
 8. **Helper proof is not routing proof.** For multi-callsite or
    orchestration-heavy features, approval requires explicit proof that the
@@ -144,7 +144,7 @@ is already `✅ DONE` and folds their contract terms into the merged
    unchanged behavior on an appropriate disabled/default path.
 10. **Epic contract obligations are part of local review when present.**
     If `CONTRACT.md`, dependency stories, or relevant sibling stories define
-    shared interfaces or invariants the story touches, `/epic-review` cannot
+    shared interfaces or invariants the story touches, `/epic-story-review` cannot
     approve while those obligations are violated unless the intentional drift is
     explicitly recorded and reflected in the review outcome.
 

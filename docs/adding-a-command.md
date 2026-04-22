@@ -141,7 +141,7 @@ policy:
 ## Pairing the two
 
 The base name normalization is hyphen ↔ underscore: a Claude Skill named
-`epic-claim` pairs with a Codex skill named `epic_claim`. The lint
+`epic-story-claim` pairs with a Codex skill named `epic_story_claim`. The lint
 script does this conversion automatically.
 
 Singletons (Codex-only or Claude-only) must be added to the relevant

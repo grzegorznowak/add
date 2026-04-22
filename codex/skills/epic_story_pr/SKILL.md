@@ -1,6 +1,6 @@
 ---
-name: epic_pr
-description: Move one epic step from local review into a GitHub PR, recording PR metadata on the step file. Optional stage between IN REVIEW and DONE.
+name: epic_story_pr
+description: Move one story from local review into a GitHub PR, recording PR metadata on the story file. Optional stage between IN REVIEW and DONE.
 ---
 
 Open PR: $EPIC / $STORY
@@ -44,7 +44,7 @@ This flow accepts three arguments — `EPIC`, `STORY`, and `PR_URL` (or
 `OPEN=true`) — and runs three independent inference passes for any of them
 that is missing. **Explicit values always win and skip their corresponding
 inference pass.** The goal is that an operator who has just claimed or
-resumed exactly one story can run `epic_pr` with no arguments at all.
+resumed exactly one story can run `epic_story_pr` with no arguments at all.
 
 ### Pass 1 — Epic inference (when `$EPIC` is empty)
 
@@ -73,11 +73,11 @@ row whose status is one of:
 2. If zero rows match, do not just abort — emit a specific recovery hint
    based on the rest of the tracker:
    - if exactly one row is `🔄 IN PROGRESS`, say:
-     `no story is in review yet. Story <NN> — <title> is still in progress; finish implementation and run epic_review EPIC=<epic> STORY=<NN> first.`
+     `no story is in review yet. Story <NN> — <title> is still in progress; finish implementation and run epic_story_review EPIC=<epic> STORY=<NN> first.`
    - if multiple rows are `🔄 IN PROGRESS`, list them and recommend
-     `epic_review` for the one the operator means.
+     `epic_story_review` for the one the operator means.
    - if no rows are in progress either, say:
-     `no story is in review or in progress. Run epic_claim EPIC=<epic> to start one.`
+     `no story is in review or in progress. Run epic_story_claim EPIC=<epic> to start one.`
 3. If multiple rows match the eligible set, list each candidate as
    `<step> | <status> | <title>` and abort with:
    `multiple stories are eligible; pass STORY=<NN> to disambiguate.`
@@ -153,7 +153,7 @@ and proceed only after operator confirmation.
   story's surfaces span multiple repos, pass `PR_URL` explicitly.
 - **Stories without an `Active Claim` section cannot have their project
   repo inferred.** This usually means the story has never been claimed
-  via `epic_claim` / `epic_resume`. Pass `PR_URL` explicitly in that case.
+  via `epic_story_claim` / `epic_story_resume`. Pass `PR_URL` explicitly in that case.
 
 ## PR description — product-focused, NOT implementation-focused
 
@@ -309,7 +309,7 @@ treat it as a refresh:
   section).
 - If `PR status` is `changes_requested` or the PR reviewer requested code
   changes, transition the step back to `🔄 IN PROGRESS` and record the
-  reason under `## Progress Log`. Tell the operator to rerun `epic_resume`
+  reason under `## Progress Log`. Tell the operator to rerun `epic_story_resume`
   to address the feedback.
 - Otherwise leave the step at `🔵 IN PR` and update `Last synced`.
 
@@ -359,6 +359,6 @@ State:
 - whether `gh` enrichment was used
 - exactly what the operator should do next:
   - wait on PR review
-  - rerun `epic_resume` to address PR feedback
-  - rerun `epic_pr` with the same `$PR_URL` to resync PR state
+  - rerun `epic_story_resume` to address PR feedback
+  - rerun `epic_story_pr` with the same `$PR_URL` to resync PR state
   - rerun `epic_squash` once the story is `✅ DONE` and stable

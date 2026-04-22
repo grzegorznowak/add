@@ -1,14 +1,14 @@
 ---
-name: epic-resume
-description: Pick up one already in-progress epic step and continue it. Use when a fresh session needs to resume ongoing work on a specific story.
+name: epic-story-resume
+description: Pick up one already in-progress story from an epic and continue it. Use when a fresh session needs to resume ongoing work on a specific story.
 disable-model-invocation: true
 argument-hint: "<epic-name> [story-number-or-spec-file]"
 allowed-tools: Read Edit Write Grep Glob Bash
 ---
 
-# Epic Resume
+# Epic Story Resume
 
-Continue exactly one already-ongoing epic step, following the existing handoff / review guidance, and leave the coordination docs in a state the next fresh session can trust.
+Continue exactly one already-ongoing story, following the existing handoff / review guidance, and leave the coordination docs in a state the next fresh session can trust.
 
 Argument: `$ARGUMENTS` — `<epic_name> [<story_number_or_spec_file>] [WORKTREE="<basename>=<path>"]...`. The epic name is required. The story selector is optional; when omitted and there is exactly one in-progress step, it is selected automatically. `WORKTREE=` is an optional, repeatable opt-in that overrides the preflight's default decision per target repo. Two forms are accepted: `WORKTREE="<basename>=<path>"` (multi form, repeatable, preferred) and legacy `WORKTREE="<path>"` (valid only when the story has exactly one target repo; the path is applied to that sole repo). Mixing the two forms in a single invocation is an error. When `WORKTREE=` is absent, the preflight reads any `- Worktrees:` list recorded in the story's `## Active Claim`, falling back to a legacy `- Worktree:` singular bullet for stories claimed before the multi-worktree format.
 
@@ -49,7 +49,7 @@ Do **not** claim a new step. Do **not** rediscover or redefine the epic from scr
 **If `<story>` was not provided:**
 - collect every row in `MASTER.md` marked `🔄 IN PROGRESS`
 - also collect rows marked `🔵 IN PR` **only if** the PR is currently requesting code changes (check the step file's `## PR Tracking` section `PR status` field; `changes_requested` is a resumable signal)
-- if there are none, stop and recommend `/epic-claim` instead
+- if there are none, stop and recommend `/epic-story-claim` instead
 - if there is exactly one, select it
 - if there are multiple, stop and list each candidate; do not guess
 
@@ -63,7 +63,7 @@ After the step is resolved, read:
    - `## Progress Log`
    - `## Session Handoff`
    - `## Review Log`
-   - `## PR Tracking` (only present on steps that went through `/epic-pr`)
+   - `## PR Tracking` (only present on steps that went through `/epic-story-pr`)
 
 If the step is `🔵 IN PR` and the PR is requesting code changes, treat the PR review comments as the authoritative CTA for this continuation and move the step back to `🔄 IN PROGRESS` for the duration of the session.
 
@@ -89,7 +89,7 @@ After reading the story file's `## Active Claim`, build `<project_root_map>` for
 
 5. **Compute `<target_repos>`**:
    - If `<recorded_worktree_map>` is non-empty, build `<target_repos>` from its basenames: for each `<basename>`, resolve to `<workspace_root>/projects/<basename>` if `<workspace_root>/projects/<basename>/.git` exists, or to `<workspace_root>` if `<basename>` matches `basename(<workspace_root>)` AND `<workspace_root>` is itself a git repo. If a recorded basename resolves to neither, warn "recorded worktree for `<basename>` cannot be matched to any repo on disk" and retain it for downstream verification anyway.
-   - Else (legacy story or fresh resume with no recorded worktree), fall back to the same target-discovery flow as `/epic-claim` (Worktree preflight steps 2–3): parse `## Scope` of the step file for `projects/[A-Za-z0-9_-]+/` tokens, intersect with real `<workspace_root>/projects/<name>/.git` repos, and additionally include `<workspace_root>` if it is itself a git repo.
+   - Else (legacy story or fresh resume with no recorded worktree), fall back to the same target-discovery flow as `/epic-story-claim` (Worktree preflight steps 2–3): parse `## Scope` of the step file for `projects/[A-Za-z0-9_-]+/` tokens, intersect with real `<workspace_root>/projects/<name>/.git` repos, and additionally include `<workspace_root>` if it is itself a git repo.
 
    If `<legacy_worktree>` is set (from step 3), it is now applied: `<explicit_worktree_map>[basename(<sole_target_repo>)]` = `<legacy_worktree>` if `<target_repos>` has exactly one element, otherwise abort with "`WORKTREE=\"<path>\"` requires exactly one target repo; found N (basenames: ...). Pass `WORKTREE=\"<basename>=<path>\"` form to specify which repo".
 
@@ -118,7 +118,7 @@ After reading the story file's `## Active Claim`, build `<project_root_map>` for
 
    **(d) Neither recorded nor explicit, `<target_repo>` is dirty**: append `(<repo-basename>, <target_repo>, <default-path>, <porcelain output>)` to `<pending_prompt>` — decision deferred to the batched prompt.
 
-8. **Batched operator prompt** for case-(d) entries. If `<pending_prompt>` is non-empty, show ONE combined message (identical shape and parsing rules to `/epic-claim` step 7):
+8. **Batched operator prompt** for case-(d) entries. If `<pending_prompt>` is non-empty, show ONE combined message (identical shape and parsing rules to `/epic-story-claim` step 7):
 
    ```
    These target repos have uncommitted changes:
@@ -135,11 +135,11 @@ After reading the story file's `## Active Claim`, build `<project_root_map>` for
      - one line per repo: `<repo-basename>: default | no | <path>`
    ```
 
-   Parse the reply identically to `/epic-claim` step 7 (single token `default`/`all`/`no`, or multi-line `<repo-basename>: ...` form). On malformed input, re-prompt once with a clearer hint; on a second malformed reply, abort with "couldn't parse reply after two attempts; re-run /epic-resume". After parsing, for each pending repo: either set `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree mode) and warn, or resolve `<wt-path>` and mark for create-or-reattach in step 9.
+   Parse the reply identically to `/epic-story-claim` step 7 (single token `default`/`all`/`no`, or multi-line `<repo-basename>: ...` form). On malformed input, re-prompt once with a clearer hint; on a second malformed reply, abort with "couldn't parse reply after two attempts; re-run /epic-story-resume". After parsing, for each pending repo: either set `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree mode) and warn, or resolve `<wt-path>` and mark for create-or-reattach in step 9.
 
 9. **Create or reattach worktrees** for every repo marked in step 7 (cases a/b-stale-recreated) or step 8, iterating in sorted basename order:
    - `mkdir -p "$(dirname <wt-path>)"`
-   - **Reattach first** (the branch likely already exists from the original `/epic-claim`): `git -C <target_repo> worktree add <wt-path> <epic-name>/<story-slug>`
+   - **Reattach first** (the branch likely already exists from the original `/epic-story-claim`): `git -C <target_repo> worktree add <wt-path> <epic-name>/<story-slug>`
    - If reattach fails because the branch `<epic-name>/<story-slug>` does not exist in `<target_repo>`, fall back to create: `git -C <target_repo> worktree add -b <epic-name>/<story-slug> <wt-path>`.
    - If both fail with branch-already-exists in the create-fallback path (genuinely impossible after reattach failed), report the git error verbatim. List any worktrees already created earlier in this loop as "successfully created but NOT cleaned up: <list>" so the operator can decide whether to keep them, then abort. **Do NOT auto-clean up successful worktrees** on partial failure — preserve operator choice.
    - For any other git error: same verbatim-report-and-abort with "NOT cleaned up" list.
@@ -200,7 +200,7 @@ Before deep implementation work:
 
 The `- Worktrees:` parent bullet must reflect the current `<project_root_map>`: list one child entry per repo whose value is an actual worktree (not the main tree). If the preflight reused recorded worktrees, keep their paths as-is; if it recreated stale entries at new locations, update those paths; if it added new entries (because the operator passed `WORKTREE=` for a previously-unrecorded repo or the scope expanded), include them. If `<project_root_map>` has no worktree entries, omit the `- Worktrees:` bullet entirely. Never delete a worktree entry that other sessions depend on for reattachment unless step 11 of the preflight explicitly retained it for manual review (in which case keep it). If the preflight read the story in back-compat mode (legacy singular `- Worktree:` bullet), this refresh rewrites it as the new `- Worktrees:` list — that is the one place legacy stories are migrated forward.
 
-The `- Main-tree targets:` bullet lists every repo basename from `<project_root_map>` whose value is the repo's own main tree (i.e. NOT a worktree). This tells `/epic-review` that these repos were intentionally written to directly — their dirtiness at review time is the implementation itself. Omit when there are no main-tree target repos. If the previous claim had a `- Main-tree targets:` bullet, refresh it to reflect the current `<project_root_map>`.
+The `- Main-tree targets:` bullet lists every repo basename from `<project_root_map>` whose value is the repo's own main tree (i.e. NOT a worktree). This tells `/epic-story-review` that these repos were intentionally written to directly — their dirtiness at review time is the implementation itself. Omit when there are no main-tree target repos. If the previous claim had a `- Main-tree targets:` bullet, refresh it to reflect the current `<project_root_map>`.
 
 2. Append a new timestamped bullet under `## Progress Log`:
 
@@ -271,15 +271,15 @@ At the end of the session:
 Update `MASTER.md` status using this lifecycle:
 - `🔄 IN PROGRESS` — implementation or requested-change work still underway
 - `🟣 IN REVIEW` — outstanding implementation work complete, focused seam green or exception recorded, ready for a fresh review pass
-- `🔵 IN PR` (optional) — local review passed, PR awaiting GitHub review + merge. **Do not set this status from `/epic-resume`**; use `/epic-pr` to record PR metadata.
+- `🔵 IN PR` (optional) — local review passed, PR awaiting GitHub review + merge. **Do not set this status from `/epic-story-resume`**; use `/epic-story-pr` to record PR metadata.
 - `✅ DONE` — only if a real review pass completes and passes in this session AND any PR stage is merged
 - `⛔ BLOCKED` — external blocker prevents completion or review
 
 **Default rule:**
 1. Resume at `🔄 IN PROGRESS`
 2. Once the chosen focused seam is green and outstanding implementation is complete, move to `🟣 IN REVIEW`
-3. Then either move straight to `✅ DONE` if no PR stage is needed, or hand off to `/epic-pr` which transitions to `🔵 IN PR`
-4. If resuming a `🔵 IN PR` step that is requesting changes, move to `🔄 IN PROGRESS` while working, then back to `🔵 IN PR` via `/epic-pr` once the new push is ready for another review round
+3. Then either move straight to `✅ DONE` if no PR stage is needed, or hand off to `/epic-story-pr` which transitions to `🔵 IN PR`
+4. If resuming a `🔵 IN PR` step that is requesting changes, move to `🔄 IN PROGRESS` while working, then back to `🔵 IN PR` via `/epic-story-pr` once the new push is ready for another review round
 5. If the session ends before review is complete, leave at `🟣 IN REVIEW`
 6. If the session ends before implementation is complete, leave at `🔄 IN PROGRESS`
 
