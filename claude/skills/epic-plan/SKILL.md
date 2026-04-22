@@ -8,7 +8,7 @@ allowed-tools: Read Grep Glob Write Bash(git status:*) Bash(git log:*)
 
 # Epic Plan
 
-Bootstrap a new epic for this project by interviewing the operator through the epic's purpose, scope, constraints, and rough story roadmap — then write a clean `MASTER.md` skeleton to `agent_coordination/epics/<slug>/MASTER.md`. No stories are created here; `/epic-plan` only produces the coordination file that subsequent `/epic-story-plan` → `/epic-story-save` invocations append to.
+Bootstrap a new epic for this project by interviewing the operator through the epic's purpose, scope, constraints, and rough story roadmap — then write a clean `MASTER.md` skeleton to `agent_coordination/epics/<slug>/MASTER.md`. No stories are created here; `/epic-plan` only produces the coordination file that subsequent `/epic-story-plan` invocations append to.
 
 Argument: `$ARGUMENTS` — optional `[NAME="<slug>"]`. If provided, the interview uses it as the initial slug candidate and may still confirm or tweak it. If omitted, the very first interview question is "what should we call this epic?".
 
@@ -19,7 +19,7 @@ This command writes exactly one file: `<cwd>/agent_coordination/epics/<slug>/MAS
 - source code (product files, tests, configs)
 - existing epic directories or their contents
 - the `docs/` folder or any other repo metadata
-- the plan file mode / `~/.claude/plans/`
+- story files
 
 If the resolved epic directory already exists (with or without a `MASTER.md`), the command aborts without writing. The operator has to remove the directory or pick a different slug.
 
@@ -186,6 +186,6 @@ State clearly:
 
 - Path of the created file: `<cwd>/agent_coordination/epics/<slug>/MASTER.md`
 - Epic slug and human title
-- Suggested next step: `/epic-story-plan EPIC=<slug>` to draft the first story for this epic
+- Suggested next step: `/epic-story-plan EPIC=<slug>` to create the first story for this epic
 
 Keep it short — two or three sentences is enough. The operator can read the file themselves if they want the details.

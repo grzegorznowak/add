@@ -114,8 +114,8 @@ of these hold:
 - the story's status in `MASTER.md` (or its `Status:` header line) is not
   `⚪ TODO` — say "this story is past plan review; use `epic_story_review`
   instead"
-- the story file has no `> **Plan source**:` header line — say "story was
-  not scaffolded by `epic_story_save`; plan review assumes that shape"
+- the story file has no scaffold marker for `/epic-story-plan` — say "story was
+  not scaffolded by `/epic-story-plan`; plan review assumes that shape"
 - the story file is missing `## Purpose`, `## Acceptance`, or
   `## Verification` — say which
   section is missing
@@ -249,8 +249,8 @@ Before approving, verify every item:
     APIs, existing tests that would break, cross-module coupling.
 23. **`Implementation Notes` are internally consistent** with `## Acceptance`
     and `## Scope` (the plan's own self-consistency).
-24. **No `<TODO: missing from plan — ...>` placeholders** left by
-    `epic_story_save`. If any remain, verdict is at minimum `request_changes`.
+24. **No `<TODO: ...>` placeholders** left in spec sections. If any remain,
+    verdict is at minimum `request_changes`.
 25. **Debt Friction is surfaced when it affects proof or scope.** If current
     story planning is made harder by debt, the finding must use the
     `docs/epic-conventions.md` shape in `## Plan Review Log`. A plan may be
@@ -267,7 +267,8 @@ this review, but only within a narrow policy:
 - `request_changes` → leave status at `⚪ TODO`. Tell the operator to edit
   the specific spec sections you named in the findings and re-run
   `epic_story_plan_review` from a fresh session. For a ground-up rewrite,
-  recommend deleting the story file and re-running `epic_story_save`.
+  recommend deleting the story file and tracker row, then re-running
+  `epic_story_plan`.
 - `blocked` → move to `⛔ BLOCKED` in both `MASTER.md` and the story file's
   `Status:` header. Use this only when the plan is unsalvageable as written
   and the operator needs to pause on this story (e.g., the plan depends on

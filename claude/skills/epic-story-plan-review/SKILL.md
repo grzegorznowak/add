@@ -1,6 +1,6 @@
 ---
 name: epic-story-plan-review
-description: Review the plan for a ⚪ TODO story before implementation begins — validate Purpose / Acceptance / Verification / Critical Files / Locked Decisions against the live repo and record a Plan Review verdict. Use when a story has been scaffolded by /epic-story-save and you want a fresh-session sanity check before /epic-story-claim.
+description: Review the plan for a ⚪ TODO story before implementation begins — validate Purpose / Acceptance / Verification / Critical Files / Locked Decisions against the live repo and record a Plan Review verdict. Use when a story has been scaffolded by /epic-story-plan and you want a fresh-session sanity check before /epic-story-claim.
 disable-model-invocation: true
 argument-hint: "<epic-name> <story-number-or-spec-file>"
 allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git log:*)
@@ -60,7 +60,7 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
 Before doing the full plan review, abort fast with a concise reason if any of these hold:
 
 - the story's status in `MASTER.md` (or its `Status:` header line) is not `⚪ TODO` — say "this story is past plan review; use `/epic-story-review` instead"
-- the story file has no `> **Plan source**:` header line — say "story was not scaffolded by `/epic-story-save`; plan review assumes that shape"
+- the story file has no scaffold marker for `/epic-story-plan` — say "story was not scaffolded by `/epic-story-plan`; plan review assumes that shape"
 - the story file is missing `## Purpose`, `## Acceptance`, or `## Verification` — say which section is missing
 - any runtime section already exists on the story file (`## Active Claim`, `## Progress Log`, `## Session Handoff`, `## Review Log`, `## PR Tracking`) — say "story has already been claimed or reviewed; plan review runs before implementation begins"
 
@@ -111,7 +111,7 @@ Before approving, verify every item:
 19. **`Locked Decisions` don't contradict `AGENTS.md` or established patterns.** Read `AGENTS.md` and spot-check each decision.
 20. **No hidden gotchas in `Critical Files`.** Skim each Critical File for things the plan didn't mention but should have: migrations, public APIs, existing tests that would break, cross-module coupling.
 21. **`Implementation Notes` are internally consistent** with `## Acceptance` and `## Scope` (the plan's own self-consistency).
-22. **No `<TODO: missing from plan — ...>` placeholders** left by `/epic-story-save`. If any remain, verdict is at minimum `request_changes`.
+22. **No `<TODO: ...>` placeholders** left in spec sections. If any remain, verdict is at minimum `request_changes`.
 23. **Debt Friction is surfaced when it affects proof or scope.** If current story planning is made harder by debt, the finding must use the `docs/epic-conventions.md` shape in `## Plan Review Log`. A plan may be blocked for Debt Friction only when meaningful acceptance or proof planning is not possible.
 
 ## Status transitions
@@ -119,7 +119,7 @@ Before approving, verify every item:
 You may update `MASTER.md` and the story file's `Status:` header as part of this review, but only within a narrow policy:
 
 - `approve` → leave status at `⚪ TODO`. Tell the operator the next action is `/epic-story-claim <epic>` from a fresh session.
-- `request_changes` → leave status at `⚪ TODO`. Tell the operator to edit the specific spec sections you named in the findings and re-run `/epic-story-plan-review <epic> <story>` from a fresh session. For a ground-up rewrite, recommend deleting the story file and re-running `/epic-story-save`.
+- `request_changes` → leave status at `⚪ TODO`. Tell the operator to edit the specific spec sections you named in the findings and re-run `/epic-story-plan-review <epic> <story>` from a fresh session. For a ground-up rewrite, recommend deleting the story file and tracker row, then re-running `/epic-story-plan`.
 - `blocked` → move to `⛔ BLOCKED` in both `MASTER.md` and the story file's `Status:` header. Use this only when the plan is unsalvageable as written and the operator needs to pause on this story (e.g., the plan depends on an upstream story that does not exist, or a `## Locked Decision` directly contradicts the architecture and the plan cannot be minimally amended).
 - `not_reviewable` → leave status at `⚪ TODO`. Say what context is missing (e.g., `AGENTS.md` unreadable, dependency story files missing) and recommend how to unblock.
 

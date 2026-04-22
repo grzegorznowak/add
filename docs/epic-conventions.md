@@ -73,18 +73,16 @@ read or write.
 
 Status: `todo`
 
-> **Plan source**: `<plan path>` (mtime `<plan mtime ISO>`)
-> Story scaffolded by `/epic-story-save` from the plan above.
+> Story scaffolded directly by `/epic-story-plan` after interactive planning.
 ```
 
 `Status:` is the file's local copy of the tracker status. It can drift
 from `MASTER.md` and `/epic-squash` will reconcile.
 
-### Spec sections (created by `/epic-story-save`)
+### Spec sections (created by `/epic-story-plan`)
 
 These are the planning surfaces. They are written once at story creation
-time by `/epic-story-save` from a Claude Code plan, and they are read by
-every other command.
+time by `/epic-story-plan`, and they are read by every other command.
 
 | Section | Purpose |
 |---|---|
@@ -94,10 +92,10 @@ every other command.
 | `## Scope` | What is in scope. |
 | `## Out of Scope` | What is deliberately not in scope. |
 | `## Acceptance` | Observable criteria a reviewer can verify. Every bullet uses a stable `A<n>` id and covers exactly one independently provable behavior. |
-| `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands` and `### Acceptance Proof Matrix`, and must add `### Surface / Branch Proof Matrix` and/or `### Fail-open Checks` when the story's risk surface requires them. |
-| `## Discovery Notes` | The catch-all for plan content that doesn't fit elsewhere. Code smells, gotchas, references to existing patterns, named functions/classes with explanatory context. **This is the section that prevents re-discovery.** |
-| `## Critical Files` | Every file path the plan referenced, with line numbers when present. |
-| `## Implementation Notes` | The plan's approach / strategy / phases preserved verbatim. |
+| `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands` and `### Acceptance Proof Matrix`, and must add `### Surface / Branch Proof Matrix` and/or `### Fail-open Checks` when the story's risk surface requires them. Rows reference acceptance IDs instead of restating full acceptance prose. |
+| `## Discovery Notes` | Source-derived facts that prevent rediscovery: reusable code, gotchas, hidden coupling, test seams, operational constraints, or Debt Friction. Not a transcript. |
+| `## Critical Files` | File paths and each path's role. |
+| `## Implementation Notes` | Execution brief: source-inspection focus, red-first seam guidance, phases, constraints, and known exceptions. |
 | `## Locked Decisions` | What was decided during planning, plus the alternatives considered and rejected. |
 
 #### `## Acceptance`
@@ -110,7 +108,7 @@ Example:
 
 ```md
 ## Acceptance
-- A1: `/epic-story-save` preserves the proof matrix verbatim from the plan file.
+- A1: `/epic-story-plan` writes a TODO story only after every acceptance id has proof coverage.
 - A2: `/epic-story-review` rejects approval when any acceptance id has no proof row.
 ```
 
@@ -262,7 +260,7 @@ decision is `split-story`, `defer-explicitly`, `block`, or an unfinished
 ### Runtime sections (created by `/epic-story-claim`, `/epic-story-resume`, `/epic-story-review`, `/epic-story-pr`)
 
 These are written by the runtime commands as work progresses. They must
-**never** be seeded by `/epic-story-save` — they are owned by the flows
+**never** be seeded by `/epic-story-plan` — they are owned by the flows
 that create them.
 
 #### `## Active Claim`
@@ -401,7 +399,7 @@ write-back schema for implementation review logs.
 
 Append-only entries written **only** by `/epic-story-plan-review`. Parallel in
 shape to `## Review Log` but records plan-quality verdicts made at
-`⚪ TODO`, before implementation begins. Never seeded by `/epic-story-save`;
+`⚪ TODO`, before implementation begins. Never seeded by `/epic-story-plan`;
 never touched by any other command. Each re-run of `/epic-story-plan-review`
 after operator edits appends a new entry — the log is the story's plan
 revision history.
@@ -477,8 +475,8 @@ epic/story arguments. Two strategies exist:
   These operate on whatever is already active; guessing the context is
   the whole point.
 - **Operator-explicit (arg or menu)** — for commands that *create* or
-  *review* (`/epic-plan`, `/epic-story-plan`, `/epic-story-save`,
-  `/epic-story-review`, `/epic-story-plan-review`). These never auto-infer. The
+  *review* (`/epic-plan`, `/epic-story-plan`, `/epic-story-review`,
+  `/epic-story-plan-review`). These never auto-infer. The
   operator must make the decision — either by passing the arg or by
   picking from a filtered menu the skill shows when the arg is absent.
   The menu lists only legal candidates (filtered to each command's
@@ -488,8 +486,7 @@ epic/story arguments. Two strategies exist:
 | Command | Resolution strategy | Eligible-status filter | Notes |
 |---|---|---|---|
 | `/epic-plan` | operator-explicit (optional NAME arg) | n/a — creates a new epic | If `NAME` is omitted, the interview asks for the slug. Never overwrites an existing epic. |
-| `/epic-story-plan` | operator-explicit (arg or menu) | any epic with a `MASTER.md` | EPIC menu lists all epics under `agent_coordination/epics/`. Never edits `MASTER.md` or story files. |
-| `/epic-story-save` | operator-explicit (arg or menu) | any epic with a `MASTER.md`; PLAN menu is 5 most recent files in `~/.claude/plans/` | Both EPIC and PLAN have menu fallbacks. Creating a story is a decision that should never be guessed. |
+| `/epic-story-plan` | operator-explicit (arg or menu) | any epic with a `MASTER.md` | EPIC menu lists all epics under `agent_coordination/epics/`. Creates one TODO story after checkpoint confirmation. |
 | `/epic-story-review` | operator-explicit (arg or menu) | `🟣 IN REVIEW` | Review must come from a fresh, independent perspective. The menu lists only stories at `🟣 IN REVIEW`. |
 | `/epic-story-plan-review` | operator-explicit (arg or menu) | `⚪ TODO` | Plan review must come from a fresh, independent perspective. The menu lists only stories at `⚪ TODO`. |
 | `/epic-story-claim` | auto-inferred (running context) | `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference. |
@@ -525,7 +522,7 @@ epic/story arguments. Two strategies exist:
 3. **Zero-row abort**: if the filtered menu is empty, abort fast with a
    pointer to the next concrete action (e.g. "no epics found; run
    `/epic-plan` to bootstrap one first", "no stories at ⚪ TODO; run
-   `/epic-story-plan` to draft one").
+   `/epic-story-plan` to create one").
 4. **Never silent**: the menu never pre-selects a row the operator
    hasn't confirmed, even if there is only one eligible candidate.
    Picking is always an explicit operator action. Auto-inference for
@@ -541,7 +538,6 @@ epic/story arguments. Two strategies exist:
 - Touch product code from `/epic-story-pr` or `/epic-squash` (except optional
   per-fix approval in `/epic-squash` Phase 6, and the optional `gh pr
   create` call in `/epic-story-pr` open mode)
-- Modify the plan file that `/epic-story-save` consumed
 - Mark a story `✅ DONE` while its PR is open
 - Archive a `🔵 IN PR` story
 - Auto-infer arguments for any command in the "operator-explicit (arg or
@@ -550,9 +546,8 @@ epic/story arguments. Two strategies exist:
   that the operator — not the skill — is the one making the choice.
 - Overwrite an existing `MASTER.md` from `/epic-plan`. The epic directory
   must not already exist; collisions abort fast.
-- Edit `MASTER.md` or any story file from `/epic-story-plan`. It writes
-  only a plan file to `~/.claude/plans/` for `/epic-story-save` to
-  consume.
+- Create a story from `/epic-story-plan` without an explicit checkpoint
+  previewing the story file and tracker row.
 - Delete or silently relocate an existing linked worktree from
   `/epic-story-claim`, `/epic-story-resume`, or `/epic-story-review`. The `- Worktrees:`
   list in `## Active Claim` (or the legacy singular `- Worktree:`

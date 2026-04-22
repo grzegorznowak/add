@@ -1,32 +1,28 @@
 ---
 name: epic_story_plan
-description: Interview-driven draft of a new story plan for an existing epic — produces a plan file in ~/.claude/plans/ matching the shape $epic_story_save consumes.
+description: Interview-driven creation of a new TODO story for an existing epic — writes story-NN-<slug>.md and appends the MASTER.md tracker row after proof-contract validation.
 ---
 
 # Epic Story Plan: $EPIC
 
-Draft a new story plan for an existing epic by interviewing the operator through the spec sections `$epic_story_save` consumes (`Purpose`, `Triggering Need`, `Expected Prerequisites`, `Scope`, `Out of Scope`, `Acceptance`, `Verification`, `Discovery Notes`, `Critical Files`, `Implementation Notes`, `Locked Decisions`). The output is a plan file at `~/.claude/plans/<epic>-<story-slug>.md` that already contains the implementation-ready acceptance/proof contract `$epic_story_save` will persist verbatim into the story file and tracker row.
+Create a new story for an existing epic by interviewing the operator through the story spec sections, validating the proof contract, and publishing the story directly into `agent_coordination/epics/<epic>/`. This command writes the official story file and appends the `⚪ TODO` tracker row to `MASTER.md`; it does not create a separate draft plan file.
 
 Treat `$EPIC` as optional. If present, resolve that epic directly. If absent, list the available epics under `<cwd>/agent_coordination/epics/` and ask the operator to pick one.
 
 ## Important
 
-This command writes exactly one file: `~/.claude/plans/<epic>-<story-slug>.md`, after an explicit checkpoint confirmation. It **never** touches:
+This command may write exactly two tracked coordination surfaces, after an explicit checkpoint confirmation:
 
-- source code (product files, tests, configs)
-- the epic's `MASTER.md` tracker or any existing story files
-- the `agent_coordination/` directory at all
-- plan files other than the one it is writing
+- `<epic>/story-<NN>-<slug>.md`
+- `<epic>/MASTER.md`
 
-`MASTER.md` updates and story-file scaffolding are the job of `$epic_story_save`, which consumes the plan this command produces. Keep the concerns separate.
+It never touches product source code, tests, configs, `CONTRACT.md`, archived stories, or runtime sections such as `## Active Claim`, `## Progress Log`, `## Session Handoff`, `## Review Log`, `## Plan Review Log`, or `## PR Tracking`.
 
-## Why operator-explicit (arg or menu) selection
+## Why operator-explicit selection
 
-`$epic_story_plan` does not auto-infer which epic a new story should live under. The operator explicitly chooses — either by passing `EPIC=<slug>` as an argument or by picking from the menu this skill shows when the arg is absent. The menu is **not** inference: it lists every epic and asks the operator to select.
+`$epic_story_plan` does not auto-infer which epic a new story should live under. The operator explicitly chooses — either by passing `EPIC=<slug>` or by picking from the menu this skill shows when the arg is absent. The menu is not inference: it lists every legal epic and asks the operator to select.
 
-The reasoning is simple. Creating a new story is a decision about where it belongs. Auto-inferring "the active epic" guesses at that decision, and a wrong guess silently drops a plan file into the wrong epic's namespace — a hassle to catch because the plan file lives in `~/.claude/plans/` and does not immediately reveal which epic it was meant for. Explicit operator choice — arg or menu — eliminates that class of bug while keeping the interaction cheap.
-
-A gentle nudge: if you find yourself picking from the menu in the same Codex session that wrote the implementation of an earlier story, consider opening a Codex fresh session. Planning from a fresh session tends to produce better-scoped stories than planning from the tail of an in-flight implementation context.
+Creating a story mutates `MASTER.md`, so the epic choice must never be guessed. A wrong guess silently creates coordination state in the wrong epic.
 
 ## Resolution
 
@@ -47,241 +43,241 @@ A gentle nudge: if you find yourself picking from the menu in the same Codex ses
 Once the epic is resolved, read the following before the interview starts:
 
 1. The project's `AGENTS.md` first, then `CLAUDE.md` as a fallback. If neither exists, note it: `no AGENTS.md / CLAUDE.md found; recommendations will be generic`.
-2. `<epic>/MASTER.md` — the tracker, so the interview can surface existing stories as prerequisite candidates.
+2. `<epic>/MASTER.md` — the tracker, so the interview can surface existing stories as prerequisite candidates and compute the next story number.
 3. The most recent existing story file in the epic (highest `Step` number; prefer non-archived). Read it to learn the epic's conventions and tone.
 4. `<epic>/CONTRACT.md` if present — anything locked in by the squash step overrides contradictory planning assumptions.
 
 ## Source-of-truth hierarchy
 
 1. The project's `AGENTS.md` / `CLAUDE.md` — load-bearing project conventions.
-2. `<epic>/CONTRACT.md` — epic-level locked facts (if present).
-3. `<epic>/MASTER.md` — tracker state, prerequisite resolution.
+2. `<epic>/CONTRACT.md` — epic-level locked facts, if present.
+3. `<epic>/MASTER.md` — tracker state, prerequisite resolution, numbering.
 4. The conversation with the operator — their stated intent for this specific story.
-5. The live codebase — for feasibility, collision detection, and locating Critical Files.
+5. The live codebase — feasibility, collision detection, and locating Critical Files.
 
 Do not infer identity from filename shape or naming conventions that are not explicitly recorded in `MASTER.md` or the project's conventions file.
 
+## Lean story rule
+
+Each material fact should have one canonical home:
+
+- `## Acceptance` owns required behavior.
+- `## Verification` owns proof actions, proof status, and reviewer evidence.
+- `## Scope` owns boundaries, not implementation steps.
+- `## Critical Files` owns paths and each path's role.
+- `## Implementation Notes` owns the execution brief: source-inspection focus, red-first seam guidance, phases, constraints, and known exceptions.
+- `## Locked Decisions` owns decisions and rejected alternatives.
+- `## Discovery Notes` owns source-derived facts that prevent rediscovery.
+
+Do not repeat the same fact across sections. Later sections should reference acceptance IDs, proof rows, decision labels, files, or section names instead of restating full prose.
+
 ## Interview loop
 
-Walk the operator through each of the questions below in order. For every question:
+Walk the operator through each question below in order. For every question:
 
-- **Propose a recommended answer with a brief plain-language explanation of the trade-off.**
-- **Where it helps ground the choice, include a concrete example, short snippet, or small ASCII diagram.**
+- Propose a recommended answer with a brief plain-language explanation of the trade-off.
+- Include a concrete example, short snippet, or small ASCII diagram when it clarifies the choice.
 - Probe the codebase before asking if the answer can be derived from it.
-- **Every question offers two escape hatches the operator may invoke at any point, except for `Acceptance` and `Verification`:**
-  - `skip` — use the proposed default for this section and move to the next question.
-  - `draft now` — stop asking, jump to `## Draft plan file` and fill in `<TODO: ...>` placeholders for everything that was not answered yet.
-- `## Acceptance` and `## Verification` are load-bearing contract sections. Keep interviewing until they are structurally complete. Do not write the plan file with placeholders or missing coverage in either section.
-- **Exception:** `skip` / `draft now` are NOT allowed for `## Acceptance` or `## Verification`. The plan file cannot be written until those two sections are structurally complete.
+- Every question offers two escape hatches except for `Acceptance` and `Verification`:
+  - `skip` — perform a bounded scan from the known Purpose/Scope terms, then either use a terse inferred answer or omit the optional section. If skipping would weaken Acceptance, Verification, Critical Files, or Debt Friction, do deeper inference before moving on.
+  - `draft now` — stop asking and jump to story drafting. Never draft while `Acceptance` or `Verification` is incomplete.
+- `## Acceptance` and `## Verification` are load-bearing contract sections. Keep interviewing until they are structurally complete.
 
 ### Question 1 — Story slug and one-line title
 
-Ask the operator for the story's short hyphenated slug (e.g. `refresh-token-issuance`) and a one-line human title. Probe `MASTER.md` for the highest existing `Step` number and report "next free Step would be `NN`" — but do not claim that number. Numbering is `$epic_story_save`'s job; this command only produces the plan file.
+Ask for the story's short hyphenated slug, for example `refresh-token-issuance`, and a one-line human title.
+
+Probe `MASTER.md` for the highest existing and archived story number and report the next number that would be assigned if the story is published now. Do not write anything yet; final numbering is confirmed at checkpoint.
 
 ### Question 2 — Purpose
 
-Ask: "what user-visible outcome does this story deliver?" Push back on vague phrasing. "Improve X", "refactor Y", "clean up Z" are not Purpose — they describe activity, not outcome. Ask follow-ups until the answer names a concrete observable.
+Ask: "what user-visible outcome does this story deliver?" Push back on vague phrasing. "Improve X", "refactor Y", and "clean up Z" describe activity, not outcome.
 
-Propose a one-paragraph draft back to the operator and iterate until they accept it.
+Propose a one-paragraph draft back to the operator and iterate until the answer names a concrete observable.
 
 ### Question 3 — Triggering Need
 
-Ask: "why now? what prompted this story?" If the answer is thin ("because it's overdue", "because we need it"), probe `git log` for the last ~50 commits and look for related work, recent bug reports, or incident-like commit messages. Offer the operator concrete triggers you found ("the auth middleware was last touched 6 weeks ago; is that the driver?") and let them confirm or correct.
+Ask: "why now? what prompted this story?" If the answer is thin, probe `git log` for the last ~50 commits and look for related work, bug fixes, or incident-like commit messages. Offer concrete triggers you found and let the operator confirm or correct.
 
 ### Question 4 — Expected Prerequisites
 
-Walk the `MASTER.md` tracker. For each `⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR`, or `✅ DONE` row, ask yourself: could this story legitimately depend on that one? Propose candidate prerequisites based on fuzzy keyword match between the domain terms in the operator's Purpose answer and the tracker row titles.
+Walk the `MASTER.md` tracker. For each existing row, ask yourself whether this story could legitimately depend on it. Propose candidate prerequisites based on fuzzy keyword matches between the Purpose terms and tracker row titles.
 
-Format: `DEPENDS = 03, 05 (if either: explain why you think so)`. The operator confirms or corrects.
-
-If the proposed prerequisite is not yet `✅ DONE`, flag it — but do not reject. A `⚪ TODO` story legitimately depending on another `⚪ TODO` story is valid, per `docs/epic-conventions.md`.
+Format: `DEPENDS = 03, 05 (if either: explain why you think so)`. The operator confirms or corrects. If a prerequisite is not yet `✅ DONE`, flag it but do not reject it; TODO stories can legitimately depend on TODO stories.
 
 ### Question 5 — Scope and Out of Scope
 
-Ask what is in scope for this story — the work the implementer will actually do. Drive toward atomic: if the operator's Scope reads like two or three independent stories, push back with a split proposal: "this sounds like Story A (the rename) + Story B (the migration) + Story C (the deprecation). Do you want to split? I can help you pick which of those is this story."
+Ask what is in scope for this story — the work the implementer will actually do. Drive toward atomic scope. If the answer reads like multiple independent stories, push back with a split proposal.
 
-Also ask what is deliberately **out of scope**. A non-empty Out of Scope section is a signal of clear thinking; a missing one is a warning.
+Also ask what is deliberately out of scope. A non-empty Out of Scope section is a signal of clear thinking; a missing one is a warning.
 
 ### Question 6 — Acceptance criteria
 
-Ask: "how will a reviewer know this story is done?" Every acceptance bullet must be checkable by a command, a file read, or a direct observation. Every bullet must start with a stable id (`A1`, `A2`, ...) and cover exactly one independently provable behavior. Reject:
+Ask: "how will a reviewer know this story is done?" Every acceptance bullet must be checkable by a command, file read, or direct observation. Every bullet must start with a stable id (`A1`, `A2`, ...) and cover exactly one independently provable behavior.
 
-- "works correctly" (not observable)
-- "is performant" (no threshold)
-- "is clean" (subjective)
-- "tests pass" (which tests? on what command?)
-- compound bullets that hide multiple independently failing behaviors
+Reject vague or compound criteria such as:
 
-Propose observable rewrites: "A1: the existing test suite under `tests/auth/` passes with zero failures when run with `bun test tests/auth/`". Iterate until every bullet names a concrete check, uses an `A<n>` id, and stays atomic.
+- "works correctly"
+- "is performant"
+- "is clean"
+- "tests pass"
+- bullets whose parts could fail independently
+
+Propose observable rewrites and iterate until every bullet names a concrete check, uses an `A<n>` id, and stays atomic.
 
 ### Question 7 — Verification contract
 
 Build `## Verification` around two required parts and any conditional proof sections the story needs:
 
 1. `### Verification Commands`
-   - Ask for the exact commands or exact manual/file-read actions a reviewer can run.
-   - Confirm any existing test files or named surfaces actually exist when they are claimed as current seams.
-   - Build this section so implementation can start red-first after source inspection. Anchor the real owning test/proof surfaces and the focused area the implementer should inspect first.
+   - Ask for exact commands or exact manual/file-read actions a reviewer can run.
+   - Confirm existing test files or named surfaces actually exist when claimed as current seams.
+   - Anchor the real owning test/proof surfaces and the focused area the implementer should inspect first.
 2. `### Acceptance Proof Matrix`
-   - Every acceptance id must have at least one row before the plan can be saved.
+   - Every acceptance id must have at least one row before the story can be created.
    - Required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`
    - `Proof Maturity` must be `final` or `provisional`.
    - `Open Detail` may be blank for `final` rows and is required for `provisional` rows.
-   - A row may cover multiple acceptance ids only as an exception when the same proof action and failure signal genuinely cover all of them.
+   - A row may cover multiple acceptance ids only when the same proof action and failure signal genuinely cover all of them.
+   - Proof rows should reference acceptance IDs and expected evidence without restating the full acceptance text.
 3. `### Surface / Branch Proof Matrix` when the story spans multiple user-visible surfaces, supported variants/profiles/modes, or internal orchestration branches.
    - Required columns: `Surface | Supported Variant | Internal Execution Branch | Proof Class | Owning Proof Seam | Why This Seam Is Sufficient | Out of Scope Notes`
    - Every in-scope surface / variant / branch combination must appear.
    - `Proof Class` must be one of `helper`, `routing`, or `behavior`.
-   - Helper proof alone is insufficient when multiple supported callsites or orchestration paths exist. Require at least one routing proof that shows the supported callsites actually reach the shared helper or branch logic.
-   - If a branch is intentionally excluded, the exclusion must be explicit in `Out of Scope Notes`.
+   - Helper proof alone is insufficient when multiple supported callsites or orchestration paths exist; require at least one routing proof.
 4. `### Fail-open Checks` when the feature depends on prompt placeholders, template variables, string substitution, or other fail-open prompt assembly.
-   - Require a concrete negative proof that supported renders do not leave unresolved placeholders or raw feature tokens behind.
-   - Require a proof that enabled supported paths actually activate the feature.
+   - Require a negative proof that supported renders leave no unresolved placeholders or raw feature tokens.
+   - Require a proof that enabled supported paths activate the feature.
    - Require at least one disabled/default path proof showing baseline behavior is unchanged.
-   - Any intentionally unsupported profile or mode must be called out explicitly.
 
-Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers instead of the real acceptance surface. Provisional rows are allowed, but every acceptance id still needs a row and every provisional row must state what remains undecided. Helper correctness is not enough when the feature fans out across multiple callsites; require routing completeness as its own proof obligation. Do not fake precision about the exact first failing command when the current repo facts do not support it; the plan sets the red-first method and proof surfaces, and the implementer chooses the exact first seam after reading sources.
+Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers. Provisional rows are allowed, but every acceptance id still needs a row and every provisional row must state what remains undecided.
 
-Debt Friction check: actively ask whether proof planning is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision. Use `## Discovery Notes` for evidence, `## Verification` when proof strategy is affected, and `## Locked Decisions` when a tradeoff is decided. Treat the plan as not ready only when debt friction prevents meaningful acceptance or proof planning.
+Debt Friction check: actively ask whether proof planning is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
 
 ### Question 8 — Critical Files
 
-This is the highest-leverage question in the interview. Actively probe the codebase:
+Actively probe the codebase:
 
-1. Extract 3–5 domain keywords from the Purpose and Scope answers.
-2. `grep` for those keywords across the project.
-3. Propose candidate files with line refs: `src/auth/session.ts:142`, `src/auth/refresh.ts (new)`, `tests/auth/session.test.ts:88`.
+1. Extract 3-5 domain keywords from Purpose and Scope.
+2. Search for those keywords across the project.
+3. Propose candidate files with line refs and a short role, for example `src/auth/session.ts:142 — session refresh owner`.
 4. Let the operator confirm, correct, or add.
 
-Do **not** ask the operator to list Critical Files from memory. Ask them to react to your probe results. Operators are much better at "no, not that one — but you missed `src/middleware/auth.ts`" than at "list every file you will touch".
-
-For files the operator says need to be created (that do not yet exist in the codebase), mark them explicitly: `src/auth/refresh.ts (new, does not yet exist)`.
+Do not ask the operator to list Critical Files from memory. Critical Files should be a terse path-and-role list, not a second implementation plan. For files that need to be created, mark them explicitly: `src/auth/refresh.ts (new, does not yet exist)`.
 
 ### Question 9 — Implementation Notes
 
-Ask for the approach. Strategy, phases, alternatives considered. Free-form prose; this is the section that preserves design context for the implementer.
+Ask for only the execution context that changes implementation:
 
-Push back if the operator leaves out the "alternatives considered" angle — the Locked Decisions section depends on knowing what was rejected, and those two sections pair tightly.
+- source-inspection focus
+- smallest likely red-first seam or seam family
+- phases if sequencing matters
+- known constraints or live/manual exceptions
+- required written exception if red-first may be infeasible
 
-Require the implementation method to be explicit: after source inspection, implementation starts red-first from the smallest focused seam it can make fail, turns that seam green, then broadens verification. If the operator already knows red-first may be infeasible in some part of the work, require the notes to say that the implementer must record an explicit written exception before proceeding differently.
-
-Also ask whether any acceptance proof rows are expected to remain `provisional` through planning, and if so whether the operator has already identified what implementation discovery will need to resolve. This is not a substitute for the matrix row itself; it is supporting context for the implementer.
+Move decisions and rejected alternatives to `## Locked Decisions`; do not duplicate them here.
 
 ### Question 10 — Locked Decisions
 
-Ask: "what has been decided, and what alternatives were considered and rejected?" Cross-check each decision against the project's `AGENTS.md`. If a decision contradicts a stated convention in `AGENTS.md`, flag it and ask the operator whether they want to revise the decision or edit `AGENTS.md` (the latter is a separate task, outside the scope of this command).
+Ask: "what has been decided, and what alternatives were considered and rejected?" Cross-check each decision against `AGENTS.md` / `CLAUDE.md`. If a decision contradicts a stated convention, flag it and ask whether the operator wants to revise the decision or handle the convention change separately.
 
 ### Question 11 — Discovery Notes
 
-Catch-all for code smells, reusable existing code, gotchas, and anything else that came up during the interview that does not fit cleanly elsewhere. Explicitly ask: "did the codebase probes in Q8 surface any gotchas, patterns, or reusable helpers that should land here so the implementer does not have to re-discover them?"
+Discovery Notes are not a transcript. Record only source-derived facts that would otherwise need rediscovery: reusable code, gotchas, hidden coupling, test seams, operational constraints, or Debt Friction. Prefer short bullets with path/symbol provenance.
 
-If the story has Debt Friction, record it here using the `docs/epic-conventions.md` shape. Generic cleanup findings do not qualify unless they affect this story's planning, implementation, proof, review, or scope. Use `fix-now` only for enabling cleanup directly required to make this story correct, testable, reviewable, or safely maintainable.
+If no material source-derived facts are found and sibling-story convention requires a `## Discovery Notes` section, write `None identified.`
 
-Re-use the grep output from Q8 to populate Discovery Notes with paths and names the operator should preserve verbatim.
+## Story draft
 
-## Draft plan file
-
-Assemble the plan file body with section names matching `docs/epic-conventions.md` story-file section names **verbatim**. This gives `$epic_story_save`'s Phase 3 parser an exact-match path through its mapping table (no fuzzy matching required):
+Assemble the story file with this header:
 
 ```md
-# <human title from Q1>
+# Story <NN> — <TITLE>
 
-## Purpose
-<paragraph from Q2>
+Status: `todo`
 
-## Triggering Need
-<paragraph from Q3>
-
-## Expected Prerequisites
-<bullets from Q4>
-
-## Scope
-<bullets from Q5>
-
-## Out of Scope
-<bullets from Q5>
-
-## Acceptance
-- A1: <observable bullet from Q6>
-
-## Verification
-### Verification Commands
-- <concrete command or exact manual/file-read action from Q7>
-
-### Acceptance Proof Matrix
-| Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail |
-|---|---|---|---|---|---|---|
-| A1 | final | file-read | <exact reviewer action> | <exact expected evidence> | <paths / commands / surfaces> | |
-| A2 | provisional | automated | <exact reviewer action> | <red/green or equivalent evidence> | <paths / commands / surfaces> | <what remains undecided> |
-
-### Surface / Branch Proof Matrix
-<required when multiple surfaces / variants / internal branches are in scope>
-| Surface | Supported Variant | Internal Execution Branch | Proof Class | Owning Proof Seam | Why This Seam Is Sufficient | Out of Scope Notes |
-|---|---|---|---|---|---|---|
-| <surface> | <variant / profile / mode> | <branch / callsite> | <helper | routing | behavior> | <exact seam> | <why this proves the branch> | |
-
-### Fail-open Checks
-<required when the feature is prompt/template/placeholder-driven>
-- <supported render leaves no unresolved placeholders or raw tokens>
-- <enabled supported path proves the feature is active>
-- <disabled/default path proves baseline behavior is unchanged>
-
-## Discovery Notes
-<code smells, reusable code, gotchas, and any Debt Friction entries from Q8 and Q11>
-
-## Critical Files
-<file paths with line refs from Q8>
-
-## Implementation Notes
-<approach / strategy / phases from Q9>
-
-## Locked Decisions
-<decisions + alternatives from Q10>
+> Story scaffolded directly by `/epic-story-plan` after interactive planning.
 ```
 
-For sections where the operator `skip`ped or `draft now`-ed before answering, insert an explicit `<TODO: missing from interview — ...>` placeholder. Do not omit the section.
+Then add the spec sections. Required sections:
 
-Exception: `## Acceptance` and `## Verification` must never contain placeholders. If they are incomplete, keep interviewing instead of drafting the file.
+- `## Purpose`
+- `## Triggering Need`
+- `## Expected Prerequisites`
+- `## Scope`
+- `## Out of Scope`
+- `## Acceptance`
+- `## Verification`
+
+Optional narrative sections:
+
+- `## Discovery Notes`
+- `## Critical Files`
+- `## Implementation Notes`
+- `## Locked Decisions`
+
+Include optional narrative sections when they have material content or when sibling-story convention includes them. If sibling convention forces an optional section with no material content, write `None identified.`
+
+Do not create `<TODO: ...>` placeholders in any section. If `## Acceptance` or `## Verification` is incomplete, keep interviewing instead of drafting.
+
+## Validation and numbering
+
+Before the checkpoint:
+
+1. Determine `next_n` = max(active tracker numbers, archived story numbers) + 1.
+2. Resolve filename: `story-<NN>-<slug>.md`, zero-padded to match the epic's existing convention; default to two digits.
+3. If the filename already exists in the epic root or `archive/`, abort with the conflict path.
+4. Validate dependencies:
+   - Same-epic refs must exist in `MASTER.md`; abort if missing.
+   - Same-epic refs not yet `✅ DONE` produce a soft warning.
+   - Cross-epic refs pass through and are flagged as unverified.
+5. Validate the proof contract:
+   - every acceptance bullet begins with `A<n>:`
+   - `## Verification` contains `### Verification Commands` and `### Acceptance Proof Matrix`
+   - the proof matrix uses the required columns
+   - every acceptance id appears in at least one proof row
+   - every `Proof Maturity` value is `final` or `provisional`
+   - every `provisional` row has non-blank `Open Detail`
+   - required surface/branch and fail-open sections are present when the story risk surface calls for them
+   - no `<TODO: ...>` placeholders exist in `## Acceptance` or `## Verification`
+
+Abort or continue the interview if validation fails. Do not write malformed story state.
 
 ## Checkpoint
 
 Show the operator:
 
-- Target path: `~/.claude/plans/<epic>-<story-slug>.md`
-- The full drafted plan file content
-- Section list with a note next to each indicating whether it came from a real answer, a `skip` default, or a `draft now` placeholder
-- Acceptance/proof coverage check: every acceptance id listed, whether it has at least one matrix row, and whether any rows remain `provisional`
-- If present, surface/branch coverage check: every in-scope surface / variant / branch listed, whether routing proof exists where multiple callsites are supported, and whether any exclusions are explicit
-- If present, fail-open check summary: placeholder/token checks, enabled-path checks, disabled/default-path checks
-- Next-step reminder: "after confirming, the next command is `$epic_story_save EPIC=<epic>` to scaffold the story file and tracker row"
+- Resolved story number and filename, including numbering basis.
+- Dependency validation report.
+- Section list, including which optional narrative sections were included, omitted, or forced by sibling convention.
+- Acceptance/proof validation summary.
+- Surface/branch and fail-open coverage summaries when present.
+- The full drafted story file content.
+- The exact `MASTER.md` row to append.
 
-**CHECKPOINT**: explicit y/n before proceeding. If the operator rejects, return to the interview loop at the question they want to revisit. If they accept, continue to the write step.
+**CHECKPOINT**: explicit y/n before writing. If the operator rejects, return to the interview loop at the question they want to revisit. If they accept, continue to write.
 
 ## Write
 
-1. Resolve the write path: `${HOME}/.claude/plans/<epic>-<story-slug>.md`
-2. If a file already exists at that path, abort with: `plan file already exists at <path>; rename or remove it and re-run`.
-3. Before writing, validate the acceptance/proof contract:
-   - every acceptance bullet begins with `A<n>:`
-   - every acceptance bullet is covered by at least one matrix row
-   - the matrix uses the required columns
-   - every `Proof Maturity` value is `final` or `provisional`
-   - every `provisional` row has non-blank `Open Detail`
-   - if the story spans multiple surfaces / variants / branches, `## Verification` also contains `### Surface / Branch Proof Matrix` with the required columns and explicit routing proof where multiple callsites exist
-   - if the feature is prompt/template/placeholder-driven, `## Verification` also contains `### Fail-open Checks`
-   - there are no `<TODO: ...>` placeholders in `## Acceptance` or `## Verification`
-   If any check fails, abort with a concise explanation and continue the interview rather than writing a malformed plan.
-4. Write the drafted plan file content to that path.
+1. Write the new story file at `<epic>/story-<NN>-<slug>.md`.
+2. Edit `MASTER.md` to append a new tracker row:
 
-No other files are created. `MASTER.md` is not touched. No story file is created. The operator's next command produces those.
+   ```md
+   | <NN> | ⚪ TODO | <TITLE> | <DEPENDS or "none"> | `story-<NN>-<slug>.md` |
+   ```
+
+3. Match the existing tracker table column count and ordering. Read the header row to determine whether the epic uses 3, 4, or 5 columns.
+4. Escape markdown table delimiters in the title before writing the row.
+5. Never seed runtime sections.
 
 ## Final response
 
 State clearly:
 
-- Path of the written plan file
-- Epic slug and story title
-- Exact next command to run: `$epic_story_save EPIC=<epic>`
-- Note that the operator can review or edit the plan file before running `$epic_story_save`, and that `$epic_story_save` will pick it up from `~/.claude/plans/` by mtime if no `PLAN` arg is passed.
+- filename created
+- story number assigned
+- dependency report
+- optional section summary
+- suggested next action: `epic_story_plan_review $EPIC <NN>` from a fresh session
 
 Keep it short — three or four sentences is enough.

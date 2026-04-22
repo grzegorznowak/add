@@ -5,7 +5,7 @@ description: Interview-driven bootstrap for a new epic — produces a MASTER.md 
 
 # Epic Plan: $NAME
 
-Bootstrap a new epic for this project by interviewing the operator through the epic's purpose, scope, constraints, and rough story roadmap — then write a clean `MASTER.md` skeleton to `agent_coordination/epics/<slug>/MASTER.md`. No stories are created here; `$epic_plan` only produces the coordination file that subsequent `$epic_story_plan` → `$epic_story_save` invocations append to.
+Bootstrap a new epic for this project by interviewing the operator through the epic's purpose, scope, constraints, and rough story roadmap — then write a clean `MASTER.md` skeleton to `agent_coordination/epics/<slug>/MASTER.md`. No stories are created here; `$epic_plan` only produces the coordination file that subsequent `$epic_story_plan` invocations append to.
 
 Treat `$NAME` as an optional slug hint. If present, use it as the initial slug candidate and still confirm the human title during the interview. If absent, the very first interview question is "what should we call this epic?".
 
@@ -182,6 +182,6 @@ State clearly:
 
 - Path of the created file: `<cwd>/agent_coordination/epics/<slug>/MASTER.md`
 - Epic slug and human title
-- Suggested next step: `$epic_story_plan EPIC=<slug>` to draft the first story for this epic
+- Suggested next step: `$epic_story_plan EPIC=<slug>` to create the first story for this epic
 
 Keep it short — two or three sentences is enough. The operator can read the file themselves if they want the details.

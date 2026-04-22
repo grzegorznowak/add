@@ -1,6 +1,6 @@
 {
   "name": "add",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Agentic Driven Development — epic/story workflow skills for Claude Code (paired with Codex skills in the same repo).",
   "repository": "https://github.com/grzegorznowak/add"
 }

@@ -7,36 +7,30 @@ here disagree, **this document wins** — open a PR to fix the command.
 
 ## Planning phase (pre-⚪ TODO)
 
-Before a story enters the `⚪ TODO` state, it passes through a linear
+Before a story enters the `⚪ TODO` state, it is created through a short
 planning chain:
 
 1. **`/epic-plan`** — once per epic. Bootstraps the epic directory and
    the `MASTER.md` skeleton (header, goal/context, legend, empty story
    tracker). Never touches story files or tracker rows. Aborts if the
    epic directory already exists.
-2. **`/epic-story-plan EPIC=<slug>`** — once per story. Interview-driven
-   draft that produces a plan file at
-   `~/.claude/plans/<epic>-<story-slug>.md`. Never touches the epic
-   directory or any tracker row. The plan must already contain the
-   implementation-ready `Acceptance` contract and `Verification` proof
-   matrix before it can be saved. Planning is proof-first: the proof
-   surfaces must be concrete enough that an implementer can inspect the
-   repo and choose a smallest focused red seam without re-planning the
-   story. If the story spans multiple product surfaces, variants, modes,
-   or orchestration branches, the plan must expand that risk surface into
-   a `Surface / Branch Proof Matrix`. If shared helpers or multiple
-   callsites are involved, the plan must distinguish helper, routing, and
-   behavior proofs. If the feature is prompt- or placeholder-driven, the
-   plan must include fail-open checks.
-3. **`/epic-story-save EPIC=<slug>`** — once per story. Consumes the plan
-   file, writes `story-NN-<slug>.md`, and appends a `⚪ TODO` row to
-   `MASTER.md`. It must fail on malformed or incomplete acceptance/proof
-   contracts rather than inventing missing structure. This is the
-   transition into the state machine below.
+2. **`/epic-story-plan EPIC=<slug>`** — once per story. Interviews the
+   operator, validates the implementation-ready `Acceptance` contract
+   and `Verification` proof matrix, writes `story-NN-<slug>.md`, and
+   appends the `⚪ TODO` tracker row to `MASTER.md`.
 
-This phase is entirely upstream of the state-machine states — the two
-new commands are not states and do not appear as transitions in the
-state diagram. They feed the first row of the tracker, nothing more.
+Planning is proof-first: the proof surfaces must be concrete enough that
+an implementer can inspect the repo and choose a smallest focused red
+seam without re-planning the story. If the story spans multiple product
+surfaces, variants, modes, or orchestration branches, the story must
+expand that risk surface into a `Surface / Branch Proof Matrix`. If
+shared helpers or multiple callsites are involved, the story must
+distinguish helper, routing, and behavior proofs. If the feature is
+prompt- or placeholder-driven, the story must include fail-open checks.
+
+This phase is upstream of the state-machine states. `/epic-story-plan`
+feeds the first row of the tracker; the state diagram starts at
+`⚪ TODO`.
 
 ## Status values
 
