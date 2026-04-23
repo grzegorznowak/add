@@ -173,9 +173,10 @@ is left untouched.
                 │   /grillme     │────▶│ /epic-story-plan  │
                 │  (optional)    │     │                   │
                 └────────────────┘     └─────────┬─────────┘
-                stress-test the          writes story-NN-<slug>.md
-                story's design           + MASTER.md row
-                          │
+                stress-test the                  │
+                story's design                   │
+                          ┌──────────────────────┘
+                          │  writes story-NN-<slug>.md + MASTER.md row
                           ▼
                 ┌─────────────┐  ╌╌ review ╌╌▶  ┌────────────────────────┐
                 │   ⚪ TODO   │                 │ /epic-story-plan-review │
