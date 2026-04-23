@@ -39,6 +39,13 @@ transition is a fresh session**:
   not against a vague notion of "code quality" — which makes hallucinated or
   unexpected results immediately visible as contract violations.
 
+- **The system improves itself.** `/memorize` closes the feedback loop — at
+  the end of a session the agent reflects on what was hard to understand,
+  rates friction points, and proposes patches to `AGENTS.md` or docs so the
+  next session starts with better context. `/epic-squash` does the same at the
+  story level, consolidating finished specs into `CONTRACT.md`. Both prevent
+  future sessions from re-learning what a past session already figured out.
+
 The result: each agent run stays small, focused, and verifiable. The
 coordination files accumulate the real state, not the conversation.
 
@@ -57,7 +64,7 @@ Eight coordinated workflow commands plus two small utilities:
 | `/epic-story-pr` | Open or attach a GitHub PR with a product-focused body. |
 | `/epic-squash` | Merge all `DONE` stories into `CONTRACT.md` and archive them. |
 | `/grillme` | Relentless interview about a plan or design until shared understanding. |
-| `/memorize` *(Codex only)* | Capture session knowledge into an AGENTS.md / docs patch. |
+| `/memorize` | Reflect on session friction and propose doc patches for future sessions. |
 
 The commands share a single status lifecycle and a single set of conventions for
 the coordination files they read and write. See
