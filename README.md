@@ -162,6 +162,11 @@ is left untouched.
 ## Lifecycle
 
 ```text
+                ┌────────────────┐
+                │   /grillme     │   stress-test a plan or design before committing
+                └───────┬────────┘
+                        │ shared understanding reached
+                        ▼
                    (once per epic, not per story)
                    ┌──────────────┐
                    │  /epic-plan  │   creates agent_coordination/epics/<slug>/MASTER.md
