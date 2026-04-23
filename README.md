@@ -169,16 +169,16 @@ is left untouched.
                           │
                           │ (per story, from here down)
                           ▼
-   /grillme ╌╌╌╌╌▶ ┌───────────────────┐
+   /grillme ╌╌╌╌╌▶  ┌───────────────────┐
    (optional)       │ /epic-story-plan  │   writes story-NN-<slug>.md
    stress-test      │                   │   + MASTER.md row
    the design       └─────────┬─────────┘
                               │
                               ▼
-                ┌─────────────┐  ╌╌ review ╌╌▶  ┌────────────────────────┐
+                ┌─────────────┐  ╌╌ review ╌╌▶  ┌─────────────────────────┐
                 │   ⚪ TODO   │                 │ /epic-story-plan-review │
-                │             │  ◀╌ approve ╌╌  │      (optional)        │
-                └──────┬──────┘                 └──────────┬─────────────┘
+                │             │  ◀╌ approve ╌╌  │      (optional)         │
+                └──────┬──────┘                 └──────────┬──────────────┘
                        │                                   │
                        │ /epic-story-claim            blocked
                        ▼                                   ▼
@@ -192,18 +192,18 @@ is left untouched.
                 └──────┬──────┘
                        │
                        ▼
-              ┌───────────────────┐ ╌╌ request_changes ╌╌▶ /epic-story-resume
+              ┌────────────────────┐ ╌╌ request_changes ╌╌▶ /epic-story-resume
               │ /epic-story-review │ ╌╌ blocked ╌╌▶ (⛔ BLOCKED)
-              └──────┬────────────┘
+              └──────┬─────────────┘
                      │ approve
           ┌──────────┴──────────┐
           │                     │
      no PR stage          /epic-story-pr
           │                     │
           ▼                     ▼
-     ┌─────────┐          ┌─────────┐
-     │ ✅ DONE │          │ 🔵 IN PR│
-     └─────────┘          └────┬────┘
+     ┌─────────┐          ┌──────────┐
+     │ ✅ DONE │          │ 🔵 IN PR │
+     └─────────┘          └────┬─────┘
                                │ merged / changes requested
                                ▼
                          ✅ DONE or /epic-story-resume
