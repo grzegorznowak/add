@@ -49,6 +49,10 @@ transition is a fresh session**:
 The result: each agent run stays small, focused, and verifiable. The
 coordination files accumulate the real state, not the conversation.
 
+The entire system is ten skills and a handful of markdown files — no framework,
+no orchestrator, no configuration to tune. You learn the lifecycle once and the
+commands do the rest.
+
 ## What this gives you
 
 Eight coordinated workflow commands plus two small utilities:
