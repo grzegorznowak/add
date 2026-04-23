@@ -169,14 +169,12 @@ is left untouched.
                           │
                           │ (per story, from here down)
                           ▼
-                ┌────────────────┐
-                │   /grillme     │   stress-test the story's design before planning
-                └───────┬────────┘
-                        │ shared understanding reached
-                        ▼
-                ┌───────────────────┐
-                │ /epic-story-plan  │   writes story-NN-<slug>.md + MASTER.md row
-                └─────────┬─────────┘
+                ┌────────────────┐     ┌───────────────────┐
+                │   /grillme     │────▶│ /epic-story-plan  │
+                │  (optional)    │     │                   │
+                └────────────────┘     └─────────┬─────────┘
+                stress-test the          writes story-NN-<slug>.md
+                story's design           + MASTER.md row
                           │
                           ▼
                 ┌─────────────┐  ╌╌ review ╌╌▶  ┌────────────────────────┐
