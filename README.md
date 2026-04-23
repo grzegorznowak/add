@@ -231,6 +231,17 @@ but carries no implementation detail itself. All the engineering specificity
 lives in the **stories**, which are the atomic units of planned, implemented,
 and reviewed work.
 
+As stories complete, the epic also accumulates a **`CONTRACT.md`** — a merged,
+codebase-verified contract produced by `/epic-squash`. This is what makes the
+approach scale. Without squashing, finished specs pile up and every new session
+has to sift through a growing stack of stale story files to understand what the
+epic actually delivered. Squashing solves this: `/epic-squash` verifies every
+claim in the done stories against the live codebase (not the story text — the
+code is the source of truth), folds the verified facts into one authoritative
+document organized by domain, and archives the originals. The result is a
+single contract that stays current and that future planning sessions can trust
+without re-reading dozens of individual stories.
+
 The commands read and write a small set of files inside
 `agent_coordination/epics/<epic-name>/`:
 
