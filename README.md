@@ -32,6 +32,13 @@ transition is a fresh session**:
   question is not "should we test this?" but "which failing seam do we turn
   green first?"
 
+- **A rigid plan eliminates improvisation.** The story spec is an engineering
+  blueprint, not a suggestion. Implementation has no room to drift because
+  every behavior is pinned to an acceptance ID and a proof seam.
+  `/epic-story-review` scrutinizes the implementation against that blueprint —
+  not against a vague notion of "code quality" — which makes hallucinated or
+  unexpected results immediately visible as contract violations.
+
 The result: each agent run stays small, focused, and verifiable. The
 coordination files accumulate the real state, not the conversation.
 
