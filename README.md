@@ -162,18 +162,18 @@ is left untouched.
 ## Lifecycle
 
 ```text
-                ┌────────────────┐
-                │   /grillme     │   stress-test a plan or design before committing
-                └───────┬────────┘
-                        │ shared understanding reached
-                        ▼
-                   (once per epic, not per story)
+                   (once per epic — the container for related stories)
                    ┌──────────────┐
                    │  /epic-plan  │   creates agent_coordination/epics/<slug>/MASTER.md
                    └──────┬───────┘
                           │
                           │ (per story, from here down)
                           ▼
+                ┌────────────────┐
+                │   /grillme     │   stress-test the story's design before planning
+                └───────┬────────┘
+                        │ shared understanding reached
+                        ▼
                 ┌───────────────────┐
                 │ /epic-story-plan  │   writes story-NN-<slug>.md + MASTER.md row
                 └─────────┬─────────┘
@@ -224,6 +224,12 @@ Two principles govern the workflow:
   written exception before proceeding differently.
 
 ## Conventions
+
+An **epic** is a container — a product-level silo that groups related stories
+around a module, feature area, or initiative. It defines scope and constraints
+but carries no implementation detail itself. All the engineering specificity
+lives in the **stories**, which are the atomic units of planned, implemented,
+and reviewed work.
 
 The commands read and write a small set of files inside
 `agent_coordination/epics/<epic-name>/`:
