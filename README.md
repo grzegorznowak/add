@@ -169,16 +169,16 @@ is left untouched.
                           │
                           │ (per story, from here down)
                           ▼
-   /grillme ╌╌╌╌╌▶  ┌───────────────────┐
-   (optional)       │ /epic-story-plan  │   writes story-NN-<slug>.md
-   stress-test      │                   │   + MASTER.md row
-   the design       └─────────┬─────────┘
-                              │
-                              ▼
-                ┌─────────────┐  ╌╌ review ╌╌▶  ┌─────────────────────────┐
+/grillme ╌╌╌╌╌▶ ┌───────────────────┐
+(optional)      │ /epic-story-plan  │   writes story-NN-<slug>.md
+stress-test     │                   │   + MASTER.md row
+the design      └─────────┬─────────┘
+                          │
+                          ▼
+                ┌─────────────┐  ╌╌ review ╌╌▶  ┌────────────────────────┐
                 │   ⚪ TODO   │                 │ /epic-story-plan-review │
-                │             │  ◀╌ approve ╌╌  │      (optional)         │
-                └──────┬──────┘                 └──────────┬──────────────┘
+                │             │  ◀╌ approve ╌╌  │      (optional)        │
+                └──────┬──────┘                 └──────────┬─────────────┘
                        │                                   │
                        │ /epic-story-claim            blocked
                        ▼                                   ▼
