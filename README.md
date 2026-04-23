@@ -222,13 +222,20 @@ the design      └─────────┬─────────┘
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
 
-Two principles govern the workflow:
+Three principles govern the workflow:
 
 - **Planning is proof-first** — every story needs an acceptance contract and
   proof matrix before it can reach `⚪ TODO`.
 - **Implementation is red-first** — start from the smallest failing seam, turn
   it green, then broaden. If red-first is infeasible, record an explicit
   written exception before proceeding differently.
+- **Tech debt is surfaced, not ignored.** Every skill in the pipeline — from
+  planning through review — runs a Debt Friction check: is the current story
+  being made harder by unclear ownership, duplicated behavior, weak tests, or
+  missing seams? When it is, the friction is recorded with a causal link
+  (action → evidence → impact → decision) and an explicit disposition:
+  `fix-now` for enabling cleanup, `split-story` to spin off a follow-up, or
+  `defer-explicitly` with a reason. No silent accumulation.
 
 ## Conventions
 
