@@ -4,22 +4,53 @@ A personal, pluggable collection of agent skills for managing software work via
 the **epic / story** lifecycle. Authored once, installed into both **Claude
 Code** and **Codex** with one command.
 
+## Why this works
+
+Long agentic sessions drift. The context window fills up, the model starts
+hallucinating file paths, earlier instructions get compressed away, and a
+single bad decision cascades because the agent never gets a clean slate.
+
+`add` sidesteps this by treating the workflow as a **state machine where each
+transition is a fresh session**:
+
+- **File-based state, not memory.** Status lives in `MASTER.md` tracker rows
+  and structured story files — not in conversation history. Any session can
+  pick up where the last one left off by reading the coordination files.
+- **One command, one job, one session.** `/epic-story-plan` only plans.
+  `/epic-story-claim` only implements. `/epic-story-review` only reviews — and
+  explicitly warns against reviewing in the same session that wrote the code,
+  because the same context that produced the work will rationalize it rather
+  than scrutinize it.
+- **Structured handoff between sessions.** Each implementation session writes
+  `## Session Handoff` with what changed, what's left, and the exact next
+  step. The next fresh session reads that instead of inheriting a stale
+  context window.
+- **TDD is a planning constraint, not an implementation afterthought.**
+  `/epic-story-plan` requires a verification proof matrix — mapping every
+  acceptance criterion to a concrete test seam — before the story can leave
+  `⚪ TODO`. By the time `/epic-story-claim` starts writing code, the
+  question is not "should we test this?" but "which failing seam do we turn
+  green first?"
+
+The result: each agent run stays small, focused, and verifiable. The
+coordination files accumulate the real state, not the conversation.
+
 ## What this gives you
 
 Eight coordinated workflow commands plus two small utilities:
 
 | Command | What it does |
 |---|---|
-| `/epic-plan` | Interview-driven bootstrap for a new epic. Produces the `agent_coordination/epics/<slug>/MASTER.md` skeleton after a grillme-style walkthrough. Never overwrites an existing epic. |
-| `/epic-story-plan` | Interview-driven creation of a new `⚪ TODO` story. Writes `story-NN-<slug>.md` and appends the `MASTER.md` tracker row after validating atomic acceptance IDs and the reviewer-facing proof matrix. |
-| `/epic-story-plan-review` | Read-only review of a `⚪ TODO` story's plan against the live repo, with explicit scrutiny of acceptance quality, proof-matrix completeness, and proof-seam realism before `/epic-story-claim`. Records the verdict into the coordination file. |
-| `/epic-story-claim` | Pick one ready, unclaimed story from an epic, claim it, inspect sources, start from the smallest focused red seam, execute it end-to-end, and leave a clean handoff for the next session. |
-| `/epic-story-resume` | Resume one already-in-progress story, or one whose PR has requested changes, using the same red-first default or an explicit written exception. |
-| `/epic-story-review` | Read-only review of one story's implementation against its spec, including whether the red-first path or explicit written exception was recorded correctly. Records the verdict back into the coordination file. |
-| `/epic-story-pr` | Optional `IN REVIEW` -> `IN PR` transition. Opens or attaches a GitHub PR with a product-focused body, not an implementation diary. |
-| `/epic-squash` | Fold every `DONE` story of an epic into its merged `CONTRACT.md`, verifying claims against the codebase, then archive the stories. Supports bootstrap mode for first-time consolidation. |
-| `/grillme` | Get the agent to interview you relentlessly about a plan or design until shared understanding is reached. |
-| `/memorize` *(Codex only)* | Capture session knowledge into a proposed AGENTS.md / docs patch. |
+| `/epic-plan` | Bootstrap a new epic via guided interview. Produces `MASTER.md`. |
+| `/epic-story-plan` | Plan and publish a new `⚪ TODO` story with acceptance criteria and proof matrix. |
+| `/epic-story-plan-review` | Review a `⚪ TODO` story's plan against the live repo before claiming. |
+| `/epic-story-claim` | Claim an unclaimed story, find the smallest failing seam, and execute red-first. |
+| `/epic-story-resume` | Resume an in-progress story or one with requested PR changes. |
+| `/epic-story-review` | Review a story's implementation against its spec. Records the verdict. |
+| `/epic-story-pr` | Open or attach a GitHub PR with a product-focused body. |
+| `/epic-squash` | Merge all `DONE` stories into `CONTRACT.md` and archive them. |
+| `/grillme` | Relentless interview about a plan or design until shared understanding. |
+| `/memorize` *(Codex only)* | Capture session knowledge into an AGENTS.md / docs patch. |
 
 The commands share a single status lifecycle and a single set of conventions for
 the coordination files they read and write. See
@@ -30,8 +61,8 @@ the coordination files they read and write. See
 
 There are two installation paths, and they coexist cleanly:
 
-1. **Claude Code plugin** — for users who only want the Claude side and prefer
-   the first-party `/plugin` flow. See [Plugin install](#plugin-install-claude-code-only).
+1. **Claude Code plugin** — for users who only want the Claude side, via the
+   marketplace or `--plugin-dir`. See [Plugin install](#plugin-install-claude-code-only).
 2. **Paired installer** — the custom shell script in this repo. Installs both
    the Claude skills and the Codex skills in one pass, user-level or
    project-level. Required if you want the Codex side.
@@ -81,14 +112,27 @@ Flags:
 ### Plugin Install (Claude Code Only)
 
 If you only use Claude Code and do not need the Codex side, install via the
-first-party plugin flow. The repo ships a minimal `.claude-plugin/plugin.json`
-manifest plus a `skills/` symlink pointing at `claude/skills/`.
+plugin marketplace. The repo ships `.claude-plugin/plugin.json` and a
+`marketplace.json` manifest.
 
 ```bash
-/plugin install grzegorznowak/add@github
+# 1. Register the marketplace (once)
+/plugin marketplace add grzegorznowak/add
+
+# 2. Install the plugin
+/plugin install add@grzegorznowak-add
 ```
 
-The Codex skills are not installed by the plugin path. Use
+Alternatively, clone and point Claude at the repo directly:
+
+```bash
+git clone https://github.com/grzegorznowak/add.git ~/.local/share/add
+claude --plugin-dir ~/.local/share/add
+```
+
+The `--plugin-dir` flag loads skills for the current session only.
+
+The Codex skills are not installed by either plugin path. Use
 `scripts/install.sh --agents codex` if you want to add the Codex side later.
 
 ## Updating
@@ -159,13 +203,13 @@ is left untouched.
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
 
-Planning is proof-first; implementation is red-first. Before a story reaches
-`⚪ TODO`, `/epic-story-plan` must create an implementation-ready `Acceptance`
-contract plus `Verification` proof matrix. Then `/epic-story-claim` or
-`/epic-story-resume` inspects the real code and tests, chooses the smallest
-focused failing seam, turns it green, and only then broadens verification. If
-red-first is infeasible, the session records an explicit written exception
-before proceeding differently.
+Two principles govern the workflow:
+
+- **Planning is proof-first** — every story needs an acceptance contract and
+  proof matrix before it can reach `⚪ TODO`.
+- **Implementation is red-first** — start from the smallest failing seam, turn
+  it green, then broaden. If red-first is infeasible, record an explicit
+  written exception before proceeding differently.
 
 ## Conventions
 
