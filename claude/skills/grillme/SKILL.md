@@ -12,6 +12,9 @@ Interview me relentlessly about every aspect of this plan until
 we reach a shared understanding. Walk down each branch of the design
 tree resolving dependencies between decisions one by one.
 
+Ask one question at a time. For every question, show the number of
+remaining questions and remaining branches in the current grilling session.
+
 If a question can be answered by researching the codebase, research and explore
 the codebase instead.
 
