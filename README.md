@@ -174,59 +174,77 @@ is left untouched.
 ## Lifecycle
 
 ```text
-                   (once per epic — the container for related stories)
-                   ┌──────────────┐
-                   │  /epic-plan  │   creates agent_coordination/epics/<slug>/MASTER.md
-                   └──────┬───────┘
-                          │
-                          │ (per story, from here down)
-                          ▼
-/grillme ╌╌╌╌╌▶ ┌───────────────────┐
-(optional)      │ /epic-story-plan  │   writes story-NN-<slug>.md
-stress-test     │                   │   + MASTER.md row
-the design      └─────────┬─────────┘
-                          │
-                          ▼
-                ┌─────────────┐  ╌╌ review ╌╌▶  ┌────────────────────────┐
-                │   ⚪ TODO   │                 │ /epic-story-plan-review │
-                │             │  ◀╌ approve ╌╌  │      (optional)        │
-                └──────┬──────┘                 └──────────┬─────────────┘
-                       │                                   │
-                       │ /epic-story-claim            blocked
-                       ▼                                   ▼
-                ┌─────────────┐◀── /epic-story-resume  (⛔ BLOCKED)
-                │ 🔄 IN PROG  │
-                └──────┬──────┘
-                       │ implementation done
-                       ▼
-                ┌─────────────┐
-                │ 🟣 IN REV   │
-                └──────┬──────┘
-                       │
-                       ▼
-              ┌────────────────────┐ ╌╌ request_changes ╌╌▶ /epic-story-resume
-              │ /epic-story-review │ ╌╌ blocked ╌╌▶ (⛔ BLOCKED)
-              └──────┬─────────────┘
-                     │ approve
-          ┌──────────┴──────────┐
-          │                     │
-     no PR stage          /epic-story-pr
-          │                     │
-          ▼                     ▼
-     ┌─────────┐          ┌──────────┐
-     │ ✅ DONE │──late──▶ │ 🔵 IN PR │
-     └─────────┘  PR      └────┬─────┘
-                               │ merged / changes requested
-                               ▼
-                         ✅ DONE or /epic-story-resume
+Story planning and implementation
 
-              (epic-level check-in; no story status transition)
-       CONTRACT.md + non-archived ✅ DONE stories
-                               │
-                               ▼
-                         ┌──────────┐
-                         │ /epic-pr │──▶ GitHub PR + MASTER.md Epic PR Tracking
-                         └──────────┘
+                    (once per epic — the container for related stories)
+                    ┌──────────────┐
+                    │  /epic-plan  │   creates agent_coordination/epics/<slug>/MASTER.md
+                    └──────┬───────┘
+                           │
+                           │ (per story, from here down)
+                           ▼
+ /grillme ╌╌╌╌╌▶ ┌───────────────────┐
+ (optional)      │ /epic-story-plan  │   writes story-NN-<slug>.md
+ stress-test     │                   │   + MASTER.md row
+ the design      └─────────┬─────────┘
+                           │
+                           ▼
+                 ┌─────────────┐  ╌╌ review ╌╌▶  ┌────────────────────────┐
+                 │   ⚪ TODO   │                 │ /epic-story-plan-review │
+                 │             │  ◀╌ approve ╌╌  │      (optional)        │
+                 └──────┬──────┘                 └──────────┬─────────────┘
+                        │                                   │
+                        │ /epic-story-claim            blocked
+                        ▼                                   ▼
+                 ┌─────────────┐                     (⛔ BLOCKED)
+                 │ 🔄 IN PROG  │                     operator fix; rerun appropriate skill
+                 └──────┬──────┘
+                        │ implementation done
+                        ▼
+                 ┌─────────────┐
+                 │ 🟣 IN REV   │
+                 └──────┬──────┘
+                        │
+                        ▼
+               ┌────────────────────┐ ╌╌ request_changes ╌╌▶ /epic-story-resume
+               │ /epic-story-review │
+               └──────┬─────────────┘ ╌╌ blocked ╌╌▶ (⛔ BLOCKED)
+                      │                         operator fix; rerun appropriate skill
+                      │ approve
+           ┌──────────┴──────────┐
+           │                     │
+      no PR stage          /epic-story-pr
+           │                     │
+           ▼                     ▼
+      ┌─────────┐          ┌──────────┐
+      │ ✅ DONE │          │ 🔵 IN PR │
+      └────┬────┘          └────┬─────┘
+           │                    ├── merged ───────────────▶ ✅ DONE
+           │                    └── changes requested ────▶ /epic-story-resume
+           │
+           │ explicit late /epic-story-pr on non-archived DONE story
+           ├── unmerged PR opened/attached ───────────────▶ 🔵 IN PR
+           └── already-merged PR attached ────────────────▶ ✅ DONE
+
+Epic aggregation and PR publication (no story status transition)
+
+      archived/squashed DONE scope ──represented by──▶ CONTRACT.md
+                                                        │
+                                                        │
+      current non-archived ✅ DONE stories ─────────────┼──▶ ┌──────────┐
+                         │                              │    │ /epic-pr │
+                         └── /epic-squash ──────────────┘    └────┬─────┘
+                                                                  ├── no blocking gaps/conflicts
+                                                                  │
+                                                                  ▼
+                                             GitHub PR + MASTER.md Epic PR Tracking
+
+                                                                  └── gaps/conflicts
+                                                                            │
+                                                                            ▼
+                                                                  operator-led repair loop
+                                                                            │
+                                                                            └── resolved ──▶ /epic-pr
 ```
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
