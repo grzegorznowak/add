@@ -32,6 +32,11 @@ live. There is exactly one `MASTER.md` per epic.
 4. **Story tracker** — a Markdown table. This is the only section the
    commands actually parse for status changes.
 
+Optional epic-level operational sections may follow the tracker. The current
+standard ones are `## Feedback Absorption Log`,
+`## Feedback-Derived Story Candidates`, `## Feedback-Derived Decisions`, and
+`## Epic PR Tracking`.
+
 ### Story tracker table
 
 The minimum required columns are `Step | Status | Spec`. Most epics also
@@ -59,6 +64,63 @@ Rules:
   commands match on the leading emoji.
 - The `Depends` cell is comma-separated story numbers. Cross-epic
   dependencies use `<epic> <number>` (e.g. `core 06`).
+
+### Feedback absorption sections
+
+`/epic-feedback` owns these sections in `MASTER.md`. They are epic-scoped
+because a single PR review or CURe feedback block can route to several stories.
+
+#### `## Feedback Absorption Log`
+
+Canonical append-only index of feedback sources and where each item went. This
+log is a receipt, not the durable story contract. When feedback changes an
+existing story, the story body is edited and this log records why.
+
+```md
+## Feedback Absorption Log
+
+| ID | Source Type | Source ID | Source URL | Created | Updated | Disposition | Target | Changed | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| FB-001 | github_pr_review_comment | PRRC_... | https://github.com/org/repo/pull/42#discussion_r123 | 2026-04-28T10:40:00Z | 2026-04-28T11:05:00Z | resume-current-story | story-05 | Review Log | absorbed |
+```
+
+`Source ID` is the idempotency key for PR pointer mode. `/epic-feedback --pr
+<url> --latest` skips sources already listed here.
+
+#### `## Feedback-Derived Story Candidates`
+
+Holding area for feedback that should become future work but has not yet been
+planned into a full story. `/epic-feedback` may append candidates here;
+`/epic-story-plan` remains the only command that creates real story files.
+
+```md
+## Feedback-Derived Story Candidates
+
+### FB-002 - Failed import audit logging
+- Source: https://github.com/org/repo/pull/42#issuecomment-987
+- Origin: story-03
+- Reason: Adds a new auditability outcome outside story-03's acceptance boundary.
+- Proposed story: Failed imports emit operator-visible audit entries.
+- Acceptance sketch:
+  - Failed imports record actor, timestamp, file identifier, and failure reason.
+- Recommended next command: `/epic-story-plan EPIC="<epic>"` and reference `FB-002` during the interview
+```
+
+#### `## Feedback-Derived Decisions`
+
+Epic-level decision notes created from feedback when the feedback changes a
+cross-story rule, architectural policy, or delivery constraint rather than one
+story's acceptance contract.
+
+```md
+## Feedback-Derived Decisions
+
+### FB-003 - Import errors use operator-facing wording
+- Source: https://github.com/org/repo/pull/42#discussion_r456
+- Decision: Import validation errors must be phrased for operators, not parser authors.
+- Rationale: The rule affects several import stories and should not be duplicated in each story.
+- Applies to: story-03, story-07, future import stories
+```
 
 ## Story files (`story-NN-<slug>.md`)
 
@@ -376,8 +438,11 @@ entries over a story's lifetime; only the most recent one is authoritative.
 
 #### `## Review Log`
 
-Append-only entries written by `/epic-story-review`. This is the canonical
-write-back schema for implementation review logs.
+Append-only entries written by `/epic-story-review`. `/epic-feedback` may also
+append this same schema when absorbing PR/CURe feedback that is specifically an
+implementation-review finding for one story and should drive immediate
+resume/rework. This is the canonical write-back schema for implementation
+review logs.
 
 ```md
 ## Review Log
@@ -414,6 +479,17 @@ revision history.
     - <short bullet>
   - Debt Friction: none | <decision + short title>
   - Next action: <one concrete recommendation — typically "/epic-story-claim <epic>" or "edit <sections> and re-run">
+```
+
+#### `## Feedback Absorption Log` (story-local receipt)
+
+Optional tiny receipt written by `/epic-feedback` when it edits the story body.
+The epic-level `MASTER.md` log is canonical; the story-local receipt only helps
+future readers understand why nearby story sections changed.
+
+```md
+## Feedback Absorption Log
+- FB-001: amended `Acceptance` and `Verification` from PR #42 review comment. See epic log.
 ```
 
 #### `## PR Tracking`
@@ -511,9 +587,9 @@ epic/story arguments. Two strategies exist:
   running work (`/epic-story-claim`, `/epic-story-resume`, `/epic-story-pr`, `/epic-pr`, `/epic-squash`).
   These operate on whatever is already active; guessing the context is
   the whole point.
-- **Operator-explicit (arg or menu)** — for commands that *create* or
-  *review* (`/epic-plan`, `/epic-story-plan`, `/epic-story-review`,
-  `/epic-story-plan-review`). These never auto-infer. The
+- **Operator-explicit (arg or menu)** — for commands that *create*, *review*,
+  or route feedback (`/epic-plan`, `/epic-story-plan`, `/epic-story-review`,
+  `/epic-story-plan-review`, `/epic-feedback`). These never auto-infer. The
   operator must make the decision — either by passing the arg or by
   picking from a filtered menu the skill shows when the arg is absent.
   The menu lists only legal candidates (filtered to each command's
@@ -526,6 +602,7 @@ epic/story arguments. Two strategies exist:
 | `/epic-story-plan` | operator-explicit (arg or menu) | any epic with a `MASTER.md` | EPIC menu lists all epics under `agent_coordination/epics/`. Creates one TODO story after checkpoint confirmation. |
 | `/epic-story-review` | operator-explicit (arg or menu) | `🟣 IN REVIEW` | Review must come from a fresh, independent perspective. The menu lists only stories at `🟣 IN REVIEW`. |
 | `/epic-story-plan-review` | operator-explicit (arg or menu) | `⚪ TODO` | Plan review must come from a fresh, independent perspective. The menu lists only stories at `⚪ TODO`. |
+| `/epic-feedback` | operator-explicit (arg or menu) | any epic with `MASTER.md` | Epic-scoped feedback routing. PR mode can select the latest unabsorbed PR comment, review body, or inline review comment. Never transitions story statuses. |
 | `/epic-story-claim` | auto-inferred (running context) | `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference. |
 | `/epic-story-resume` | auto-inferred (running context) | `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
 | `/epic-story-pr` | auto-inferred (running context); explicit story required for DONE injection | `🟣 IN REVIEW`, `🔵 IN PR`, explicit non-archived `✅ DONE` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode. For explicit `✅ DONE` stories, `OPEN=true` is implicit after existing PR detection fails. |
@@ -574,7 +651,7 @@ epic/story arguments. Two strategies exist:
 
 - Rename or renumber existing stories
 - Delete `Progress Log`, `Active Claim`, `Session Handoff`, `Review Log`,
-  or `Plan Review Log` entries
+  `Plan Review Log`, or `Feedback Absorption Log` entries
 - Touch product code from `/epic-story-pr` or `/epic-squash` (except optional
   per-fix approval in `/epic-squash` Phase 6, and the optional `gh pr
   create` call in `/epic-story-pr` or `/epic-pr` open mode)
@@ -584,6 +661,9 @@ epic/story arguments. Two strategies exist:
 - Read archived story files from `/epic-pr`; archived scope is represented by
   `CONTRACT.md`
 - Transition story statuses from `/epic-pr`
+- Transition story statuses from `/epic-feedback`
+- Create full story files from `/epic-feedback`; feedback-derived future work
+  must remain a candidate until `/epic-story-plan` turns it into a story
 - Archive a `🔵 IN PR` story
 - Auto-infer arguments for any command in the "operator-explicit (arg or
   menu)" rows of the Argument resolution rules table. The menu pattern

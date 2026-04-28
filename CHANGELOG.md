@@ -6,6 +6,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- `epic-feedback` absorbs CURe, PR, or reviewer feedback into an epic-scoped
+  routing log, story contract edits, implementation review findings, story
+  candidates, or epic-level notes.
 - `epic-pr` opens or refreshes an epic-level GitHub PR from `CONTRACT.md`
   plus current non-archived DONE stories, with a lightweight epic check-in
   before publishing.

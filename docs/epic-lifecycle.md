@@ -48,6 +48,29 @@ statuses and exited back to whichever was correct when work resumes.
 
 ## State diagram
 
+`/epic-feedback` is a side input to the state machine, not a status
+transition. It routes feedback into the epic absorption log, story-body
+refinements, story candidates, epic-level decisions, or a story `Review Log`
+entry that can drive `/epic-story-resume`.
+
+```
+        PR / CURe / reviewer feedback
+                    │
+                    │ /epic-feedback
+                    ▼
+        ┌───────────────────────────┐
+        │ Feedback Absorption Log   │
+        └──────┬────────┬───────────┘
+               │        ├─ future work -> /epic-story-plan
+               │        └─ epic decision notes
+               │
+               ├─ story contract refinement
+               │      (no status transition)
+               │
+               └─ implementation review finding
+                      -> Review Log -> /epic-story-resume
+```
+
 ```
                          ┌─────────────┐  ◀─── /epic-story-plan-review (optional, logs verdict)
                          │   ⚪ TODO   │
@@ -117,6 +140,13 @@ is already `✅ DONE` and folds their contract terms into the merged
 epic-level PR from `CONTRACT.md` plus current non-archived `✅ DONE` stories,
 writes only epic-level `## Epic PR Tracking` in `MASTER.md`, and never
 transitions story rows.
+
+`/epic-feedback` is also outside the story status state machine. It absorbs
+CURe, PR, or reviewer feedback into epic/story coordination docs, writes the
+epic-level `## Feedback Absorption Log`, may refine non-archived story
+contract sections, and may append implementation-review findings to a story's
+`## Review Log`. It never creates full story files and never transitions story
+rows.
 
 ## Rules of thumb
 

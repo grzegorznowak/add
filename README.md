@@ -49,13 +49,13 @@ transition is a fresh session**:
 The result: each agent run stays small, focused, and verifiable. The
 coordination files accumulate the real state, not the conversation.
 
-The entire system is eleven skills and a handful of markdown files — no framework,
+The entire system is twelve skills and a handful of markdown files — no framework,
 no orchestrator, no configuration to tune. You learn the lifecycle once and the
 commands do the rest.
 
 ## What this gives you
 
-Nine coordinated workflow commands plus two small utilities:
+Ten coordinated workflow commands plus two small utilities:
 
 | Command | What it does |
 |---|---|
@@ -66,6 +66,7 @@ Nine coordinated workflow commands plus two small utilities:
 | `/epic-story-resume` | Resume an in-progress story or one with requested PR changes. |
 | `/epic-story-review` | Review a story's implementation against its spec. Records the verdict. |
 | `/epic-story-pr` | Open or attach a GitHub PR with a product-focused body. |
+| `/epic-feedback` | Absorb CURe, PR, or reviewer feedback into story edits, review rework, story candidates, or epic notes. |
 | `/epic-pr` | Open or refresh an epic-level GitHub PR from the contract and current DONE stories. |
 | `/epic-squash` | Merge all `DONE` stories into `CONTRACT.md` and archive them. |
 | `/grillme` | Relentless interview about a plan or design until shared understanding. |
@@ -178,8 +179,8 @@ views. In both diagrams, `[/<skill>]` labels a runnable skill command.
 
 ### Epic Artifact Lifecycle
 
-This view shows coordination artifacts: planning, story publication, squashing,
-and epic-level PR creation.
+This view shows coordination artifacts: planning, story publication, feedback
+absorption, squashing, and epic-level PR creation.
 
 ```text
               ┌────────────────────┐
@@ -226,6 +227,33 @@ and epic-level PR creation.
        └────────────────────┘
 
 [/epic-pr] blocks on gaps/conflicts; repair, then rerun [/epic-pr].
+```
+
+Feedback is a side flow into the same epic/story coordination files:
+
+```text
+        PR / CURe / reviewer feedback
+                    │
+                    │ [/epic-feedback]
+                    ▼
+        ┌───────────────────────────┐
+        │ MASTER.md                 │
+        │ Feedback Absorption Log   │
+        └──────┬────────┬───────────┘
+               │        │
+               │        ├─ new future work
+               │        │      -> Feedback-Derived Story Candidates
+               │        │      -> [/epic-story-plan]
+               │        │
+               │        └─ epic-level decision
+               │               -> Feedback-Derived Decisions
+               │
+               ├─ existing story refinement
+               │      -> story body + tiny story receipt
+               │
+               └─ implementation rework
+                      -> story Review Log
+                      -> [/epic-story-resume]
 ```
 
 ### Story State Lifecycle
@@ -276,6 +304,10 @@ This view shows the status machine for each story row.
 
 Planning helper: `[/grillme]` can stress-test a plan or design before an epic,
 between stories, or whenever the operator wants a sharper interview.
+
+Feedback helper: `[/epic-feedback]` can absorb the latest unprocessed PR review
+comment, a CURe feedback block, or pasted reviewer notes into the epic without
+turning that feedback into unstructured story text.
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
 
