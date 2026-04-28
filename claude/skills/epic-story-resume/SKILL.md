@@ -97,7 +97,7 @@ After reading the story file's `## Active Claim`, build `<project_root_map>` for
 
 7. **Per-repo decision**. Initialize `<project_root_map>` = `{}` and `<pending_prompt>` = `[]`. For each `<target_repo>` in `<target_repos>`, iterating in sorted order by basename:
    - `<repo-basename>` = `basename <target_repo>`.
-   - `<default-path>` = `/tmp/add-worktrees/<repo-basename>-<epic-name>-<story-slug>`.
+   - `<default-path>` = `$HOME/add-worktrees/<repo-basename>-<epic-name>-<story-slug>`.
 
    Branch on the four cases:
 

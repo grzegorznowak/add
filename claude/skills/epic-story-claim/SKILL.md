@@ -81,7 +81,7 @@ After picking a step but before writing any claim, figure out which repos the st
 6. **Per-repo dirty check and decision**. Initialize `<project_root_map>` = `{}` and `<pending_prompt>` = `[]`. For each `<target_repo>` in `<target_repos>`, iterating in sorted order by basename for determinism:
    - `<repo-basename>` = `basename <target_repo>`.
    - `<dirty>` = `git -C <target_repo> status --porcelain` output non-empty.
-   - `<default-path>` = `/tmp/add-worktrees/<repo-basename>-<epic-name>-<story-slug>`.
+   - `<default-path>` = `$HOME/add-worktrees/<repo-basename>-<epic-name>-<story-slug>`.
    - If `<explicit_worktree_map>[<repo-basename>]` is set: mark for creation with `<wt-path>` = that path, regardless of dirtiness.
    - Else if `<dirty>`: append `(<repo-basename>, <target_repo>, <default-path>, <porcelain output>)` to `<pending_prompt>` — decision deferred to the batched prompt in step 7.
    - Else (clean, no override): `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree). Done for this repo.
