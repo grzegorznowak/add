@@ -13,6 +13,10 @@ remaining questions and remaining branches in the current grilling session.
 If a question can be answered by exploring the codebase, explore
 the codebase instead.
 
-For each question, provide your recommended answer. Include a brief
-plain-language explanation of the trade-off, and — when it helps ground
-the choice — a concrete example, short snippet, or small ASCII diagram.
+For each question, provide your recommended answer and a brief
+plain-language explanation of the trade-off. Only add [easiest] or
+[already there] when those labels are already known from existing context;
+do not infer or research them. Otherwise omit the labels by default and
+add "type 'research' to find out which option is [easiest] or [already
+there]." When it helps ground the choice, include a concrete example,
+short snippet, or small ASCII diagram.
