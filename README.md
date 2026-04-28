@@ -175,29 +175,30 @@ is left untouched.
 
 ```text
 Story planning and implementation
+Legend: [/<skill>] = runnable skill command
 
                     (once per epic — the container for related stories)
                     ┌──────────────┐
-                    │  /epic-plan  │   creates agent_coordination/epics/<slug>/MASTER.md
+                    │ [/epic-plan] │   creates epic MASTER.md
                     └──────┬───────┘
                            │
                            │ (per story, from here down)
                            ▼
- /grillme ╌╌╌╌╌▶ ┌───────────────────┐
- (optional)      │ /epic-story-plan  │   writes story-NN-<slug>.md
- stress-test     │                   │   + MASTER.md row
- the design      └─────────┬─────────┘
+ [/grillme] ╌▶ ┌─────────────────────┐
+ (optional)    │ [/epic-story-plan]  │   writes story file
+ stress-test   │                     │   + MASTER.md row
+ the design    └──────────┬──────────┘
                            │
                            ▼
-                 ┌─────────────┐  ╌╌ review ╌╌▶  ┌────────────────────────┐
-                 │   ⚪ TODO   │                 │ /epic-story-plan-review │
-                 │             │  ◀╌ approve ╌╌  │      (optional)        │
-                 └──────┬──────┘                 └──────────┬─────────────┘
-                        │                                   │
-                        │ /epic-story-claim            blocked
-                        ▼                                   ▼
+                ┌─────────────┐
+                │   ⚪ TODO   │
+                └──────┬──────┘
+                       │ optional review: [/epic-story-plan-review]
+                       │ approve -> continue; blocked -> (⛔ BLOCKED)
+                       │ [/epic-story-claim]
+                       ▼
                  ┌─────────────┐                     (⛔ BLOCKED)
-                 │ 🔄 IN PROG  │                     operator fix; rerun appropriate skill
+                 │ 🔄 IN PROG  │                     fix, then rerun skill
                  └──────┬──────┘
                         │ implementation done
                         ▼
@@ -206,37 +207,41 @@ Story planning and implementation
                  └──────┬──────┘
                         │
                         ▼
-               ┌────────────────────┐ ╌╌ request_changes ╌╌▶ /epic-story-resume
-               │ /epic-story-review │
-               └──────┬─────────────┘ ╌╌ blocked ╌╌▶ (⛔ BLOCKED)
-                      │                         operator fix; rerun appropriate skill
-                      │ approve
-           ┌──────────┴──────────┐
-           │                     │
-      no PR stage          /epic-story-pr
-           │                     │
+               ┌───────────────────────┐
+               │ [/epic-story-review] │
+               └──────┬────────────────┘
+                      ├── request changes -> [/epic-story-resume]
+                      ├── blocked -> (⛔ BLOCKED)
+                      │      operator fix; rerun appropriate skill
+                      └── approve
+           ┌──────────┴──────────────┐
+           │                         │
+      no PR stage              [/epic-story-pr]
+           │                         │
            ▼                     ▼
       ┌─────────┐          ┌──────────┐
       │ ✅ DONE │          │ 🔵 IN PR │
       └────┬────┘          └────┬─────┘
-           │                    ├── merged ───────────────▶ ✅ DONE
-           │                    └── changes requested ────▶ /epic-story-resume
+           │                    ├── merged -> ✅ DONE
+           │                    └── changes requested
+           │                        -> [/epic-story-resume]
            │
-           │ explicit late /epic-story-pr on non-archived DONE story
-           ├── unmerged PR opened/attached ───────────────▶ 🔵 IN PR
-           └── already-merged PR attached ────────────────▶ ✅ DONE
+           │ explicit late [/epic-story-pr]
+           │ on non-archived DONE story
+           ├── unmerged PR opened/attached -> 🔵 IN PR
+           └── already-merged PR attached -> ✅ DONE
 
 Epic aggregation and PR publication (no story status transition)
 
       CONTRACT.md = archived/squashed DONE scope
 
-      /epic-squash
+      [/epic-squash]
         current non-archived ✅ DONE stories -> CONTRACT.md
 
-      /epic-pr
+      [/epic-pr]
         CONTRACT.md + current non-archived ✅ DONE stories
         -> GitHub PR + MASTER.md Epic PR Tracking
-        (blocks on gaps/conflicts; repair, then rerun /epic-pr)
+        (blocks on gaps/conflicts; repair, then rerun [/epic-pr])
 ```
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
