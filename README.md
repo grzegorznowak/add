@@ -219,6 +219,14 @@ the design      └─────────┬─────────┘
                                │ merged / changes requested
                                ▼
                          ✅ DONE or /epic-story-resume
+
+              (epic-level check-in; no story status transition)
+       CONTRACT.md + non-archived ✅ DONE stories
+                               │
+                               ▼
+                         ┌──────────┐
+                         │ /epic-pr │──▶ GitHub PR + MASTER.md Epic PR Tracking
+                         └──────────┘
 ```
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
