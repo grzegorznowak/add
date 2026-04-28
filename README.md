@@ -173,10 +173,15 @@ is left untouched.
 
 ## Lifecycle
 
-```text
-Epic artifact lifecycle
-Legend: [/<skill>] = command on a transition
+The epic artifact flow and the per-story status state machine are separate
+views. In both diagrams, `[/<skill>]` labels a runnable skill command.
 
+### Epic Artifact Lifecycle
+
+This view shows coordination artifacts: planning, story publication, squashing,
+and epic-level PR creation.
+
+```text
               ┌────────────────────┐
               │ no epic files yet  │
               └─────────┬──────────┘
@@ -192,7 +197,7 @@ Legend: [/<skill>] = command on a transition
               │ story files        │
               │ + MASTER.md rows   │
               └─────────┬──────────┘
-                        │ story lifecycle below
+                        │ completed story work
                         ▼
               ┌────────────────────┐
               │ current ✅ DONE    │
@@ -221,9 +226,13 @@ Legend: [/<skill>] = command on a transition
        └────────────────────┘
 
 [/epic-pr] blocks on gaps/conflicts; repair, then rerun [/epic-pr].
+```
 
-Story state lifecycle
+### Story State Lifecycle
 
+This view shows the status machine for each story row.
+
+```text
                  ┌─────────────┐
                  │   ⚪ TODO   │
                  └──────┬──────┘
@@ -263,11 +272,10 @@ Story state lifecycle
                  entered by [/epic-story-claim],
                  [/epic-story-plan-review], or [/epic-story-review];
                  fix the issue, then rerun the appropriate skill.
-
-Planning helper
-
-  [/grillme] -> optional plan/design stress-test before or between stories
 ```
+
+Planning helper: `[/grillme]` can stress-test a plan or design before an epic,
+between stories, or whenever the operator wants a sharper interview.
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
 
