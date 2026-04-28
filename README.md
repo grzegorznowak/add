@@ -174,8 +174,55 @@ is left untouched.
 ## Lifecycle
 
 ```text
-Story state lifecycle
+Epic artifact lifecycle
 Legend: [/<skill>] = command on a transition
+
+              ┌────────────────────┐
+              │ no epic files yet  │
+              └─────────┬──────────┘
+                        │ [/epic-plan]
+                        ▼
+              ┌────────────────────┐
+              │ MASTER.md          │
+              │ epic coordination  │
+              └─────────┬──────────┘
+                        │ [/epic-story-plan]
+                        ▼
+              ┌────────────────────┐
+              │ story files        │
+              │ + MASTER.md rows   │
+              └─────────┬──────────┘
+                        │ story lifecycle below
+                        ▼
+              ┌────────────────────┐
+              │ current ✅ DONE    │
+              │ non-archived scope │
+              └────┬─────────┬─────┘
+                   │         │
+       [/epic-squash]        │ included by [/epic-pr]
+                   │         │
+                   ▼         │
+       ┌────────────────┐    │
+       │ CONTRACT.md    │    │
+       │ + archive/     │    │
+       └────────┬───────┘    │
+                │            │
+                └────┬───────┘
+                     ▼
+       ┌────────────────────┐
+       │ reviewable scope   │
+       │ contract + current │
+       └────────┬───────────┘
+                │ [/epic-pr]
+                ▼
+       ┌────────────────────┐
+       │ GitHub PR          │
+       │ + Epic PR Tracking │
+       └────────────────────┘
+
+[/epic-pr] blocks on gaps/conflicts; repair, then rerun [/epic-pr].
+
+Story state lifecycle
 
                  ┌─────────────┐
                  │   ⚪ TODO   │
@@ -217,19 +264,9 @@ Legend: [/<skill>] = command on a transition
                  [/epic-story-plan-review], or [/epic-story-review];
                  fix the issue, then rerun the appropriate skill.
 
-Setup and aggregation commands
+Planning helper
 
-  [/epic-plan]       -> epic MASTER.md
-  [/grillme]         -> optional plan/design stress-test
-  [/epic-story-plan] -> story file + MASTER.md row
-
-  [/epic-squash]
-    current non-archived ✅ DONE stories -> CONTRACT.md
-
-  [/epic-pr]
-    CONTRACT.md + current non-archived ✅ DONE stories
-    -> GitHub PR + MASTER.md Epic PR Tracking
-    blocks on gaps/conflicts; repair, then rerun [/epic-pr]
+  [/grillme] -> optional plan/design stress-test before or between stories
 ```
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
