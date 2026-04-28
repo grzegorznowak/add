@@ -491,7 +491,7 @@ epic/story arguments. Two strategies exist:
 | `/epic-story-plan-review` | operator-explicit (arg or menu) | `⚪ TODO` | Plan review must come from a fresh, independent perspective. The menu lists only stories at `⚪ TODO`. |
 | `/epic-story-claim` | auto-inferred (running context) | `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference. |
 | `/epic-story-resume` | auto-inferred (running context) | `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
-| `/epic-story-pr` | auto-inferred (running context) | `🟣 IN REVIEW`, `🔵 IN PR` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode after operator confirmation. |
+| `/epic-story-pr` | auto-inferred (running context); explicit story required for DONE injection | `🟣 IN REVIEW`, `🔵 IN PR`, explicit non-archived `✅ DONE` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode. For explicit `✅ DONE` stories, `OPEN=true` is implicit after existing PR detection fails. |
 | `/epic-squash` | auto-inferred (running context) | `✅ DONE` | The "story" axis doesn't apply — the command consumes every done story in one pass. |
 
 **Rules for the "auto-inferred" rows**:
@@ -504,6 +504,8 @@ epic/story arguments. Two strategies exist:
    eligible-status filter qualify. Exactly one eligible row → infer it.
    Zero or many → abort with a specific message that names the next
    concrete action (e.g. "story X is in progress; run `/epic-story-review` first").
+   `/epic-story-pr` never silently infers a `✅ DONE` row; late PR injection
+   from local DONE requires the story to be explicit and non-archived.
 3. **Explicit args always win**: passing `EPIC=...` / `STORY=...` (Codex)
    or the equivalent positional args (Claude) skips the corresponding
    inference pass entirely. Inference can never override explicit values.
@@ -539,6 +541,8 @@ epic/story arguments. Two strategies exist:
   per-fix approval in `/epic-squash` Phase 6, and the optional `gh pr
   create` call in `/epic-story-pr` open mode)
 - Mark a story `✅ DONE` while its PR is open
+- Leave a local-DONE story as `✅ DONE` after `/epic-story-pr` successfully
+  opens or attaches an unmerged PR
 - Archive a `🔵 IN PR` story
 - Auto-infer arguments for any command in the "operator-explicit (arg or
   menu)" rows of the Argument resolution rules table. The menu pattern

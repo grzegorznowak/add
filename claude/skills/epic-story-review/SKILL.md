@@ -192,6 +192,7 @@ You may update `MASTER.md` as part of the review. Use this policy:
 - if review starts on a step marked `🔄 IN PROGRESS` but implementation is clearly ready for review, move it to `🟣 IN REVIEW`
 - if review passes with no blocking findings AND the epic does not use the optional GitHub PR stage for this story, mark it `✅ DONE`
 - if review passes with no blocking findings AND the story is expected to go through a GitHub PR review, leave it at `🟣 IN REVIEW` and tell the user to run `/epic-story-pr` to transition to `🔵 IN PR`
+- if a story was already marked `✅ DONE` as local-only completion and later needs a GitHub PR, `/epic-story-pr <epic> <story>` owns that late injection; review does not reopen it
 - if review finds issues that require more implementation work, move it to `🔄 IN PROGRESS`
 - if review cannot complete because of an external blocker, mark it `⛔ BLOCKED`
 - if the step is currently `🔵 IN PR`, treat this as a pre-merge sanity review only; **do not transition the status from `🔵 IN PR` yourself**. Any merge-state change belongs to `/epic-story-pr`. Record findings in the `Review Log` as normal.

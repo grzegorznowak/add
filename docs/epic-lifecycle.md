@@ -39,8 +39,8 @@ feeds the first row of the tracker; the state diagram starts at
 | `⚪ TODO` | Not started yet. The default state for newly created stories. |
 | `🔄 IN PROGRESS` | A session is actively working on this story. Default method is red-first: inspect sources, choose the smallest focused failing seam, turn it green, then broaden verification. Contract drift or any explicit exception to red-first must be logged before review. |
 | `🟣 IN REVIEW` | Implementation is done enough to review, the focused red-first path or explicit exception is recorded, the proof matrix is fully finalized, and any relevant epic-contract obligations are concrete enough to judge. Local review may still find issues, including epic contract drift. |
-| `🔵 IN PR` | **Optional.** Local review passed and the changes are in a GitHub PR awaiting remote review and merge. Skip this stage entirely if a story does not need a PR. |
-| `✅ DONE` | Implementation and review are both complete. If a PR stage was used, the PR is merged. |
+| `🔵 IN PR` | **Optional.** Local review passed and the changes are in a GitHub PR awaiting remote review and merge. Skip this stage entirely if a story does not need a PR. A local-DONE story moves back here if `/epic-story-pr` later opens or attaches an unmerged PR. |
+| `✅ DONE` | Implementation and review are complete for the workflow known at the time. If a PR stage is active, the PR is merged. If a PR stage is added late to a local-DONE story, `/epic-story-pr` moves it back to `🔵 IN PR` until remote review completes. |
 | `⛔ BLOCKED` | An external blocker prevents progress, or `/epic-story-plan-review` has determined the plan is not implementable as specified. The story definition may be revised and work resumes once the blocker clears. |
 
 `⛔ BLOCKED` is a side state. It can be entered from any of the active
@@ -79,8 +79,12 @@ statuses and exited back to whichever was correct when work resumes.
                 │                       ▼             ▼    │
                 │               ┌─────────────┐  ┌─────────┘
                 │               │  ✅ DONE    │  /epic-story-resume
-                │               └─────────────┘  /epic-story-pr (resync)
-                │                       ▲
+                │               └──────┬──────┘  /epic-story-pr (resync)
+                │                      │ ▲
+                │        late /epic-story-pr │
+                │          (unmerged PR) │
+                │                      ▼ │
+                │               back to 🔵 IN PR
                 └───────────────────────┘
 ```
 
@@ -100,6 +104,8 @@ same row.
 | `🔵 IN PR` → `🔄 IN PROGRESS` (changes requested) | — | — | — | — | ✅ | — |
 | `🔵 IN PR` → `✅ DONE` (PR merged) | — | — | — | — | ✅ | — |
 | `🔵 IN PR` → `🔵 IN PR` (refresh) | — | — | — | — | ✅ | — |
+| `✅ DONE` → `🔵 IN PR` (late PR injection, unmerged PR) | — | — | — | — | ✅ | — |
+| `✅ DONE` → `✅ DONE` (late PR metadata attach, PR already merged) | — | — | — | — | ✅ | — |
 | `*` → `⛔ BLOCKED` | ✅ | ✅ | ✅ | ✅ | — | — |
 | `✅ DONE` → archived | — | — | — | — | — | ✅ |
 
@@ -109,9 +115,11 @@ is already `✅ DONE` and folds their contract terms into the merged
 
 ## Rules of thumb
 
-1. **Never mark `✅ DONE` while a PR is open.** If the story uses the PR
+1. **Never leave `✅ DONE` while a PR is open.** If the story uses the PR
    stage, only `/epic-story-pr` may move it to `✅ DONE`, and only after
-   `gh pr view --json state` reports `MERGED`.
+   `gh pr view --json state` reports `MERGED`. If `/epic-story-pr` is run
+   later for a non-archived local-DONE story and the PR is unmerged, it moves
+   the story back to `🔵 IN PR`.
 2. **Never archive a `🔵 IN PR` story.** `/epic-squash` skips them by design,
    and reports them in a "skipped" list so the operator knows to rerun after
    the PR merges.
@@ -120,7 +128,8 @@ is already `✅ DONE` and folds their contract terms into the merged
 4. **Status drift between `MASTER.md` and the story file header is a known
    failure mode.** `/epic-squash` flags it as part of Phase 1.
 5. **`MASTER.md` is the lookup table.** Story file headers are advisory; if
-   the two disagree, `MASTER.md` wins until `/epic-squash` reconciles them.
+   the two disagree, `MASTER.md` wins. Commands that intentionally change
+   status should update a parseable story header too.
 6. **`/epic-story-plan-review` never advances a story.** Its only allowed
    transitions are `⚪ TODO` → `⚪ TODO` (logged review) and
    `⚪ TODO` → `⛔ BLOCKED` (unsalvageable plan). It must never move a
@@ -154,6 +163,6 @@ automatically the first time they touch an epic that doesn't have it:
 - `🔄 IN PROGRESS` — actively being worked; red-first path underway or exception recorded
 - `🟣 IN REVIEW` — focused seam is green or exception is recorded; implementation/evidence ready for review
 - `🔵 IN PR` — local review passed, PR opened, awaiting GitHub review + merge
-- `✅ DONE` — completed with linked evidence or verification
+- `✅ DONE` — completed with linked evidence or verification; if a late PR is opened, `/epic-story-pr` moves it back to `🔵 IN PR`
 - `⛔ BLOCKED` — a concrete blocker exists; the story resumes once it is cleared
 ```

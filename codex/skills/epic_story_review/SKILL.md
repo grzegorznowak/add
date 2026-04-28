@@ -255,6 +255,9 @@ Use this policy:
 - if the review passes with no blocking findings AND the story is expected to
   go through a GitHub PR review, leave it at `🟣 IN REVIEW` and tell the
   operator to run `epic_story_pr` to transition to `🔵 IN PR`
+- if a story was already marked `✅ DONE` as local-only completion and later
+  needs a GitHub PR, `epic_story_pr EPIC=<epic> STORY=<story>` owns that late
+  injection; review does not reopen it
 - if the review finds issues that require more implementation work, move it to
   `🔄 IN PROGRESS`
 - if the review cannot complete because of an external blocker, mark it

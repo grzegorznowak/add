@@ -213,8 +213,8 @@ the design      └─────────┬─────────┘
           │                     │
           ▼                     ▼
      ┌─────────┐          ┌──────────┐
-     │ ✅ DONE │          │ 🔵 IN PR │
-     └─────────┘          └────┬─────┘
+     │ ✅ DONE │──late──▶ │ 🔵 IN PR │
+     └─────────┘  PR      └────┬─────┘
                                │ merged / changes requested
                                ▼
                          ✅ DONE or /epic-story-resume

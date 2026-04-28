@@ -1,6 +1,6 @@
 ---
 name: epic-story-pr
-description: Move one story from local review into a GitHub PR, recording PR metadata on the story file. Optional stage between IN REVIEW and DONE.
+description: Move one story from local review or local DONE into a GitHub PR, recording PR metadata on the story file. Optional stage between IN REVIEW and DONE.
 disable-model-invocation: true
 argument-hint: "<epic-name> <story-number-or-spec-file> [pr-url|OPEN=true]"
 allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*)
@@ -8,13 +8,15 @@ allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash
 
 # Epic Story PR
 
-Transition a story from `🟣 IN REVIEW` to `🔵 IN PR`, recording GitHub PR metadata on the step file. This is the **optional** stage between local review acceptance and merged-to-main (`✅ DONE`).
+Transition a story from `🟣 IN REVIEW` to `🔵 IN PR`, recording GitHub PR metadata on the step file. This is the **optional** stage between local review acceptance and merged-to-main (`✅ DONE`). It can also inject a PR into an explicitly selected, non-archived `✅ DONE` story when that DONE meant local completion and the remote PR stage is being added late.
 
-Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [<pr_url_or_OPEN=true>]`. Epic and story are required. The third arg is either a full GitHub PR URL (attach mode) or the literal `OPEN=true` to have this flow open the PR via `gh` (open mode).
+Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [<pr_url_or_OPEN=true>]`. Epic and story may be inferred for active `🟣 IN REVIEW` / `🔵 IN PR` work. `✅ DONE` PR injection requires the story to be explicit. The third arg is either a full GitHub PR URL (attach mode) or the literal `OPEN=true` to have this flow open the PR via `gh` (open mode). For an explicitly selected `✅ DONE` story, omitting the third arg implies open mode after existing PR detection fails.
 
 ## Intent
 
 This flow applies when a story has passed local review and the changes need to go through the normal GitHub PR review and merge process before the story can be marked `✅ DONE`. It is **not** required. Stories that do not need a separate GitHub PR stage skip straight from `🟣 IN REVIEW` to `✅ DONE`.
+
+Sometimes a story was already marked `✅ DONE` because the team treated it as locally complete, then later decides to open a GitHub PR for the same implementation. In that case, run `/epic-story-pr <epic> <story>`. If the PR is unmerged, this flow records PR metadata and moves the story back to `🔵 IN PR` until remote review finishes. If the PR is already merged, it records PR metadata and keeps the story `✅ DONE`.
 
 ## Status lifecycle (reference)
 
@@ -22,7 +24,7 @@ This flow applies when a story has passed local review and the changes need to g
 - `🔄 IN PROGRESS` — actively being worked
 - `🟣 IN REVIEW` — local review pass ready
 - `🔵 IN PR` — **this flow** — local review passed, PR opened, awaiting GitHub review + merge
-- `✅ DONE` — PR merged (or local-only review accepted if the PR stage was skipped)
+- `✅ DONE` — PR merged, or local-only review accepted when no PR stage was known
 - `⛔ BLOCKED` — external blocker
 
 ## Phase 0 — Resolution and inference
@@ -46,6 +48,8 @@ After the epic is known, read `<epic>/MASTER.md` and collect every story row who
 - `🟣 IN REVIEW` — the canonical entry condition for this flow
 - `🔵 IN PR` — included so re-running this flow for refresh works without args
 
+Do **not** auto-infer `✅ DONE` stories. DONE PR injection requires the story argument because DONE rows are completed history, not active work. If `<story>` was passed explicitly and the row is non-archived `✅ DONE`, accept it for the late PR injection path.
+
 1. If exactly one row matches, use it. Print: `inferred story: <NN> — <title> (status: <emoji>)`.
 2. If zero rows match, do not just abort — emit a specific recovery hint based on the rest of the tracker:
    - if exactly one row is `🔄 IN PROGRESS`, say: `no story is in review yet. Story <NN> — <title> is still in progress; finish implementation and run /epic-story-review <epic> <NN> first.`
@@ -58,6 +62,7 @@ After the epic is known, read `<epic>/MASTER.md` and collect every story row who
 After the story is resolved, decide whether this is an attach (existing PR) or open (new PR) operation. Walk the inference chain in order:
 
 1. **PR Tracking section.** Read the resolved step file and look for a `## PR Tracking` section. If it exists and has a `PR URL: <url>` line, that is the existing PR. Use attach mode in refresh form. Print: `inferred PR (from PR Tracking): <url>`. Skip the rest of the chain.
+   - If the story is `✅ DONE` and PR Tracking points to an unmerged PR, report the status drift and ask what to do before changing files. Recommend moving the story back to `🔵 IN PR` and refreshing PR metadata. If the user declines, abort without changing `MASTER.md`, the story file, or the PR.
 
 2. **Project repo detection.** Parse the story's `## Active Claim` section for the `Primary write surfaces:` field. Take the first path. Walk up the directory tree until you find a `.git/` directory; that is the project repo. If no `.git/` is found, fall back to the workspace `.git/` if one exists. If still none, skip directly to step 4.
 
@@ -69,7 +74,9 @@ After the story is resolved, decide whether this is an attach (existing PR) or o
    - If multiple are returned, list each as `<number> | <title> | <url>` and ask which to attach.
    - If zero are returned, fall through to step 4.
 
-4. **Fall through to OPEN mode.** If no existing PR was found by any previous step, ask the user: `no existing PR found for branch <branch>. Open a new one via gh? [Y/n]`
+4. **Fall through to OPEN mode.** If no existing PR was found by any previous step:
+   - For an explicitly selected `✅ DONE` story, treat `OPEN=true` as implicit and proceed to open mode without an extra confirmation.
+   - For all other stories, ask the user: `no existing PR found for branch <branch>. Open a new one via gh? [Y/n]`
    - If yes, proceed exactly as the existing `OPEN=true` path in "PR creation mode".
    - If no, abort with: `pass <pr_url> explicitly when one exists, or rerun with OPEN=true to open a fresh PR.`
 
@@ -81,6 +88,7 @@ Before doing any work that affects `MASTER.md`, the PR, or the step file, print 
 Resolved context:
 - epic:  <name>          (explicit | inferred from single active epic)
 - story: <NN> — <title>  (explicit | inferred from single eligible row)
+- status: <emoji>
 - PR:    <url>           (explicit | from PR Tracking | from current branch | new via OPEN)
 ```
 
@@ -88,7 +96,14 @@ Print this even when everything was passed explicitly — the printout is the co
 
 ### Entry-condition check
 
-Once the story is resolved, abort fast if its current status is not `🟣 IN REVIEW`. This flow only transitions from `IN REVIEW` — not from `IN PROGRESS`, `DONE`, or `BLOCKED`. If the step is already `🔵 IN PR`, treat the invocation as a refresh per "Refresh existing PR metadata" below and proceed only after user confirmation.
+Once the story is resolved, abort fast unless its current status is one of `🟣 IN REVIEW`, `🔵 IN PR`, or `✅ DONE`.
+
+- `🟣 IN REVIEW` is the canonical entry condition for opening or attaching a PR.
+- `🔵 IN PR` is refresh/resync mode per "Refresh existing PR metadata" below.
+- `✅ DONE` is allowed only when the story was explicitly selected and the `Spec` link is not in `archive/`. Treat it as late PR injection from local DONE. Do not require a second confirmation after explicit epic + story selection, but still ask before attaching a branch-inferred PR and before overwriting a substantial PR body.
+- Archived `✅ DONE` stories are ineligible. Abort with: `Story <NN> is archived. PR injection only works for non-archived DONE stories.`
+
+Abort for `IN PROGRESS`, `BLOCKED`, `TODO`, or any unknown status with a recovery hint naming the correct preceding command.
 
 ### Known limitations
 
@@ -174,13 +189,14 @@ Do not paste sections verbatim if they contain internal terminology. Rephrase in
   - If the existing body is empty or auto-generated (e.g. commit messages), replace silently.
 - If `gh` is unavailable, skip enrichment and the body edit, record only what the user provided, and tell the user the PR body was not updated
 
-**Open mode** — user passes `OPEN=true` with no URL:
+**Open mode** — user passes `OPEN=true` with no URL, or explicitly selects a `✅ DONE` story with no URL and no existing PR was found:
 - Verify `git status` is clean or only contains intended changes
 - Verify the current branch is not the default branch
 - Generate the PR body (see template above) and write it to a tempfile
 - Call `gh pr create --title "<story title>" --body-file <tmpfile>`
 - Capture the returned URL
-- If `gh` fails or is unavailable, abort fast and ask the user to open the PR manually and rerun in attach mode
+- If the current branch is the default branch, abort. For a `✅ DONE` story, leave `MASTER.md`, the story header, and `## PR Tracking` untouched.
+- If `gh` fails or is unavailable, abort fast and ask the user to open the PR manually and rerun in attach mode. For a `✅ DONE` story, leave `MASTER.md`, the story header, and `## PR Tracking` untouched.
 
 In both modes, **never** force-push, **never** bypass hooks, **never** rewrite history without explicit user confirmation.
 
@@ -200,13 +216,17 @@ Add or refresh a `## PR Tracking` section in the resolved step file:
 - Last synced: <UTC ISO timestamp>
 ```
 
-Append a timestamped bullet under `## Progress Log`:
+Append a timestamped bullet under `## Progress Log`. Use the entry that matches the transition:
 
 ```md
 - <UTC ISO timestamp> Moved step to `🔵 IN PR` — <PR URL>
+- <UTC ISO timestamp> Reopened remote review from local `✅ DONE`; moved step to `🔵 IN PR` — <PR URL>
+- <UTC ISO timestamp> Attached merged PR to local `✅ DONE` story — <PR URL>
 ```
 
 Do **not** create a duplicate `PR Tracking` section. If one already exists, update its fields in place.
+
+When the story file has a recognizable header status, update it with the same status written to `MASTER.md`. If the header is missing or ambiguous, leave it unchanged and report that `MASTER.md` remains authoritative.
 
 ## Refresh existing PR metadata
 
@@ -215,6 +235,8 @@ If the step is already `🔵 IN PR` and the user reinvokes this flow, treat it a
 - If `PR status` is now `merged`, transition the step to `✅ DONE`
 - If `PR status` is `changes_requested` or the reviewer requested code changes, transition the step back to `🔄 IN PROGRESS` and record the reason under `## Progress Log`. Tell the user to rerun `/epic-story-resume` to address the feedback.
 - Otherwise leave the step at `🔵 IN PR` and update `Last synced`
+
+If the step is `✅ DONE` and already has `## PR Tracking` for an unmerged PR, report the DONE/PR drift and ask what to do. Recommend moving the story back to `🔵 IN PR` and refreshing metadata. If the user declines, abort without write-back.
 
 ## MASTER.md update
 
@@ -226,6 +248,8 @@ Update the selected row in `<epic>/MASTER.md`:
 | `🔵 IN PR` (refresh, PR still open) | leave at `🔵 IN PR` |
 | `🔵 IN PR` (PR merged) | set to `✅ DONE` |
 | `🔵 IN PR` (PR requests code changes) | set to `🔄 IN PROGRESS` |
+| `✅ DONE` (explicit, non-archived, PR still open) | set to `🔵 IN PR` |
+| `✅ DONE` (explicit, non-archived, PR merged) | leave at `✅ DONE` |
 
 If the epic's `MASTER.md` Legend section does not list `🔵 IN PR`, add it immediately after the `🟣 IN REVIEW` line:
 
@@ -242,6 +266,8 @@ If the epic's `MASTER.md` Legend section does not list `🔵 IN PR`, add it imme
 5. **Never skip the step file write-back.** The PR URL is the only durable link between the step and the GitHub review.
 6. **Never leave `Last synced` stale across transitions.**
 7. **Never paste `Progress Log`, `Active Claim`, `Session Handoff`, or `Review Log` content into the PR body.** Those sections are implementation diary, not product contract.
+8. **Never silently infer a DONE story.** Late PR injection from `✅ DONE` requires explicit story selection.
+9. **Never leave an unmerged PR represented as `✅ DONE` after the operator chooses to proceed.** Move both `MASTER.md` and a parseable story header to `🔵 IN PR`.
 
 ## Final response
 
@@ -249,6 +275,7 @@ State:
 - which epic and step were transitioned
 - the PR URL, number, and branch
 - the new status in `MASTER.md`
+- whether the story file header was updated or left unchanged
 - whether `gh` enrichment was used
 - exactly what the user should do next:
   - wait on PR review
