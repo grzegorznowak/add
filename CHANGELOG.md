@@ -5,10 +5,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 
 ## [Unreleased]
 
+### Added
+- `epic-pr` opens or refreshes an epic-level GitHub PR from `CONTRACT.md`
+  plus current non-archived DONE stories, with a lightweight epic check-in
+  before publishing.
+
 ### Changed
 - `epic-story-plan` is now the direct story publication command. After the
   interview and checkpoint, it writes `story-NN-<slug>.md` and appends the
   `⚪ TODO` row to `MASTER.md`.
+- `epic-story-pr` PR bodies now include detected original ticket/card links
+  near the top when those links are available.
 - Story planning now uses lean section ownership: acceptance owns behavior,
   verification owns proof, implementation notes are an execution brief, and
   discovery notes are source-derived facts rather than a catch-all transcript.

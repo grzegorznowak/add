@@ -25,8 +25,8 @@ live. There is exactly one `MASTER.md` per epic.
 ### Required sections
 
 1. **Header** — at minimum the epic title.
-2. **Goal / Context** — free-form prose describing why the epic exists. Not
-   parsed by any command.
+2. **Goal / Context** — free-form prose describing why the epic exists. Read
+   by `/epic-pr` as epic-level PR framing.
 3. **Legend** — the status values used by the tracker (see
    [`epic-lifecycle.md`](epic-lifecycle.md) for the canonical legend).
 4. **Story tracker** — a Markdown table. This is the only section the
@@ -433,6 +433,43 @@ file; refreshing the metadata updates the existing section in place.
 - Last synced: 2026-04-12T13:42:00Z
 ```
 
+### Epic runtime sections
+
+These sections live in `MASTER.md`, not individual story files.
+
+#### `## Epic PR Tracking`
+
+Written by `/epic-pr` only. There is exactly one `Epic PR Tracking` section per
+epic; refreshing the metadata updates the existing section in place. This is
+epic-level PR metadata and must not be confused with story-level `## PR Tracking`.
+
+```md
+## Epic PR Tracking
+- PR URL: https://github.com/<org>/<repo>/pull/<n>
+- Number: <n>
+- Title: <pr title>
+- Branch: <head ref>
+- Opened at: 2026-04-28T12:01:00Z
+- PR status: open | changes_requested | approved | merged | closed
+- Merge commit: <sha or "—">
+- Last synced: 2026-04-28T13:42:00Z
+- Included contract: CONTRACT.md | none
+- Included DONE stories: <story numbers or "none">
+- Original tickets:
+  - <optional label>: <url>
+```
+
+`/epic-pr` uses `CONTRACT.md` for already-squashed or archived scope and never
+reads archived story files directly. It may read non-archived `✅ DONE` stories
+as current completed scope that has not yet been squashed. It never transitions
+story statuses and never writes story-level `## PR Tracking`.
+
+Original ticket/card context in PR bodies is link-only. `/epic-story-pr` and
+`/epic-pr` may include detected links near the top of the generated PR body,
+but they must never summarize or quote ticket text. If labels can be fetched or
+strictly inferred from local link text, include them; otherwise include only the
+link.
+
 ## `CONTRACT.md`
 
 The merged, authoritative contract for the epic. Created and maintained by
@@ -471,7 +508,7 @@ Each command in this repo has a defined resolution strategy for its
 epic/story arguments. Two strategies exist:
 
 - **Auto-inferred from running context** — for commands that continue
-  running work (`/epic-story-claim`, `/epic-story-resume`, `/epic-story-pr`, `/epic-squash`).
+  running work (`/epic-story-claim`, `/epic-story-resume`, `/epic-story-pr`, `/epic-pr`, `/epic-squash`).
   These operate on whatever is already active; guessing the context is
   the whole point.
 - **Operator-explicit (arg or menu)** — for commands that *create* or
@@ -492,6 +529,7 @@ epic/story arguments. Two strategies exist:
 | `/epic-story-claim` | auto-inferred (running context) | `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference. |
 | `/epic-story-resume` | auto-inferred (running context) | `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
 | `/epic-story-pr` | auto-inferred (running context); explicit story required for DONE injection | `🟣 IN REVIEW`, `🔵 IN PR`, explicit non-archived `✅ DONE` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode. For explicit `✅ DONE` stories, `OPEN=true` is implicit after existing PR detection fails. |
+| `/epic-pr` | auto-inferred (running context) | epic has `CONTRACT.md` and/or non-archived `✅ DONE` stories | Opens or refreshes an epic-level PR from `CONTRACT.md` plus current DONE stories. Blocks on misleading gaps/conflicts, never reads archived stories directly, and never changes story statuses. |
 | `/epic-squash` | auto-inferred (running context) | `✅ DONE` | The "story" axis doesn't apply — the command consumes every done story in one pass. |
 
 **Rules for the "auto-inferred" rows**:
@@ -539,10 +577,13 @@ epic/story arguments. Two strategies exist:
   or `Plan Review Log` entries
 - Touch product code from `/epic-story-pr` or `/epic-squash` (except optional
   per-fix approval in `/epic-squash` Phase 6, and the optional `gh pr
-  create` call in `/epic-story-pr` open mode)
+  create` call in `/epic-story-pr` or `/epic-pr` open mode)
 - Mark a story `✅ DONE` while its PR is open
 - Leave a local-DONE story as `✅ DONE` after `/epic-story-pr` successfully
   opens or attaches an unmerged PR
+- Read archived story files from `/epic-pr`; archived scope is represented by
+  `CONTRACT.md`
+- Transition story statuses from `/epic-pr`
 - Archive a `🔵 IN PR` story
 - Auto-infer arguments for any command in the "operator-explicit (arg or
   menu)" rows of the Argument resolution rules table. The menu pattern

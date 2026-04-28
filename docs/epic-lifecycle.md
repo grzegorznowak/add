@@ -113,6 +113,11 @@ same row.
 is already `✅ DONE` and folds their contract terms into the merged
 `CONTRACT.md`.
 
+`/epic-pr` is outside the story status state machine. It opens or refreshes an
+epic-level PR from `CONTRACT.md` plus current non-archived `✅ DONE` stories,
+writes only epic-level `## Epic PR Tracking` in `MASTER.md`, and never
+transitions story rows.
+
 ## Rules of thumb
 
 1. **Never leave `✅ DONE` while a PR is open.** If the story uses the PR

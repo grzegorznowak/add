@@ -3,7 +3,7 @@ name: epic-story-pr
 description: Move one story from local review or local DONE into a GitHub PR, recording PR metadata on the story file. Optional stage between IN REVIEW and DONE.
 disable-model-invocation: true
 argument-hint: "<epic-name> <story-number-or-spec-file> [pr-url|OPEN=true]"
-allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*)
+allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(gh pr list:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*) Bash(curl:*)
 ---
 
 # Epic Story PR
@@ -118,6 +118,8 @@ Abort for `IN PROGRESS`, `BLOCKED`, `TODO`, or any unknown status with a recover
 
 Extract **only** product-facing content from the resolved step file:
 - the story **Purpose** / **Goal** (what outcome the user gets)
+- explicit **original ticket/card links** from `Triggering Need`, `Purpose`,
+  `Scope`, or other product-facing prose, when present
 - the **Acceptance criteria** (observable behavior the code must satisfy)
 - the **Out of Scope** section (what this PR deliberately does not deliver)
 - **Contract / interface changes** — if and only if they affect external behavior (config keys, CLI surface, API shape, file formats, env vars, persisted metadata schema, user-visible defaults, migration requirements). These live in the PR body because they change what the code promises to the outside world.
@@ -146,6 +148,9 @@ Generate the body using this structure. Omit any section that has no content rat
 ## Summary
 <one short paragraph in product language — the user-visible outcome this PR delivers>
 
+## Original tickets
+- <optional label>: <url>
+
 ## Requirements
 <bulleted list extracted from the step file's Purpose / Goal>
 
@@ -171,10 +176,24 @@ Generate the body using this structure. Omit any section that has no content rat
 
 Read these sections of the step file in order and map them to the body:
 1. `## Purpose` / `## Goal` → Summary + Requirements
-2. `## Acceptance` / `## Acceptance criteria` → Acceptance criteria
-3. `## Scope` → filter for contract-affecting parts only → Contract changes
-4. `## Out of Scope` → Out of scope
-5. `## Verification` → filter for user-facing checks only → How to verify
+2. `## Triggering Need`, `## Purpose`, `## Scope`, and any visible
+   product-facing prose → explicit original ticket/card links only. Include
+   links near the top when found; omit `## Original tickets` silently when no
+   link is found.
+3. `## Acceptance` / `## Acceptance criteria` → Acceptance criteria
+4. `## Scope` → filter for contract-affecting parts only → Contract changes
+5. `## Out of Scope` → Out of scope
+6. `## Verification` → filter for user-facing checks only → How to verify
+
+For original ticket/card links:
+- Include links only; never summarize or quote original ticket text.
+- Detect explicit URLs and stable identifiers only. Do not infer from vague
+  prose.
+- When multiple links are found, keep a unique compact list.
+- Try to fetch or infer short labels when reasonably available from the link
+  target or local markdown link text. If a label is unavailable, include only
+  the link.
+- Missing ticket links are not a prompt and not a blocker for this story flow.
 
 Do not paste sections verbatim if they contain internal terminology. Rephrase into reviewer-facing language. A reviewer who has never seen the step file should understand the PR body.
 
@@ -268,6 +287,8 @@ If the epic's `MASTER.md` Legend section does not list `🔵 IN PR`, add it imme
 7. **Never paste `Progress Log`, `Active Claim`, `Session Handoff`, or `Review Log` content into the PR body.** Those sections are implementation diary, not product contract.
 8. **Never silently infer a DONE story.** Late PR injection from `✅ DONE` requires explicit story selection.
 9. **Never leave an unmerged PR represented as `✅ DONE` after the operator chooses to proceed.** Move both `MASTER.md` and a parseable story header to `🔵 IN PR`.
+10. **Never summarize or quote original tickets.** Include detected links only,
+    and omit the section when no link is found.
 
 ## Final response
 

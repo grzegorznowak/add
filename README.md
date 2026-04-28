@@ -49,13 +49,13 @@ transition is a fresh session**:
 The result: each agent run stays small, focused, and verifiable. The
 coordination files accumulate the real state, not the conversation.
 
-The entire system is ten skills and a handful of markdown files — no framework,
+The entire system is eleven skills and a handful of markdown files — no framework,
 no orchestrator, no configuration to tune. You learn the lifecycle once and the
 commands do the rest.
 
 ## What this gives you
 
-Eight coordinated workflow commands plus two small utilities:
+Nine coordinated workflow commands plus two small utilities:
 
 | Command | What it does |
 |---|---|
@@ -66,6 +66,7 @@ Eight coordinated workflow commands plus two small utilities:
 | `/epic-story-resume` | Resume an in-progress story or one with requested PR changes. |
 | `/epic-story-review` | Review a story's implementation against its spec. Records the verdict. |
 | `/epic-story-pr` | Open or attach a GitHub PR with a product-focused body. |
+| `/epic-pr` | Open or refresh an epic-level GitHub PR from the contract and current DONE stories. |
 | `/epic-squash` | Merge all `DONE` stories into `CONTRACT.md` and archive them. |
 | `/grillme` | Relentless interview about a plan or design until shared understanding. |
 | `/memorize` | Reflect on session friction and propose doc patches for future sessions. |
