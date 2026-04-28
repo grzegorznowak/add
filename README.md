@@ -228,23 +228,32 @@ Story planning and implementation
 
 Epic aggregation and PR publication (no story status transition)
 
-      archived/squashed DONE scope ──represented by──▶ CONTRACT.md
-                                                        │
-                                                        │
-      current non-archived ✅ DONE stories ─────────────┼──▶ ┌──────────┐
-                         │                              │    │ /epic-pr │
-                         └── /epic-squash ──────────────┘    └────┬─────┘
-                                                                  ├── no blocking gaps/conflicts
-                                                                  │
-                                                                  ▼
-                                             GitHub PR + MASTER.md Epic PR Tracking
-
-                                                                  └── gaps/conflicts
-                                                                            │
-                                                                            ▼
-                                                                  operator-led repair loop
-                                                                            │
-                                                                            └── resolved ──▶ /epic-pr
+      archived/squashed DONE scope
+                    │
+                    ▼
+              CONTRACT.md
+                    │
+                    ├──────────────┐
+                    │              │
+      current non-archived ✅ DONE stories
+                    │              │
+                    ├── /epic-squash folds into CONTRACT.md
+                    │              │
+                    └──────────────┘
+                                   ▼
+                             ┌──────────┐
+                             │ /epic-pr │
+                             └────┬─────┘
+                                  ├── no blocking gaps/conflicts
+                                  │       ▼
+                                  │   GitHub PR
+                                  │   + MASTER.md Epic PR Tracking
+                                  │
+                                  └── gaps/conflicts
+                                          ▼
+                                  operator-led repair loop
+                                          ▼
+                                      /epic-pr
 ```
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
