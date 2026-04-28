@@ -174,74 +174,62 @@ is left untouched.
 ## Lifecycle
 
 ```text
-Story planning and implementation
-Legend: [/<skill>] = runnable skill command
+Story state lifecycle
+Legend: [/<skill>] = command on a transition
 
-                    (once per epic — the container for related stories)
-                    ┌──────────────┐
-                    │ [/epic-plan] │   creates epic MASTER.md
-                    └──────┬───────┘
-                           │
-                           │ (per story, from here down)
-                           ▼
- [/grillme] ╌▶ ┌─────────────────────┐
- (optional)    │ [/epic-story-plan]  │   writes story file
- stress-test   │                     │   + MASTER.md row
- the design    └──────────┬──────────┘
-                           │
-                           ▼
-                ┌─────────────┐
-                │   ⚪ TODO   │
-                └──────┬──────┘
-                       │ optional review: [/epic-story-plan-review]
-                       │ approve -> continue; blocked -> (⛔ BLOCKED)
-                       │ [/epic-story-claim]
-                       ▼
-                 ┌─────────────┐                     (⛔ BLOCKED)
-                 │ 🔄 IN PROG  │                     fix, then rerun skill
+                 ┌─────────────┐
+                 │   ⚪ TODO   │
                  └──────┬──────┘
-                        │ implementation done
+                        │ optional check: [/epic-story-plan-review]
+                        │ claim: [/epic-story-claim]
+                        ▼
+                 ┌─────────────┐
+                 │ 🔄 IN PROG  │
+                 └──────┬──────┘
+                        │ implementation complete:
+                        │ [/epic-story-claim] or [/epic-story-resume]
+                        │ or [/epic-story-review]
                         ▼
                  ┌─────────────┐
                  │ 🟣 IN REV   │
                  └──────┬──────┘
                         │
-                        ▼
-               ┌───────────────────────┐
-               │ [/epic-story-review] │
-               └──────┬────────────────┘
-                      ├── request changes -> [/epic-story-resume]
-                      ├── blocked -> (⛔ BLOCKED)
-                      │      operator fix; rerun appropriate skill
-                      └── approve
-           ┌──────────┴──────────────┐
-           │                         │
-      no PR stage              [/epic-story-pr]
-           │                         │
-           ▼                     ▼
-      ┌─────────┐          ┌──────────┐
-      │ ✅ DONE │          │ 🔵 IN PR │
-      └────┬────┘          └────┬─────┘
-           │                    ├── merged -> ✅ DONE
-           │                    └── changes requested
-           │                        -> [/epic-story-resume]
-           │
-           │ explicit late [/epic-story-pr]
-           │ on non-archived DONE story
-           ├── unmerged PR opened/attached -> 🔵 IN PR
-           └── already-merged PR attached -> ✅ DONE
+               ┌────────┴────────┐
+               │                 │
+               │ no PR stage     │ PR stage: [/epic-story-pr]
+               │ approve via     │
+               │ [/epic-story-review]
+               │ or [/epic-story-resume]
+               ▼                 ▼
+          ┌─────────┐      ┌──────────┐
+          │ ✅ DONE │      │ 🔵 IN PR │
+          └────┬────┘      └────┬─────┘
+               │               ├─ merged: [/epic-story-pr] -> ✅ DONE
+               │               └─ changes requested:
+               │                     [/epic-story-pr]
+               │                     -> 🔄 IN PROG
+               │
+               ├─ late unmerged PR: [/epic-story-pr] -> 🔵 IN PR
+               └─ late merged PR metadata: [/epic-story-pr] -> ✅ DONE
 
-Epic aggregation and PR publication (no story status transition)
+                 ⛔ BLOCKED
+                 entered by [/epic-story-claim],
+                 [/epic-story-plan-review], or [/epic-story-review];
+                 fix the issue, then rerun the appropriate skill.
 
-      CONTRACT.md = archived/squashed DONE scope
+Setup and aggregation commands
 
-      [/epic-squash]
-        current non-archived ✅ DONE stories -> CONTRACT.md
+  [/epic-plan]       -> epic MASTER.md
+  [/grillme]         -> optional plan/design stress-test
+  [/epic-story-plan] -> story file + MASTER.md row
 
-      [/epic-pr]
-        CONTRACT.md + current non-archived ✅ DONE stories
-        -> GitHub PR + MASTER.md Epic PR Tracking
-        (blocks on gaps/conflicts; repair, then rerun [/epic-pr])
+  [/epic-squash]
+    current non-archived ✅ DONE stories -> CONTRACT.md
+
+  [/epic-pr]
+    CONTRACT.md + current non-archived ✅ DONE stories
+    -> GitHub PR + MASTER.md Epic PR Tracking
+    blocks on gaps/conflicts; repair, then rerun [/epic-pr]
 ```
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
