@@ -228,32 +228,15 @@ Story planning and implementation
 
 Epic aggregation and PR publication (no story status transition)
 
-      archived/squashed DONE scope
-                    │
-                    ▼
-              CONTRACT.md
-                    │
-                    ├──────────────┐
-                    │              │
-      current non-archived ✅ DONE stories
-                    │              │
-                    ├── /epic-squash folds into CONTRACT.md
-                    │              │
-                    └──────────────┘
-                                   ▼
-                             ┌──────────┐
-                             │ /epic-pr │
-                             └────┬─────┘
-                                  ├── no blocking gaps/conflicts
-                                  │       ▼
-                                  │   GitHub PR
-                                  │   + MASTER.md Epic PR Tracking
-                                  │
-                                  └── gaps/conflicts
-                                          ▼
-                                  operator-led repair loop
-                                          ▼
-                                      /epic-pr
+      CONTRACT.md = archived/squashed DONE scope
+
+      /epic-squash
+        current non-archived ✅ DONE stories -> CONTRACT.md
+
+      /epic-pr
+        CONTRACT.md + current non-archived ✅ DONE stories
+        -> GitHub PR + MASTER.md Epic PR Tracking
+        (blocks on gaps/conflicts; repair, then rerun /epic-pr)
 ```
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
