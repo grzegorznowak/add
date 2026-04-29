@@ -165,6 +165,11 @@ time by `/epic-story-plan`, and they are read by every other command.
 - Every acceptance bullet must start with a stable id: `A1`, `A2`, ...
 - Each bullet must be atomic. If two parts could fail independently, split them.
 - Every bullet must remain observable by command, file read, or direct reviewer observation.
+- `/epic-story-review` uses this list as the source of truth for multipass
+  review scope. When `## Acceptance` contains 6 or more concrete top-level
+  items, review must run a focused multipass pass plan before approval. Prose,
+  examples, nested explanatory bullets, notes, and out-of-scope bullets do not
+  count toward the trigger.
 
 Example:
 
@@ -451,6 +456,7 @@ review logs.
   - Approval gate: pass | fail
   - Product verdict: approve | request_changes | reject | not_assessed
   - Technical verdict: approve | request_changes | reject | not_assessed
+  - Multipass review: not_triggered | completed | incomplete
   - Epic contract drift: none | present
   - Status transition: 🟣 IN REVIEW -> ✅ DONE
   - Files reviewed: <paths>

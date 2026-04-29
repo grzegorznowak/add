@@ -166,6 +166,75 @@ After reading the story's `## Active Claim`, build `<project_root_map>` from wha
 Do not infer identity from filename shape or naming conventions that are not
 explicitly recorded in `MASTER.md`.
 
+## Multipass review mode
+
+Before starting the implementation review, count the concrete items in the
+story's `## Acceptance` list. `## Acceptance` is the source of truth for this
+trigger.
+
+Counting rules:
+- Count top-level acceptance bullets or checklist items under `## Acceptance`.
+- Count stable acceptance ids such as `A1`, `A2`, ... when present.
+- Do not count prose paragraphs, examples, nested explanatory bullets, notes,
+  or out-of-scope bullets.
+- If `## Acceptance` is malformed or the concrete item count cannot be
+  determined, record a `Gate Finding`, set `**Approval Gate**: FAIL`, and do
+  not approve.
+
+When `## Acceptance` has 6 or more concrete items, multipass review is
+required.
+
+Multipass planning:
+1. Build a compact review plan with 2-8 focused passes.
+2. Group passes by acceptance-area risk, not mechanically one pass per
+   acceptance item.
+3. Map every acceptance item to at least one planned pass.
+4. Each pass must have a clear title, acceptance items covered, risk focus, and
+   expected evidence surface.
+
+Focused pass execution:
+- Use subagents in normal operation. Each subagent is read-only for code and
+  coordination files.
+- A documented manual focused-pass substitute is allowed only when subagent
+  spawning fails or a subagent times out. The substitute must record the pass
+  title, substitution reason, files/symbols inspected, search/research used,
+  findings, and explicit clean or inconclusive result.
+- Subagents may use direct file reads, `git`, and search for straightforward
+  questions.
+- Use `code_research` for complex cross-file behavior, architecture, routing,
+  lifecycle, orchestration, shared-helper, or unclear-ownership investigations.
+- Subagents may use SERP/web research only when specialized external knowledge
+  is needed. Web-derived claims must be source-linked, separated from
+  repo-grounded findings, and never substitute for reading changed code.
+
+Focused pass return contract:
+- Pass title and acceptance items covered.
+- Scope reviewed: repos, files, symbols, callsites, and tests.
+- Search/direct-read evidence used.
+- `code_research` question used, or `not needed` with a short reason.
+- SERP/web sources used, or `none`.
+- Findings: every non-empty finding ends with `Sources: path:line`; use
+  `- None.` when clean.
+- Verification/proof notes: proof rows checked, tests inspected, commands
+  rerun, or reason commands were not rerun.
+- Result: `clean | findings | inconclusive`.
+- Evidence gaps: use `- None.` when none.
+
+Multipass synthesis:
+- Synthesis is an assembly pass, not a new investigation pass.
+- Read the plan and all focused-pass outputs.
+- Map every `## Acceptance` item to at least one completed focused-pass result.
+- Dedupe repeated findings while preserving original `Sources: path:line`
+  evidence.
+- Classify accumulated findings into `Gate Findings`, `Product Assessment`,
+  `Technical Assessment`, or `Epic Contract Drift`.
+- Do not perform new broad code research, invent missing evidence, silently
+  resolve conflicting pass results, or convert an inconclusive pass into
+  approval.
+- If any acceptance item is uncovered, any focused pass is inconclusive, or
+  focused-pass outputs conflict, record a `Gate Finding`; `**Approval Gate**`
+  must be `FAIL` and `**Decision**` cannot be `APPROVE`.
+
 ## Review process
 1. Use code research/search and direct code reading to understand the story's
    implementation and impacted surfaces.
@@ -278,6 +347,7 @@ Add a new entry like:
   - Approval gate: pass | fail
   - Product verdict: approve | request_changes | reject | not_assessed
   - Technical verdict: approve | request_changes | reject | not_assessed
+  - Multipass review: not_triggered | completed | incomplete
   - Epic contract drift: none | present
   - Status transition: <from> -> <to>
   - Files reviewed: <paths>
@@ -297,6 +367,8 @@ only eligible for approval when:
 - the matrix matches the actual implementation and verification surfaces
 - every required surface / variant / branch row is covered or explicitly excluded
 - routing completeness is proven when multiple supported callsites or orchestration paths exist
+- multipass review is either not triggered or completed with every acceptance
+  item covered by a focused-pass result
 - required fail-open checks are satisfied for prompt/template/placeholder-driven features
 - any apparent proof drift was logged when it happened
 - the step file records either the focused red seam that was used or an
@@ -338,6 +410,15 @@ Use:
 **Grouping**: [brief grouping logic]
 **Epic Context Used**: [MASTER.md, CONTRACT.md if present, dependency stories, sibling stories reviewed, handoff/progress sections]
 **Approval Gate**: [PASS | FAIL]
+
+## Multipass Review
+- Triggered: yes | no
+- Acceptance count: <count from ## Acceptance>
+- Plan surfaces: <focused pass titles, or `not triggered`>
+- Focused-pass results: <pass title -> clean | findings | inconclusive, or `not triggered`>
+- Manual substitutes: <none, or pass title + reason>
+- Uncovered acceptance items: <none, or A ids / bullet summaries>
+- Conflicts / evidence gaps: <none, or blocking gap summary>
 
 ## Gate Findings
 - [Severity] [path:line] readiness / proof / state / red-first / status-transition issue

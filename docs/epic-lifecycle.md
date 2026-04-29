@@ -172,15 +172,20 @@ rows.
 7. **Proof contracts must be final before local implementation review passes.**
    Planning may use `provisional` proof rows, but `/epic-story-review` cannot approve
    while any row remains provisional.
-8. **Helper proof is not routing proof.** For multi-callsite or
+8. **Broad acceptance scope requires focused multipass review.** When
+   `## Acceptance` has 6 or more concrete items, `/epic-story-review` cannot
+   approve until every acceptance item is covered by a focused pass and the
+   synthesis records no unresolved conflicts, inconclusive passes, or coverage
+   gaps.
+9. **Helper proof is not routing proof.** For multi-callsite or
    orchestration-heavy features, approval requires explicit proof that the
    supported callsites or branches actually route through the intended helper or
    branch logic.
-9. **Fail-open prompt risks need explicit proof.** Prompt-driven or
+10. **Fail-open prompt risks need explicit proof.** Prompt-driven or
    placeholder-driven stories are incomplete unless the proof contract checks
    for unresolved placeholders, silent no-op behavior on enabled paths, and
    unchanged behavior on an appropriate disabled/default path.
-10. **Epic contract obligations are part of local review when present.**
+11. **Epic contract obligations are part of local review when present.**
     If `CONTRACT.md`, dependency stories, or relevant sibling stories define
     shared interfaces or invariants the story touches, `/epic-story-review` cannot
     approve while those obligations are violated unless the intentional drift is
