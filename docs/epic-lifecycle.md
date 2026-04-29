@@ -176,16 +176,24 @@ rows.
    `## Acceptance` has 6 or more concrete items, `/epic-story-review` cannot
    approve until every acceptance item is covered by a focused pass and the
    synthesis records no unresolved conflicts, inconclusive passes, or coverage
-   gaps.
-9. **Helper proof is not routing proof.** For multi-callsite or
+   gaps. Focused passes should be de-fragmented by evidence surface and
+   root-cause family rather than split mechanically by acceptance item.
+9. **Review findings carry triage and detailed rationale.** `/epic-story-review`
+   should record compact hypothesis triage for inspected candidate issue threads
+   and use detailed finding cards for concrete issues in both the review output
+   and `## Review Log`.
+10. **Review reruns must account for earlier review findings.** Before
+   approving, `/epic-story-review` checks prior `## Review Log` concerns and
+   records whether they are resolved, still open, superseded, or not assessable.
+11. **Helper proof is not routing proof.** For multi-callsite or
    orchestration-heavy features, approval requires explicit proof that the
    supported callsites or branches actually route through the intended helper or
    branch logic.
-10. **Fail-open prompt risks need explicit proof.** Prompt-driven or
+12. **Fail-open prompt risks need explicit proof.** Prompt-driven or
    placeholder-driven stories are incomplete unless the proof contract checks
    for unresolved placeholders, silent no-op behavior on enabled paths, and
    unchanged behavior on an appropriate disabled/default path.
-11. **Epic contract obligations are part of local review when present.**
+13. **Epic contract obligations are part of local review when present.**
     If `CONTRACT.md`, dependency stories, or relevant sibling stories define
     shared interfaces or invariants the story touches, `/epic-story-review` cannot
     approve while those obligations are violated unless the intentional drift is

@@ -457,14 +457,41 @@ review logs.
   - Product verdict: approve | request_changes | reject | not_assessed
   - Technical verdict: approve | request_changes | reject | not_assessed
   - Multipass review: not_triggered | completed | incomplete
+  - Prior review concerns: none | resolved | still_open | superseded | not_assessable
   - Epic contract drift: none | present
   - Status transition: 🟣 IN REVIEW -> ✅ DONE
   - Files reviewed: <paths>
+  - Hypothesis triage:
+    - suspicious surface: <file/API/flow>; tentative issue: <possible failure>; next proof target: <source/test/proof to check>
   - Key findings:
-    - <short bullet>
+    - <finding summary> Sources: `<path:line>`
+
+      <details open>
+      <summary><b>SEVERITY_LABEL</b> severity · <b>LIKELIHOOD_LABEL</b> likelihood</summary>
+
+      **Why:** <operator-facing reason>
+
+      **Assumptions / Preconditions:** <required conditions, or `None.`>
+
+      **Downgrade Factors:** <confidence/impact reducers, or `None.`>
+
+      **Code Trail:** <grounded path from cited evidence to conclusion>
+
+      **Reproduction:** <brief reproduction narrative, or `Not applicable.`>
+
+      </details>
   - Debt Friction: none | <decision + short title>
   - Next action: <one concrete recommendation>
 ```
+
+`/epic-story-review` records compact hypothesis triage for inspected candidate
+issue threads and uses detailed finding cards for concrete issues in both the
+final review output and `## Review Log`. Finding summaries must carry
+`Sources: path:line`; the expanded card explains why the issue matters,
+assumptions, downgrade factors, code trail, and reproduction when applicable.
+When a story already has review-log findings, the next review records whether
+those concerns are resolved, still open, superseded, or not assessable from the
+current evidence before approving.
 
 #### `## Plan Review Log`
 

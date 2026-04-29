@@ -188,8 +188,13 @@ Multipass planning:
 1. Build a compact review plan with 2-8 focused passes.
 2. Group passes by acceptance-area risk, not mechanically one pass per
    acceptance item.
-3. Map every acceptance item to at least one planned pass.
-4. Each pass must have a clear title, acceptance items covered, risk focus, and
+3. Use the fewest genuinely independent passes needed for strong coverage.
+   Merge candidate passes that would inspect the same changed-file cluster,
+   root-cause family, invariant, or evidence surface.
+4. Keep tests, regressions, and gap checks inside the pass that owns the
+   subsystem risk unless they need a truly independent evidence path.
+5. Map every acceptance item to at least one planned pass.
+6. Each pass must have a clear title, acceptance items covered, risk focus, and
    expected evidence surface.
 
 Focused pass execution:
@@ -213,6 +218,10 @@ Focused pass return contract:
 - Search/direct-read evidence used.
 - `code_research` question used, or `not needed` with a short reason.
 - SERP/web sources used, or `none`.
+- Hypothesis Triage: compact bullets using
+  `suspicious surface: <file/API/flow>; tentative issue: <possible failure>; next proof target: <source/test/proof to check>`.
+  Include only candidate issue threads the pass actually inspected; prune weak
+  candidates before promoting anything into `Findings`.
 - Findings: every non-empty finding ends with `Sources: path:line`; use
   `- None.` when clean.
 - Verification/proof notes: proof rows checked, tests inspected, commands
@@ -235,6 +244,58 @@ Multipass synthesis:
   focused-pass outputs conflict, record a `Gate Finding`; `**Approval Gate**`
   must be `FAIL` and `**Decision**` cannot be `APPROVE`.
 
+## Hypothesis triage and detailed findings
+
+Use a compact Chain-of-Draft-style hypothesis triage before finalizing review
+findings. This is visible review work, not hidden reasoning.
+
+For single-pass review, include a `## Hypothesis Triage` section in the final
+output. For multipass review, require each focused pass to return Hypothesis
+Triage bullets, then synthesize only the useful surviving threads into the final
+`## Hypothesis Triage` section.
+
+Hypothesis Triage bullets use this exact shape:
+
+```md
+- suspicious surface: <file/API/flow>; tentative issue: <possible failure>; next proof target: <source/test/proof to check>
+```
+
+Rules:
+- Include only candidate issue threads actually inspected.
+- Prune weak, duplicate, or disproven candidates before promoting findings.
+- Do not treat triage bullets as final proof. Findings still require the
+  detailed finding card and `Sources: path:line` contract below.
+- Synthesis may summarize and dedupe triage from focused passes, but must not
+  perform new broad investigation.
+
+Every concrete issue under `Gate Findings`, `Product Assessment`,
+`Technical Assessment`, or `Epic Contract Drift` must use this detailed finding
+card format in both the final review output and the `## Review Log` write-back:
+
+```md
+- <finding summary> Sources: `path:line`
+
+  <details open>
+  <summary><b>SEVERITY_LABEL</b> severity · <b>LIKELIHOOD_LABEL</b> likelihood</summary>
+
+  **Why:** <simple operator-facing explanation of why the change is being requested>
+
+  **Assumptions / Preconditions:** <required conditions, or `None.`>
+
+  **Downgrade Factors:** <what would reduce confidence or impact, or `None.`>
+
+  **Code Trail:** <grounded path from the cited evidence to the review conclusion>
+
+  **Reproduction:** <brief reproduction narrative or simple text diagram>, or `Not applicable.`
+
+  </details>
+```
+
+Severity labels must be one of: `Critical`, `High`, `Medium`, `Low`, `Info`.
+Likelihood labels must be one of: `High`, `Medium`, `Low`, `Not Assessed`.
+Keep `Why` in plain operator-facing language. Prefer `Not Assessed` over fake
+precision when evidence is insufficient.
+
 ## Review process
 1. Use code research/search and direct code reading to understand the story's
    implementation and impacted surfaces.
@@ -246,24 +307,28 @@ Multipass synthesis:
    Each `<basename>` resolves to either an implementer's worktree (most
    common) or the main tree at `<workspace_root>/projects/<basename>` (clean
    main-tree fallback case from the preflight).
-3. Never speculate about code you haven't read.
-4. When `<epic>/CONTRACT.md` exists, inspect the sections relevant to the
+3. Read any existing `## Review Log` entries in the story before deciding. If
+   prior review runs requested changes or recorded blockers, explicitly verify
+   whether each concern is resolved, still open, superseded by later story
+   changes, or not assessable from current evidence.
+4. Never speculate about code you haven't read.
+5. When `<epic>/CONTRACT.md` exists, inspect the sections relevant to the
    resolved story's owned surfaces and invariants.
-5. If the final implementation or final proof matrix clearly differs from the
+6. If the final implementation or final proof matrix clearly differs from the
    earlier planned proof path, consult `## Progress Log` and
    `## Session Handoff` to confirm the change was recorded and justified.
-6. If sibling stories define shared interfaces, invariants, or proof surfaces
+7. If sibling stories define shared interfaces, invariants, or proof surfaces
    this story touches, inspect those targeted stories rather than assuming the
    resolved step file is complete.
-7. Run a Debt Friction check: ask whether implementation or review was made
+8. Run a Debt Friction check: ask whether implementation or review was made
    harder by unclear ownership, duplicated behavior, weak or mocked tests,
    missing seams, hidden behavior, or unsafe structure. Only record a
    `Debt Friction` finding when there is a story-local causal link: current
    story action -> concrete evidence -> delivery impact -> explicit decision.
-8. Break the reviewed implementation into logical groups and explain the
+9. Break the reviewed implementation into logical groups and explain the
    grouping briefly.
-9. Review each group sequentially.
-10. Prioritize:
+10. Review each group sequentially.
+11. Prioritize:
    - correctness
    - regressions
    - product / acceptance drift from the requested outcome
@@ -348,12 +413,29 @@ Add a new entry like:
   - Product verdict: approve | request_changes | reject | not_assessed
   - Technical verdict: approve | request_changes | reject | not_assessed
   - Multipass review: not_triggered | completed | incomplete
+  - Prior review concerns: none | resolved | still_open | superseded | not_assessable
   - Epic contract drift: none | present
   - Status transition: <from> -> <to>
   - Files reviewed: <paths>
+  - Hypothesis triage:
+    - suspicious surface: <file/API/flow>; tentative issue: <possible failure>; next proof target: <source/test/proof to check>
   - Key findings:
-    - <short bullet>
-    - <short bullet>
+    - <finding summary> Sources: `<path:line>`
+
+      <details open>
+      <summary><b>SEVERITY_LABEL</b> severity · <b>LIKELIHOOD_LABEL</b> likelihood</summary>
+
+      **Why:** <operator-facing reason>
+
+      **Assumptions / Preconditions:** <required conditions, or `None.`>
+
+      **Downgrade Factors:** <confidence/impact reducers, or `None.`>
+
+      **Code Trail:** <grounded path from cited evidence to conclusion>
+
+      **Reproduction:** <brief reproduction narrative, or `Not applicable.`>
+
+      </details>
   - Debt Friction: none | <decision + short title>
   - Next action: <one concrete recommendation>
 ```
@@ -386,6 +468,12 @@ only eligible for approval when:
   this story.
 - `Technical Assessment` evaluates correctness, regressions, architecture,
   reuse, tests, security, performance, maintainability, and rollout safety.
+- If the same underlying issue qualifies for both `Product Assessment` and
+  `Technical Assessment`, report the canonical finding only once. Prefer
+  `Product Assessment` when the issue affects requested behavior, acceptance,
+  user-visible correctness, operator value, or the approval verdict. Use
+  `Technical Assessment` for distinct implementation concerns that are not
+  already captured by the product finding.
 - `In Scope Issues` are issues the resolved story directly owns or must satisfy
   to pass.
 - `Out of Scope Issues` are adjacent problems, follow-on work, or broader epic
@@ -409,6 +497,7 @@ Use:
 **Status Transition**: [<old> -> <new>]
 **Grouping**: [brief grouping logic]
 **Epic Context Used**: [MASTER.md, CONTRACT.md if present, dependency stories, sibling stories reviewed, handoff/progress sections]
+**Prior Review Log Check**: [none, or prior concerns checked with resolved/still open/superseded/not assessable status]
 **Approval Gate**: [PASS | FAIL]
 
 ## Multipass Review
@@ -420,34 +509,38 @@ Use:
 - Uncovered acceptance items: <none, or A ids / bullet summaries>
 - Conflicts / evidence gaps: <none, or blocking gap summary>
 
+## Hypothesis Triage
+- suspicious surface: <file/API/flow>; tentative issue: <possible failure>; next proof target: <source/test/proof to check>
+- None.
+
 ## Gate Findings
-- [Severity] [path:line] readiness / proof / state / red-first / status-transition issue
+- <finding summary> Sources: `path:line`
 - None.
 
 ## Product Assessment
 **Verdict**: [APPROVE | REQUEST CHANGES | REJECT | NOT ASSESSED]
 
 ### In Scope Issues
-- [Severity] [path:line] requested outcome, acceptance behavior, user-visible correctness, or explicitly-owned epic-contract issue
+- <finding summary> Sources: `path:line`
 - None.
 
 ### Out of Scope Issues
-- [Severity] [path:line] adjacent product gap, follow-on story work, or broader epic concern worth flagging
+- <finding summary> Sources: `path:line`
 - None.
 
 ## Technical Assessment
 **Verdict**: [APPROVE | REQUEST CHANGES | REJECT | NOT ASSESSED]
 
 ### In Scope Issues
-- [Severity] [path:line] correctness, regression, architecture, duplication, contracts, tests, security, performance, rollout risk
+- <finding summary> Sources: `path:line`
 - None.
 
 ### Out of Scope Issues
-- [Severity] [path:line] nearby debt, broader refactor, sibling inconsistency, or cleanup not required to approve this story
+- <finding summary> Sources: `path:line`
 - None.
 
 ## Epic Contract Drift
-- [Severity] [path:line] mismatch between this story and epic-level contract / MASTER / sibling-story commitments
+- <finding summary> Sources: `path:line`
 - None.
 
 ## Summary
