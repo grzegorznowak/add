@@ -27,6 +27,13 @@ multiple times on the same step when review context already exists.
 You can only change the coordination files in the epic, never actual sourcecodes of the app
 Review is inherently a read-only process
 
+## Safety guardrails
+
+- Do not modify source code — review is read-only.
+- Do not run destructive git operations (push, `reset --hard`, force commands, branch deletion).
+- Never write outside the worktree, the story's coordination directory, or `/tmp`.
+- Test execution is permitted only to verify the story's proof matrix (not for broad exploration).
+
 ## Why operator-explicit (arg or menu) selection
 
 `epic_story_review` never auto-infers the epic or the story. The operator
@@ -111,6 +118,13 @@ Examples of not-reviewable:
 - any acceptance id has no proof row, or any proof row is still `provisional`
 - epic-wide obligations relevant to this story are still materially undefined
 
+If you must ABORT:
+- Output using the output format below.
+- Set **Decision** to `NOT REVIEWABLE`.
+- Set **Approval Gate** to `FAIL`.
+- Include a Gate Finding explaining why.
+- Keep all other sections present using `- None.`
+
 ## Worktree preflight
 
 After reading the story's `## Active Claim`, build `<project_root_map>` from what the claim recorded plus any explicit overrides. This command **never creates** a worktree; it only reuses what the implementer recorded or what the operator passed explicitly.
@@ -182,7 +196,9 @@ Counting rules:
   not approve.
 
 When `## Acceptance` has 6 or more concrete items, multipass review is
-required.
+required. Multipass is also required when the combined diff across all
+target repos exceeds 30 files or 1500 lines, even if acceptance items
+are fewer than 6.
 
 Multipass planning:
 1. Build a compact review plan with 2-8 focused passes.
@@ -231,12 +247,18 @@ Focused pass return contract:
 
 Multipass synthesis:
 - Synthesis is an assembly pass, not a new investigation pass.
+- Treat focused-pass outputs as hypotheses, not authority. Before
+  carrying any claim into the final review, verify that primary evidence
+  in the current worktree or story artifacts supports the claim, not
+  just that a cited `file:line` exists.
 - Read the plan and all focused-pass outputs.
 - Map every `## Acceptance` item to at least one completed focused-pass result.
 - Dedupe repeated findings while preserving original `Sources: path:line`
   evidence.
 - Classify accumulated findings into `Gate Findings`, `Product Assessment`,
   `Technical Assessment`, or `Epic Contract Drift`.
+- Produce a `### Strengths` section under both Assessments from positive
+  observations in focused-pass outputs.
 - Do not perform new broad code research, invent missing evidence, silently
   resolve conflicting pass results, or convert an inconclusive pass into
   approval.
@@ -347,7 +369,7 @@ precision when evidence is insufficient.
 Before approving, verify:
 - Does the implementation actually satisfy the step spec and requested outcome?
 - Were any explicit epic-wide contract or architectural decisions violated?
-- Can existing code have been extended instead of creating new duplication?
+- Can existing code be extended instead of creating new? Search the codebase for similar patterns before concluding new code is needed.
 - Do the changes respect module boundaries and current patterns?
 - Are there any security implications in the implementation or operational model?
 - Are there any performance or scalability regressions in the changed path?
@@ -460,6 +482,10 @@ only eligible for approval when:
   reflected in the review verdict
 
 ## Classification rules
+- The Product and Technical verdicts are independent and may disagree.
+  Either may also be `NOT ASSESSED` when the reviewer lacks sufficient
+  evidence for that dimension. Out-of-scope issues may still downgrade a
+  verdict when materially important.
 - `Gate Findings` contains readiness, proof-contract, state-transition, and
   red-first/precondition failures. Any unresolved gate finding means
   `**Approval Gate**: FAIL` and `**Decision**` cannot be `APPROVE`.
@@ -500,6 +526,9 @@ Use:
 **Prior Review Log Check**: [none, or prior concerns checked with resolved/still open/superseded/not assessable status]
 **Approval Gate**: [PASS | FAIL]
 
+### Steps taken
+- [1 line per major inspection action]
+
 ## Multipass Review
 - Triggered: yes | no
 - Acceptance count: <count from ## Acceptance>
@@ -520,6 +549,10 @@ Use:
 ## Product Assessment
 **Verdict**: [APPROVE | REQUEST CHANGES | REJECT | NOT ASSESSED]
 
+### Strengths
+- <finding summary> Sources: `path:line`
+- None.
+
 ### In Scope Issues
 - <finding summary> Sources: `path:line`
 - None.
@@ -531,11 +564,19 @@ Use:
 ## Technical Assessment
 **Verdict**: [APPROVE | REQUEST CHANGES | REJECT | NOT ASSESSED]
 
+### Strengths
+- <finding summary> Sources: `path:line`
+- None.
+
 ### In Scope Issues
 - <finding summary> Sources: `path:line`
 - None.
 
 ### Out of Scope Issues
+- <finding summary> Sources: `path:line`
+- None.
+
+### Reusability
 - <finding summary> Sources: `path:line`
 - None.
 
