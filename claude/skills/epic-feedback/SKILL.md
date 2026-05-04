@@ -189,7 +189,37 @@ Do not edit files before acknowledgement. If the operator changes routing, revis
 
 ## Phase 5 — Apply coordination edits
 
-Apply the acknowledged plan with minimal edits.
+Apply the acknowledged plan with minimal edits. Construct all edits in memory first. Run the validation gate below for `amend-existing-story` dispositions before writing to disk. Non-amend dispositions write directly without validation.
+
+### Validation gate (amend-existing-story only)
+
+After constructing edits for an `amend-existing-story` disposition and before writing, run these three phases in order. Read the story's original sections so the before/after diff is available.
+
+**Phase A — Structural checks.** Verify:
+1. Every acceptance bullet starts with `A<n>:`.
+2. `## Verification` contains `### Verification Commands` and `### Acceptance Proof Matrix` subsections.
+3. The proof matrix uses the required columns.
+4. Every `A<n>` appears in at least one proof row.
+5. `Proof Maturity` is `final` or `provisional` only.
+6. Every `provisional` row has non-blank `Open Detail`.
+7. No `<TODO: ...>` placeholders in `## Acceptance` or `## Verification`.
+
+**Phase B — Contract-preservation diff.** Compare the edited sections against the originals:
+- Every pre-existing `A<n>` still appears in at least one proof row in the edited version (coverage match — row shape may change).
+- Pre-existing `## Out of Scope` items have not been silently pulled into `## Scope` without explicit override.
+- Pre-existing `## Locked Decisions` have not been removed unless the feedback explicitly overrides them and the operator confirms.
+
+**Phase C — Red-first seam alignment.** When `## Acceptance` or `## Scope` was edited and `## Implementation Notes` mentions a red-first seam:
+- Show the planned seam and the amended acceptance criteria.
+- Ask the operator: "Does this seam still cover the amended criteria?"
+- Yes → proceed. No → block; operator must update `## Implementation Notes` before retrying.
+
+**On failure:**
+- Phase A → HARD BLOCK. Show the specific violation. Do not write. Operator revises the absorption plan or story edits before retrying.
+- Phase B → SOFT BLOCK. Show the pre-existing commitment being removed. Operator may override with explicit acknowledgement, or revise the edits to restore the commitment.
+- Phase C → HARD BLOCK. Operator must update `## Implementation Notes` with a corrected seam, then retry.
+
+After all three phases pass, proceed to write the edits to disk. Then add the story-local receipt and MASTER.md entry.
 
 For `amend-existing-story`, edit only these story sections:
 
@@ -227,6 +257,8 @@ For `resume-current-story`, append to the story's `## Review Log` using the impl
   - Debt Friction: none | <decision + short title>
   - Next action: <one concrete resume/rework action>
 ```
+
+If rework changes acceptance boundaries or proof surfaces, re-validate the `## Acceptance Proof Matrix` as part of the resume.
 
 Do not delete or rewrite older `Review Log` entries. If the story is `🔵 IN PR`, do not update `## PR Tracking` here; recommend `/epic-story-pr` refresh when the PR status itself must move the story back to `🔄 IN PROGRESS`.
 
@@ -278,5 +310,8 @@ Report:
 - disposition and target for each item
 - any items skipped or left ambiguous
 - exact next command when relevant, such as `/epic-story-resume`, `/epic-story-pr`, or `/epic-story-plan`
+
+When `amend-existing-story` touched `## Acceptance` or `## Verification`, include in the response:
+"Recommended next: run `/epic-story-plan-review $EPIC <NN>` from a fresh session to re-validate the amended plan."
 
 Keep the response short. Do not paste long feedback bodies; link or cite source IDs instead.
