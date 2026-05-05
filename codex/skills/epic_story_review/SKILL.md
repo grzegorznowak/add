@@ -180,6 +180,24 @@ After reading the story's `## Active Claim`, build `<project_root_map>` from wha
 Do not infer identity from filename shape or naming conventions that are not
 explicitly recorded in `MASTER.md`.
 
+## Proof-boundary discipline
+
+- Read the latest `## Review Log` entry before source inspection and carry every
+  prior concern into the review as `resolved`, `still_open`, `superseded`, or
+  `not_assessable`.
+- When an acceptance or proof row names an end-to-end boundary, verify the proof
+  starts at that named boundary. A lower-level test with hand-built intermediate
+  data does not satisfy a resolver/orchestration acceptance item unless the row
+  explicitly permits that narrower proof.
+- Treat external or local technical docs as contract hints, not implementation
+  proof. If a story claims an exact route, model family, auth mode, metadata
+  label, or dispatch path, verify repo code or tests prove that exact behavior.
+- If a story touches surfaces owned by dependency stories, inspect the relevant
+  dependency proof rows and ensure prior accepted contracts still hold.
+- If progress logs, review logs, or code structure reveal duplicated live owners
+  for one behavior, include each owner in the review plan; do not approve a story
+  that updates or proves only one side without an explicit exclusion.
+
 ## Multipass review mode
 
 Before starting the implementation review, count the concrete items in the
@@ -382,6 +400,10 @@ Before approving, verify:
 - Are there hidden packaging/runtime/ops implications not captured in the step?
 - Is every acceptance id still covered by the final proof matrix?
 - Are any matrix rows still `provisional`?
+- Does every proof row start at the boundary it claims to prove, rather than
+  bypassing it with hand-built intermediate state?
+- Are route/model/auth/metadata claims grounded in repo behavior or tests, not
+  only in external or local documentation?
 - If the story spans multiple surfaces / variants / branches, does the final
   proof contract still cover every in-scope row from the `Surface / Branch
   Proof Matrix`, or log an explicit intentional exclusion?
@@ -472,8 +494,12 @@ only eligible for approval when:
 - every acceptance id remains covered
 - every proof row is `final`
 - the matrix matches the actual implementation and verification surfaces
+- every named end-to-end proof starts at the claimed entry boundary, or the story
+  explicitly narrows the proof row
 - every required surface / variant / branch row is covered or explicitly excluded
 - routing completeness is proven when multiple supported callsites or orchestration paths exist
+- route, model-family, auth-mode, and metadata claims are proven by repo
+  code/tests rather than documentation alone
 - multipass review is either not triggered or completed with every acceptance
   item covered by a focused-pass result
 - required fail-open checks are satisfied for prompt/template/placeholder-driven features
