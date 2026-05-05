@@ -205,6 +205,10 @@ Use the latest concrete guidance in this order:
 If these conflict, prefer the higher source in the list above and record the
 conflict in the progress log.
 
+**Unresolved-review heuristic:** After identifying the newest `request_changes` Review Log entry, scan later Progress Log bullets for any that reference that finding's timestamp or `Next action`. A bullet like `Picked up existing in-progress step and resumed work from the latest review CTA (TIMESTAMP)` with a timestamp after the review log entry signals a session that attempted resolution — check its remaining bullets to confirm. If no later progress bullet addresses the finding, it is still open.
+
+**Proof-matrix editing:** Each markdown table row is a single pipe-delimited line. Use `grep -n '| A[0-9]' <story-file>` to locate exact line numbers, then edit with the full line as `oldString`.
+
 ## Claim refresh protocol
 Before deep implementation work:
 1. Refresh the existing `## Active Claim` section for the continuation session:

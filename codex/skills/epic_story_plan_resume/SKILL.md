@@ -117,16 +117,18 @@ The `Unresolved:` bullet is included only when at least one finding was rejected
 
 ### Debt Friction check (Mode A)
 
-After all pending entries have been absorbed, run a Debt Friction check. Ask: is meaningfully completing this plan's acceptance or proof being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure — specifically revealed during feedback absorption? Only write a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision. Record findings as a new `## Plan Review Log` entry with a `- Debt Friction:` bullet using the `docs/epic-conventions.md` shape.
+After all pending entries have been absorbed, run a Debt Friction check. Evaluate whether meaningfully completing this plan's acceptance or proof is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure — specifically revealed during feedback absorption. Only write a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
+- **No debt friction identified**: skip, record nothing.
+- **Clear debt friction found**: auto-record as a new `## Plan Review Log` entry with a `- Debt Friction:` bullet using the `docs/epic-conventions.md` shape. Do not ask for confirmation.
+- **Uncertain**: ask the operator whether to record it.
 
 ### Log cleanup
 
-After absorption and Debt Friction check, offer log compression:
+After absorption and Debt Friction check, auto-compress the log:
 
 - Scan for stale entries (both stale `request_changes`/`not_reviewable` entries with addressed follow-ups, and `approve` entries). Count them.
-- If any exist, ask: "The plan review log has <N> resolved entries. Compress them to keep only the latest summary? (y/n)"
-- On `y`: read the full `## Plan Review Log` section into memory, remove each stale entry (the original `request_changes`/`not_reviewable`/`approve` entry) while keeping the "addressed" entries that reference them. Preserve chronological order of remaining entries. Atomically replace the entire `## Plan Review Log` section with the compressed version. If this leaves the section empty, write a single placeholder: `<UTC ISO timestamp> All plan review feedback addressed and log compressed.`
-- On `n`: leave the log as-is.
+- If zero or one stale entries exist: skip compression, leave the log as-is.
+- If two or more stale entries exist: auto-compress without asking. Read the full `## Plan Review Log` section into memory, remove each stale entry (the original `request_changes`/`not_reviewable`/`approve` entry) while keeping the "addressed" entries that reference them. Preserve chronological order of remaining entries. Atomically replace the entire `## Plan Review Log` section with the compressed version. If this leaves the section empty, write a single placeholder: `<UTC ISO timestamp> All plan review feedback addressed and log compressed.`
 
 ### Mode A stop
 
@@ -186,7 +188,10 @@ If `## Locked Decisions` is missing:
 
 ### Debt Friction check (Mode B)
 
-After all sections have been edited, run a separate Debt Friction check. Ask: is planning completion being made harder by debt discovered during continuation planning? Only write when there is a story-local causal link. Record as a separate `## Plan Review Log` entry.
+After all sections have been edited, run a separate Debt Friction check. Evaluate whether planning completion is being made harder by debt discovered during continuation planning. Only write when there is a story-local causal link.
+- **No debt friction identified**: skip, record nothing.
+- **Clear debt friction found**: auto-record as a separate `## Plan Review Log` entry with a `- Debt Friction:` bullet. Do not ask for confirmation.
+- **Uncertain**: ask the operator whether to record it.
 
 ## Re-validation
 
