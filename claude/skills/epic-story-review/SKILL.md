@@ -340,6 +340,8 @@ Before approving, verify:
 
 ## Status transitions
 
+Before transitioning to `✅ DONE`, check `## Active Claim` -> `- Worktrees:` for uncommitted changes. If any worktree is dirty, offer to commit before marking done: `git -C <path> add -A && git -C <path> commit -m "<epic-name>/<story-slug>: review sign-off"`. If the step has no `## Active Claim` section (review-only session), skip.
+
 You may update `MASTER.md` as part of the review. Use this policy:
 
 - if review starts on a step marked `🔄 IN PROGRESS` but implementation is clearly ready for review, move it to `🟣 IN REVIEW`

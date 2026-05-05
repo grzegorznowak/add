@@ -243,6 +243,8 @@ At the end of the session, update the claimed step file with:
 - Exact next step: <one concrete recommendation>
 ```
 
+Before transitioning to `✅ DONE`, offer to check in worktree changes. For each worktree in `## Active Claim` -> `- Worktrees:`, run `git -C <path> status --porcelain`. If dirty, propose `git -C <path> add -A && git -C <path> commit -m "<epic>/<story-slug>: <worksummary>"` and execute on operator confirmation. If all worktrees are clean, skip.
+
 Then update `MASTER.md` status for the claimed row using this lifecycle:
 - `🔄 IN PROGRESS`
   - implementation is still actively underway

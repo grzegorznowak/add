@@ -216,6 +216,8 @@ At the end of the session, update the step file:
 - Exact next step: <one concrete recommendation>
 ```
 
+Before transitioning to `✅ DONE`, offer to check in worktree changes. For each worktree in `## Active Claim` -> `- Worktrees:`, run `git -C <path> status --porcelain`. If dirty, propose `git -C <path> add -A && git -C <path> commit -m "<epic-name>/<story-slug>: <worksummary>"` and execute on operator confirmation. If all worktrees are clean, skip.
+
 Then update `MASTER.md` status using this lifecycle:
 - `🔄 IN PROGRESS` — implementation still actively underway
 - `🟣 IN REVIEW` — implementation done enough for review; the focused red seam is green or an explicit exception is recorded; run final verification, review the touched files, tighten rough edges

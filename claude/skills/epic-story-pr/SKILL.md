@@ -259,6 +259,8 @@ If the step is `✅ DONE` and already has `## PR Tracking` for an unmerged PR, r
 
 ## MASTER.md update
 
+Before transitioning to `✅ DONE`, check `## Active Claim` -> `- Worktrees:` for uncommitted changes. If any worktree is dirty (e.g., local metadata or post-PR adjustments), offer to commit before marking done. If the step has no `## Active Claim` section, skip.
+
 Update the selected row in `<epic>/MASTER.md`:
 
 | From | Action |
