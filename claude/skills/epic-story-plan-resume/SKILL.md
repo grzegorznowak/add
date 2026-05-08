@@ -164,7 +164,7 @@ Walk the operator through each incomplete section in order. For each:
 4. **Scope** — if missing or non-atomic. Push back on multi-story scope. Interview as question 5.
 5. **Out of Scope** — if missing, propose a best-guess draft from Scope boundaries and confirm.
 6. **Acceptance** — if missing or structurally incomplete. Interview as question 6. Every bullet must be `A<n>:`, atomic, observable. Reject compound bullets.
-7. **Verification** — if missing or structurally incomplete. Interview as question 7. Must produce `### Verification Commands` and `### Acceptance Proof Matrix` with full coverage. Add `### Surface / Branch Proof Matrix` when multi-surface, and `### Fail-open Checks` when prompt-driven.
+7. **Verification** — if missing or structurally incomplete. Interview as question 7. Must produce `### Verification Commands` and `### Acceptance Proof Matrix` with full coverage. Add `### Surface / Branch Proof Matrix` when multi-surface, `Input Boundary Shape Risk` proof when raw input crosses into stricter assumptions, and `### Fail-open Checks` when prompt-driven.
 
 For sections 1-5 and 7, consult existing `## Discovery Notes`, `## Critical Files`, `## Implementation Notes`, and `## Locked Decisions` for hints — do not duplicate material across sections.
 

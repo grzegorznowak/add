@@ -26,7 +26,10 @@ surfaces, variants, modes, or orchestration branches, the story must
 expand that risk surface into a `Surface / Branch Proof Matrix`. If
 shared helpers or multiple callsites are involved, the story must
 distinguish helper, routing, and behavior proofs. If the feature is
-prompt- or placeholder-driven, the story must include fail-open checks.
+prompt- or placeholder-driven, the story must include fail-open checks. If
+raw persisted, external, framework, or generated input crosses into stricter
+application assumptions, the proof contract must cover the `Input Boundary
+Shape Risk` at the real input boundary.
 
 This phase is upstream of the state-machine states. `/epic-story-plan`
 feeds the first row of the tracker; the state diagram starts at
@@ -190,10 +193,15 @@ rows.
    supported callsites or branches actually route through the intended helper or
    branch logic.
 12. **Fail-open prompt risks need explicit proof.** Prompt-driven or
-   placeholder-driven stories are incomplete unless the proof contract checks
-   for unresolved placeholders, silent no-op behavior on enabled paths, and
-   unchanged behavior on an appropriate disabled/default path.
-13. **Epic contract obligations are part of local review when present.**
+    placeholder-driven stories are incomplete unless the proof contract checks
+    for unresolved placeholders, silent no-op behavior on enabled paths, and
+    unchanged behavior on an appropriate disabled/default path.
+13. **Input boundary shape risks need real-boundary proof.** When raw
+    persisted, external, framework, or generated input crosses into stricter
+    application assumptions, approval requires proof from the named input
+    boundary for every in-scope shape case, or an explicit exclusion / unknown
+    with mitigation.
+14. **Epic contract obligations are part of local review when present.**
     If `CONTRACT.md`, dependency stories, or relevant sibling stories define
     shared interfaces or invariants the story touches, `/epic-story-review` cannot
     approve while those obligations are violated unless the intentional drift is

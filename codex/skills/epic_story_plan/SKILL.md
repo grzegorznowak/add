@@ -145,12 +145,18 @@ Build `## Verification` around two required parts and any conditional proof sect
    - Every in-scope surface / variant / branch combination must appear.
    - `Proof Class` must be one of `helper`, `routing`, or `behavior`.
    - Helper proof alone is insufficient when multiple supported callsites or orchestration paths exist; require at least one routing proof.
-4. `### Fail-open Checks` when the feature depends on prompt placeholders, template variables, string substitution, or other fail-open prompt assembly.
+4. `Input Boundary Shape Risk` proof when raw persisted, external, framework, or generated input crosses into stricter application assumptions such as parsing, validation, classification, normalization, migration, aggregation, routing, import/export, or schema construction.
+   - Keep approval evidence in the `Acceptance Proof Matrix` and make it start at the named raw input boundary.
+   - Add a `### Input Boundary Shape Risk` mini-matrix only when multiple boundaries, variants, or mitigations would be hard to audit from acceptance rows alone.
+   - Required mini-matrix columns: `Boundary | Raw Input Source | Strict Assumption | Variant / Case | Evidence | Mitigation / Exclusion`.
+   - Every in-scope boundary and shape case must appear once, or be explicitly excluded with a reason.
+   - `unknown` evidence is allowed only with a recorded reason, mitigation, and follow-up path; unknown evidence without mitigation is not approval-ready.
+5. `### Fail-open Checks` when the feature depends on prompt placeholders, template variables, string substitution, or other fail-open prompt assembly.
    - Require a negative proof that supported renders leave no unresolved placeholders or raw feature tokens.
    - Require a proof that enabled supported paths activate the feature.
    - Require at least one disabled/default path proof showing baseline behavior is unchanged.
 
-Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers. Provisional rows are allowed, but every acceptance id still needs a row and every provisional row must state what remains undecided.
+Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers. Provisional rows are allowed, but every acceptance id still needs a row and every provisional row must state what remains undecided. For input-boundary shape risks, helper-level proof with already-normalized intermediate data is insufficient unless the story explicitly narrows the proof row and records why that is safe.
 
 Debt Friction check: actively ask whether proof planning is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
 

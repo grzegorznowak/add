@@ -245,6 +245,36 @@ Rules for `### Surface / Branch Proof Matrix`:
   branches are covered, and which are intentionally out of scope, from the
   story alone.
 
+Add this proof obligation whenever raw persisted, external, framework, or
+generated input crosses into stricter application assumptions such as parsing,
+validation, classification, normalization, migration, aggregation, routing,
+import/export, or schema construction. Keep the approval proof in the
+`Acceptance Proof Matrix`; add the subsection below only when multiple
+boundaries, variants, or mitigations would be hard to audit from acceptance rows
+alone:
+
+```md
+### Input Boundary Shape Risk
+| Boundary | Raw Input Source | Strict Assumption | Variant / Case | Evidence | Mitigation / Exclusion |
+|---|---|---|---|---|---|
+| <adapter / caller / parser> | <db / API / queue / file / event / ORM / request / cache / CLI / import> | <shape assumed by stricter code> | <in-scope variant or explicit exclusion> | <test / probe / schema / contract / canary / reviewer action> | <normalize / reject / fallback / flag / explicit exclusion> |
+```
+
+Rules for `### Input Boundary Shape Risk`:
+
+- Every in-scope boundary and shape variant must appear once, or be explicitly
+  excluded with a reason. Use product-neutral variant labels from the story's
+  actual risk surface rather than copying canned examples.
+- Evidence must start at the named raw input boundary. A helper-level proof with
+  already-normalized intermediate data is insufficient unless the story
+  explicitly narrows the proof row and records why that is safe.
+- Acceptable evidence includes automated tests, schema/contract validation,
+  read-only data probes, sanitized or synthetic fixtures that preserve the raw
+  shape, property/fuzz checks, canary evidence, or exact reviewer actions.
+- `unknown` evidence is allowed only when the row records why evidence is
+  unavailable, what mitigation reduces release risk, and what follow-up would
+  close the gap. Unknown evidence without mitigation is not approval-ready.
+
 Add this subsection whenever the feature depends on prompt placeholders,
 template variables, string substitution, or other fail-open prompt assembly:
 

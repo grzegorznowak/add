@@ -189,6 +189,10 @@ explicitly recorded in `MASTER.md`.
   starts at that named boundary. A lower-level test with hand-built intermediate
   data does not satisfy a resolver/orchestration acceptance item unless the row
   explicitly permits that narrower proof.
+- When raw persisted, external, framework, or generated input crosses into
+  stricter application assumptions, treat it as an `Input Boundary Shape Risk`:
+  proof must start at the raw input boundary for every in-scope case, or the
+  story must record an explicit exclusion / unknown with mitigation.
 - Treat external or local technical docs as contract hints, not implementation
   proof. If a story claims an exact route, model family, auth mode, metadata
   label, or dispatch path, verify repo code or tests prove that exact behavior.
@@ -414,6 +418,9 @@ Before approving, verify:
   reviewer actions prove there are no unresolved placeholders on supported
   paths, that enabled paths actually activate the feature, and that an
   appropriate disabled/default path stays unchanged?
+- If the story has `Input Boundary Shape Risk`, does final evidence start at
+  each named raw input boundary and cover every in-scope shape case, or record
+  an explicit exclusion / unknown with mitigation?
 - If proof paths changed, was the story updated and the drift logged?
 - If sibling stories or the epic contract declare shared interfaces or
   obligations this story touches, does the implementation still match them, or
@@ -503,6 +510,8 @@ only eligible for approval when:
 - multipass review is either not triggered or completed with every acceptance
   item covered by a focused-pass result
 - required fail-open checks are satisfied for prompt/template/placeholder-driven features
+- required input-boundary shape risk rows are covered by real-boundary evidence,
+  explicitly excluded, or recorded as unknown with mitigation
 - any apparent proof drift was logged when it happened
 - the step file records either the focused red seam that was used or an
   explicit written exception with the alternative proof path

@@ -191,10 +191,11 @@ Before approving, verify every item:
    `A<n>:` and cover one independently provable behavior. Split any bullet
    whose parts could fail independently.
 8. **`Verification` uses the required proof-contract shape.** `## Verification`
-   must contain exact `### Verification Commands` and
-   `### Acceptance Proof Matrix` subsections, plus any required
-   `### Surface / Branch Proof Matrix` and `### Fail-open Checks` subsections
-   when the story's risk surface calls for them.
+    must contain exact `### Verification Commands` and
+    `### Acceptance Proof Matrix` subsections, plus any required
+    `### Surface / Branch Proof Matrix`, `### Input Boundary Shape Risk`, and
+    `### Fail-open Checks` subsections when the story's risk surface calls for
+    them.
 9. **The proof matrix covers every acceptance id.** Every acceptance id must
    appear in at least one matrix row. Shared rows are allowed only when the
    same proof action and failure signal genuinely cover all listed ids.
@@ -219,39 +220,47 @@ Before approving, verify every item:
     supported renders leave no unresolved placeholders or raw tokens, enabled
     supported paths actually activate the feature, and an appropriate
     disabled/default path remains unchanged.
-15. **Proof seams target the real contract and are focused enough for
+15. **Input boundary shape risks are covered when relevant.** If raw
+    persisted, external, framework, or generated input crosses into stricter
+    application assumptions, the proof contract must cover every in-scope
+    boundary and shape case at the real raw-input boundary, or explicitly
+    exclude it with a reason. A `### Input Boundary Shape Risk` mini-matrix is
+    required when multiple boundaries, variants, or mitigations would be hard
+    to audit from acceptance rows alone. Unknown evidence must include the
+    reason evidence is unavailable, a mitigation, and a follow-up path.
+16. **Proof seams target the real contract and are focused enough for
     red-first execution.** Reject rows that mainly validate mocked helpers,
     monkeypatched internals, or synthetic seams that would not meaningfully
     exercise the promised acceptance behavior. The plan must still leave room
     for the implementer to choose the smallest focused seam after reading
     sources.
-16. **Feasibility is grounded when possible.** Probe referenced commands,
+17. **Feasibility is grounded when possible.** Probe referenced commands,
     files, and surfaces against the live repo. Existing seams should exist;
     planned seams should still point at the right owning surface.
-17. **`Implementation Notes` make red-first the default implementation
+18. **`Implementation Notes` make red-first the default implementation
     method.** The plan must clearly say implementation inspects sources first,
     chooses the smallest focused seam it can make fail, turns it green, then
     broadens verification. If the plan anticipates a reason red-first may be
     infeasible, it must require an explicit written exception before deviating.
-18. **`Critical Files` exist.** Resolve every path. Missing or renamed files
+19. **`Critical Files` exist.** Resolve every path. Missing or renamed files
     are plan-staleness signals.
-19. **`Critical Files` are the right surfaces.** Grep the plan's domain
+20. **`Critical Files` are the right surfaces.** Grep the plan's domain
     keywords; if obvious owners of that domain are missing from the list,
     flag it.
-20. **`Discovery Notes` mentions reusable existing code.** Search the repo
+21. **`Discovery Notes` mentions reusable existing code.** Search the repo
     for 2–3 domain terms from the plan and cross-reference against
     `## Discovery Notes`. If the plan invents something that clearly exists
     already, that is a `request_changes` finding.
-21. **`Locked Decisions` don't contradict `AGENTS.md` or established
+22. **`Locked Decisions` don't contradict `AGENTS.md` or established
     patterns.** Read `AGENTS.md` and spot-check each decision.
-22. **No hidden gotchas in `Critical Files`.** Skim each Critical File for
+23. **No hidden gotchas in `Critical Files`.** Skim each Critical File for
     things the plan didn't mention but should have: migrations, public
     APIs, existing tests that would break, cross-module coupling.
-23. **`Implementation Notes` are internally consistent** with `## Acceptance`
+24. **`Implementation Notes` are internally consistent** with `## Acceptance`
     and `## Scope` (the plan's own self-consistency).
-24. **No `<TODO: ...>` placeholders** left in spec sections. If any remain,
+25. **No `<TODO: ...>` placeholders** left in spec sections. If any remain,
     verdict is at minimum `request_changes`.
-25. **Debt Friction is surfaced when it affects proof or scope.** If current
+26. **Debt Friction is surfaced when it affects proof or scope.** If current
     story planning is made harder by debt, the finding must use the
     `docs/epic-conventions.md` shape in `## Plan Review Log`. A plan may be
     blocked for Debt Friction only when meaningful acceptance or proof planning
