@@ -3,11 +3,13 @@ name: epic_story_claim
 description: Claim one ready story from an epic and execute it
 ---
 
-Story implementation: $EPIC
+Story implementation: $EPIC / $STORY
 
 Treat `$EPIC` as the exact directory name of an epic under the agent's current
 working directory at:
 `agent_coordination/epics`
+
+`$STORY` is optional. When it is present, treat it as a `MASTER.md` `Step` value or `Spec` filename and claim exactly that ready unclaimed row. When it is empty, keep the existing behavior and select the first ready unclaimed story from `MASTER.md`.
 
 `$WORKTREE` is an optional explicit opt-in for forcing worktree paths per target repo. Two value forms are accepted: `WORKTREE="<basename>=<path>"` for a single repo override (preferred), or comma-separated `WORKTREE="<basename1>=<path1>,<basename2>=<path2>"` for multiple repos. The legacy bare-path form `WORKTREE="<path>"` is still accepted but only when the story has exactly one target repo. When `$WORKTREE` is empty, the `## Worktree preflight` section discovers target sub-repos from the selected step's `## Scope` and creates one worktree per dirty target repo automatically; clean target repos are written to directly.
 
@@ -41,16 +43,32 @@ The workflow is:
 Anything else is background only unless the claimed step explicitly requires it.
 
 ## Step selection
-From `<epic>/MASTER.md`, select the first step that is all of:
+If `$STORY` is present:
+- use `<epic>/MASTER.md` as the only lookup table
+- first try to match exactly one row whose `Step` value equals `$STORY`
+- if no row matches by `Step`, try to match exactly one row whose `Spec` value equals `$STORY`
+- if neither lookup finds a row, stop and report the unresolved selector plus the available `Step` and `Spec` values from `MASTER.md`
+- if the `Step` lookup and `Spec` lookup both match but point to different rows, stop and report the ambiguity
+- select that matched row only; never fall back to a different ready row
+
+If `$STORY` is empty, preserve the original behavior: from `<epic>/MASTER.md`, select the first step that is all of:
 - unclaimed:
-  - status is `⬜ TODO`, `TODO`, or otherwise clearly unclaimed
+  - status is `⬜ TODO`, `⚪ TODO`, `TODO`, or otherwise clearly unclaimed
 - ready:
   - every dependency listed in `Depends` is marked `✅ DONE` or `DONE`
 - concrete:
   - the referenced step file exists
 
-If no such step exists:
-- do not guess
+After a row is selected by either path, verify it is all of:
+- unclaimed:
+  - status is `⬜ TODO`, `⚪ TODO`, `TODO`, or otherwise clearly unclaimed
+- ready:
+  - every dependency listed in `Depends` is marked `✅ DONE` or `DONE`
+- concrete:
+  - the referenced step file exists
+
+If no such step exists, or the targeted row is not claimable:
+- do not guess or switch rows
 - stop after a concise report listing:
   - no-ready-step reason
   - blocked steps

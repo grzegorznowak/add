@@ -2,7 +2,7 @@
 name: epic-story-claim
 description: Claim one ready story from an epic and execute it end-to-end, leaving a clean handoff. Use when starting a fresh session on a new story from an epic's MASTER.md tracker.
 disable-model-invocation: true
-argument-hint: "<epic-name>"
+argument-hint: "<epic-name> [story-number-or-spec-file] [WORKTREE=\"<basename>=<path>\"]..."
 allowed-tools: Read Edit Write Grep Glob Bash
 ---
 
@@ -10,7 +10,7 @@ allowed-tools: Read Edit Write Grep Glob Bash
 
 Pick exactly one ready, unclaimed story from an epic, claim it, execute it, and leave a clean handoff for the next session.
 
-Argument: `$ARGUMENTS` — `<epic-name> [WORKTREE="<basename>=<path>"]...`. The epic name is the first bare positional token (e.g. `cure-core-review-pipeline`) and resolves to `agent_coordination/epics/<epic-name>`; if omitted and there is exactly one active epic under `agent_coordination/epics/`, default to that one. `WORKTREE=` is an optional, repeatable opt-in that forces a worktree to be created (or reused) at a specific path for a specific target repo. Two forms are accepted: `WORKTREE="<basename>=<path>"` (multi form, repeatable, preferred) and legacy `WORKTREE="<path>"` (valid only when the story has exactly one target repo; the path is applied to that sole repo). Mixing the two forms in a single invocation is an error. When `WORKTREE=` is absent, the `## Worktree preflight` section creates a worktree for any discovered target repo whose `git status --porcelain` is non-empty; clean target repos are written to directly.
+Argument: `$ARGUMENTS` — `<epic-name> [<story-number-or-spec-file>] [WORKTREE="<basename>=<path>"]...`. The epic name is the first bare positional token (e.g. `cure-core-review-pipeline`) and resolves to `agent_coordination/epics/<epic-name>`; if omitted and there is exactly one active epic under `agent_coordination/epics/`, default to that one. The optional story selector targets one ready unclaimed row by `Step` or `Spec`; when omitted, this command keeps its existing behavior and selects the first ready unclaimed story. `WORKTREE=` is an optional, repeatable opt-in that forces a worktree to be created (or reused) at a specific path for a specific target repo. Two forms are accepted: `WORKTREE="<basename>=<path>"` (multi form, repeatable, preferred) and legacy `WORKTREE="<path>"` (valid only when the story has exactly one target repo; the path is applied to that sole repo). Mixing the two forms in a single invocation is an error. When `WORKTREE=` is absent, the `## Worktree preflight` section creates a worktree for any discovered target repo whose `git status --porcelain` is non-empty; clean target repos are written to directly.
 
 Do **not** try to rediscover or redefine the epic from scratch. Do **not** claim more than one step in a single session.
 
@@ -26,8 +26,9 @@ Do **not** try to rediscover or redefine the epic from scratch. Do **not** claim
 ## Resolution
 
 1. Parse `$ARGUMENTS` into:
-   - `<epic-name>`: the first bare positional token (falls back to the single active epic under `agent_coordination/epics/` if omitted)
-   - The raw list of `WORKTREE="<value>"` occurrences (parsed in `## Worktree preflight` step 5 into `<explicit_worktree_map>` and/or `<legacy_worktree>`)
+    - `<epic-name>`: the first bare positional token (falls back to the single active epic under `agent_coordination/epics/` if omitted)
+    - `<story>`: optional second bare positional token (story number or spec file)
+    - The raw list of `WORKTREE="<value>"` occurrences (parsed in `## Worktree preflight` step 5 into `<explicit_worktree_map>` and/or `<legacy_worktree>`)
 2. Set `<workspace_root>` = `<cwd>` and resolve `<epic>` = `<workspace_root>/agent_coordination/epics/<epic-name>`. `<workspace_root>` and `<epic>` are never re-anchored; coordination files always live here.
 3. If `<epic>` does not exist, stop and report the exact missing path.
 4. Read first (from `<workspace_root>`):
@@ -43,13 +44,26 @@ Do **not** try to rediscover or redefine the epic from scratch. Do **not** claim
 
 ## Step selection
 
-From `<epic>/MASTER.md`, select the first step that is all of:
+If `<story>` was provided:
+- use `<epic>/MASTER.md` as the only lookup table
+- first try to match exactly one row whose `Step` value equals the selector
+- if no row matches by `Step`, try to match exactly one row whose `Spec` value equals the selector
+- if neither lookup finds a row, stop and report the unresolved selector plus the available `Step` and `Spec` values from `MASTER.md`
+- if the `Step` lookup and `Spec` lookup both match but point to different rows, stop and report the ambiguity
+- select that matched row only; never fall back to a different ready row
+
+If `<story>` was not provided, preserve the original behavior: from `<epic>/MASTER.md`, select the first step that is all of:
 - **unclaimed**: status is `⬜ TODO`, `⚪ TODO`, or otherwise clearly unclaimed
 - **ready**: every dependency listed in `Depends` is `✅ DONE`
 - **concrete**: the referenced step file exists
 
-If no such step exists:
-- do not guess
+After a row is selected by either path, verify it is all of:
+- **unclaimed**: status is `⬜ TODO`, `⚪ TODO`, or otherwise clearly unclaimed
+- **ready**: every dependency listed in `Depends` is `✅ DONE`
+- **concrete**: the referenced step file exists
+
+If no such step exists, or the targeted row is not claimable:
+- do not guess or switch rows
 - stop after a concise report listing: no-ready-step reason, blocked steps, and the next step that must complete first
 
 ## Worktree preflight
