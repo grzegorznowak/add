@@ -81,6 +81,9 @@ Argument: `$ARGUMENTS` — <what the user passes>.
 - For commands that govern implementation work, encode proof-first planning and
   red-first execution explicitly. Do not leave test-first sequencing implicit;
   require a written exception path when red-first is infeasible.
+- For looper/orchestrator commands, preserve delegated command ownership: run
+  fresh sessions, pass only neutral operational context, document hard stops and
+  no-progress gates, and avoid persuasive verdict framing.
 - End with a `## Final response` section describing what the operator
   should see when the command finishes.
 

@@ -49,22 +49,24 @@ transition is a fresh session**:
 The result: each agent run stays small, focused, and verifiable. The
 coordination files accumulate the real state, not the conversation.
 
-The entire system is twelve skills and a handful of markdown files — no framework,
-no orchestrator, no configuration to tune. You learn the lifecycle once and the
-commands do the rest.
+The entire system is fourteen skills and a handful of markdown files — no
+framework, no service orchestrator, no configuration to tune. You learn the
+lifecycle once and the commands do the rest.
 
 ## What this gives you
 
-Ten coordinated workflow commands plus two small utilities:
+Twelve coordinated workflow commands plus two small utilities:
 
 | Command | What it does |
 |---|---|
 | `/epic-plan` | Bootstrap a new epic via guided interview. Produces `MASTER.md`. |
 | `/epic-story-plan` | Plan and publish a new `⚪ TODO` story with acceptance criteria and proof matrix. |
 | `/epic-story-plan-review` | Review a `⚪ TODO` story's plan against the live repo before claiming. |
+| `/epic-story-plan-converge` | Loop fresh plan-review and plan-resume sessions for one `⚪ TODO` story until approved, blocked, or stopped. |
 | `/epic-story-claim` | Claim an unclaimed story, find the smallest failing seam, and execute red-first. |
 | `/epic-story-resume` | Resume an in-progress story or one with requested PR changes. |
 | `/epic-story-review` | Review a story's implementation against its spec. Records the verdict. |
+| `/epic-story-converge` | Loop fresh claim/resume/review sessions for one story until local implementation approval, DONE, blocked, or stopped. |
 | `/epic-story-pr` | Open or attach a GitHub PR with a product-focused body. |
 | `/epic-feedback` | Absorb CURe, PR, or reviewer feedback into story edits, review rework, story candidates, or epic notes. |
 | `/epic-pr` | Open or refresh an epic-level GitHub PR from the contract and current DONE stories. |
@@ -264,7 +266,9 @@ This view shows the status machine for each story row.
                  ┌─────────────┐
                  │   ⚪ TODO   │
                  └──────┬──────┘
-                        │ optional check: [/epic-story-plan-review]
+                        │ optional plan loop:
+                        │ [/epic-story-plan-review]
+                        │ or [/epic-story-plan-converge]
                         │ claim: [/epic-story-claim]
                         ▼
                  ┌─────────────┐
@@ -273,6 +277,7 @@ This view shows the status machine for each story row.
                         │ implementation complete:
                         │ [/epic-story-claim] or [/epic-story-resume]
                         │ or [/epic-story-review]
+                        │ looper: [/epic-story-converge]
                         ▼
                  ┌─────────────┐
                  │ 🟣 IN REV   │
@@ -308,6 +313,11 @@ between stories, or whenever the operator wants a sharper interview.
 Feedback helper: `[/epic-feedback]` can absorb the latest unprocessed PR review
 comment, a CURe feedback block, or pasted reviewer notes into the epic without
 turning that feedback into unstructured story text.
+
+Looper helpers: `[/epic-story-plan-converge]` and `[/epic-story-converge]`
+do not own status transitions. They babysit repeated fresh sessions and delegate
+all writes to the underlying lifecycle commands, carrying only neutral in-memory
+notes about blockers, hotspots, and repeated tool friction.
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
 

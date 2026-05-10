@@ -35,6 +35,12 @@ This phase is upstream of the state-machine states. `/epic-story-plan`
 feeds the first row of the tracker; the state diagram starts at
 `⚪ TODO`.
 
+After a story reaches `⚪ TODO`, `/epic-story-plan-converge` may be used as an
+optional planning looper. It delegates to fresh `/epic-story-plan-review` and
+`/epic-story-plan-resume` sessions until the plan is approved, blocked, or a
+hard stop is reached. It does not claim the story and does not own any status
+transition itself.
+
 ## Status values
 
 | Status | Meaning |
@@ -139,6 +145,12 @@ same row.
 is already `✅ DONE` and folds their contract terms into the merged
 `CONTRACT.md`.
 
+`/epic-story-plan-converge` and `/epic-story-converge` are looper commands, not
+transition owners. They may decide which underlying lifecycle command to run
+next, but any status change is made by `/epic-story-plan-review`,
+`/epic-story-claim`, `/epic-story-resume`, `/epic-story-review`, or
+`/epic-story-pr` according to the table above.
+
 `/epic-pr` is outside the story status state machine. It opens or refreshes an
 epic-level PR from `CONTRACT.md` plus current non-archived `✅ DONE` stories,
 writes only epic-level `## Epic PR Tracking` in `MASTER.md`, and never
@@ -206,6 +218,11 @@ rows.
     shared interfaces or invariants the story touches, `/epic-story-review` cannot
     approve while those obligations are violated unless the intentional drift is
     explicitly recorded and reflected in the review outcome.
+15. **Use loopers to converge, not to change ownership.**
+    `/epic-story-plan-converge` is for repeated plan-review/plan-resume passes
+    before claim. `/epic-story-converge` is for an approved unstarted story or
+    already-started implementation work. Neither replaces `/epic-story-pr`, and
+    neither directly writes coordination files, source files, tests, or commits.
 
 ## The Legend block
 

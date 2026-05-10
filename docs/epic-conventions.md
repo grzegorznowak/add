@@ -644,7 +644,7 @@ preserved.
 ## Argument resolution rules
 
 Each command in this repo has a defined resolution strategy for its
-epic/story arguments. Two strategies exist:
+epic/story arguments. Three strategies exist:
 
 - **Auto-inferred from running context** — for commands that continue
   running work (`/epic-story-claim`, `/epic-story-resume`, `/epic-story-pr`, `/epic-pr`, `/epic-squash`).
@@ -658,6 +658,10 @@ epic/story arguments. Two strategies exist:
   The menu lists only legal candidates (filtered to each command's
   eligible-status set) and asks the operator to pick. Nothing is ever
   selected silently.
+- **Operator-explicit looper** — for orchestration commands that repeatedly
+  launch fresh lifecycle sessions for one operator-selected story
+  (`/epic-story-plan-converge`, `/epic-story-converge`). These never silently
+  infer the target story and never own status transitions themselves.
 
 | Command | Resolution strategy | Eligible-status filter | Notes |
 |---|---|---|---|
@@ -665,8 +669,10 @@ epic/story arguments. Two strategies exist:
 | `/epic-story-plan` | operator-explicit (arg or menu) | any epic with a `MASTER.md` | EPIC menu lists all epics under `agent_coordination/epics/`. Creates one TODO story after checkpoint confirmation. |
 | `/epic-story-review` | operator-explicit (arg or menu) | `🟣 IN REVIEW` | Review must come from a fresh, independent perspective. The menu lists only stories at `🟣 IN REVIEW`. |
 | `/epic-story-plan-review` | operator-explicit (arg or menu) | `⚪ TODO` | Plan review must come from a fresh, independent perspective. The menu lists only stories at `⚪ TODO`. |
+| `/epic-story-plan-converge` | operator-explicit looper (required epic + story) | `⚪ TODO` planning stories | Loops fresh plan-review and plan-resume sessions. Accepts optional `MAX_CYCLES`; rejects `WORKTREE`. Delegates all writes to the underlying commands. |
+| `/epic-story-converge` | operator-explicit looper (required epic + story) | plan-approved `⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR (changes_requested)`, or immediate-stop `✅ DONE` | Loops fresh claim/resume/review sessions. Accepts optional `MAX_CYCLES` and pass-through `WORKTREE`. Delegates all writes to the underlying commands. |
 | `/epic-feedback` | operator-explicit (arg or menu) | any epic with `MASTER.md` | Epic-scoped feedback routing. PR mode can select the latest unabsorbed PR comment, review body, or inline review comment. Never transitions story statuses. |
-| `/epic-story-claim` | auto-inferred (running context) | `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference. |
+| `/epic-story-claim` | auto-inferred (running context), or explicit story selector | `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference when no selector is passed. An explicit story selector targets exactly that ready unclaimed row and never falls back to another row. |
 | `/epic-story-resume` | auto-inferred (running context) | `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
 | `/epic-story-pr` | auto-inferred (running context); explicit story required for DONE injection | `🟣 IN REVIEW`, `🔵 IN PR`, explicit non-archived `✅ DONE` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode. For explicit `✅ DONE` stories, `OPEN=true` is implicit after existing PR detection fails. |
 | `/epic-pr` | auto-inferred (running context) | epic has `CONTRACT.md` and/or non-archived `✅ DONE` stories | Opens or refreshes an epic-level PR from `CONTRACT.md` plus current DONE stories. Blocks on misleading gaps/conflicts, never reads archived stories directly, and never changes story statuses. |
@@ -710,6 +716,18 @@ epic/story arguments. Two strategies exist:
    replaces typing friction with menu friction, it does not replace
    operator-explicit choice with silent guessing.
 
+**Rules for the "operator-explicit looper" rows**:
+
+1. **Target is always explicit**: pass both epic and story. Loopers do not use
+   menu fallback or single-row auto-selection because they may launch several
+   fresh sessions.
+2. **Delegated writes only**: loopers may choose the next lifecycle command,
+   but any write must come from that command's normal authority window.
+3. **Neutral memory only**: loopers may pass later fresh sessions operational
+   notes about blockers, hotspots, repeated command failures, or expensive
+   operations. They must not pass persuasive verdict framing such as "the prior
+   reviewer was wrong" or "approval is expected".
+
 ## What the commands will NOT do
 
 - Rename or renumber existing stories
@@ -725,6 +743,9 @@ epic/story arguments. Two strategies exist:
   `CONTRACT.md`
 - Transition story statuses from `/epic-pr`
 - Transition story statuses from `/epic-feedback`
+- Directly write coordination files, source files, tests, or commits from
+  `/epic-story-plan-converge` or `/epic-story-converge`; loopers keep only
+  in-memory babysitting notes and delegate writes to underlying lifecycle skills
 - Create full story files from `/epic-feedback`; feedback-derived future work
   must remain a candidate until `/epic-story-plan` turns it into a story
 - Archive a `🔵 IN PR` story
