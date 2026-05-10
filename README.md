@@ -317,7 +317,8 @@ turning that feedback into unstructured story text.
 Looper helpers: `[/epic-story-plan-converge]` and `[/epic-story-converge]`
 do not own status transitions. They babysit repeated fresh sessions and delegate
 all writes to the underlying lifecycle commands, carrying only neutral in-memory
-notes about blockers, hotspots, and repeated tool friction.
+notes about blockers, hotspots, repeated tool friction, and per-cycle usage when
+the runtime exposes it.
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
 

@@ -87,6 +87,7 @@ For each cycle:
 9. If the resume agent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that resume pass only. The next review still starts in a new fresh subagent.
 10. After the resume agent finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. If the story is no longer `⚪ TODO`, stop and report the unexpected state.
 11. Run the no-progress gate before starting the next cycle.
+12. After each fresh subagent finishes, record any usage metadata the runtime exposes in memory: model, variant/reasoning effort, input tokens, output tokens, total tokens, cost, and context-window limit. If exact usage or context occupancy is unavailable, record `unavailable`; do not estimate unless the runtime or operator explicitly provides an estimate source. At the end of each completed cycle, surface a one-line usage checkpoint with that cycle's usage total and the running average per completed cycle.
 
 ## Phase 4 — Babysitting and Stops
 
@@ -124,11 +125,18 @@ Return a compact report:
 **Convergence Result**: APPROVED | BLOCKED | STOPPED | MAX_CYCLES
 **Story**: Step <step> / <spec>
 **Cycles Used**: <n>/<MAX_CYCLES>
+**Usage This Run**: <input/output/total/cost/context %, or unavailable>
+**Average Usage Per Completed Cycle**: <input/output/total/cost/context %, or unavailable>
 **Final Status**: <status>
 
 ## Trace
-- Cycle 1: plan-review -> <decision>; plan-resume -> <completed/skipped>
+- Cycle 1: plan-review -> <decision>; plan-resume -> <completed/skipped>; usage -> <total/cost/context %, or unavailable>
 - Cycle 2: ...
+
+## Usage By Operation
+- plan-review: <model + variant> -> <input/output/total/cost/context %, or unavailable>
+- plan-resume: <model + variant> -> <input/output/total/cost/context %, or unavailable>
+- Context limits: <known model limits such as 400K or 1M, or unavailable>
 
 ## Babysitter Notes
 - <neutral operational note>

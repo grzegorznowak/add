@@ -725,8 +725,9 @@ epic/story arguments. Three strategies exist:
    but any write must come from that command's normal authority window.
 3. **Neutral memory only**: loopers may pass later fresh sessions operational
    notes about blockers, hotspots, repeated command failures, or expensive
-   operations. They must not pass persuasive verdict framing such as "the prior
-   reviewer was wrong" or "approval is expected".
+   operations. They may also keep per-run and average-per-cycle usage telemetry
+   when the runtime exposes it. They must not pass persuasive verdict framing
+   such as "the prior reviewer was wrong" or "approval is expected".
 
 ## What the commands will NOT do
 

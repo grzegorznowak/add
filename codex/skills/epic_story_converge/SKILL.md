@@ -87,6 +87,7 @@ For each cycle:
 9. If any pass moves the story to `⛔ BLOCKED`, stop.
 10. If any pass moves the story to `✅ DONE`, stop successfully.
 11. Run the no-progress gate before starting the next cycle.
+12. After each fresh agentic session finishes, record any usage metadata the runtime exposes in memory: model, variant/reasoning effort, input tokens, output tokens, total tokens, cost, and context-window limit. If exact usage or context occupancy is unavailable, record `unavailable`; do not estimate unless the runtime or operator explicitly provides an estimate source. At the end of each completed cycle, surface a one-line usage checkpoint with that cycle's usage total and the running average per completed cycle.
 
 ## Phase 4 — Babysitting and Stops
 
@@ -143,11 +144,18 @@ Return a compact report:
 **Convergence Result**: APPROVED | DONE | BLOCKED | STOPPED | MAX_CYCLES
 **Story**: Step <step> / <spec>
 **Cycles Used**: <n>/<MAX_CYCLES>
+**Usage This Run**: <input/output/total/cost/context %, or unavailable>
+**Average Usage Per Completed Cycle**: <input/output/total/cost/context %, or unavailable>
 **Final Status**: <status>
 
 ## Trace
-- Cycle 1: claim/resume/review -> <result>
+- Cycle 1: claim/resume/review -> <result>; usage -> <total/cost/context %, or unavailable>
 - Cycle 2: ...
+
+## Usage By Operation
+- implementation: <model + variant> -> <input/output/total/cost/context %, or unavailable>
+- review: <model + variant> -> <input/output/total/cost/context %, or unavailable>
+- Context limits: <known model limits such as 400K or 1M, or unavailable>
 
 ## Commit Recommendation
 - <final commit, WIP checkpoint, or none>
