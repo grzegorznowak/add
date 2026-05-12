@@ -136,6 +136,10 @@ of these hold:
 Do not infer identity from filename shape or naming conventions that are not
 explicitly recorded in `MASTER.md`.
 
+## Shared Research Board Input
+
+When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only; every board fact must still be verified against live source before it affects a finding, approval, or write-back. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+
 ## Plan review process
 
 1. Read every spec section of the story file. Treat each one as a claim
@@ -331,6 +335,12 @@ Use:
 
 **Status Transition**
 - [⚪ TODO -> ⚪ TODO | ⚪ TODO -> ⛔ BLOCKED]
+
+## Research Events
+- reused: <board entries used, or none>
+- added: <new sourced research facts with anchors, or none>
+- corrected: <board entries corrected with anchors, or none>
+- stale-risk: <board entries that need re-checking, or none>
 
 **Next Action**
 - [single concrete next step, e.g. "epic_story_claim $EPIC" or "edit <sections> in <story file> and re-run epic_story_plan_review from a fresh session"]

@@ -62,11 +62,11 @@ Twelve coordinated workflow commands plus two small utilities:
 | `/epic-plan` | Bootstrap a new epic via guided interview. Produces `MASTER.md`. |
 | `/epic-story-plan` | Plan and publish a new `⚪ TODO` story with acceptance criteria and proof matrix. |
 | `/epic-story-plan-review` | Review a `⚪ TODO` story's plan against the live repo before claiming. |
-| `/epic-story-plan-converge` | Loop fresh plan-review and plan-resume sessions for one `⚪ TODO` story until approved, blocked, or stopped. |
+| `/epic-story-plan-converge` | Loop fresh plan-review and plan-resume sessions for one `⚪ TODO` story until approved, blocked, or stopped; carries session-only sourced research forward. |
 | `/epic-story-claim` | Claim an unclaimed story, find the smallest failing seam, and execute red-first. |
 | `/epic-story-resume` | Resume an in-progress story or one with requested PR changes. |
 | `/epic-story-review` | Review a story's implementation against its spec. Records the verdict. |
-| `/epic-story-converge` | Loop fresh claim/resume/review sessions for one story until local implementation approval, DONE, blocked, or stopped. |
+| `/epic-story-converge` | Loop fresh claim/resume/review sessions for one story until local implementation approval, DONE, blocked, or stopped; carries session-only sourced research forward. |
 | `/epic-story-pr` | Open or attach a GitHub PR with a product-focused body. |
 | `/epic-feedback` | Absorb CURe, PR, or reviewer feedback into story edits, review rework, story candidates, or epic notes. |
 | `/epic-pr` | Open or refresh an epic-level GitHub PR from the contract and current DONE stories. |
@@ -316,9 +316,15 @@ turning that feedback into unstructured story text.
 
 Looper helpers: `[/epic-story-plan-converge]` and `[/epic-story-converge]`
 do not own status transitions. They babysit repeated fresh sessions and delegate
-all writes to the underlying lifecycle commands, carrying only neutral in-memory
-notes about blockers, hotspots, repeated tool friction, and per-cycle usage when
-the runtime exposes it.
+all writes to the underlying lifecycle commands. They may carry neutral
+in-memory notes about blockers, hotspots, repeated tool friction, per-cycle usage
+when the runtime exposes it, and a session-only Research Board of sourced facts.
+The Research Board is passed to fresh agents as orientation only, requires exact
+source anchors, and is never persisted as a physical cache. Loopers pass the
+full board unless the operator approves compaction.
+Looper final reports are structured operational handoffs only, not thinking
+logs; `DONE` means the authoritative story status is `✅ DONE`, while local
+approval that still awaits the optional PR stage is reported as `APPROVED`.
 
 Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
 

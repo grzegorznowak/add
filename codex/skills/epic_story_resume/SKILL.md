@@ -193,6 +193,10 @@ Anything else is background only unless the selected step explicitly requires it
 Do not infer identity from filename shape or naming conventions that are not
 explicitly recorded in `MASTER.md`.
 
+## Shared Research Board Input
+
+When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only; every board fact must still be verified against live source before it affects implementation, proof updates, or coordination write-back. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+
 ## Resume intent
 Treat this as continuation work, not a new claim.
 
@@ -369,4 +373,5 @@ In your final response, state:
 - its final status
 - files changed
 - whether the epic master was updated
+- `## Research Events` with reused, added, corrected, and stale-risk bullets; include exact anchors for added, corrected, and stale-risk entries, and use `- None.` when no research was used or produced
 - the exact next action for the next fresh session

@@ -42,6 +42,10 @@ Do **not** try to rediscover or redefine the epic from scratch. Do **not** claim
 3. dependency step files listed in the master table
 4. repo code and tests
 
+## Shared Research Board Input
+
+When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only; every board fact must still be verified against live source before it affects implementation, proof updates, or coordination write-back. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+
 ## Step selection
 
 If `<story>` was provided:
@@ -261,4 +265,5 @@ State:
 - its final status
 - files changed
 - whether the epic master was updated
+- `## Research Events` with reused, added, corrected, and stale-risk bullets; include exact anchors for added, corrected, and stale-risk entries, and use `- None.` when no research was used or produced
 - the exact next action for the next fresh session

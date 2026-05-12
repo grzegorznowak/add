@@ -149,7 +149,9 @@ is already `✅ DONE` and folds their contract terms into the merged
 transition owners. They may decide which underlying lifecycle command to run
 next, but any status change is made by `/epic-story-plan-review`,
 `/epic-story-claim`, `/epic-story-resume`, `/epic-story-review`, or
-`/epic-story-pr` according to the table above.
+`/epic-story-pr` according to the table above. They may carry a session-only
+Research Board of exactly sourced facts across fresh agents, but that board is
+orientation only and never replaces live-source verification.
 
 `/epic-pr` is outside the story status state machine. It opens or refreshes an
 epic-level PR from `CONTRACT.md` plus current non-archived `✅ DONE` stories,
@@ -223,6 +225,14 @@ rows.
     before claim. `/epic-story-converge` is for an approved unstarted story or
     already-started implementation work. Neither replaces `/epic-story-pr`, and
     neither directly writes coordination files, source files, tests, or commits.
+    Their Research Board remains in parent-session memory only and is not a
+    durable cache.
+16. **Looper final reports are operational only.**
+    `/epic-story-converge` reports `APPROVED` when local review approves but the
+    authoritative status remains `🟣 IN REVIEW`, and reports `DONE` only when
+    the authoritative status is `✅ DONE`. It should not suggest
+    `/epic-story-pr` after `DONE`, and final reports must not include private
+    thinking or deliberation text.
 
 ## The Legend block
 

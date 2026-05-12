@@ -70,6 +70,10 @@ A required spec section is structurally complete when:
 4. Dependency story files — for prerequisite context.
 5. The live codebase — for probing `## Critical Files` paths and `## Discovery Notes` claims.
 
+## Shared Research Board Input
+
+When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only; every board fact must still be verified against live source before it affects a story edit. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+
 ## Assessment
 
 After reading, determine which mode applies:
@@ -217,4 +221,5 @@ If validation fails, report the specific issue and propose a fix. Keep iterating
 - which modes were entered (feedback absorption, planning continuation, or both)
 - sections edited
 - whether re-validation passed
+- `## Research Events` with reused, added, corrected, and stale-risk bullets; include exact anchors for added, corrected, and stale-risk entries, and use `- None.` when no research was used or produced
 - the exact next action: `/epic-story-plan-review $EPIC <NN>` for a fresh review, or `/epic-story-claim $EPIC <NN>` to start implementation

@@ -82,8 +82,11 @@ Argument: `$ARGUMENTS` — <what the user passes>.
   red-first execution explicitly. Do not leave test-first sequencing implicit;
   require a written exception path when red-first is infeasible.
 - For looper/orchestrator commands, preserve delegated command ownership: run
-  fresh sessions, pass only neutral operational context, document hard stops and
-  no-progress gates, and avoid persuasive verdict framing.
+  fresh sessions, pass neutral operational context plus sourced Research Board
+  entries only, document hard stops and no-progress gates, and avoid persuasive
+  verdict framing. If they pass a session Research Board, require exact source
+  anchors, treat it as orientation only, ask before compacting it, and never
+  persist it.
 - End with a `## Final response` section describing what the operator
   should see when the command finishes.
 

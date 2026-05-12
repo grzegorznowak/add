@@ -150,6 +150,10 @@ After reading the story's `## Active Claim`, build `<project_root_map>` from wha
 
 Do not infer identity from filename shape or naming conventions that are not explicitly recorded in `MASTER.md`.
 
+## Shared Research Board Input
+
+When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only; every board fact must still be verified against live source before it affects a finding, approval, or write-back. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+
 ## Proof-boundary discipline
 
 - Read the latest `## Review Log` entry before source inspection and carry every prior concern into the review as `resolved`, `still_open`, `superseded`, or `not_assessable`.
@@ -510,6 +514,12 @@ Start with gate findings and issue lists, ordered by severity, with file referen
 ## Epic Contract Drift
 - <finding summary> Sources: `path:line`
 - None.
+
+## Research Events
+- reused: <board entries used, or none>
+- added: <new sourced research facts with anchors, or none>
+- corrected: <board entries corrected with anchors, or none>
+- stale-risk: <board entries that need re-checking, or none>
 
 ## Summary
 - [2-4 short bullets]

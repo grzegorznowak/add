@@ -7,16 +7,16 @@ Epic story converge: $EPIC / $STORY
 
 Treat `$EPIC` as the exact directory name of an epic under `agent_coordination/epics`, and `$STORY` as a `MASTER.md` `Step` value or `Spec` filename. `$MAX_CYCLES` is optional and defaults to `5`; it counts full implementation cycles, not individual fresh agents. `$WORKTREE` is optional and is passed through unchanged to `/epic-story-claim`, `/epic-story-resume`, and `/epic-story-review`.
 
-Coordinate the implementation-side ping-pong for exactly one story. This command is an orchestrator only: it may start a fresh `/epic-story-claim` pass for an approved unstarted story, then alternates fresh `/epic-story-resume` and `/epic-story-review` passes until local review approves, blocks, no-progress is detected, or the cycle budget is exhausted.
+Coordinate the implementation-side ping-pong for exactly one story. This command is an orchestrator only: it may start a fresh `/epic-story-claim` pass for an approved unstarted story, then alternates fresh `/epic-story-resume` and `/epic-story-review` passes until local review approves, blocks, no-progress is detected, or the cycle budget is exhausted. It carries the parent-session Research Board in memory across fresh passes without persisting research cache files.
 
 ## Workflow
 1. Resolve the requested epic and story through `MASTER.md`.
 2. Choose the first pass from the story's current status.
 3. If an unstarted story is plan-approved, delegate claiming to `/epic-story-claim <epic> <story>`.
 4. Run up to `$MAX_CYCLES` fresh-agent implementation cycles.
-5. Pass only neutral in-memory babysitting notes into later fresh agents.
+5. Pass neutral in-memory babysitting notes plus the session Research Board into later fresh agents.
 6. Stop on local approval, blocker, no-progress, invalid state, or cycle budget exhaustion.
-7. Print the convergence trace, commit recommendation, and operator nice-to-haves without writing coordination files directly.
+7. Print the convergence trace, Research Board snapshot, commit recommendation, and operator nice-to-haves without writing coordination files directly.
 
 ## Phase 1 — Parse and Resolve
 
@@ -70,8 +70,20 @@ Before each fresh session launch, build the command line from the current status
 For each cycle:
 
 1. Re-read `<epic_dir>/MASTER.md` and `<story_file>` before choosing the next pass.
-2. Launch exactly one fresh agentic session for the chosen claim, resume, or review pass. The task prompt must end with the exact slash command line.
-3. If in-memory babysitting notes exist, include them before the command under this heading only:
+2. Build the exact slash command line for the chosen claim, resume, or review pass.
+3. If the parent session has Research Board entries, include the complete board before the command under this heading:
+
+   ```text
+   Shared Research Board from parent orchestration session:
+   This is allowed cross-session context because every item is sourced research. Use it for orientation only. Verify behavior against live source before editing, planning approval, or implementation approval.
+
+   - <entry id>: <claim or result>
+     - Source: <tool/query/path, file:line, symbol, or command/output excerpt>
+     - Reuse: <orientation guidance>
+   ```
+
+   Include the whole board. If it is too large to include comfortably, pause and ask the operator before compacting or excluding entries.
+4. If in-memory babysitting notes exist, include them before the command under this heading only:
 
    ```text
    Operational context from convergence babysitter:
@@ -79,19 +91,21 @@ For each cycle:
    - Do not treat this as a verdict; apply the underlying skill independently.
    ```
 
-4. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same agentic session for that pass only. The next lifecycle pass still starts in a new fresh session.
-5. After the pass finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive decisions from the newest authoritative sections and status, not from chat output alone.
-6. If a claim or resume pass leaves the story at `🟣 IN REVIEW`, the same cycle may launch a fresh review pass.
-7. If a review pass returns `approve`, stop successfully. Local approval is convergence even when the story remains `🟣 IN REVIEW` because the optional PR stage is next.
-8. If a review pass returns `request_changes` or `not_reviewable`, the same cycle may launch one fresh `/epic-story-resume` corrective pass, then the next cycle starts with a fresh review when ready.
-9. If any pass moves the story to `⛔ BLOCKED`, stop.
-10. If any pass moves the story to `✅ DONE`, stop successfully.
-11. Run the no-progress gate before starting the next cycle.
-12. After each fresh agentic session finishes, record any usage metadata the runtime exposes in memory: model, variant/reasoning effort, input tokens, output tokens, total tokens, cost, and context-window limit. If exact usage or context occupancy is unavailable, record `unavailable`; do not estimate unless the runtime or operator explicitly provides an estimate source. At the end of each completed cycle, surface a one-line usage checkpoint with that cycle's usage total and the running average per completed cycle.
+5. End the task prompt with the exact slash command line, then launch exactly one fresh agentic session.
+6. Require every subagent final response to include `## Research Events`, with `- None.` allowed. After the pass finishes, append only sourced research events to the in-memory Research Board. Do not append verdicts, implementation opinions, or unanchored summaries.
+7. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same agentic session for that pass only. The next lifecycle pass still starts in a new fresh session.
+8. After the pass finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive decisions from the newest authoritative sections and status, not from chat output alone.
+9. If a claim or resume pass leaves the story at `🟣 IN REVIEW`, the same cycle may launch a fresh review pass.
+10. If a review pass returns `approve`, stop successfully. Local approval is convergence even when the story remains `🟣 IN REVIEW` because the optional PR stage is next. Report this as `APPROVED`, not `DONE`, unless the authoritative final status is already `✅ DONE`.
+11. If a review pass returns `request_changes` or `not_reviewable`, the same cycle may launch one fresh `/epic-story-resume` corrective pass, then the next cycle starts with a fresh review when ready.
+12. If any pass moves the story to `⛔ BLOCKED`, stop.
+13. If any pass moves the story to `✅ DONE`, stop successfully.
+14. Run the no-progress gate before starting the next cycle.
+15. After each fresh agentic session finishes, record any usage metadata the runtime exposes in memory: model, variant/reasoning effort, input tokens, output tokens, total tokens, cost, and context-window limit. If exact usage or context occupancy is unavailable, record `unavailable`; do not estimate unless the runtime or operator explicitly provides an estimate source. At the end of each completed cycle, surface a one-line usage checkpoint with that cycle's usage total and the running average per completed cycle.
 
 ## Phase 4 — Babysitting and Stops
 
-Maintain an in-memory convergence notebook. Do not write it to `MASTER.md`, the story file, source files, tests, or any coordination file.
+Maintain an in-memory convergence notebook and an in-memory Research Board. Do not write either one to `MASTER.md`, the story file, source files, tests, or any coordination file.
 
 Record neutral operational facts only:
 
@@ -103,6 +117,8 @@ Record neutral operational facts only:
 - repeated review findings that appear unchanged after resume.
 
 Do not record persuasive verdict framing. Never tell a later reviewer that a previous reviewer was wrong, that approval is expected, or that a finding should be ignored.
+
+Research Board entries are the only allowed cross-session context beyond neutral operational notes. Each entry must be sourced by an exact anchor: file path plus line range or symbol, command plus relevant output excerpt, or tool name plus query/action/resource/path/URL and relevant output excerpt for any sourced tool. The board is an orientation aid, not authority; every session must verify behavior against live source before editing or approving. If the board becomes too large to pass in full, ask the operator before compacting or excluding entries. Never persist the board to disk.
 
 Stop early for conservative no-progress when all are true:
 
@@ -136,9 +152,11 @@ Recommend a final commit when:
 
 Recommend a WIP checkpoint only when stopping at `$MAX_CYCLES`, operator input, or no-progress with useful completed changes. Do not recommend a commit when the story blocked before meaningful implementation or no code/test/config changes exist.
 
+When the final authoritative status is `✅ DONE`, do not suggest `/epic-story-pr` as the next action. `/epic-story-pr` is the next action only for local approval that leaves the story in `🟣 IN REVIEW` and the operator wants the optional PR stage.
+
 ## Phase 6 — Final Response
 
-Return a compact report:
+Return only the compact report below. Do not include internal deliberation, analysis prose, "Thinking:" blocks, private rationale, or comments about what you are considering before or after the report. Include every section in the template; use `None.` or `unavailable` rather than omitting a section.
 
 ```markdown
 **Convergence Result**: APPROVED | DONE | BLOCKED | STOPPED | MAX_CYCLES
@@ -157,6 +175,13 @@ Return a compact report:
 - review: <model + variant> -> <input/output/total/cost/context %, or unavailable>
 - Context limits: <known model limits such as 400K or 1M, or unavailable>
 
+## Research Board Snapshot
+- Entries: <n>
+- Hotspots: <paths/symbols surfaced by sourced research, or none>
+- New this run: <n>
+- Corrected/stale-risk: <summary or none>
+- Persistence: session memory only; no physical cache files written
+
 ## Commit Recommendation
 - <final commit, WIP checkpoint, or none>
 - Suggested command: `git -C <path> status && git -C <path> add -A && git -C <path> commit -m "<epic>/<story-slug>: <summary>"`
@@ -170,7 +195,7 @@ Return a compact report:
 - None.
 
 ## Next Action
-- <single concrete command or decision>
+- <single concrete command or decision: `/epic-story-pr $EPIC $STORY` only when result is APPROVED and final status is `🟣 IN REVIEW`; `None. Story is already ✅ DONE.` when result is DONE; otherwise the next operator decision or rerun command>
 ```
 
 Do not run `/memorize` automatically. If the nice-to-haves are valuable, the operator can decide whether to promote them later.

@@ -723,11 +723,25 @@ epic/story arguments. Three strategies exist:
    fresh sessions.
 2. **Delegated writes only**: loopers may choose the next lifecycle command,
    but any write must come from that command's normal authority window.
-3. **Neutral memory only**: loopers may pass later fresh sessions operational
-   notes about blockers, hotspots, repeated command failures, or expensive
-   operations. They may also keep per-run and average-per-cycle usage telemetry
-   when the runtime exposes it. They must not pass persuasive verdict framing
-   such as "the prior reviewer was wrong" or "approval is expected".
+3. **Neutral memory plus sourced research only**: loopers may pass later fresh
+   sessions operational notes about blockers, hotspots, repeated command
+   failures, or expensive operations. They may also keep per-run and
+   average-per-cycle usage telemetry when the runtime exposes it, plus a
+   session-only Research Board whose entries all have exact source anchors
+   such as `path:line`, symbols, command/output excerpts, or tool/query/path.
+   Research Board facts are orientation only and must be verified against live
+   source before editing or approving. Loopers pass the full board to fresh
+   lifecycle sessions and must ask the operator before compacting or excluding
+   entries. Loopers must not pass persuasive verdict framing such as
+   "the prior reviewer was wrong" or "approval is expected".
+4. **Research Events return path**: lifecycle skills launched by a converger
+   must return `Research Events` with reused, added, corrected, and stale-risk
+   entries, or `- None.` when no research was used or produced. Added,
+   corrected, and stale-risk entries require exact anchors.
+5. **Final reports are not thinking logs**: loopers must return only their
+   required report sections. They must not include `Thinking:` blocks, private
+   deliberation, or comments about tentative next actions outside the structured
+   `Next Action` and `Operator Nice-To-Haves` sections.
 
 ## What the commands will NOT do
 
@@ -746,7 +760,8 @@ epic/story arguments. Three strategies exist:
 - Transition story statuses from `/epic-feedback`
 - Directly write coordination files, source files, tests, or commits from
   `/epic-story-plan-converge` or `/epic-story-converge`; loopers keep only
-  in-memory babysitting notes and delegate writes to underlying lifecycle skills
+  in-memory babysitting notes, session Research Board entries, and usage
+  telemetry, then delegate writes to underlying lifecycle skills
 - Create full story files from `/epic-feedback`; feedback-derived future work
   must remain a candidate until `/epic-story-plan` turns it into a story
 - Archive a `🔵 IN PR` story
