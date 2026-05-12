@@ -184,6 +184,7 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Treat `MASTER.md` plus the claimed step file as the source of truth
 - Read dependency step files for context; do not widen scope unless required to finish the claimed step correctly
 - Inspect the relevant code and tests before the first change. Use the story's `## Verification`, `## Critical Files`, and `## Discovery Notes` to choose the smallest focused seam that covers the next behavior.
+- Before choosing the first red seam, build a compact acceptance proof ledger from the story: list every `A<n>` id and, for any acceptance item that names variants, modes, branches, fallback paths, error cases, or examples, list each named case separately. Use this ledger to decide tests and implementation order; do not treat one variant test as covering sibling variants unless the story explicitly excludes them.
 - Run a Debt Friction check before the first patch: ask whether implementation is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only write a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
 - Default to red-first: make that focused seam fail, implement until it passes, then broaden verification.
 - Do not jump straight to broad suites or code-first implementation if a smaller focused seam is available.
@@ -191,6 +192,7 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Prefer code changes over restating plans
 - If you discover an epic-wide architectural contradiction, update `MASTER.md` minimally and note it in the step file
 - If you discover non-material proof-path drift, update the story's `## Verification` matrix immediately and record why in `## Progress Log` before continuing
+- If the implementation changes or reveals variant-level proof needs not captured in the story, update the `## Verification` matrix before marking the story review-ready. Every named variant/failure mode must have actual proof, an explicit exclusion, or a recorded blocker.
 - If you discover material contract drift, pause feature work, record a replanning checkpoint in `## Progress Log`, update the story contract, and only then continue implementation
 - If red-first is not feasible, record an explicit written exception in `## Progress Log` before proceeding. Name the reason, the alternative proof seam, and the verification path you will use instead.
 - If Debt Friction exists, record it in `## Progress Log` using the `docs/epic-conventions.md` shape. Use `fix-now` only for enabling cleanup directly required to make this story correct, testable, reviewable, or safely maintainable; include `Scope Justification`. Use `split-story`, `defer-explicitly`, or `block` for debt that is non-enabling, too large, too non-local, or proof-blocking.
@@ -201,6 +203,7 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 Append concise timestamped bullets under `## Progress Log` after meaningful milestones:
 - focused red seam chosen
 - focused seam turned green
+- acceptance proof ledger checked or updated when named variants/failure modes exist
 - design change locked
 - files patched
 - tests added/updated
@@ -228,6 +231,7 @@ At the end of the session, update the step file:
 - Files touched: <paths>
 - Red-first path: <focused seam + red/green outcome, or explicit exception + alternative proof path>
 - Tests run: <commands/results or not run>
+- Acceptance proof coverage: <all acceptance ids and named variants covered | gaps/exclusions listed>
 - Remaining work: <short bullets>
 - Unresolved Debt Friction: <split-story / defer-explicitly / block / unfinished fix-now entries, or none>
 - Blockers / risks: <short bullets>

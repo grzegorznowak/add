@@ -126,6 +126,8 @@ Reject vague or compound criteria such as:
 - "tests pass"
 - bullets whose parts could fail independently
 
+If an acceptance bullet names variants, modes, branches, fallback paths, error cases, or examples such as "missing, empty, malformed, or failed", treat those as separate proof obligations. Prefer splitting them into separate `A<n>` bullets when each variant can fail independently. If keeping them under one acceptance id is genuinely clearer, require the `## Verification` proof matrix to list each named variant explicitly; a single proof row or test does not cover the parent acceptance id unless it covers every named variant or records an explicit exclusion with rationale.
+
 Propose observable rewrites and iterate until every bullet names a concrete check, uses an `A<n>` id, and stays atomic.
 
 ### Question 7 — Verification contract
@@ -136,6 +138,7 @@ Build `## Verification` around two required parts and any conditional proof sect
    - Ask for exact commands or exact manual/file-read actions a reviewer can run.
    - Confirm existing test files or named surfaces actually exist when claimed as current seams.
    - Anchor the real owning test/proof surfaces and the focused area the implementer should inspect first.
+   - When tests must be added or changed, require planned test seams at acceptance-variant granularity: file path, test function/class name when knowable, and the specific failing assertion or observed RED signal. If the exact test name cannot be known before source inspection, mark it provisional and state what naming decision must be resolved before implementation proceeds.
 2. `### Acceptance Proof Matrix`
    - Every acceptance id must have at least one row before the story can be created.
    - Required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`
@@ -143,6 +146,7 @@ Build `## Verification` around two required parts and any conditional proof sect
    - `Open Detail` may be blank for `final` rows and is required for `provisional` rows.
    - A row may cover multiple acceptance ids only when the same proof action and failure signal genuinely cover all of them.
    - Proof rows should reference acceptance IDs and expected evidence without restating the full acceptance text.
+   - If an acceptance id contains named variants or failure modes, the matrix must decompose them into separate proof obligations, for example `A6/missing`, `A6/empty`, `A6/malformed`, `A6/all-failed`, or split them into separate acceptance ids. Every named variant needs evidence or an explicit exclusion.
 3. `### Surface / Branch Proof Matrix` when the story spans multiple user-visible surfaces, supported variants/profiles/modes, or internal orchestration branches.
    - Required columns: `Surface | Supported Variant | Internal Execution Branch | Proof Class | Owning Proof Seam | Why This Seam Is Sufficient | Out of Scope Notes`
    - Every in-scope surface / variant / branch combination must appear.
@@ -159,7 +163,7 @@ Build `## Verification` around two required parts and any conditional proof sect
    - Require a proof that enabled supported paths activate the feature.
    - Require at least one disabled/default path proof showing baseline behavior is unchanged.
 
-Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers. Provisional rows are allowed, but every acceptance id still needs a row and every provisional row must state what remains undecided. For input-boundary shape risks, helper-level proof with already-normalized intermediate data is insufficient unless the story explicitly narrows the proof row and records why that is safe.
+Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers. Provisional rows are allowed, but every acceptance id and every named variant/failure mode inside that id still needs a row and every provisional row must state what remains undecided. For input-boundary shape risks, helper-level proof with already-normalized intermediate data is insufficient unless the story explicitly narrows the proof row and records why that is safe.
 
 Debt Friction check: actively ask whether proof planning is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
 

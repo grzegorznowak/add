@@ -158,6 +158,7 @@ When launched by a converger, you may receive `Shared Research Board from parent
 
 - Read the latest `## Review Log` entry before source inspection and carry every prior concern into the review as `resolved`, `still_open`, `superseded`, or `not_assessable`.
 - When an acceptance or proof row names an end-to-end boundary, verify the proof starts at that named boundary. A lower-level test with hand-built intermediate data does not satisfy a resolver/orchestration acceptance item unless the row explicitly permits that narrower proof.
+- When an acceptance item names variants, modes, branches, fallback paths, error cases, or examples, treat each named case as a required proof obligation. A test or proof row that covers only one variant does not cover sibling variants unless the story explicitly excludes them with rationale.
 - When raw persisted, external, framework, or generated input crosses into stricter application assumptions, treat it as an `Input Boundary Shape Risk`: proof must start at the raw input boundary for every in-scope case, or the story must record an explicit exclusion / unknown with mitigation.
 - Treat external or local technical docs as contract hints, not implementation proof. If a story claims an exact route, model family, auth mode, metadata label, or dispatch path, verify repo code or tests prove that exact behavior.
 - If a story touches surfaces owned by dependency stories, inspect the relevant dependency proof rows and ensure prior accepted contracts still hold.
@@ -193,7 +194,8 @@ Multipass planning:
 4. Keep tests, regressions, and gap checks inside the pass that owns the
    subsystem risk unless they need a truly independent evidence path.
 5. Map every acceptance item to at least one planned pass.
-6. Each pass must have a clear title, acceptance items covered, risk focus, and
+6. For acceptance items with named variants, modes, fallback paths, or failure cases, map every named case to at least one planned pass or record an explicit exclusion.
+7. Each pass must have a clear title, acceptance items covered, risk focus, and
    expected evidence surface.
 
 Focused pass execution:
@@ -235,7 +237,7 @@ Multipass synthesis:
   in the current worktree or story artifacts supports the claim, not
   just that a cited `file:line` exists.
 - Read the plan and all focused-pass outputs.
-- Map every `## Acceptance` item to at least one completed focused-pass result.
+- Map every `## Acceptance` item, including every named variant/failure mode inside an item, to at least one completed focused-pass result or explicit exclusion.
 - Dedupe repeated findings while preserving original `Sources: path:line`
   evidence.
 - Classify accumulated findings into `Gate Findings`, `Product Assessment`,
@@ -245,7 +247,7 @@ Multipass synthesis:
 - Do not perform new broad code research, invent missing evidence, silently
   resolve conflicting pass results, or convert an inconclusive pass into
   approval.
-- If any acceptance item is uncovered, any focused pass is inconclusive, or
+- If any acceptance item or required named variant is uncovered, any focused pass is inconclusive, or
   focused-pass outputs conflict, record a `Gate Finding`; `**Approval Gate**`
   must be `FAIL` and `**Decision**` cannot be `APPROVE`.
 
@@ -340,13 +342,15 @@ Before approving, verify:
 - Are follow-on status transitions accurate in `MASTER.md` and the step file?
 - Does the step file record the focused red seam that was used, or an explicit written exception with the alternative proof path?
 - If red-first was bypassed, was the exception recorded before proceeding and was the alternative proof path concrete?
-- Are there adequate tests for the change?
+- Are there adequate tests for the change, including each named acceptance variant, mode, fallback path, and failure case?
 - Are there hidden packaging / runtime / ops implications not captured in the step?
 - Is every acceptance id still covered by the final proof matrix?
+- Is every named variant/failure mode inside each acceptance id covered by actual tests, source inspection, or command output, rather than only by broad proof-matrix claims?
 - Are any matrix rows still `provisional`?
 - Does every proof row start at the boundary it claims to prove, rather than bypassing it with hand-built intermediate state?
 - Are route/model/auth/metadata claims grounded in repo behavior or tests, not only in external or local documentation?
 - If the story spans multiple surfaces / variants / branches, does the final proof contract still cover every in-scope row from the `Surface / Branch Proof Matrix`, or log an explicit intentional exclusion?
+- If an acceptance item defines fallback, default, degraded, malformed, missing-data, or error behavior, is that path directly proven? Success-path tests do not cover fallback behavior.
 - If shared helpers or multiple callsites were in scope, is there explicit routing proof showing that each supported callsite actually reaches the intended helper or branch logic rather than only proving helper correctness?
 - If the story is prompt/template/placeholder-driven, do the final tests or reviewer actions prove there are no unresolved placeholders on supported paths, that enabled paths actually activate the feature, and that an appropriate disabled/default path stays unchanged?
 - If the story has `Input Boundary Shape Risk`, does final evidence start at each named raw input boundary and cover every in-scope shape case, or record an explicit exclusion / unknown with mitigation?
@@ -410,6 +414,7 @@ If a `Review Log` section does not exist, create it.
 
 Approval is not allowed if the proof contract is still unresolved. A story is only eligible for approval when:
 - every acceptance id remains covered
+- every named variant, mode, branch, fallback path, and failure case inside an acceptance id is covered or explicitly excluded
 - every proof row is `final`
 - the matrix matches the actual implementation and verification surfaces
 - every named end-to-end proof starts at the claimed entry boundary, or the story explicitly narrows the proof row

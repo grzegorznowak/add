@@ -62,8 +62,8 @@ A required spec section is structurally complete when:
 - `## Expected Prerequisites` — exists, lists deps that resolve to `MASTER.md` rows, or explicitly "none".
 - `## Scope` — exists, non-empty, describes atomic work.
 - `## Out of Scope` — exists (if missing: warning, not blocker).
-- `## Acceptance` — exists, has at least one `A<n>:` bullet, each bullet is atomic.
-- `## Verification` — exists, has both `### Verification Commands` and `### Acceptance Proof Matrix` subsections; the matrix covers every `A<n>` id.
+- `## Acceptance` — exists, has at least one `A<n>:` bullet, each bullet is atomic. If a bullet names variants, modes, branches, fallback paths, or failure cases, those variants are either split into separate acceptance ids or clearly treated as separate proof obligations.
+- `## Verification` — exists, has both `### Verification Commands` and `### Acceptance Proof Matrix` subsections; the matrix covers every `A<n>` id and every named variant/failure mode inside an id.
 
 ## Read first
 
@@ -114,7 +114,7 @@ For every chronologically-ordered pending entry:
 
 1. **Present** the entry's verdict and full key findings to the operator. Show the exact text as it appears in the log, including the `Sections reviewed` list.
 2. **Map** each finding to the spec section it targets. If the finding does not name a section explicitly, ask the operator which section it relates to. Findings about function signatures, data flow between components, or parameter wiring contracts map to `## Locked Decisions`, not `## Implementation Notes` — propose a `D-XX` entry with the exact signature or contract.
-3. **Propose** a concrete edit to address each finding. Use the story's existing conventions and phrasing style. Show a before/after of the proposed change. For acceptance or verification changes, re-check atomicity and proof coverage.
+3. **Propose** a concrete edit to address each finding. Use the story's existing conventions and phrasing style. Show a before/after of the proposed change. For acceptance or verification changes, re-check atomicity and proof coverage. If an acceptance item names variants, modes, fallback paths, or failure cases, ensure each named case has its own proof row or explicit exclusion.
 4. **Confirm**: "Apply this change? (y/n/edit)". On `y`, apply the edit. On `n`, ask the operator for an alternative. On `edit`, ask the operator to state the replacement and apply it.
 5. **Record** after all findings in the entry are addressed. Append a new timestamped bullet under `## Plan Review Log`:
 
@@ -167,8 +167,8 @@ Walk the operator through each incomplete section in order. For each:
 3. **Expected Prerequisites** — if missing or unresolved. Walk `MASTER.md` for candidate deps. Interview as question 4.
 4. **Scope** — if missing or non-atomic. Push back on multi-story scope. Interview as question 5.
 5. **Out of Scope** — if missing, propose a best-guess draft from Scope boundaries and confirm.
-6. **Acceptance** — if missing or structurally incomplete. Interview as question 6. Every bullet must be `A<n>:`, atomic, observable. Reject compound bullets.
-7. **Verification** — if missing or structurally incomplete. Interview as question 7. Must produce `### Verification Commands` and `### Acceptance Proof Matrix` with full coverage. Add `### Surface / Branch Proof Matrix` when multi-surface, `Input Boundary Shape Risk` proof when raw input crosses into stricter assumptions, and `### Fail-open Checks` when prompt-driven.
+6. **Acceptance** — if missing or structurally incomplete. Interview as question 6. Every bullet must be `A<n>:`, atomic, observable. Reject compound bullets. If a bullet names variants, modes, fallback paths, or failure cases, split it or require variant-level proof obligations in Verification.
+7. **Verification** — if missing or structurally incomplete. Interview as question 7. Must produce `### Verification Commands` and `### Acceptance Proof Matrix` with full coverage for every acceptance id and every named variant/failure mode inside an id. Add `### Surface / Branch Proof Matrix` when multi-surface, `Input Boundary Shape Risk` proof when raw input crosses into stricter assumptions, and `### Fail-open Checks` when prompt-driven. When tests must be added or changed, include planned test seams at variant granularity: file path, test function/class name when knowable, and the expected failing assertion or RED signal.
 
 For sections 1-5 and 7, consult existing `## Discovery Notes`, `## Critical Files`, `## Implementation Notes`, and `## Locked Decisions` for hints — do not duplicate material across sections.
 
@@ -216,8 +216,8 @@ After all sections have been edited, run a separate Debt Friction check. Evaluat
 After all mode work completes, validate the full story:
 
 1. Every required spec section exists and is structurally complete (as defined in readiness check).
-2. Every acceptance bullet begins with `A<n>:`, covers exactly one behavior, and has at least one proof matrix row.
-3. Proof matrix has the required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`.
+2. Every acceptance bullet begins with `A<n>:`, covers exactly one behavior, and has at least one proof matrix row. Any named variants, modes, fallback paths, or failure cases inside the bullet are split into separate acceptance ids or represented as separate proof obligations.
+3. Proof matrix has the required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`, and covers every named variant/failure mode or records an explicit exclusion.
 4. Every `Proof Maturity` value is `final` or `provisional`. Every `provisional` row has non-blank `Open Detail`.
 5. When the story spans multiple surfaces, variants, or orchestration branches: `### Surface / Branch Proof Matrix` is present.
 6. When the feature depends on prompt placeholders or template variables: `### Fail-open Checks` is present.
