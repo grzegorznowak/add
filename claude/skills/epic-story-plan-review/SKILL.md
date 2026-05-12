@@ -118,6 +118,7 @@ Before approving, verify every item:
 22. **`Implementation Notes` are internally consistent** with `## Acceptance` and `## Scope` (the plan's own self-consistency).
 23. **No `<TODO: ...>` placeholders** left in spec sections. If any remain, verdict is at minimum `request_changes`.
 24. **Debt Friction is surfaced when it affects proof or scope.** If current story planning is made harder by debt, the finding must use the `docs/epic-conventions.md` shape in `## Plan Review Log`. A plan may be blocked for Debt Friction only when meaningful acceptance or proof planning is not possible.
+25. **Interface-contract completeness.** If the story modifies an existing function signature, verify the new signature is recorded in Locked Decisions or Implementation Notes with exact parameter names, types, and defaults. If the plan wires parameters through to a callee function, verify each omission has a stated reason. Signature changes or wiring contracts recorded only in advisory sections (Implementation Notes, Discovery Notes) without a corresponding Locked Decision are a `request_changes` finding: the implementer treats advisory prose as non-binding. Acceptable forms: a Locked Decision with the exact Python signature, or Implementation Notes with a before/after diff excerpt AND a Locked Decision cross-reference.
 
 ## Status transitions
 

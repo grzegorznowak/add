@@ -113,7 +113,7 @@ If all entries are stale, show: "All plan review entries have already been addre
 For every chronologically-ordered pending entry:
 
 1. **Present** the entry's verdict and full key findings to the operator. Show the exact text as it appears in the log, including the `Sections reviewed` list.
-2. **Map** each finding to the spec section it targets. If the finding does not name a section explicitly, ask the operator which section it relates to.
+2. **Map** each finding to the spec section it targets. If the finding does not name a section explicitly, ask the operator which section it relates to. Findings about function signatures, data flow between components, or parameter wiring contracts map to `## Locked Decisions`, not `## Implementation Notes` — propose a `D-XX` entry with the exact signature or contract.
 3. **Propose** a concrete edit to address each finding. Use the story's existing conventions and phrasing style. Show a before/after of the proposed change. For acceptance or verification changes, re-check atomicity and proof coverage.
 4. **Confirm**: "Apply this change? (y/n/edit)". On `y`, apply the edit. On `n`, ask the operator for an alternative. On `edit`, ask the operator to state the replacement and apply it.
 5. **Record** after all findings in the entry are addressed. Append a new timestamped bullet under `## Plan Review Log`:
@@ -194,12 +194,15 @@ If `## Implementation Notes` is missing:
 1. Propose a minimal execution brief: source-inspection focus, smallest likely red-first seam, phases if relevant, known constraints.
 2. Let the operator confirm or correct.
 
+If you discover a function signature change or parameter wiring contract while writing Implementation Notes, promote it to a Locked Decision (`D-XX`) with the exact signature. Do not leave interface contracts only in Implementation Notes, where the implementer treats them as advisory.
+
 ### Locked Decisions probing
 
 If `## Locked Decisions` is missing:
 1. Cross-check decisions mentioned across other sections against `AGENTS.md`.
 2. Ask: "any decisions made that should be locked? any alternatives considered and rejected?"
-3. If none: write `None identified.`
+3. Also ask about implementation-interface decisions: which existing functions are getting new parameters, how those parameters reach the function (passed explicitly vs. read from enclosing data structures), which callee parameters are intentionally not wired and why, and what output/report schemas the implementation must produce. Any contract that would cause the implementer to guess should be a `D-XX` entry.
+4. If none: write `None identified.`
 
 ### Debt Friction check (Mode B)
 

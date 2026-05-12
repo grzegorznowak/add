@@ -186,9 +186,13 @@ Ask for only the execution context that changes implementation:
 
 Move decisions and rejected alternatives to `## Locked Decisions`; do not duplicate them here.
 
+If the implementation plan involves changing existing function signatures or adding new parameter-wiring contracts, ask the operator to record those as interface-contract decisions before closing this question. For each function whose signature changes, lock the exact new parameter name, type, and default value (or the exact dict-key contract if reading from a policy dict). For each callee parameter the plan intentionally does not wire, ask for an omission reason. These decisions are strong candidates for `D-XX` entries in Locked Decisions.
+
 ### Question 10 — Locked Decisions
 
 Ask: "what has been decided, and what alternatives were considered and rejected?" Cross-check each decision against `AGENTS.md` / `CLAUDE.md`. If a decision contradicts a stated convention, flag it and ask whether the operator wants to revise the decision or handle the convention change separately.
+
+Also probe at the implementation-interface grain: "What connected-function interface contracts should be locked?" Ask which existing functions are getting new parameters, how those parameters reach the function (passed explicitly vs. read from enclosing data structures), which callee parameters are intentionally not wired and why, and what output/report schemas the implementation must produce. Any signature change, wiring contract, or schema requirement that would cause the implementer to guess should become a `D-XX` entry.
 
 ### Question 11 — Discovery Notes
 
