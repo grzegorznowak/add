@@ -317,8 +317,8 @@ turning that feedback into unstructured story text.
 Looper helpers: `[/epic-story-plan-converge]` and `[/epic-story-converge]`
 do not own status transitions. They babysit repeated fresh sessions and delegate
 all writes to the underlying lifecycle commands. They may carry neutral
-in-memory notes about blockers, hotspots, repeated tool friction, per-cycle usage
-when the runtime exposes it, and a session-only Research Board of sourced facts.
+in-memory notes about blockers, hotspots, repeated tool friction, and a
+session-only Research Board of sourced facts.
 The Research Board is passed to fresh agents as orientation only, requires exact
 source anchors, and is never persisted as a physical cache. Loopers pass the
 full board unless the operator approves compaction.

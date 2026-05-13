@@ -725,10 +725,9 @@ epic/story arguments. Three strategies exist:
    but any write must come from that command's normal authority window.
 3. **Neutral memory plus sourced research only**: loopers may pass later fresh
    sessions operational notes about blockers, hotspots, repeated command
-   failures, or expensive operations. They may also keep per-run and
-   average-per-cycle usage telemetry when the runtime exposes it, plus a
-   session-only Research Board whose entries all have exact source anchors
-   such as `path:line`, symbols, command/output excerpts, or tool/query/path.
+   failures, or expensive operations. They may also keep a session-only
+   Research Board whose entries all have exact source anchors such as
+   `path:line`, symbols, command/output excerpts, or tool/query/path.
    Research Board facts are orientation only and must be verified against live
    source before editing or approving. Loopers pass the full board to fresh
    lifecycle sessions and must ask the operator before compacting or excluding
@@ -760,8 +759,8 @@ epic/story arguments. Three strategies exist:
 - Transition story statuses from `/epic-feedback`
 - Directly write coordination files, source files, tests, or commits from
   `/epic-story-plan-converge` or `/epic-story-converge`; loopers keep only
-  in-memory babysitting notes, session Research Board entries, and usage
-  telemetry, then delegate writes to underlying lifecycle skills
+  in-memory babysitting notes and session Research Board entries, then delegate
+  writes to underlying lifecycle skills
 - Create full story files from `/epic-feedback`; feedback-derived future work
   must remain a candidate until `/epic-story-plan` turns it into a story
 - Archive a `🔵 IN PR` story
