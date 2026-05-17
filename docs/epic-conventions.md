@@ -39,19 +39,19 @@ standard ones are `## Feedback Absorption Log`,
 
 ### Story tracker table
 
-The minimum required columns are `Step | Status | Spec`. Most epics also
-include `Deliverable` and `Depends`. The commands match against the header
-row exactly, so any column count is fine as long as the column names are
-preserved.
+The current standard columns are `Step | Plan | Status | Deliverable | Depends | Spec`.
+Older epics may still have `Step | Status | Spec` plus optional `Deliverable`
+and `Depends`; commands must read the header row before editing and preserve
+the existing shape unless a migration explicitly adds `Plan`.
 
 ```md
 ## Story tracker
 
-| Step | Status | Deliverable | Depends | Spec |
-|-----:|--------|------------|---------|------|
-| 01 | ✅ DONE | First public package release | none | `archive/story-01-public-package-contract.md` |
-| 02 | ✅ DONE | TestPyPI/PyPI publishing workflow | `01` | `archive/story-02-pypi-trusted-publishing.md` |
-| 16 | ⚪ TODO | Repo-owned multi-agent release command | `05`, `15` | `story-16-repo-owned-release-command-and-changelog.md` |
+| Step | Plan | Status | Deliverable | Depends | Spec |
+|-----:|------|--------|------------|---------|------|
+| 01 | 🟢 PLAN APPROVED | ✅ DONE | First public package release | none | `archive/story-01-public-package-contract.md` |
+| 02 | 🟢 PLAN APPROVED | ✅ DONE | TestPyPI/PyPI publishing workflow | `01` | `archive/story-02-pypi-trusted-publishing.md` |
+| 16 | 🟡 PLAN DRAFT | ⚪ TODO | Repo-owned multi-agent release command | `05`, `15` | `story-16-repo-owned-release-command-and-changelog.md` |
 ```
 
 Rules:
@@ -60,8 +60,10 @@ Rules:
 - The `Spec` cell links to the story file. While the story is active, the
   link points at the epic root (`story-NN-<slug>.md`). After
   `/epic-squash`, it points into `archive/`.
-- The `Status` cell uses one of the values from the Legend, exactly. The
-  commands match on the leading emoji.
+- The `Plan` cell uses one planning-lane value from the Legend exactly. It is
+  independent from implementation `Status`.
+- The `Status` cell uses one implementation status value from the Legend,
+  exactly. The commands match on the leading emoji.
 - The `Depends` cell is comma-separated story numbers. Cross-epic
   dependencies use `<epic> <number>` (e.g. `core 06`).
 
@@ -138,8 +140,9 @@ Status: `todo`
 > Story scaffolded directly by `/epic-story-plan` after interactive planning.
 ```
 
-`Status:` is the file's local copy of the tracker status. It can drift
-from `MASTER.md` and `/epic-squash` will reconcile.
+`Status:` is the file's local copy of the tracker implementation status. It
+does not mirror the `Plan` lane. It can drift from `MASTER.md` and
+`/epic-squash` will reconcile.
 
 ### Spec sections (created by `/epic-story-plan`)
 
@@ -525,17 +528,18 @@ current evidence before approving.
 
 #### `## Plan Review Log`
 
-Append-only entries written **only** by `/epic-story-plan-review`. Parallel in
-shape to `## Review Log` but records plan-quality verdicts made at
-`⚪ TODO`, before implementation begins. Never seeded by `/epic-story-plan`;
-never touched by any other command. Each re-run of `/epic-story-plan-review`
-after operator edits appends a new entry — the log is the story's plan
-revision history.
+Append-only entries written by `/epic-story-plan-review`, and by
+`/epic-feedback` only when routing planning feedback into the established
+plan-resume cycle. Parallel in shape to `## Review Log` but records
+plan-quality verdicts at any implementation lifecycle point. Never seeded by
+`/epic-story-plan`. Each re-run of `/epic-story-plan-review` after operator
+edits appends a new entry — the log is the story's plan revision history.
 
 ```md
 ## Plan Review Log
 - 2026-04-15T09:30:00Z Plan review run by fresh maintainer session
   - Verdict: approve | request_changes | blocked | not_reviewable
+  - Plan lane transition: 🟡 PLAN DRAFT -> 🟢 PLAN APPROVED
   - Status transition: ⚪ TODO -> ⚪ TODO
   - Sections reviewed: Purpose, Acceptance, Verification, Critical Files, Locked Decisions, Discovery Notes, Expected Prerequisites, Scope
   - Key findings:
@@ -666,14 +670,14 @@ epic/story arguments. Three strategies exist:
 | Command | Resolution strategy | Eligible-status filter | Notes |
 |---|---|---|---|
 | `/epic-plan` | operator-explicit (optional NAME arg) | n/a — creates a new epic | If `NAME` is omitted, the interview asks for the slug. Never overwrites an existing epic. |
-| `/epic-story-plan` | operator-explicit (arg or menu) | any epic with a `MASTER.md` | EPIC menu lists all epics under `agent_coordination/epics/`. Creates one TODO story after checkpoint confirmation. |
-| `/epic-story-review` | operator-explicit (arg or menu) | `🟣 IN REVIEW` | Review must come from a fresh, independent perspective. The menu lists only stories at `🟣 IN REVIEW`. |
-| `/epic-story-plan-review` | operator-explicit (arg or menu) | `⚪ TODO` | Plan review must come from a fresh, independent perspective. The menu lists only stories at `⚪ TODO`. |
-| `/epic-story-plan-converge` | operator-explicit looper (required epic + story) | `⚪ TODO` planning stories | Loops fresh plan-review and plan-resume sessions. Accepts optional `MAX_CYCLES`; rejects `WORKTREE`. Delegates all writes to the underlying commands. |
-| `/epic-story-converge` | operator-explicit looper (required epic + story) | plan-approved `⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR (changes_requested)`, or immediate-stop `✅ DONE` | Loops fresh claim/resume/review sessions. Accepts optional `MAX_CYCLES` and pass-through `WORKTREE`. Delegates all writes to the underlying commands. |
+| `/epic-story-plan` | operator-explicit (arg or menu) | any epic with a `MASTER.md` | EPIC menu lists all epics under `agent_coordination/epics/`. Creates one `🟡 PLAN DRAFT` / `⚪ TODO` story after checkpoint confirmation. |
+| `/epic-story-review` | operator-explicit (arg or menu) | `🟣 IN REVIEW` with `🟢 PLAN APPROVED` | Review must come from a fresh, independent perspective. The menu lists only stories at `🟣 IN REVIEW`. |
+| `/epic-story-plan-review` | operator-explicit (arg or menu) | any non-DONE story contract | Plan review must come from a fresh, independent perspective. It can run as pre-implementation review or implementation-cycle contract review. |
+| `/epic-story-plan-converge` | operator-explicit looper (required epic + story) | non-DONE stories whose `Plan` is not approved, plus explicit re-review targets | Loops fresh plan-review and plan-resume sessions. Accepts optional `MAX_CYCLES`; rejects `WORKTREE`. Delegates all writes to the underlying commands. |
+| `/epic-story-converge` | operator-explicit looper (required epic + story) | `🟢 PLAN APPROVED` plus `⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR (changes_requested)`, or immediate-stop `✅ DONE` | Loops fresh claim/resume/review sessions. Accepts optional `MAX_CYCLES` and pass-through `WORKTREE`. Delegates all writes to the underlying commands. |
 | `/epic-feedback` | operator-explicit (arg or menu) | any epic with `MASTER.md` | Epic-scoped feedback routing. PR mode can select the latest unabsorbed PR comment, review body, or inline review comment. Never transitions story statuses. |
-| `/epic-story-claim` | auto-inferred (running context), or explicit story selector | `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference when no selector is passed. An explicit story selector targets exactly that ready unclaimed row and never falls back to another row. |
-| `/epic-story-resume` | auto-inferred (running context) | `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
+| `/epic-story-claim` | auto-inferred (running context), or explicit story selector | `🟢 PLAN APPROVED` + `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference when no selector is passed. An explicit story selector targets exactly that ready unclaimed row and never falls back to another row. |
+| `/epic-story-resume` | auto-inferred (running context) | `🟢 PLAN APPROVED` + `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
 | `/epic-story-pr` | auto-inferred (running context); explicit story required for DONE injection | `🟣 IN REVIEW`, `🔵 IN PR`, explicit non-archived `✅ DONE` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode. For explicit `✅ DONE` stories, `OPEN=true` is implicit after existing PR detection fails. |
 | `/epic-pr` | auto-inferred (running context) | epic has `CONTRACT.md` and/or non-archived `✅ DONE` stories | Opens or refreshes an epic-level PR from `CONTRACT.md` plus current DONE stories. Blocks on misleading gaps/conflicts, never reads archived stories directly, and never changes story statuses. |
 | `/epic-squash` | auto-inferred (running context) | `✅ DONE` | The "story" axis doesn't apply — the command consumes every done story in one pass. |

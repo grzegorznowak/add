@@ -8,7 +8,7 @@ allowed-tools: Read Edit Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -
 
 # Epic Feedback
 
-Absorb structured feedback into one epic without turning PR reviews or CURe output into messy story prose. This command classifies each feedback item first, shows a lightweight acknowledgement plan, then applies the smallest coordination-doc edits needed to preserve story intent and feedback provenance.
+Absorb structured feedback into one epic without turning PR reviews or CURe output into messy story prose. This command classifies each feedback item first, shows a lightweight acknowledgement plan, then applies the smallest coordination-doc edits needed to preserve story intent, feedback provenance, and the story's planning lane.
 
 Argument: `$ARGUMENTS` - `<epic_name_or_path> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]`. The epic is required by argument or explicit menu selection. PR mode defaults to the latest unabsorbed actionable feedback item.
 
@@ -34,6 +34,8 @@ Feedback often spans several stories. Selecting a story before classification re
 `## Feedback Absorption Log` answers: "where did this feedback go and why?"
 
 `## Review Log` answers: "what is wrong with this story implementation and what must be fixed?"
+
+`Plan` in `MASTER.md` answers: "is the story contract ready to implement, or does it need planning rework?"
 
 ## Phase 0 — Resolve epic and intake
 
@@ -136,8 +138,9 @@ Classify each actionable feedback item into exactly one disposition:
 
 | Disposition | Use when | Target |
 |---|---|---|
-| `amend-existing-story` | Feedback clarifies the same story contract. | Story body plus absorption logs. |
-| `resume-current-story` | Implemented work misses the current story or PR review requests rework for it. | Story `Review Log` plus epic absorption log. |
+| `queue-planning-feedback` | Feedback clarifies a story that is still in planning, or should re-enter planning review before implementation continues. | Story `Plan Review Log`, `Plan` lane, plus epic absorption log. |
+| `amend-existing-story` | Rare direct amendment explicitly acknowledged by the operator outside a planning or implementation feedback cycle. | Story body plus absorption logs. |
+| `resume-current-story` | Implemented work misses the current story or PR review requests rework for it. | Story `Review Log`, contract/proof edits when needed, `Plan` lane, plus epic absorption log. |
 | `new-story-candidate` | Feedback introduces a new outcome, dependency, rollout concern, or hardening task. | Epic candidate section plus absorption log. |
 | `epic-level-decision` | Feedback changes an epic policy, architectural choice, or cross-story rule. | Epic decision notes plus absorption log. |
 | `defer-or-reject` | Feedback is out of scope, duplicate, non-actionable, or intentionally declined. | Epic absorption log only. |
@@ -150,12 +153,16 @@ Read only the story files needed to classify plausible targets. Prefer explicit 
 - matching acceptance IDs, paths, or scope language
 - existing `Review Log` / `Plan Review Log` entries when they directly mention the same issue
 
-Status rules:
+Status and lane rules:
 
 - Do not edit archived story files.
 - Do not rewrite a `✅ DONE` story's product contract. Convert feedback to a candidate, epic-level decision, or defer/reject entry unless the operator explicitly decides the completed story must be reopened through the normal lifecycle.
-- Do not transition story statuses from this command.
-- Do not write `## Plan Review Log`; that remains owned only by `/epic-story-plan-review`.
+- Do not transition implementation `Status` from this command.
+- You may update the `Plan` lane when `MASTER.md` has a `Plan` column:
+  - `queue-planning-feedback` sets `Plan` to `🟠 PLAN CHANGES REQUESTED`.
+  - contract-changing `resume-current-story` keeps or sets `Plan` to `🟢 PLAN APPROVED` only when the contract/proof edits are fully blended and validation passes.
+  - if contract feedback cannot be fully blended, set `Plan` to `🟠 PLAN CHANGES REQUESTED` and make `/epic-story-plan-resume` or `/epic-story-plan-review` the next action.
+- Write `## Plan Review Log` only for `queue-planning-feedback`; `/epic-story-plan-review` remains the owner of independent review verdicts.
 - Write `## Review Log` only for schema-compatible implementation-review feedback that should drive immediate story resume or PR rework.
 
 Draft the acknowledgement plan:
@@ -165,7 +172,7 @@ Draft the acknowledgement plan:
 
 | Feedback ID | Source | Disposition | Target | Planned edit | Rationale |
 |---|---|---|---|---|---|
-| FB-001 | PR #42 comment IC_... | amend-existing-story | story-03 | Acceptance + Verification | Same acceptance boundary. |
+| FB-001 | PR #42 comment IC_... | queue-planning-feedback | story-03 | Plan Review Log + Plan lane | Same story, planning contract needs rework. |
 | FB-002 | PR #42 review PRRC_... | resume-current-story | story-05 | Review Log | Implementation misses existing A2. |
 | FB-003 | PR #42 comment IC_... | new-story-candidate | MASTER.md | Candidate only | New audit logging outcome. |
 ```
@@ -189,11 +196,11 @@ Do not edit files before acknowledgement. If the operator changes routing, revis
 
 ## Phase 5 — Apply coordination edits
 
-Apply the acknowledged plan with minimal edits. Construct all edits in memory first. Run the validation gate below for `amend-existing-story` dispositions before writing to disk. Non-amend dispositions write directly without validation.
+Apply the acknowledged plan with minimal edits. Construct all edits in memory first. Run the validation gate below for every disposition that edits story spec/proof sections (`amend-existing-story` and contract-changing `resume-current-story`) before writing to disk. Dispositions that only append logs write directly without validation.
 
-### Validation gate (amend-existing-story only)
+### Validation gate (story spec/proof edits only)
 
-After constructing edits for an `amend-existing-story` disposition and before writing, run these three phases in order. Read the story's original sections so the before/after diff is available.
+After constructing story spec/proof edits and before writing, run these phases in order. Read the story's original sections so the before/after diff is available.
 
 **Phase A — Structural checks.** Verify:
 1. Every acceptance bullet starts with `A<n>:`.
@@ -203,6 +210,9 @@ After constructing edits for an `amend-existing-story` disposition and before wr
 5. `Proof Maturity` is `final` or `provisional` only.
 6. Every `provisional` row has non-blank `Open Detail`.
 7. No `<TODO: ...>` placeholders in `## Acceptance` or `## Verification`.
+8. If the story spans surfaces, supported variants, modes, or internal orchestration branches, `### Surface / Branch Proof Matrix` exists and covers every in-scope combination or records an explicit exclusion.
+9. If raw persisted, external, framework, or generated input crosses stricter application assumptions, `### Input Boundary Shape Risk` exists when needed and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
+10. If prompt placeholders, template variables, or string substitution can fail open, `### Fail-open Checks` exists and covers enabled and disabled/default paths.
 
 **Phase B — Contract-preservation diff.** Compare the edited sections against the originals:
 - Every pre-existing `A<n>` still appears in at least one proof row in the edited version (coverage match — row shape may change).
@@ -219,7 +229,33 @@ After constructing edits for an `amend-existing-story` disposition and before wr
 - Phase B → SOFT BLOCK. Show the pre-existing commitment being removed. Operator may override with explicit acknowledgement, or revise the edits to restore the commitment.
 - Phase C → HARD BLOCK. Operator must update `## Implementation Notes` with a corrected seam, then retry.
 
-After all three phases pass, proceed to write the edits to disk. Then add the story-local receipt and MASTER.md entry.
+After all phases pass, proceed to write the edits to disk. Then add the story-local receipt and MASTER.md entry.
+
+For contract-changing `resume-current-story`, also append a concise replanning checkpoint to `## Progress Log` before `/epic-story-resume` runs:
+
+```md
+- <UTC ISO timestamp> Replanning checkpoint from feedback absorption
+  - Feedback ID: FB-###
+  - Contract sections updated: <Acceptance, Verification, Surface / Branch Proof Matrix, Input Boundary Shape Risk, etc.>
+  - Plan lane: <from> -> <to>
+  - Optional validation: `/epic-story-plan-review <epic> <story>`
+```
+
+For `queue-planning-feedback`, append or create `## Plan Review Log` with a request-changes entry and update the `Plan` lane to `🟠 PLAN CHANGES REQUESTED` when the column exists. Do not edit story spec sections in this disposition.
+
+```md
+- <UTC ISO timestamp> Planning feedback routed by `/epic-feedback`
+  - Source: <source URL or source ID>
+  - Feedback ID: FB-###
+  - Verdict: request_changes
+  - Plan lane transition: <from> -> 🟠 PLAN CHANGES REQUESTED
+  - Status transition: <current status> -> <current status>
+  - Sections reviewed: <Acceptance, Verification, Scope, Locked Decisions, etc.>
+  - Key findings:
+    - <finding, including required matrix/proof updates when relevant>
+  - Debt Friction: none | <decision + short title>
+  - Next action: `/epic-story-plan-resume <epic> <story>`
+```
 
 For `amend-existing-story`, edit only these story sections:
 
@@ -258,7 +294,17 @@ For `resume-current-story`, append to the story's `## Review Log` using the impl
   - Next action: <one concrete resume/rework action>
 ```
 
-If rework changes acceptance boundaries or proof surfaces, re-validate the `## Acceptance Proof Matrix` as part of the resume.
+If feedback changes acceptance boundaries, proof surfaces, supported branches, input-boundary shape assumptions, or fail-open risks, fully blend those changes before recommending `/epic-story-resume`:
+
+- update `## Acceptance` and `## Verification` together
+- update `### Acceptance Proof Matrix` for every acceptance id and named variant/failure mode
+- update `### Surface / Branch Proof Matrix` when surfaces, variants, modes, or orchestration branches are introduced or changed
+- update `### Input Boundary Shape Risk` when raw input shape assumptions are introduced or changed
+- update `### Fail-open Checks` when prompt/template fail-open risks are introduced or changed
+- append the replanning checkpoint to `## Progress Log`
+- keep or set `Plan` to `🟢 PLAN APPROVED` only when the validation gate passes; otherwise set `Plan` to `🟠 PLAN CHANGES REQUESTED` and make `/epic-story-plan-resume` the next action
+
+When contract/proof edits are fully blended, `/epic-story-plan-review <epic> <story>` is optional but recommended before `/epic-story-resume`. If plan review later requests changes, the story re-enters the plan-converge loop through `/epic-story-plan-resume` until `Plan` returns to `🟢 PLAN APPROVED`.
 
 Do not delete or rewrite older `Review Log` entries. If the story is `🔵 IN PR`, do not update `## PR Tracking` here; recommend `/epic-story-pr` refresh when the PR status itself must move the story back to `🔄 IN PROGRESS`.
 

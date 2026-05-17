@@ -132,6 +132,16 @@ Assemble the body to match the shape in `docs/epic-conventions.md` (Required sec
 
 ## Legend
 
+Planning lane:
+
+- 🟡 PLAN DRAFT
+- 🟣 PLAN IN REVIEW
+- 🟠 PLAN CHANGES REQUESTED
+- 🟢 PLAN APPROVED
+- ⛔ PLAN BLOCKED
+
+Implementation status:
+
 - ⚪ TODO
 - 🔄 IN PROGRESS
 - 🟣 IN REVIEW
@@ -141,11 +151,11 @@ Assemble the body to match the shape in `docs/epic-conventions.md` (Required sec
 
 ## Story tracker
 
-| Step | Status | Deliverable | Depends | Spec |
-|-----:|--------|------------|---------|------|
+| Step | Plan | Status | Deliverable | Depends | Spec |
+|-----:|------|--------|------------|---------|------|
 ```
 
-The tracker has a header row and a separator row only — zero data rows. Match the five-column standard even though the epic starts empty; future story creation will slot into those columns.
+The tracker has a header row and a separator row only — zero data rows. Match the six-column standard even though the epic starts empty; future story creation will slot into those columns. `Plan` records planning health independently from implementation `Status`.
 
 ## Checkpoint
 

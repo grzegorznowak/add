@@ -1,6 +1,6 @@
 ---
 name: epic-story-plan-converge
-description: Run fresh plan-review and plan-resume sessions against one TODO story until its plan is approved, blocked, or the loop reaches a hard stop. Use when a planned story needs repeated independent plan feedback and feedback absorption before implementation can be claimed.
+description: Run fresh plan-review and plan-resume sessions against one story until its Plan lane is approved, blocked, or the loop reaches a hard stop. Use when a story needs repeated independent plan feedback and feedback absorption before implementation or rework continues.
 disable-model-invocation: true
 argument-hint: "<epic-name> <story-number-or-spec-file> [MAX_CYCLES=5]"
 allowed-tools: Read Grep Glob Task Bash(git status:*)
@@ -8,13 +8,13 @@ allowed-tools: Read Grep Glob Task Bash(git status:*)
 
 # Epic Story Plan Converge
 
-Coordinate the planning-side ping-pong for exactly one `⚪ TODO` story. This command is an orchestrator only: it starts fresh subagent sessions for `/epic-story-plan-review` and `/epic-story-plan-resume`, preserves their ownership boundaries, keeps in-memory babysitting notes plus the parent-session Research Board, and stops when the plan is approved, blocked, no longer eligible, or out of cycle budget.
+Coordinate the planning-side ping-pong for exactly one story, independent of implementation status. This command is an orchestrator only: it starts fresh subagent sessions for `/epic-story-plan-review` and `/epic-story-plan-resume`, preserves their ownership boundaries, keeps in-memory babysitting notes plus the parent-session Research Board, and stops when the Plan lane is approved, blocked, no longer eligible, or out of cycle budget.
 
 Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [MAX_CYCLES=5]`. The epic and story selector are required. `MAX_CYCLES` is optional and defaults to `5`; it counts full review/resume cycles, not individual subagents.
 
 ## Workflow
 1. Resolve the requested epic and story through `MASTER.md`.
-2. Confirm the story is still `⚪ TODO` and in the planning phase.
+2. Confirm the story is non-archived and has a planning contract that can be reviewed or resumed.
 3. Choose the first planning pass from the story shape: resume first for incomplete specs, otherwise review first.
 4. Run up to `MAX_CYCLES` fresh-agent planning cycles.
 5. Pass neutral in-memory babysitting notes plus the session Research Board into later fresh agents.
@@ -40,12 +40,12 @@ Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [MAX_CYCLES=
 
 Before starting the loop, abort with a clear next action if any condition is true:
 
-- The row status or story header is not `⚪ TODO`: this is not a planning convergence target.
-- The story contains runtime sections such as `## Active Claim`, `## Progress Log`, `## Session Handoff`, `## Review Log`, or `## PR Tracking`: use `/epic-story-converge` if implementation has started.
+- The row implementation `Status` is `✅ DONE`: completed stories are not planning-converged in place; route new feedback through `/epic-feedback` as a candidate or explicit reopen decision.
+- The row has a `Plan` column already set to `🟢 PLAN APPROVED` and there are no unresolved `## Plan Review Log` findings: stop successfully; implementation can continue through the appropriate implementation command.
 - The story is missing the `/epic-story-plan` scaffold shape expected by `/epic-story-plan-review`.
 - The story is so malformed that `/epic-story-plan-resume` cannot identify the `/epic-story-plan` scaffold or any spec sections to continue.
 
-The status authority is `<epic_dir>/MASTER.md`; the story header is a drift signal that should be reported if it disagrees.
+The planning-lane and implementation-status authority is `<epic_dir>/MASTER.md`; the story header is a drift signal that should be reported if it disagrees.
 
 ## Phase 3 — Fresh-Agent Loop
 
@@ -89,9 +89,9 @@ For each cycle:
    ```
 
 7. Require every subagent final response to include `## Research Events`, with `- None.` allowed. After the pass finishes, append only sourced research events to the in-memory Research Board. Do not append verdicts, implementation opinions, or unanchored summaries.
-8. After the review agent finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive the review decision from the newest `## Plan Review Log` entry and current status, not from chat output alone.
-9. If the decision is `approve`, stop successfully. Do not claim the story. Recommend `/epic-story-claim <epic> <story>` from a fresh session.
-10. If the decision is `blocked` or the status is `⛔ BLOCKED`, stop with blocked status.
+8. After the review agent finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive the review decision from the newest `## Plan Review Log` entry and current `Plan` lane, not from chat output alone.
+9. If the decision is `approve` or `Plan` is `🟢 PLAN APPROVED`, stop successfully. Do not claim or resume the story. Recommend `/epic-story-claim <epic> <story>` if implementation `Status` is `⚪ TODO`, or `/epic-story-resume <epic> <story>` if implementation has already started.
+10. If the decision is `blocked` or `Plan` is `⛔ PLAN BLOCKED`, stop with blocked planning status.
 11. If the decision is `request_changes` or `not_reviewable`, prepare and launch a different fresh subagent whose task prompt ends with:
 
    ```text
@@ -99,7 +99,7 @@ For each cycle:
    ```
 
 12. If the resume agent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that resume pass only. The next review still starts in a new fresh subagent.
-13. After the resume agent finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. If the story is no longer `⚪ TODO`, stop and report the unexpected state.
+13. After the resume agent finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. If implementation `Status` changed, stop and report the unexpected state; plan convergence must not mutate implementation status.
 14. Run the no-progress gate before starting the next cycle.
 
 ## Phase 4 — Babysitting and Stops
@@ -128,7 +128,7 @@ Other hard stops:
 
 - `MAX_CYCLES` reached;
 - latest decision is `blocked`;
-- story status changes away from `⚪ TODO`;
+- implementation `Status` changes during the convergence run;
 - subagent cannot resolve the story or command;
 - the operator declines an interactive decision required by resume.
 

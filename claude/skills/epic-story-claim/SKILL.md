@@ -58,17 +58,19 @@ If `<story>` was provided:
 
 If `<story>` was not provided, preserve the original behavior: from `<epic>/MASTER.md`, select the first step that is all of:
 - **unclaimed**: status is `⬜ TODO`, `⚪ TODO`, or otherwise clearly unclaimed
+- **plan-approved**: `Plan` is `🟢 PLAN APPROVED`, or the tracker has no `Plan` column and the newest effective `## Plan Review Log` verdict is `approve` with no later unresolved `request_changes`, `not_reviewable`, or `blocked`
 - **ready**: every dependency listed in `Depends` is `✅ DONE`
 - **concrete**: the referenced step file exists
 
 After a row is selected by either path, verify it is all of:
 - **unclaimed**: status is `⬜ TODO`, `⚪ TODO`, or otherwise clearly unclaimed
+- **plan-approved**: `Plan` is `🟢 PLAN APPROVED`, or the tracker has no `Plan` column and the newest effective `## Plan Review Log` verdict is `approve` with no later unresolved `request_changes`, `not_reviewable`, or `blocked`
 - **ready**: every dependency listed in `Depends` is `✅ DONE`
 - **concrete**: the referenced step file exists
 
 If no such step exists, or the targeted row is not claimable:
 - do not guess or switch rows
-- stop after a concise report listing: no-ready-step reason, blocked steps, and the next step that must complete first
+- stop after a concise report listing: no-ready-step reason, plan lane if present, blocked steps, and the next step that must complete first. If the plan is not approved, the next action is `/epic-story-plan-converge <epic> <story>` or `/epic-story-plan-review <epic> <story>` depending on whether edits are still needed.
 
 ## Worktree preflight
 
@@ -191,9 +193,8 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Implement the claimed step end-to-end when feasible
 - Prefer code changes over restating plans
 - If you discover an epic-wide architectural contradiction, update `MASTER.md` minimally and note it in the step file
-- If you discover non-material proof-path drift, update the story's `## Verification` matrix immediately and record why in `## Progress Log` before continuing
-- If the implementation changes or reveals variant-level proof needs not captured in the story, update the `## Verification` matrix before marking the story review-ready. Every named variant/failure mode must have actual proof, an explicit exclusion, or a recorded blocker.
-- If you discover material contract drift, pause feature work, record a replanning checkpoint in `## Progress Log`, update the story contract, and only then continue implementation
+- If you discover non-material evidence drift where the contract is still correct but the actual proof command/name changed, update only the concrete evidence row in `## Verification` and record why in `## Progress Log` before continuing.
+- If implementation reveals variant-level proof needs, acceptance gaps, branch coverage gaps, input-boundary shape risk, or material contract drift not captured in the story, stop implementation work. Record a concise blocker in `## Progress Log`, set or ask to set the `Plan` lane to `🟠 PLAN CHANGES REQUESTED` when available, and route the story to `/epic-feedback` or `/epic-story-plan-converge`. Do not perform replanning inside `/epic-story-claim`.
 - If red-first is not feasible, record an explicit written exception in `## Progress Log` before proceeding. Name the reason, the alternative proof seam, and the verification path you will use instead.
 - If Debt Friction exists, record it in `## Progress Log` using the `docs/epic-conventions.md` shape. Use `fix-now` only for enabling cleanup directly required to make this story correct, testable, reviewable, or safely maintainable; include `Scope Justification`. Use `split-story`, `defer-explicitly`, or `block` for debt that is non-enabling, too large, too non-local, or proof-blocking.
 - If the claimed step is blocked by an unmet dependency or hard contradiction, stop broadening scope and mark it `⛔ BLOCKED`
@@ -207,8 +208,8 @@ Append concise timestamped bullets under `## Progress Log` after meaningful mile
 - design change locked
 - files patched
 - tests added/updated
-- proof matrix updated to match implementation reality
-- replanning checkpoint recorded after material contract drift
+- proof evidence row updated to match implementation reality without changing contract meaning
+- planning-lane blocker recorded after material contract drift
 - red-first exception recorded with alternative proof seam
 - Debt Friction recorded with decision and guardrail
 - blocker discovered

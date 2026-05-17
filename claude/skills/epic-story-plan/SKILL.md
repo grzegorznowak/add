@@ -1,6 +1,6 @@
 ---
 name: epic-story-plan
-description: Interview-driven creation of a new TODO story for an existing epic — writes story-NN-<slug>.md and appends the MASTER.md tracker row after proof-contract validation.
+description: Interview-driven creation of a new story for an existing epic — writes story-NN-<slug>.md and appends the MASTER.md tracker row with a draft planning lane after proof-contract validation.
 disable-model-invocation: true
 argument-hint: '[EPIC="<epic_name>"]'
 allowed-tools: Read Grep Glob Write Edit Bash(git status:*) Bash(git log:*)
@@ -8,7 +8,7 @@ allowed-tools: Read Grep Glob Write Edit Bash(git status:*) Bash(git log:*)
 
 # Epic Story Plan
 
-Create a new story for an existing epic by interviewing the operator through the story spec sections, validating the proof contract, and publishing the story directly into `agent_coordination/epics/<epic>/`. This command writes the official story file and appends the `⚪ TODO` tracker row to `MASTER.md`; it does not create a separate draft plan file.
+Create a new story for an existing epic by interviewing the operator through the story spec sections, validating the proof contract, and publishing the story directly into `agent_coordination/epics/<epic>/`. This command writes the official story file and appends a tracker row with `Plan` = `🟡 PLAN DRAFT` and `Status` = `⚪ TODO`; it does not create a separate draft plan file.
 
 Argument: `$ARGUMENTS` — optional `[EPIC="<epic_name>"]`. If provided, the skill resolves that epic directly. If omitted, the skill lists the available epics under `<cwd>/agent_coordination/epics/` and asks the operator to pick one.
 
@@ -255,7 +255,7 @@ Before the checkpoint:
    - every acceptance id appears in at least one proof row
    - every `Proof Maturity` value is `final` or `provisional`
    - every `provisional` row has non-blank `Open Detail`
-   - required surface/branch and fail-open sections are present when the story risk surface calls for them
+   - required surface/branch, input-boundary, and fail-open sections are present when the story risk surface calls for them
    - no `<TODO: ...>` placeholders exist in `## Acceptance` or `## Verification`
 
 Abort or continue the interview if validation fails. Do not write malformed story state.
@@ -280,10 +280,10 @@ Show the operator:
 2. Edit `MASTER.md` to append a new tracker row:
 
    ```md
-   | <NN> | ⚪ TODO | <TITLE> | <DEPENDS or "none"> | `story-<NN>-<slug>.md` |
+   | <NN> | 🟡 PLAN DRAFT | ⚪ TODO | <TITLE> | <DEPENDS or "none"> | `story-<NN>-<slug>.md` |
    ```
 
-3. Match the existing tracker table column count and ordering. Read the header row to determine whether the epic uses 3, 4, or 5 columns.
+3. Match the existing tracker table column count and ordering. Read the header row to determine whether the epic uses the current six-column `Step | Plan | Status | Deliverable | Depends | Spec` shape or an older 3-, 4-, or 5-column shape. For older trackers without `Plan`, do not invent an extra column in a single story append; use the existing shape and mention that `/epic-plan` now creates a first-class `Plan` lane for new epics.
 4. Escape markdown table delimiters in the title before writing the row.
 5. Never seed runtime sections.
 
