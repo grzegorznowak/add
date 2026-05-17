@@ -71,7 +71,7 @@ Resolve the planning lane before review:
 - If runtime sections exist, enter **contract-review mode**. In this mode, validate only the story contract and proof plan; do not assess implementation completeness, do not read `## Progress Log` as proof that the contract is correct, and do not change implementation `Status`.
 - If runtime sections do not exist, enter normal pre-implementation plan-review mode.
 
-When `MASTER.md` has a `Plan` column, set the matched row to `🟣 PLAN IN REVIEW` before the full review begins. The final verdict in this command must overwrite it with `🟢 PLAN APPROVED`, `🟠 PLAN CHANGES REQUESTED`, or `⛔ PLAN BLOCKED` unless the command aborts before write-back.
+When `MASTER.md` has a `Plan` column, remember the pre-review `Plan` value, then set the matched row to `🟣 PLAN IN REVIEW` before the full review begins. The final verdict in this command must overwrite it with `🟢 PLAN APPROVED`, `🟠 PLAN CHANGES REQUESTED`, `⛔ PLAN BLOCKED`, or the remembered pre-review value for an unrecoverable `not_reviewable` verdict unless the command aborts before write-back.
 
 ## Source-of-truth hierarchy
 
@@ -137,7 +137,7 @@ You may update the matched `MASTER.md` row's `Plan` column as part of this revie
 - `approve` → set `Plan` to `🟢 PLAN APPROVED`. If implementation `Status` is `⚪ TODO`, tell the operator the next action is `/epic-story-claim <epic>` from a fresh session. If implementation has already started, tell the operator the next action is `/epic-story-resume <epic> <story>` or the appropriate implementation command.
 - `request_changes` → set `Plan` to `🟠 PLAN CHANGES REQUESTED`. Tell the operator to run `/epic-story-plan-resume <epic> <story>` to edit the specific spec sections you named, then re-run `/epic-story-plan-review <epic> <story>` from a fresh session. For a ground-up rewrite before implementation starts, recommend deleting the story file and tracker row, then re-running `/epic-story-plan`.
 - `blocked` → set `Plan` to `⛔ PLAN BLOCKED`. Use this only when the plan is unsalvageable as written and the operator needs to pause on this story (e.g., the plan depends on an upstream story that does not exist, or a `## Locked Decision` directly contradicts the architecture and the plan cannot be minimally amended).
-- `not_reviewable` → set `Plan` to `🟠 PLAN CHANGES REQUESTED` if missing context can be repaired in the story contract; otherwise leave the existing `Plan` value unchanged and say what context is missing.
+- `not_reviewable` → set `Plan` to `🟠 PLAN CHANGES REQUESTED` if missing context can be repaired in the story contract. If missing context cannot be repaired in the story contract, restore the pre-review `Plan` value from before this command wrote `🟣 PLAN IN REVIEW` and say what context is missing. Never leave the final lane at `🟣 PLAN IN REVIEW` for a completed `not_reviewable` verdict.
 
 **Explicit prohibitions:** never move a story into `⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR`, `✅ DONE`, or implementation `⛔ BLOCKED` from this command. Those transitions are owned by `/epic-story-claim`, `/epic-story-resume`, `/epic-story-review`, and `/epic-story-pr`.
 

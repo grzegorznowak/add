@@ -22,11 +22,11 @@ Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file>`. Both requi
 
 ## Important
 
-This command may edit the story file's spec sections and `## Plan Review Log`. It never touches:
+This command may edit the story file's spec sections, the story file's `## Plan Review Log`, and the matched `MASTER.md` row's `Plan` lane when that column exists. It never touches:
 - Source code, tests, configs
 - `MASTER.md` implementation `Status` (the story stays in its current implementation lifecycle state)
 - Runtime sections (`## Active Claim`, `## Progress Log`, `## Session Handoff`, `## Review Log`, `## PR Tracking`)
-- Any file outside the resolved story in `<epic>/`
+- Any file outside the resolved story in `<epic>/`, except `<epic>/MASTER.md` for the `Plan` lane write-back only
 
 ## Why explicit selection (never auto-infer)
 
@@ -226,9 +226,10 @@ After all mode work completes, validate the full story:
 3. Proof matrix has the required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`, and covers every named variant/failure mode or records an explicit exclusion.
 4. Every `Proof Maturity` value is `final` or `provisional`. Every `provisional` row has non-blank `Open Detail`.
 5. When the story spans multiple surfaces, variants, or orchestration branches: `### Surface / Branch Proof Matrix` is present.
-6. When the feature depends on prompt placeholders or template variables: `### Fail-open Checks` is present.
-7. No `<TODO: ...>` placeholders exist in any spec section.
-8. Dependency refs in `## Expected Prerequisites` resolve to `MASTER.md` rows (cross-epic deps flagged but not failed).
+6. When raw persisted, external, framework, or generated input crosses stricter application assumptions: `### Input Boundary Shape Risk` is present and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
+7. When the feature depends on prompt placeholders or template variables: `### Fail-open Checks` is present.
+8. No `<TODO: ...>` placeholders exist in any spec section.
+9. Dependency refs in `## Expected Prerequisites` resolve to `MASTER.md` rows (cross-epic deps flagged but not failed).
 
 If validation fails, report the specific issue and propose a fix. Keep iterating — the operator decides when to stop. Do not write invalid state.
 

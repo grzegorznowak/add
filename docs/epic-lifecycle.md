@@ -140,21 +140,22 @@ Each command has a defined window of which transitions it is allowed to
 make. Sticking to these windows prevents two commands from racing on the
 same row.
 
-| From → To | `/epic-feedback` | `/epic-story-claim` | `/epic-story-resume` | `/epic-story-plan-review` | `/epic-story-review` | `/epic-story-pr` | `/epic-squash` |
-|---|---|---|---|---|---|---|---|
-| `Plan` lane downgrade/invalidation, implementation `Status` unchanged | ✅ | — | — | — | — | — | — |
-| `Plan` lane independent review verdict, implementation `Status` unchanged | — | — | — | ✅ | — | — | — |
-| `⚪ TODO` → `🔄 IN PROGRESS` | — | ✅ | — | — | — | — | — |
-| `🔄 IN PROGRESS` → `🟣 IN REVIEW` | — | ✅ | ✅ | — | ✅ | — | — |
-| `🟣 IN REVIEW` → `✅ DONE` (no PR stage) | — | — | ✅ | — | ✅ | — | — |
-| `🟣 IN REVIEW` → `🔵 IN PR` | — | — | — | — | — | ✅ | — |
-| `🔵 IN PR` → `🔄 IN PROGRESS` (changes requested) | — | — | — | — | — | ✅ | — |
-| `🔵 IN PR` → `✅ DONE` (PR merged) | — | — | — | — | — | ✅ | — |
-| `🔵 IN PR` → `🔵 IN PR` (refresh) | — | — | — | — | — | ✅ | — |
-| `✅ DONE` → `🔵 IN PR` (late PR injection, unmerged PR) | — | — | — | — | — | ✅ | — |
-| `✅ DONE` → `✅ DONE` (late PR metadata attach, PR already merged) | — | — | — | — | — | ✅ | — |
-| `*` → `⛔ BLOCKED` | — | ✅ | ✅ | — | ✅ | — | — |
-| `✅ DONE` → archived | — | — | — | — | — | — | ✅ |
+| From → To | `/epic-feedback` | `/epic-story-plan-resume` | `/epic-story-plan-review` | `/epic-story-claim` | `/epic-story-resume` | `/epic-story-review` | `/epic-story-pr` | `/epic-squash` |
+|---|---|---|---|---|---|---|---|---|
+| `Plan` lane downgrade/invalidation, implementation `Status` unchanged | ✅ | — | — | — | — | — | — | — |
+| `Plan` lane draft after contract repair, implementation `Status` unchanged | — | ✅ | — | — | — | — | — | — |
+| `Plan` lane independent review verdict, implementation `Status` unchanged | — | — | ✅ | — | — | — | — | — |
+| `⚪ TODO` → `🔄 IN PROGRESS` | — | — | — | ✅ | — | — | — | — |
+| `🔄 IN PROGRESS` → `🟣 IN REVIEW` | — | — | — | ✅ | ✅ | ✅ | — | — |
+| `🟣 IN REVIEW` → `✅ DONE` (no PR stage) | — | — | — | — | ✅ | ✅ | — | — |
+| `🟣 IN REVIEW` → `🔵 IN PR` | — | — | — | — | — | — | ✅ | — |
+| `🔵 IN PR` → `🔄 IN PROGRESS` (changes requested) | — | — | — | — | — | — | ✅ | — |
+| `🔵 IN PR` → `✅ DONE` (PR merged) | — | — | — | — | — | — | ✅ | — |
+| `🔵 IN PR` → `🔵 IN PR` (refresh) | — | — | — | — | — | — | ✅ | — |
+| `✅ DONE` → `🔵 IN PR` (late PR injection, unmerged PR) | — | — | — | — | — | — | ✅ | — |
+| `✅ DONE` → `✅ DONE` (late PR metadata attach, PR already merged) | — | — | — | — | — | — | ✅ | — |
+| `*` → `⛔ BLOCKED` | — | — | — | ✅ | ✅ | ✅ | — | — |
+| `✅ DONE` → archived | — | — | — | — | — | — | — | ✅ |
 
 `/epic-squash` does not transition statuses; it archives stories whose status
 is already `✅ DONE` and folds their contract terms into the merged
@@ -162,9 +163,10 @@ is already `✅ DONE` and folds their contract terms into the merged
 
 `/epic-story-plan-converge` and `/epic-story-converge` are looper commands, not
 transition owners. They may decide which underlying lifecycle command to run
-next, but any status change is made by `/epic-story-plan-review`,
-`/epic-story-claim`, `/epic-story-resume`, `/epic-story-review`, or
-`/epic-story-pr` according to the table above. They may carry a session-only
+next, but any lane or status change is made by `/epic-feedback`,
+`/epic-story-plan-resume`, `/epic-story-plan-review`, `/epic-story-claim`,
+`/epic-story-resume`, `/epic-story-review`, or `/epic-story-pr` according to
+the table above. They may carry a session-only
 Research Board of exactly sourced facts across fresh agents, but that board is
 orientation only and never replaces live-source verification.
 

@@ -139,7 +139,7 @@ Classify each actionable feedback item into exactly one disposition:
 | Disposition | Use when | Target |
 |---|---|---|
 | `queue-planning-feedback` | Feedback clarifies a story that is still in planning, or should re-enter planning review before implementation continues. | Story `Plan Review Log`, `Plan` lane, plus epic absorption log. |
-| `amend-existing-story` | Rare direct amendment explicitly acknowledged by the operator outside a planning or implementation feedback cycle. | Story body plus absorption logs. |
+| `amend-existing-story` | Rare direct amendment explicitly acknowledged by the operator outside a planning or implementation feedback cycle. | Story body, `Plan` lane invalidation when the contract changes, plus absorption logs. |
 | `resume-current-story` | Implemented work misses the current story or PR review requests rework for it. | Story `Review Log`, contract/proof edits when needed, `Plan` lane invalidation when the contract changes, plus epic absorption log. |
 | `new-story-candidate` | Feedback introduces a new outcome, dependency, rollout concern, or hardening task. | Epic candidate section plus absorption log. |
 | `epic-level-decision` | Feedback changes an epic policy, architectural choice, or cross-story rule. | Epic decision notes plus absorption log. |
@@ -160,6 +160,7 @@ Status and lane rules:
 - Do not transition implementation `Status` from this command.
 - You may downgrade or invalidate the `Plan` lane when `MASTER.md` has a `Plan` column, but this command must never set `Plan` to `🟢 PLAN APPROVED`:
   - `queue-planning-feedback` sets `Plan` to `🟠 PLAN CHANGES REQUESTED`.
+  - contract-changing `amend-existing-story` sets `Plan` to `🟠 PLAN CHANGES REQUESTED` after the contract/proof edits are blended and validation passes, because fresh `/epic-story-plan-review` must independently approve the changed contract before implementation resumes.
   - contract-changing `resume-current-story` sets `Plan` to `🟠 PLAN CHANGES REQUESTED` after the contract/proof edits are blended and validation passes, because fresh `/epic-story-plan-review` must independently approve the changed contract before implementation resumes.
   - if contract feedback cannot be fully blended, set `Plan` to `🟠 PLAN CHANGES REQUESTED` and make `/epic-story-plan-resume` the next action.
 - Write `## Plan Review Log` only for `queue-planning-feedback`; `/epic-story-plan-review` remains the owner of independent review verdicts and the only command that may set `Plan` to `🟢 PLAN APPROVED`.
@@ -268,7 +269,7 @@ For `amend-existing-story`, edit only these story sections:
 - `## Discovery Notes`
 - `## Locked Decisions`
 
-Keep story-body edits as the durable contract change. Then add a tiny story-local receipt:
+Keep story-body edits as the durable contract change. If the amendment changes any contract/proof section, update the `Plan` lane to `🟠 PLAN CHANGES REQUESTED` when the column exists and make `/epic-story-plan-review` the next action. Then add a tiny story-local receipt:
 
 ```md
 ## Feedback Absorption Log
@@ -357,7 +358,7 @@ Report:
 - any items skipped or left ambiguous
 - exact next command when relevant, such as `/epic-story-resume`, `/epic-story-pr`, or `/epic-story-plan`
 
-When `amend-existing-story` touched `## Acceptance` or `## Verification`, include in the response:
-"Recommended next: run `/epic-story-plan-review $EPIC <NN>` from a fresh session to re-validate the amended plan."
+When `amend-existing-story` touched any contract/proof section, include in the response:
+"Required next: run `/epic-story-plan-review $EPIC <NN>` from a fresh session to re-validate the amended plan."
 
 Keep the response short. Do not paste long feedback bodies; link or cite source IDs instead.
