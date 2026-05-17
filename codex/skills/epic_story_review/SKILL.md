@@ -104,6 +104,7 @@ Your job is to:
 ## Review readiness check
 Before doing a full review:
 - inspect the row for the resolved step in `MASTER.md`
+- if the tracker has a `Plan` column and the matched row's `Plan` is not `🟢 PLAN APPROVED`, implementation cannot be approved; record a `request_changes` verdict with next action `epic_story_plan_converge $EPIC $STORY`
 - inspect any `Active Claim`, `Progress Log`, `Session Handoff`, and `PR Tracking` sections in the step file
 - inspect the story's `## Acceptance` and `## Verification` contract before
   treating the implementation as review-ready
@@ -356,27 +357,28 @@ precision when evidence is insufficient.
    common) or the main tree at `<workspace_root>/projects/<basename>` (clean
    main-tree fallback case from the preflight).
 3. Read any existing `## Review Log` entries in the story before deciding. If
-   prior review runs requested changes or recorded blockers, explicitly verify
-   whether each concern is resolved, still open, superseded by later story
-   changes, or not assessable from current evidence.
-4. Never speculate about code you haven't read.
-5. When `<epic>/CONTRACT.md` exists, inspect the sections relevant to the
-   resolved story's owned surfaces and invariants.
-6. If the final implementation or final proof matrix clearly differs from the
-   earlier planned proof path, consult `## Progress Log` and
-   `## Session Handoff` to confirm the change was recorded and justified.
-7. If sibling stories define shared interfaces, invariants, or proof surfaces
-   this story touches, inspect those targeted stories rather than assuming the
-   resolved step file is complete.
-8. Run a Debt Friction check: ask whether implementation or review was made
-   harder by unclear ownership, duplicated behavior, weak or mocked tests,
-   missing seams, hidden behavior, or unsafe structure. Only record a
-   `Debt Friction` finding when there is a story-local causal link: current
-   story action -> concrete evidence -> delivery impact -> explicit decision.
-9. Break the reviewed implementation into logical groups and explain the
-   grouping briefly.
-10. Review each group sequentially.
-11. Prioritize:
+    prior review runs requested changes or recorded blockers, explicitly verify
+    whether each concern is resolved, still open, superseded by later story
+    changes, or not assessable from current evidence.
+4. Before approving implementation, verify the matched `MASTER.md` row's `Plan` lane is `🟢 PLAN APPROVED` when the column exists. If `Plan` is `🟡 PLAN DRAFT`, `🟣 PLAN IN REVIEW`, `🟠 PLAN CHANGES REQUESTED`, or `⛔ PLAN BLOCKED`, the implementation cannot be approved; record a `request_changes` verdict with next action `epic_story_plan_converge $EPIC $STORY`.
+5. Never speculate about code you haven't read.
+6. When `<epic>/CONTRACT.md` exists, inspect the sections relevant to the
+    resolved story's owned surfaces and invariants.
+7. If the final implementation or final proof matrix clearly differs from the
+    earlier planned proof path, consult `## Progress Log` and
+    `## Session Handoff` to confirm the change was recorded and justified.
+8. If sibling stories define shared interfaces, invariants, or proof surfaces
+    this story touches, inspect those targeted stories rather than assuming the
+    resolved step file is complete.
+9. Run a Debt Friction check: ask whether implementation or review was made
+    harder by unclear ownership, duplicated behavior, weak or mocked tests,
+    missing seams, hidden behavior, or unsafe structure. Only record a
+    `Debt Friction` finding when there is a story-local causal link: current
+    story action -> concrete evidence -> delivery impact -> explicit decision.
+10. Break the reviewed implementation into logical groups and explain the
+    grouping briefly.
+11. Review each group sequentially.
+12. Prioritize:
    - correctness
    - regressions
    - product / acceptance drift from the requested outcome

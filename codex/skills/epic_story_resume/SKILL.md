@@ -54,13 +54,15 @@ Use this selection policy:
    - resolve the selected step file from the matched row's `Spec` value
    - if that file does not exist under `<epic>/`, stop and report the exact
      missing path
-   - inspect the resolved step row in `MASTER.md`
-   - if it is not `🔄 IN PROGRESS`, stop and report the actual status
+    - inspect the resolved step row in `MASTER.md`
+    - if the tracker has a `Plan` column and the matched row's `Plan` is not `🟢 PLAN APPROVED`, stop before implementation work and report: "story plan is not approved; run `epic_story_plan_converge $EPIC $STORY` before `epic_story_resume`."
+    - if it is not `🔄 IN PROGRESS`, stop and report the actual status
 2. If `$STORY` was not provided:
-   - collect every row in `MASTER.md` marked `🔄 IN PROGRESS`
-   - also collect rows marked `🔵 IN PR` **only if** the PR is currently
-     requesting code changes (check the step file's `## PR Tracking` section
-     `PR status` field; treat `changes_requested` as a resumable signal)
+    - collect every row in `MASTER.md` marked `🔄 IN PROGRESS`
+    - also collect rows marked `🔵 IN PR` **only if** the PR is currently
+      requesting code changes (check the step file's `## PR Tracking` section
+      `PR status` field; treat `changes_requested` as a resumable signal)
+    - exclude rows whose tracker has a `Plan` column and whose `Plan` is not `🟢 PLAN APPROVED`; list those excluded rows in the no-candidate report with next action `epic_story_plan_converge $EPIC <story>`
    - if there are none:
      - stop after a concise report saying there is no active step to resume
      - recommend using the claim prompt instead

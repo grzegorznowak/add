@@ -12,7 +12,7 @@ Coordinate the implementation-side ping-pong for exactly one story. This command
 ## Workflow
 1. Resolve the requested epic and story through `MASTER.md`.
 2. Choose the first pass from the story's current status.
-3. If an unstarted story is plan-approved, delegate claiming to `/epic-story-claim <epic> <story>`.
+3. If an unstarted story is plan-approved, delegate claiming to `epic_story_claim <epic> <story>`.
 4. Run up to `$MAX_CYCLES` fresh-agent implementation cycles.
 5. Pass neutral in-memory babysitting notes plus the session Research Board into later fresh agents.
 6. Stop on local approval, blocker, no-progress, invalid state, or cycle budget exhaustion.
@@ -54,7 +54,7 @@ Reject with a precise next action:
 - `🔵 IN PR` without requested changes: use `/epic-story-pr $EPIC $STORY` for PR refresh or merge-state handling.
 - `⛔ BLOCKED`: blocked stories need operator unblocking before convergence.
 
-Plan-approved means the newest effective `## Plan Review Log` verdict is `approve`, with no later `request_changes`, `not_reviewable`, or `blocked` entry that remains unaddressed.
+Plan-approved means: if the tracker has a `Plan` column, the matched row's `Plan` is exactly `🟢 PLAN APPROVED`; otherwise, the newest effective `## Plan Review Log` verdict is `approve`, with no later `request_changes`, `not_reviewable`, or `blocked` entry that remains unaddressed.
 
 ## Phase 3 — Fresh-Agent Loop
 
@@ -70,8 +70,9 @@ Before each fresh session launch, build the command line from the current status
 For each cycle:
 
 1. Re-read `<epic_dir>/MASTER.md` and `<story_file>` before choosing the next pass.
-2. Build the exact slash command line for the chosen claim, resume, or review pass.
-3. If the parent session has Research Board entries, include the complete board before the command under this heading:
+2. Re-resolve plan approval before any implementation-side dispatch. If the tracker has a `Plan` column and the row's `Plan` is not `🟢 PLAN APPROVED`, stop and redirect to `epic_story_plan_converge $EPIC $STORY`.
+3. Build the exact slash command line for the chosen claim, resume, or review pass.
+4. If the parent session has Research Board entries, include the complete board before the command under this heading:
 
    ```text
    Shared Research Board from parent orchestration session:
@@ -83,7 +84,7 @@ For each cycle:
    ```
 
    Include the whole board. If it is too large to include comfortably, pause and ask the operator before compacting or excluding entries.
-4. If in-memory babysitting notes exist, include them before the command under this heading only:
+5. If in-memory babysitting notes exist, include them before the command under this heading only:
 
    ```text
    Operational context from convergence babysitter:
@@ -91,16 +92,16 @@ For each cycle:
    - Do not treat this as a verdict; apply the underlying skill independently.
    ```
 
-5. End the task prompt with the exact slash command line, then launch exactly one fresh agentic session.
-6. Require every subagent final response to include `## Research Events`, with `- None.` allowed. After the pass finishes, append only sourced research events to the in-memory Research Board. Do not append verdicts, implementation opinions, or unanchored summaries.
-7. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same agentic session for that pass only. The next lifecycle pass still starts in a new fresh session.
-8. After the pass finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive decisions from the newest authoritative sections and status, not from chat output alone.
-9. If a claim or resume pass leaves the story at `🟣 IN REVIEW`, the same cycle may launch a fresh review pass.
-10. If a review pass returns `approve`, stop successfully. Local approval is convergence even when the story remains `🟣 IN REVIEW` because the optional PR stage is next. Report this as `APPROVED`, not `DONE`, unless the authoritative final status is already `✅ DONE`.
-11. If a review pass returns `request_changes` or `not_reviewable`, the same cycle may launch one fresh `/epic-story-resume` corrective pass, then the next cycle starts with a fresh review when ready.
-12. If any pass moves the story to `⛔ BLOCKED`, stop.
-13. If any pass moves the story to `✅ DONE`, stop successfully.
-14. Run the no-progress gate before starting the next cycle.
+6. End the task prompt with the exact slash command line, then launch exactly one fresh agentic session.
+7. Require every subagent final response to include `## Research Events`, with `- None.` allowed. After the pass finishes, append only sourced research events to the in-memory Research Board. Do not append verdicts, implementation opinions, or unanchored summaries.
+8. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same agentic session for that pass only. The next lifecycle pass still starts in a new fresh session.
+9. After the pass finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive decisions from the newest authoritative sections and status, not from chat output alone.
+10. If a claim or resume pass leaves the story at `🟣 IN REVIEW`, the same cycle may launch a fresh review pass.
+11. If a review pass returns `approve`, stop successfully. Local approval is convergence even when the story remains `🟣 IN REVIEW` because the optional PR stage is next. Report this as `APPROVED`, not `DONE`, unless the authoritative final status is already `✅ DONE`.
+12. If a review pass returns `request_changes` or `not_reviewable`, the same cycle may launch one fresh `epic_story_resume` corrective pass, then the next cycle starts with a fresh review when ready.
+13. If any pass moves the story to `⛔ BLOCKED`, stop.
+14. If any pass moves the story to `✅ DONE`, stop successfully.
+15. Run the no-progress gate before starting the next cycle.
 
 ## Phase 4 — Babysitting and Stops
 

@@ -1,21 +1,21 @@
 ---
 name: epic_story_plan_resume
-description: Pick up a ⚪ TODO story and continue its planning phase — incorporate plan review feedback, complete unfinished spec sections, or both. Leaves the story at ⚪ TODO ready for /epic-story-claim.
+description: Pick up a story's planning contract — incorporate plan review feedback, complete unfinished spec sections, or both. Leaves implementation status unchanged and the Plan lane ready for review.
 ---
 
 # Epic Story Plan Resume: $EPIC $STORY
 
-Pick up a `⚪ TODO` story and continue its planning phase — either to incorporate plan review feedback, complete unfinished spec sections, or both. Leaves the story at `⚪ TODO` ready for `/epic-story-claim`.
+Pick up a story's planning contract — either to incorporate plan review feedback, complete unfinished spec sections, or both. Leaves implementation `Status` unchanged and moves the story's `Plan` lane toward fresh review.
 
 Arguments: `$EPIC` (epic slug, required) and `$STORY` (story number or spec filename, required).
 
 ## Important
 
-This command may edit the story file's spec sections and `## Plan Review Log`. It never touches:
+This command may edit the story file's spec sections, the story file's `## Plan Review Log`, and the matched `MASTER.md` row's `Plan` lane when that column exists. It never touches:
 - Source code, tests, configs
-- `MASTER.md` tracker status (the story stays at `⚪ TODO`)
+- `MASTER.md` implementation `Status` (the story stays in its current implementation lifecycle state)
 - Runtime sections (`## Active Claim`, `## Progress Log`, `## Session Handoff`, `## Review Log`, `## PR Tracking`)
-- Any file outside the resolved story in `<epic>/`
+- Any file outside the resolved story in `<epic>/`, except `<epic>/MASTER.md` for the `Plan` lane write-back only
 
 ## Why explicit selection (never auto-infer)
 
@@ -34,16 +34,19 @@ Plan resume must come from an explicit operator choice. Auto-inferring resumes p
    - If both match different rows, abort with ambiguity.
 6. Resolve the story file as `<epic>/<matched Spec value>`.
 7. If the file does not exist, abort with the exact missing path.
-8. If the story's status in `MASTER.md` (or its `Status:` header) is NOT `⚪ TODO`, abort: "this story is past the planning phase; use `/epic-story-resume` or `/epic-story-review` instead".
+8. Resolve the planning lane from the matched `MASTER.md` row. If a `Plan` column exists, use it as authoritative. If no `Plan` column exists, infer legacy planning state from the newest effective `## Plan Review Log` entry: `approve` -> `🟢 PLAN APPROVED`; unresolved `request_changes` or `not_reviewable` -> `🟠 PLAN CHANGES REQUESTED`; `blocked` -> `⛔ PLAN BLOCKED`; no entry -> `🟡 PLAN DRAFT`.
+9. If the planning lane is `🟢 PLAN APPROVED` and every required spec section is structurally complete, abort: "this story's plan is already approved; no plan-resume work is needed."
+10. If the planning lane is `⛔ PLAN BLOCKED`, abort: "this story's plan is blocked; the operator must decide how to unblock before plan-resume can continue."
 
 ## Plan readiness check
 
 Before entering the assessment, abort fast if:
 
-- The story file contains a `## Session Handoff` section — say "this story file has a `## Session Handoff` section but its status is `⚪ TODO`. This suggests implementation work may have been started and interrupted. If the story was previously claimed, use `/epic-story-resume` instead. To proceed with plan-resume, manually remove the `## Session Handoff` section first."
-- The story file has runtime sections (`## Active Claim`, `## Progress Log`, etc.) — say "this story has moved past planning; use `/epic-story-resume` instead".
+- The story file contains a `## Session Handoff` section while the implementation `Status` is still `⚪ TODO` — say "this story file has a `## Session Handoff` section but its status is `⚪ TODO`. This suggests implementation work may have been started and interrupted. Fix the implementation status or remove the stale runtime section before plan-resume."
 - The story file has no scaffold marker from `/epic-story-plan` — say "story was not scaffolded by `/epic-story-plan`; cannot resume planning".
-- The story file has no `## Plan Review Log` AND every required spec section exists and is structurally complete (defined below) — say "this story is fully planned and approved; no plan-resume work is needed. Run `/epic-story-claim $EPIC <story>` to start implementation."
+- The story file has no `## Plan Review Log`, every required spec section exists and is structurally complete (defined below), and the planning lane is `🟢 PLAN APPROVED` — say "this story is fully planned and approved; no plan-resume work is needed."
+
+Runtime sections do not block this command. When runtime sections exist, operate in **contract rework mode**: edit only planning spec sections and `## Plan Review Log`, never implementation diary sections, source, tests, PR tracking, or implementation `Status`.
 
 A required spec section is structurally complete when:
 - `## Purpose` — exists, non-empty, describes an observable user-visible outcome (not vague improvement or activity).
@@ -81,7 +84,7 @@ After reading, determine which mode applies:
 - **Mode A — Feedback absorption**: Required when any entry in `## Plan Review Log` has verdict `request_changes` or `not_reviewable` AND no subsequent "addressed" entry follows it. Process pending entries in chronological order (oldest first). After Mode A completes, stop. If planning continuation is still needed, the operator re-runs `/epic-story-plan-resume`.
 - **Mode B — Planning continuation**: Required when Mode A does not apply (no pending entries) AND one or more required spec sections are missing or structurally incomplete.
 
-If neither mode applies, abort with the "fully planned and approved" message from the readiness check.
+If neither mode applies and the `Plan` lane is `🟢 PLAN APPROVED`, abort with the "fully planned and approved" message from the readiness check. If neither mode applies and the `Plan` lane is `🟡 PLAN DRAFT` or `🟣 PLAN IN REVIEW`, stop with: "the story contract is structurally complete; run `epic_story_plan_review $EPIC $STORY` for the next planning step." If neither mode applies and the `Plan` lane is `🟠 PLAN CHANGES REQUESTED`, stop with the unresolved plan-review finding that still needs an addressed entry, or ask the operator to run `epic_story_plan_review $EPIC $STORY` if no such finding exists.
 
 ## Mode A — Feedback absorption
 
@@ -111,6 +114,7 @@ For every chronologically-ordered pending entry:
 - <UTC ISO timestamp> Plan feedback addressed by `/epic-story-plan-resume`
   - Original plan review entry: <UTC ISO timestamp of the addressed entry>
   - Sections edited: <list>
+  - Plan lane transition: <from> -> 🟡 PLAN DRAFT
   - Changes: <concise summary>
   - Unresolved: <finding reason> — <operator's stated reason>
 ```
@@ -118,6 +122,8 @@ For every chronologically-ordered pending entry:
 The `Unresolved:` bullet is included only when at least one finding was rejected by the operator with a stated reason. Omit it when all findings were resolved.
 
 6. Repeat for the next pending entry.
+
+After all accepted edits are applied, set the `Plan` lane to `🟡 PLAN DRAFT` when the column exists. This records that the contract has been revised and needs a fresh `epic_story_plan_review` before implementation should proceed.
 
 ### Debt Friction check (Mode A)
 
@@ -206,15 +212,18 @@ After all mode work completes, validate the full story:
 3. Proof matrix has the required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`.
 4. Every `Proof Maturity` value is `final` or `provisional`. Every `provisional` row has non-blank `Open Detail`.
 5. When the story spans multiple surfaces, variants, or orchestration branches: `### Surface / Branch Proof Matrix` is present.
-6. When the feature depends on prompt placeholders or template variables: `### Fail-open Checks` is present.
-7. No `<TODO: ...>` placeholders exist in any spec section.
-8. Dependency refs in `## Expected Prerequisites` resolve to `MASTER.md` rows (cross-epic deps flagged but not failed).
+6. When raw persisted, external, framework, or generated input crosses stricter application assumptions: `### Input Boundary Shape Risk` is present and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
+7. When the feature depends on prompt placeholders or template variables: `### Fail-open Checks` is present.
+8. No `<TODO: ...>` placeholders exist in any spec section.
+9. Dependency refs in `## Expected Prerequisites` resolve to `MASTER.md` rows (cross-epic deps flagged but not failed).
 
 If validation fails, report the specific issue and propose a fix. Keep iterating — the operator decides when to stop. Do not write invalid state.
 
+If validation passes and any spec or proof section changed, set the `Plan` lane to `🟡 PLAN DRAFT` when the column exists. Do not mark the plan approved from this command; `epic_story_plan_review` owns `🟢 PLAN APPROVED`.
+
 ## Status and output
 
-**Status transition**: None. The story stays at `⚪ TODO` in both `MASTER.md` and its `Status:` header. This skill never transitions a story beyond `⚪ TODO`.
+**Status transition**: None. The implementation `Status` stays unchanged in both `MASTER.md` and its `Status:` header. This skill may update only the `Plan` lane: set it to `🟡 PLAN DRAFT` after edits, or leave it unchanged when no edits were needed.
 
 **Final response**: State:
 - which story was resumed (number and spec file)
@@ -222,4 +231,4 @@ If validation fails, report the specific issue and propose a fix. Keep iterating
 - sections edited
 - whether re-validation passed
 - `## Research Events` with reused, added, corrected, and stale-risk bullets; include exact anchors for added, corrected, and stale-risk entries, and use `- None.` when no research was used or produced
-- the exact next action: `/epic-story-plan-review $EPIC <NN>` for a fresh review, or `/epic-story-claim $EPIC <NN>` to start implementation
+- the exact next action: `epic_story_plan_review $EPIC <NN>` for a fresh contract review; after `Plan` becomes `🟢 PLAN APPROVED`, use `epic_story_claim $EPIC <NN>` if implementation `Status` is `⚪ TODO`, or `epic_story_resume $EPIC <NN>` if implementation has already started

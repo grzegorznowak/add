@@ -269,10 +269,10 @@ Show the operator:
 2. Edit `MASTER.md` to append a new tracker row:
 
    ```md
-   | <NN> | ⚪ TODO | <TITLE> | <DEPENDS or "none"> | `story-<NN>-<slug>.md` |
+   | <NN> | 🟡 PLAN DRAFT | ⚪ TODO | <TITLE> | <DEPENDS or "none"> | `story-<NN>-<slug>.md` |
    ```
 
-3. Match the existing tracker table column count and ordering. Read the header row to determine whether the epic uses 3, 4, or 5 columns.
+3. Match the existing tracker table column count and ordering. Read the header row to determine whether the epic uses 3, 4, 5, or 6 columns. When the header has a `Plan` column, write `🟡 PLAN DRAFT` and keep implementation `Status` at `⚪ TODO`.
 4. Escape markdown table delimiters in the title before writing the row.
 5. Never seed runtime sections.
 

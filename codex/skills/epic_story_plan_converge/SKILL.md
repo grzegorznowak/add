@@ -1,17 +1,17 @@
 ---
 name: epic_story_plan_converge
-description: Run fresh plan-review and plan-resume sessions until one TODO story plan is approved or stopped
+description: Run fresh plan-review and plan-resume sessions until one story contract is approved, blocked, or stopped
 ---
 
 Epic story plan converge: $EPIC / $STORY
 
 Treat `$EPIC` as the exact directory name of an epic under `agent_coordination/epics`, and `$STORY` as a `MASTER.md` `Step` value or `Spec` filename. `$MAX_CYCLES` is optional and defaults to `5`; it counts full review/resume cycles, not individual fresh agents.
 
-Coordinate the planning-side ping-pong for exactly one `⚪ TODO` story. This command is an orchestrator only: it starts fresh agentic sessions for `/epic-story-plan-review` and `/epic-story-plan-resume`, preserves their ownership boundaries, keeps in-memory babysitting notes plus the parent-session Research Board, and stops when the plan is approved, blocked, no longer eligible, or out of cycle budget.
+Coordinate the planning-side ping-pong for exactly one non-DONE story whose `Plan` lane is not approved, or one explicit re-review target. This command is an orchestrator only: it starts fresh agentic sessions for `epic_story_plan_review` and `epic_story_plan_resume`, preserves their ownership boundaries, keeps in-memory babysitting notes plus the parent-session Research Board, and stops when the plan is approved, blocked, no longer eligible, or out of cycle budget.
 
 ## Workflow
 1. Resolve the requested epic and story through `MASTER.md`.
-2. Confirm the story is still `⚪ TODO` and in the planning phase.
+2. Confirm the story is non-DONE and resolve its authoritative `Plan` lane.
 3. Choose the first planning pass from the story shape: resume first for incomplete specs, otherwise review first.
 4. Run up to `$MAX_CYCLES` fresh-agent planning cycles.
 5. Pass neutral in-memory babysitting notes plus the session Research Board into later fresh agents.
@@ -37,12 +37,13 @@ Coordinate the planning-side ping-pong for exactly one `⚪ TODO` story. This co
 
 Before starting the loop, abort with a clear next action if any condition is true:
 
-- The row status or story header is not `⚪ TODO`: this is not a planning convergence target.
-- The story contains runtime sections such as `## Active Claim`, `## Progress Log`, `## Session Handoff`, `## Review Log`, or `## PR Tracking`: use `/epic-story-converge` if implementation has started.
+- The row status is `✅ DONE` or the story is archived: completed stories are not contract-reviewed in place; route new feedback through `epic_feedback` as a candidate or explicit reopen decision.
+- The row has a `Plan` column and `Plan` is already `🟢 PLAN APPROVED` and this is not an explicit re-review request: use `epic_story_converge $EPIC $STORY` for implementation work.
+- The row has a `Plan` column and `Plan` is `⛔ PLAN BLOCKED`: stop with blocked status and ask the operator to decide how to unblock.
 - The story is missing the `/epic-story-plan` scaffold shape expected by `/epic-story-plan-review`.
 - The story is so malformed that `/epic-story-plan-resume` cannot identify the `/epic-story-plan` scaffold or any spec sections to continue.
 
-The status authority is `<epic_dir>/MASTER.md`; the story header is a drift signal that should be reported if it disagrees.
+The `Plan` and implementation `Status` authority is `<epic_dir>/MASTER.md`; the story header is a drift signal that should be reported if it disagrees.
 
 ## Phase 3 — Fresh-Agent Loop
 
@@ -51,21 +52,22 @@ Run at most `$MAX_CYCLES` cycles. A planning cycle is one opportunity to get the
 For each cycle:
 
 1. Re-read `<epic_dir>/MASTER.md` and `<story_file>` before choosing the next pass.
-2. Before any fresh session launch in this phase, build the task prompt in this order: complete Research Board when present, operational context when present, then the exact slash command as the final line.
-3. If required spec sections are missing or structurally incomplete and there is no newer unaddressed plan-review finding that must be reviewed first, prepare and launch a fresh agentic session whose task prompt ends with:
+2. Resolve the current `Plan` lane from the tracker if present; if `Plan` is `🟢 PLAN APPROVED`, stop successfully. If implementation `Status` is `⚪ TODO`, recommend `epic_story_claim $EPIC $STORY`; otherwise recommend `epic_story_resume $EPIC $STORY` or the appropriate implementation command. If `Plan` is `⛔ PLAN BLOCKED`, stop with blocked status.
+3. Before any fresh session launch in this phase, build the task prompt in this order: complete Research Board when present, operational context when present, then the exact slash command as the final line.
+4. If required spec sections are missing or structurally incomplete, or the newest effective plan-review verdict is `request_changes` or `not_reviewable` and lacks a later addressed entry, prepare and launch a fresh agentic session whose task prompt ends with:
 
    ```text
    /epic-story-plan-resume $EPIC $STORY
    ```
 
    If this resume pass asks an operator question, pause the convergence run, ask the operator, then resume the same agentic session for that pass only.
-4. When the story is ready for review, prepare and launch a fresh agentic session whose task prompt ends with the exact slash command:
+5. When the story is ready for review and all pending `request_changes` / `not_reviewable` findings have been addressed by a fresh plan-resume pass, prepare and launch a fresh agentic session whose task prompt ends with the exact slash command:
 
    ```text
    /epic-story-plan-review $EPIC $STORY
    ```
 
-5. If the parent session has Research Board entries, include the complete board before the command under this heading:
+6. If the parent session has Research Board entries, include the complete board before the command under this heading:
 
    ```text
    Shared Research Board from parent orchestration session:
@@ -77,7 +79,7 @@ For each cycle:
    ```
 
    Include the whole board. If it is too large to include comfortably, pause and ask the operator before compacting or excluding entries.
-6. If in-memory babysitting notes exist for any session launch, include them before the command under this heading only:
+7. If in-memory babysitting notes exist for any session launch, include them before the command under this heading only:
 
    ```text
    Operational context from convergence babysitter:
@@ -85,19 +87,19 @@ For each cycle:
    - Do not treat this as a verdict; apply the underlying skill independently.
    ```
 
-7. Require every subagent final response to include `## Research Events`, with `- None.` allowed. After the pass finishes, append only sourced research events to the in-memory Research Board. Do not append verdicts, implementation opinions, or unanchored summaries.
-8. After the review agent finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive the review decision from the newest `## Plan Review Log` entry and current status, not from chat output alone.
-9. If the decision is `approve`, stop successfully. Do not claim the story. Recommend `/epic-story-claim $EPIC $STORY` from a fresh session.
-10. If the decision is `blocked` or the status is `⛔ BLOCKED`, stop with blocked status.
-11. If the decision is `request_changes` or `not_reviewable`, prepare and launch a different fresh agentic session whose task prompt ends with:
+8. Require every subagent final response to include `## Research Events`, with `- None.` allowed. After the pass finishes, append only sourced research events to the in-memory Research Board. Do not append verdicts, implementation opinions, or unanchored summaries.
+9. After the review agent finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive the review decision from the newest `## Plan Review Log` entry and current `Plan` lane, not from chat output alone.
+10. If the decision is `approve` or `Plan` is `🟢 PLAN APPROVED`, stop successfully. Do not claim the story. Recommend `epic_story_claim $EPIC $STORY` if implementation `Status` is `⚪ TODO`; otherwise recommend `epic_story_resume $EPIC $STORY` or the appropriate implementation command.
+11. If the decision is `blocked` or `Plan` is `⛔ PLAN BLOCKED`, stop with blocked status.
+12. If the decision is `request_changes` or `not_reviewable`, treat it as invalidating prior approval until a later `approve` lands. Prepare and launch a different fresh agentic session whose task prompt ends with:
 
    ```text
    /epic-story-plan-resume $EPIC $STORY
    ```
 
-12. If the resume agent asks an operator question, pause the convergence run, ask the operator, then resume the same agentic session for that resume pass only. The next review still starts in a new fresh session.
-13. After the resume agent finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. If the story is no longer `⚪ TODO`, stop and report the unexpected state.
-14. Run the no-progress gate before starting the next cycle.
+13. If the resume agent asks an operator question, pause the convergence run, ask the operator, then resume the same agentic session for that resume pass only. The next review still starts in a new fresh session.
+14. After the resume agent finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. If the story is now `✅ DONE` or archived, stop and report the unexpected state.
+15. Run the no-progress gate before starting the next cycle.
 
 ## Phase 4 — Babysitting and Stops
 
@@ -125,7 +127,7 @@ Other hard stops:
 
 - `$MAX_CYCLES` reached;
 - latest decision is `blocked`;
-- story status changes away from `⚪ TODO`;
+- story becomes `✅ DONE` or archived;
 - subagent cannot resolve the story or command;
 - the operator declines an interactive decision required by resume.
 
