@@ -140,7 +140,7 @@ Classify each actionable feedback item into exactly one disposition:
 |---|---|---|
 | `queue-planning-feedback` | Feedback clarifies a story that is still in planning, or should re-enter planning review before implementation continues. | Story `Plan Review Log`, `Plan` lane, plus epic absorption log. |
 | `amend-existing-story` | Rare direct amendment explicitly acknowledged by the operator outside a planning or implementation feedback cycle. | Story body plus absorption logs. |
-| `resume-current-story` | Implemented work misses the current story or PR review requests rework for it. | Story `Review Log`, contract/proof edits when needed, `Plan` lane, plus epic absorption log. |
+| `resume-current-story` | Implemented work misses the current story or PR review requests rework for it. | Story `Review Log`, contract/proof edits when needed, `Plan` lane invalidation when the contract changes, plus epic absorption log. |
 | `new-story-candidate` | Feedback introduces a new outcome, dependency, rollout concern, or hardening task. | Epic candidate section plus absorption log. |
 | `epic-level-decision` | Feedback changes an epic policy, architectural choice, or cross-story rule. | Epic decision notes plus absorption log. |
 | `defer-or-reject` | Feedback is out of scope, duplicate, non-actionable, or intentionally declined. | Epic absorption log only. |
@@ -158,11 +158,11 @@ Status and lane rules:
 - Do not edit archived story files.
 - Do not rewrite a `✅ DONE` story's product contract. Convert feedback to a candidate, epic-level decision, or defer/reject entry unless the operator explicitly decides the completed story must be reopened through the normal lifecycle.
 - Do not transition implementation `Status` from this command.
-- You may update the `Plan` lane when `MASTER.md` has a `Plan` column:
+- You may downgrade or invalidate the `Plan` lane when `MASTER.md` has a `Plan` column, but this command must never set `Plan` to `🟢 PLAN APPROVED`:
   - `queue-planning-feedback` sets `Plan` to `🟠 PLAN CHANGES REQUESTED`.
-  - contract-changing `resume-current-story` keeps or sets `Plan` to `🟢 PLAN APPROVED` only when the contract/proof edits are fully blended and validation passes.
-  - if contract feedback cannot be fully blended, set `Plan` to `🟠 PLAN CHANGES REQUESTED` and make `/epic-story-plan-resume` or `/epic-story-plan-review` the next action.
-- Write `## Plan Review Log` only for `queue-planning-feedback`; `/epic-story-plan-review` remains the owner of independent review verdicts.
+  - contract-changing `resume-current-story` sets `Plan` to `🟠 PLAN CHANGES REQUESTED` after the contract/proof edits are blended and validation passes, because fresh `/epic-story-plan-review` must independently approve the changed contract before implementation resumes.
+  - if contract feedback cannot be fully blended, set `Plan` to `🟠 PLAN CHANGES REQUESTED` and make `/epic-story-plan-resume` the next action.
+- Write `## Plan Review Log` only for `queue-planning-feedback`; `/epic-story-plan-review` remains the owner of independent review verdicts and the only command that may set `Plan` to `🟢 PLAN APPROVED`.
 - Write `## Review Log` only for schema-compatible implementation-review feedback that should drive immediate story resume or PR rework.
 
 Draft the acknowledgement plan:
@@ -238,7 +238,7 @@ For contract-changing `resume-current-story`, also append a concise replanning c
   - Feedback ID: FB-###
   - Contract sections updated: <Acceptance, Verification, Surface / Branch Proof Matrix, Input Boundary Shape Risk, etc.>
   - Plan lane: <from> -> <to>
-  - Optional validation: `/epic-story-plan-review <epic> <story>`
+  - Required next action: `/epic-story-plan-review <epic> <story>`
 ```
 
 For `queue-planning-feedback`, append or create `## Plan Review Log` with a request-changes entry and update the `Plan` lane to `🟠 PLAN CHANGES REQUESTED` when the column exists. Do not edit story spec sections in this disposition.
@@ -302,9 +302,9 @@ If feedback changes acceptance boundaries, proof surfaces, supported branches, i
 - update `### Input Boundary Shape Risk` when raw input shape assumptions are introduced or changed
 - update `### Fail-open Checks` when prompt/template fail-open risks are introduced or changed
 - append the replanning checkpoint to `## Progress Log`
-- keep or set `Plan` to `🟢 PLAN APPROVED` only when the validation gate passes; otherwise set `Plan` to `🟠 PLAN CHANGES REQUESTED` and make `/epic-story-plan-resume` the next action
+- set `Plan` to `🟠 PLAN CHANGES REQUESTED` after the validation gate passes and make `/epic-story-plan-review` the next action; this command cannot approve its own contract edits
 
-When contract/proof edits are fully blended, `/epic-story-plan-review <epic> <story>` is optional but recommended before `/epic-story-resume`. If plan review later requests changes, the story re-enters the plan-converge loop through `/epic-story-plan-resume` until `Plan` returns to `🟢 PLAN APPROVED`.
+When contract/proof edits are fully blended, `/epic-story-plan-review <epic> <story>` is mandatory before `/epic-story-resume`. If plan review requests changes, the story re-enters the plan-converge loop through `/epic-story-plan-resume` until `Plan` returns to `🟢 PLAN APPROVED`.
 
 Do not delete or rewrite older `Review Log` entries. If the story is `🔵 IN PR`, do not update `## PR Tracking` here; recommend `/epic-story-pr` refresh when the PR status itself must move the story back to `🔄 IN PROGRESS`.
 

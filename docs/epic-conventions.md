@@ -675,7 +675,7 @@ epic/story arguments. Three strategies exist:
 | `/epic-story-plan-review` | operator-explicit (arg or menu) | any non-DONE story contract | Plan review must come from a fresh, independent perspective. It can run as pre-implementation review or implementation-cycle contract review. |
 | `/epic-story-plan-converge` | operator-explicit looper (required epic + story) | non-DONE stories whose `Plan` is not approved, plus explicit re-review targets | Loops fresh plan-review and plan-resume sessions. Accepts optional `MAX_CYCLES`; rejects `WORKTREE`. Delegates all writes to the underlying commands. |
 | `/epic-story-converge` | operator-explicit looper (required epic + story) | `🟢 PLAN APPROVED` plus `⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR (changes_requested)`, or immediate-stop `✅ DONE` | Loops fresh claim/resume/review sessions. Accepts optional `MAX_CYCLES` and pass-through `WORKTREE`. Delegates all writes to the underlying commands. |
-| `/epic-feedback` | operator-explicit (arg or menu) | any epic with `MASTER.md` | Epic-scoped feedback routing. PR mode can select the latest unabsorbed PR comment, review body, or inline review comment. Never transitions story statuses. |
+| `/epic-feedback` | operator-explicit (arg or menu) | any epic with `MASTER.md` | Epic-scoped feedback routing. PR mode can select the latest unabsorbed PR comment, review body, or inline review comment. Never transitions implementation statuses; may downgrade or invalidate `Plan` and never approves it. |
 | `/epic-story-claim` | auto-inferred (running context), or explicit story selector | `🟢 PLAN APPROVED` + `⚪ TODO` | Standard "single active epic + first ready unclaimed story" inference when no selector is passed. An explicit story selector targets exactly that ready unclaimed row and never falls back to another row. |
 | `/epic-story-resume` | auto-inferred (running context) | `🟢 PLAN APPROVED` + `🔄 IN PROGRESS`, `🔵 IN PR (changes_requested)` | Standard. |
 | `/epic-story-pr` | auto-inferred (running context); explicit story required for DONE injection | `🟣 IN REVIEW`, `🔵 IN PR`, explicit non-archived `✅ DONE` | Also infers PR URL via the chain: existing `## PR Tracking` section → `gh pr list --head <current branch>` → fall through to `OPEN` mode. For explicit `✅ DONE` stories, `OPEN=true` is implicit after existing PR detection fails. |
@@ -760,7 +760,8 @@ epic/story arguments. Three strategies exist:
 - Read archived story files from `/epic-pr`; archived scope is represented by
   `CONTRACT.md`
 - Transition story statuses from `/epic-pr`
-- Transition story statuses from `/epic-feedback`
+- Transition implementation statuses from `/epic-feedback`, or set `Plan` to
+  `🟢 PLAN APPROVED` from `/epic-feedback`
 - Directly write coordination files, source files, tests, or commits from
   `/epic-story-plan-converge` or `/epic-story-converge`; loopers keep only
   in-memory babysitting notes and session Research Board entries, then delegate

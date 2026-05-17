@@ -49,7 +49,7 @@ Planning lane values are orthogonal to implementation status:
 |---|---|
 | `🟡 PLAN DRAFT` | The story contract exists but needs fresh plan review before implementation should start or continue. |
 | `🟣 PLAN IN REVIEW` | A plan-review pass is currently evaluating the contract. |
-| `🟠 PLAN CHANGES REQUESTED` | Plan review or feedback found contract/proof gaps that must be absorbed with `/epic-story-plan-resume`. |
+| `🟠 PLAN CHANGES REQUESTED` | Plan review or feedback found contract/proof gaps. Absorb unresolved gaps with `/epic-story-plan-resume`, then rerun `/epic-story-plan-review`; if feedback already blended the contract, run `/epic-story-plan-review` next. |
 | `🟢 PLAN APPROVED` | The story contract is approved for implementation or implementation rework. |
 | `⛔ PLAN BLOCKED` | The story contract is not safely plannable until the operator resolves a blocker. |
 
@@ -67,10 +67,11 @@ statuses and exited back to whichever was correct when work resumes.
 
 ## State diagram
 
-`/epic-feedback` is a side input to the state machine, not a status
-transition. It routes feedback into the epic absorption log, planning-lane
-changes, story candidates, epic-level decisions, or a story `Review Log`
-entry that can drive `/epic-story-resume` after `Plan` is approved.
+`/epic-feedback` is a side input to the state machine, not an implementation
+status transition. It routes feedback into the epic absorption log,
+planning-lane invalidation, story candidates, epic-level decisions, or a story
+`Review Log` entry. Contract-changing feedback must pass independent
+`/epic-story-plan-review` before `/epic-story-resume` can continue.
 
 ```
         PR / CURe / reviewer feedback
@@ -84,14 +85,17 @@ entry that can drive `/epic-story-resume` after `Plan` is approved.
                │        └─ epic decision notes
                │
                ├─ story contract refinement
-               │      -> Plan lane update, optional /epic-story-plan-review
+               │      -> Plan lane downgrade -> /epic-story-plan-review
                │
                └─ implementation review finding
-                      -> Review Log + contract blend -> /epic-story-resume
+                      -> Review Log
+                      -> contract unchanged: /epic-story-resume
+                      -> contract changed: /epic-story-plan-review
+                      -> /epic-story-resume after Plan approval
 ```
 
 ```
-                         ┌─────────────┐  ◀─── /epic-story-plan-review (optional, logs verdict)
+                         ┌─────────────┐  ◀─── /epic-story-plan-review (sets Plan verdict)
                          │   ⚪ TODO   │
                          └──────┬──────┘
                                 │ /epic-story-claim
@@ -136,20 +140,21 @@ Each command has a defined window of which transitions it is allowed to
 make. Sticking to these windows prevents two commands from racing on the
 same row.
 
-| From → To | `/epic-story-claim` | `/epic-story-resume` | `/epic-story-plan-review` | `/epic-story-review` | `/epic-story-pr` | `/epic-squash` |
-|---|---|---|---|---|---|---|
-| `Plan` lane change, implementation `Status` unchanged | — | — | ✅ | — | — | — |
-| `⚪ TODO` → `🔄 IN PROGRESS` | ✅ | — | — | — | — | — |
-| `🔄 IN PROGRESS` → `🟣 IN REVIEW` | ✅ | ✅ | — | ✅ | — | — |
-| `🟣 IN REVIEW` → `✅ DONE` (no PR stage) | — | ✅ | — | ✅ | — | — |
-| `🟣 IN REVIEW` → `🔵 IN PR` | — | — | — | — | ✅ | — |
-| `🔵 IN PR` → `🔄 IN PROGRESS` (changes requested) | — | — | — | — | ✅ | — |
-| `🔵 IN PR` → `✅ DONE` (PR merged) | — | — | — | — | ✅ | — |
-| `🔵 IN PR` → `🔵 IN PR` (refresh) | — | — | — | — | ✅ | — |
-| `✅ DONE` → `🔵 IN PR` (late PR injection, unmerged PR) | — | — | — | — | ✅ | — |
-| `✅ DONE` → `✅ DONE` (late PR metadata attach, PR already merged) | — | — | — | — | ✅ | — |
-| `*` → `⛔ BLOCKED` | ✅ | ✅ | — | ✅ | — | — |
-| `✅ DONE` → archived | — | — | — | — | — | ✅ |
+| From → To | `/epic-feedback` | `/epic-story-claim` | `/epic-story-resume` | `/epic-story-plan-review` | `/epic-story-review` | `/epic-story-pr` | `/epic-squash` |
+|---|---|---|---|---|---|---|---|
+| `Plan` lane downgrade/invalidation, implementation `Status` unchanged | ✅ | — | — | — | — | — | — |
+| `Plan` lane independent review verdict, implementation `Status` unchanged | — | — | — | ✅ | — | — | — |
+| `⚪ TODO` → `🔄 IN PROGRESS` | — | ✅ | — | — | — | — | — |
+| `🔄 IN PROGRESS` → `🟣 IN REVIEW` | — | ✅ | ✅ | — | ✅ | — | — |
+| `🟣 IN REVIEW` → `✅ DONE` (no PR stage) | — | — | ✅ | — | ✅ | — | — |
+| `🟣 IN REVIEW` → `🔵 IN PR` | — | — | — | — | — | ✅ | — |
+| `🔵 IN PR` → `🔄 IN PROGRESS` (changes requested) | — | — | — | — | — | ✅ | — |
+| `🔵 IN PR` → `✅ DONE` (PR merged) | — | — | — | — | — | ✅ | — |
+| `🔵 IN PR` → `🔵 IN PR` (refresh) | — | — | — | — | — | ✅ | — |
+| `✅ DONE` → `🔵 IN PR` (late PR injection, unmerged PR) | — | — | — | — | — | ✅ | — |
+| `✅ DONE` → `✅ DONE` (late PR metadata attach, PR already merged) | — | — | — | — | — | ✅ | — |
+| `*` → `⛔ BLOCKED` | — | ✅ | ✅ | — | ✅ | — | — |
+| `✅ DONE` → archived | — | — | — | — | — | — | ✅ |
 
 `/epic-squash` does not transition statuses; it archives stories whose status
 is already `✅ DONE` and folds their contract terms into the merged
@@ -168,12 +173,14 @@ epic-level PR from `CONTRACT.md` plus current non-archived `✅ DONE` stories,
 writes only epic-level `## Epic PR Tracking` in `MASTER.md`, and never
 transitions story rows.
 
-`/epic-feedback` is also outside the story status state machine. It absorbs
-CURe, PR, or reviewer feedback into epic/story coordination docs, writes the
-epic-level `## Feedback Absorption Log`, may refine non-archived story
-contract sections, and may append implementation-review findings to a story's
-`## Review Log`. It never creates full story files and never transitions story
-rows.
+`/epic-feedback` is also outside the story implementation-status state
+machine. It absorbs CURe, PR, or reviewer feedback into epic/story
+coordination docs, writes the epic-level `## Feedback Absorption Log`, may
+refine non-archived story contract sections, may append implementation-review
+findings to a story's `## Review Log`, and may downgrade or invalidate the
+`Plan` lane when feedback changes the contract. It never creates full story
+files, never changes implementation `Status`, and never sets `Plan` to
+`🟢 PLAN APPROVED`; approval belongs to `/epic-story-plan-review`.
 
 ## Rules of thumb
 
@@ -253,7 +260,7 @@ lane and implementation status values it uses:
 ## Legend
 - `🟡 PLAN DRAFT` — contract exists but needs review
 - `🟣 PLAN IN REVIEW` — contract review is running
-- `🟠 PLAN CHANGES REQUESTED` — contract/proof gaps need plan-resume
+- `🟠 PLAN CHANGES REQUESTED` — contract/proof gaps need plan-resume or fresh plan review
 - `🟢 PLAN APPROVED` — contract is ready for implementation or rework
 - `⛔ PLAN BLOCKED` — planning blocker exists
 - `⚪ TODO` — not started yet
