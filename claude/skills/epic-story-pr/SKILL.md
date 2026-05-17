@@ -103,6 +103,8 @@ Once the story is resolved, abort fast unless its current status is one of `🟣
 - `✅ DONE` is allowed only when the story was explicitly selected and the `Spec` link is not in `archive/`. Treat it as late PR injection from local DONE. Do not require a second confirmation after explicit epic + story selection, but still ask before attaching a branch-inferred PR and before overwriting a substantial PR body.
 - Archived `✅ DONE` stories are ineligible. Abort with: `Story <NN> is archived. PR injection only works for non-archived DONE stories.`
 
+Also abort when the matched row has a `Plan` column and `Plan` is not `🟢 PLAN APPROVED`. Recovery hint: run `/epic-story-plan-converge <epic> <story>` before opening, refreshing, or merging PR state.
+
 Abort for `IN PROGRESS`, `BLOCKED`, `TODO`, or any unknown status with a recovery hint naming the correct preceding command.
 
 ### Known limitations

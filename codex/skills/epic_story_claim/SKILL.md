@@ -56,6 +56,9 @@ If `$STORY` is present:
 - select that matched row only; never fall back to a different ready row
 
 If `$STORY` is empty, preserve the original behavior: from `<epic>/MASTER.md`, select the first step that is all of:
+- plan-approved:
+  - if the tracker has a `Plan` column, `Plan` is exactly `🟢 PLAN APPROVED`
+  - if the tracker has no `Plan` column, the newest effective `## Plan Review Log` verdict is `approve`, with no later unresolved `request_changes`, `not_reviewable`, or `blocked`
 - unclaimed:
   - status is `⬜ TODO`, `⚪ TODO`, `TODO`, or otherwise clearly unclaimed
 - ready:
@@ -64,6 +67,9 @@ If `$STORY` is empty, preserve the original behavior: from `<epic>/MASTER.md`, s
   - the referenced step file exists
 
 After a row is selected by either path, verify it is all of:
+- plan-approved:
+  - if the tracker has a `Plan` column, `Plan` is exactly `🟢 PLAN APPROVED`
+  - if the tracker has no `Plan` column, the newest effective `## Plan Review Log` verdict is `approve`, with no later unresolved `request_changes`, `not_reviewable`, or `blocked`
 - unclaimed:
   - status is `⬜ TODO`, `⚪ TODO`, `TODO`, or otherwise clearly unclaimed
 - ready:
@@ -74,6 +80,7 @@ After a row is selected by either path, verify it is all of:
 If no such step exists, or the targeted row is not claimable:
 - do not guess or switch rows
 - stop after a concise report listing:
+  - plan approval state, with next action `epic_story_plan_converge $EPIC <story>` when not approved
   - no-ready-step reason
   - blocked steps
   - next step that must complete first

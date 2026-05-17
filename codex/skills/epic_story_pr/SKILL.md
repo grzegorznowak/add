@@ -166,6 +166,8 @@ the contract the operator approves before any destructive step runs.
 Once the story is resolved, abort fast unless its current status is one of
 `🟣 IN REVIEW`, `🔵 IN PR`, or `✅ DONE`.
 
+If the tracker has a `Plan` column, abort unless the matched row's `Plan` is exactly `🟢 PLAN APPROVED`. PR opening, refresh, and late PR injection cannot proceed against a stale or unapproved contract; run `epic_story_plan_converge $EPIC $STORY` first.
+
 - `🟣 IN REVIEW` is the canonical entry condition for opening or attaching a
   PR.
 - `🔵 IN PR` is refresh/resync mode per "Update existing PR metadata" below.

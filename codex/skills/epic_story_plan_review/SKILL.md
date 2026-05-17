@@ -1,6 +1,6 @@
 ---
 name: epic_story_plan_review
-description: Review a ⚪ TODO story's plan before implementation.
+description: Review a story's planning contract at any lifecycle point and record a Plan lane verdict.
 ---
 
 Plan review: $EPIC / $STORY
@@ -15,10 +15,9 @@ Treat `$STORY` as the story selector. It may be either:
 - the exact spec file name from the `Spec` column in `<epic>/MASTER.md`, for
   example `story-03-bootstrap-and-docs-rewrite.md`
 
-You are a maintainer reviewing one `⚪ TODO` story's **plan** — its Purpose,
+You are a maintainer reviewing one story's **planning contract** at any lifecycle point — its Purpose,
 Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, and surrounding
-spec sections — against the live repository, before any implementation has
-started. The highest-leverage part of this review is the acceptance/proof
+spec sections — against the live repository. The highest-leverage part of this review is the acceptance/proof
 contract: atomic acceptance ids plus a reviewer-facing proof matrix that is
 credible enough to drive red-first implementation without drifting into fake
 seams.
@@ -29,10 +28,7 @@ sections in response to a `request_changes` verdict.
 
 ## Important
 
-This command only edits the resolved story file's `## Plan Review Log`
-section. On a `blocked` verdict it additionally edits the `Status:` header
-line of the story file and the matched `MASTER.md` tracker row. It **never**
-touches:
+This command only edits the resolved story file's `## Plan Review Log` section and the matched row's `Plan` lane in `MASTER.md` when that column exists. It **never** touches:
 
 - source code (product files, tests, configs)
 - the files listed in the story's `## Critical Files`
@@ -42,6 +38,7 @@ touches:
   `## Critical Files`, `## Implementation Notes`, `## Locked Decisions`)
 - any other runtime section (`## Active Claim`, `## Progress Log`,
   `## Session Handoff`, `## Review Log`, `## PR Tracking`)
+- the implementation `Status` lane (`⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR`, `✅ DONE`, `⛔ BLOCKED`)
 
 If the plan is wrong, say so in the log's `Key findings` and recommend the
 operator edit the spec sections themselves. Do not rewrite the plan inside
@@ -50,10 +47,10 @@ the log.
 ## Why operator-explicit (arg or menu) selection
 
 `epic_story_plan_review` never auto-infers the epic or the story. The operator
-explicitly chooses — either by passing `$EPIC` and `$STORY` as arguments or
-by picking from the menu this skill shows when either is absent. The menu
-is **not** inference: it lists the legal candidates (filtered to `⚪ TODO`)
-and asks the operator to pick.
+explicitly chooses — either by passing `$EPIC` and `$STORY` as arguments or by
+picking from the menu this skill shows when either is absent. The menu is
+**not** inference: it lists legal candidates needing plan review and asks the
+operator to pick.
 
 The reasoning: plan review must come from a fresh, independent perspective.
 The same session that just wrote the plan will rationalize it, not
@@ -74,16 +71,18 @@ change that adds silent auto-inference here must be rejected.
    - If `$EPIC` was passed, resolve `<cwd>/agent_coordination/epics/$EPIC`.
    - If `$EPIC` was not passed, list every directory under
      `<cwd>/agent_coordination/epics/` whose `MASTER.md` has at least one
-     row with status `⚪ TODO`. For each, print:
-     `<slug> — <N stories TODO, last-touched YYYY-MM-DD>`. If the
+     non-archived row whose planning lane is not `🟢 PLAN APPROVED`, plus any
+     legacy row at `⚪ TODO`. For each, print:
+     `<slug> — <N stories needing plan review, last-touched YYYY-MM-DD>`. If the
      filtered list is empty, abort with:
-     `no epics have stories ready for plan review (nothing at ⚪ TODO)`.
+     `no epics have stories needing plan review; pass an explicit epic and story to re-review an approved plan`.
      Otherwise ask the operator to pick (number or slug).
 2. **STORY resolution (menu fallback):**
    - If `$STORY` was passed, continue to step 3.
    - If `$STORY` was not passed, list every row in `<epic>/MASTER.md`
-     whose status is `⚪ TODO`. For each, print: `<Step> — <Deliverable>`.
-     If the filtered list is empty, abort with: `no stories at ⚪ TODO in <epic>`.
+     whose planning lane is not `🟢 PLAN APPROVED`, plus any legacy row at
+     `⚪ TODO`. For each, print: `<Step> — <Plan> — <Status> — <Deliverable>`.
+     If the filtered list is empty, abort with: `no stories needing plan review in <epic>; pass a story explicitly to re-review an approved plan`.
      Otherwise ask the operator to pick (number or slug).
 3. Use `<epic>/MASTER.md` as the only lookup table.
 4. First try to match exactly one row whose `Step` value equals `$STORY`.
@@ -111,18 +110,21 @@ change that adds silent auto-inference here must be rejected.
 Before doing the full plan review, abort fast with a concise reason if any
 of these hold:
 
-- the story's status in `MASTER.md` (or its `Status:` header line) is not
-  `⚪ TODO` — say "this story is past plan review; use `epic_story_review`
-  instead"
+- the matched row is archived or the implementation `Status` is `✅ DONE` — say "completed stories are not contract-reviewed in place; route new feedback through `epic_feedback` as a candidate or explicit reopen decision"
 - the story file has no scaffold marker for `/epic-story-plan` — say "story was
   not scaffolded by `/epic-story-plan`; plan review assumes that shape"
 - the story file is missing `## Purpose`, `## Acceptance`, or
   `## Verification` — say which
   section is missing
-- any runtime section already exists on the story file (`## Active Claim`,
-  `## Progress Log`, `## Session Handoff`, `## Review Log`,
-  `## PR Tracking`) — say "story has already been claimed or reviewed;
-  plan review runs before implementation begins"
+
+Resolve the planning lane before review:
+
+- If `MASTER.md` has a `Plan` column, use that value as the planning-lane authority.
+- If `MASTER.md` has no `Plan` column, infer legacy planning state from the newest effective `## Plan Review Log` entry: `approve` -> `🟢 PLAN APPROVED`; unresolved `request_changes` or `not_reviewable` -> `🟠 PLAN CHANGES REQUESTED`; `blocked` -> `⛔ PLAN BLOCKED`; no entry -> `🟡 PLAN DRAFT`.
+- If runtime sections exist, enter **contract-review mode**. In this mode, validate only the story contract and proof plan; do not assess implementation completeness, do not read `## Progress Log` as proof that the contract is correct, and do not change implementation `Status`.
+- If runtime sections do not exist, enter normal pre-implementation plan-review mode.
+
+When `MASTER.md` has a `Plan` column, remember the pre-review `Plan` value, then set the matched row to `🟣 PLAN IN REVIEW` before the full review begins. The final verdict in this command must overwrite it with `🟢 PLAN APPROVED`, `🟠 PLAN CHANGES REQUESTED`, `⛔ PLAN BLOCKED`, or the remembered pre-review value for an unrecoverable `not_reviewable` verdict unless the command aborts before write-back.
 
 ## Source-of-truth hierarchy
 
@@ -270,29 +272,20 @@ Before approving, verify every item:
     blocked for Debt Friction only when meaningful acceptance or proof planning
     is not possible.
 
-## Status transitions
+## Plan lane transitions
 
-You may update `MASTER.md` and the story file's `Status:` header as part of
-this review, but only within a narrow policy:
+You may update the matched `MASTER.md` row's `Plan` column as part of this review. Never change the implementation `Status` column or the story file's `Status:` header from this command.
 
-- `approve` → leave status at `⚪ TODO`. Tell the operator the next action
-  is `epic_story_claim $EPIC` from a fresh session.
-- `request_changes` → leave status at `⚪ TODO`. Tell the operator to edit
-  the specific spec sections you named in the findings and re-run
-  `epic_story_plan_review` from a fresh session. For a ground-up rewrite,
-  recommend deleting the story file and tracker row, then re-running
-  `epic_story_plan`.
-- `blocked` → move to `⛔ BLOCKED` in both `MASTER.md` and the story file's
-  `Status:` header. Use this only when the plan is unsalvageable as written
+- `approve` → set `Plan` to `🟢 PLAN APPROVED`. If implementation `Status` is `⚪ TODO`, tell the operator the next action is `epic_story_claim $EPIC` from a fresh session. If implementation has already started, tell the operator the next action is `epic_story_resume $EPIC $STORY` or the appropriate implementation command.
+- `request_changes` → set `Plan` to `🟠 PLAN CHANGES REQUESTED`. Tell the operator to run `epic_story_plan_resume $EPIC $STORY` to edit the specific spec sections you named, then re-run `epic_story_plan_review $EPIC $STORY` from a fresh session. For a ground-up rewrite before implementation starts, recommend deleting the story file and tracker row, then re-running `epic_story_plan`.
+- `blocked` → set `Plan` to `⛔ PLAN BLOCKED`. Use this only when the plan is unsalvageable as written
   and the operator needs to pause on this story (e.g., the plan depends on
   an upstream story that does not exist, or a `## Locked Decision` directly
   contradicts the architecture and the plan cannot be minimally amended).
-- `not_reviewable` → leave status at `⚪ TODO`. Say what context is missing
-  (e.g., `AGENTS.md` unreadable, dependency story files missing) and
-  recommend how to unblock.
+- `not_reviewable` → set `Plan` to `🟠 PLAN CHANGES REQUESTED` if missing context can be repaired in the story contract. If missing context cannot be repaired in the story contract, restore the pre-review `Plan` value from before this command wrote `🟣 PLAN IN REVIEW` and say what context is missing. Never leave the final lane at `🟣 PLAN IN REVIEW` for a completed `not_reviewable` verdict.
 
-**Explicit prohibitions:** never move a story into `🔄 IN PROGRESS`,
-`🟣 IN REVIEW`, `🔵 IN PR`, or `✅ DONE` from this command. Those transitions
+**Explicit prohibitions:** never move a story into `⚪ TODO`, `🔄 IN PROGRESS`,
+`🟣 IN REVIEW`, `🔵 IN PR`, `✅ DONE`, or implementation `⛔ BLOCKED` from this command. Those transitions
 are owned by `epic_story_claim`, `epic_story_resume`, `epic_story_review`, and `epic_story_pr`.
 
 ## Plan review log write-back
@@ -303,6 +296,7 @@ entry:
 ```md
 - <UTC ISO timestamp> Plan review run by fresh maintainer session
   - Verdict: approve | request_changes | blocked | not_reviewable
+  - Plan lane transition: <from> -> <to>
   - Status transition: <from> -> <to>
   - Sections reviewed: Purpose, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes, Expected Prerequisites, Scope
   - Key findings:

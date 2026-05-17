@@ -45,10 +45,12 @@ Do **not** claim a new step. Do **not** rediscover or redefine the epic from scr
 - resolve the selected step file from the matched row's `Spec` value
 - if that file does not exist under `<epic>/`, stop and report the exact missing path
 - if the resolved row is not `🔄 IN PROGRESS` or `🔵 IN PR` with PR changes requested, stop and report the actual status
+- if the resolved row has a `Plan` column and `Plan` is not `🟢 PLAN APPROVED`, stop before implementation work and report: "planning contract is not approved (`<plan lane>`); run `/epic-story-plan-converge <epic> <story>` before `/epic-story-resume`."
 
 **If `<story>` was not provided:**
 - collect every row in `MASTER.md` marked `🔄 IN PROGRESS`
 - also collect rows marked `🔵 IN PR` **only if** the PR is currently requesting code changes (check the step file's `## PR Tracking` section `PR status` field; `changes_requested` is a resumable signal)
+- exclude rows whose `Plan` column exists and is not `🟢 PLAN APPROVED`; list them separately with `/epic-story-plan-converge <epic> <story>` as the next action
 - if there are none, stop and recommend `/epic-story-claim` instead
 - if there is exactly one, select it
 - if there are multiple, stop and list each candidate; do not guess
@@ -232,9 +234,8 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Prefer code changes over restating plans
 - If the step is in progress because of review feedback, address that feedback first
 - If you discover an epic-wide architectural contradiction, update `MASTER.md` minimally and note it in the step file
-- If you discover non-material proof-path drift, update the story's `## Verification` matrix immediately and record why in `## Progress Log` before continuing
-- If the implementation changes or reveals variant-level proof needs not captured in the story, update the `## Verification` matrix before marking the story review-ready. Every named variant/failure mode must have actual proof, an explicit exclusion, or a recorded blocker.
-- If you discover material contract drift, pause feature work, record a replanning checkpoint in `## Progress Log`, update the story contract, and only then continue implementation
+- If you discover non-material evidence drift where the contract is still correct but the actual proof command/name changed, update only the concrete evidence row in `## Verification` and record why in `## Progress Log` before continuing.
+- If implementation reveals variant-level proof needs, acceptance gaps, branch coverage gaps, input-boundary shape risk, or material contract drift not captured in the story, stop implementation work. Record a concise blocker in `## Progress Log`, set or ask to set the `Plan` lane to `🟠 PLAN CHANGES REQUESTED` when available, and route the story to `/epic-feedback` or `/epic-story-plan-converge`. Do not perform replanning inside `/epic-story-resume`.
 - If red-first is not feasible, record an explicit written exception in `## Progress Log` before proceeding. Name the reason, the alternative proof seam, and the verification path you will use instead.
 - If Debt Friction exists, record it in `## Progress Log` using the `docs/epic-conventions.md` shape. Use `fix-now` only for enabling cleanup directly required to make this story correct, testable, reviewable, or safely maintainable; include `Scope Justification`. Use `split-story`, `defer-explicitly`, or `block` for debt that is non-enabling, too large, too non-local, or proof-blocking.
 - If the step is blocked by a hard external dependency or contradiction, stop broadening scope and mark it `⛔ BLOCKED`
@@ -248,8 +249,8 @@ Append concise timestamped bullets under `## Progress Log` after meaningful mile
 - design change locked
 - files patched
 - tests added/updated
-- proof matrix updated to match implementation reality
-- replanning checkpoint recorded after material contract drift
+- proof evidence row updated to match implementation reality without changing contract meaning
+- planning-lane blocker recorded after material contract drift
 - red-first exception recorded with alternative proof seam
 - Debt Friction recorded with decision and guardrail
 - blocker discovered

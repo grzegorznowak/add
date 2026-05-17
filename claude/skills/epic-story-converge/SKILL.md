@@ -40,24 +40,25 @@ Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [MAX_CYCLES=
 
 ## Phase 2 — Eligibility Gate
 
-Use `<epic_dir>/MASTER.md` as the status authority. The story header is a drift signal that should be reported if it disagrees.
+Use `<epic_dir>/MASTER.md` as the implementation status and planning-lane authority. The story header is a drift signal that should be reported if it disagrees.
 
 Allowed starting states:
 
 - `⚪ TODO` only when the story is plan-approved and unstarted.
-- `🔄 IN PROGRESS`.
-- `🟣 IN REVIEW`.
-- `🔵 IN PR` only when `## PR Tracking` says PR review is requesting changes.
+- `🔄 IN PROGRESS` only when `Plan` is `🟢 PLAN APPROVED` or legacy plan-approved inference passes.
+- `🟣 IN REVIEW` only when `Plan` is `🟢 PLAN APPROVED` or legacy plan-approved inference passes.
+- `🔵 IN PR` only when `## PR Tracking` says PR review is requesting changes and `Plan` is `🟢 PLAN APPROVED` or legacy plan-approved inference passes.
 - `✅ DONE`, which stops immediately as already converged.
 
 Reject with a precise next action:
 
-- `⚪ TODO` without a latest effective plan-review `approve`: use `/epic-story-plan-converge <epic> <story>`.
+- any non-DONE story whose `Plan` column exists and is not `🟢 PLAN APPROVED`: use `/epic-story-plan-converge <epic> <story>`.
+- legacy `⚪ TODO` without a latest effective plan-review `approve`: use `/epic-story-plan-converge <epic> <story>`.
 - `⚪ TODO` with runtime sections already present: status drift; ask the operator to resolve before converging.
 - `🔵 IN PR` without requested changes: use `/epic-story-pr <epic> <story>` for PR refresh or merge-state handling.
 - `⛔ BLOCKED`: blocked stories need operator unblocking before convergence.
 
-Plan-approved means the newest effective `## Plan Review Log` verdict is `approve`, with no later `request_changes`, `not_reviewable`, or `blocked` entry that remains unaddressed.
+Plan-approved means `Plan` is `🟢 PLAN APPROVED` when the column exists. For legacy trackers without `Plan`, plan-approved means the newest effective `## Plan Review Log` verdict is `approve`, with no later `request_changes`, `not_reviewable`, or `blocked` entry that remains unaddressed.
 
 ## Phase 3 — Fresh-Agent Loop
 
