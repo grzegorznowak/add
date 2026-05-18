@@ -81,7 +81,7 @@ the coordination files they read and write. See
 
 ## Install
 
-There are two installation paths, and they coexist cleanly:
+There are two main skill installation paths, and they coexist cleanly:
 
 1. **Claude Code plugin** — for users who only want the Claude side, via the
    marketplace or `--plugin-dir`. See [Plugin install](#plugin-install-claude-code-only).
@@ -130,6 +130,21 @@ Flags:
 - `--yes` — skip the confirmation prompt
 - `--force` — overwrite non-symlink targets
 - `--dry-run` — show what would happen, change nothing
+
+### opencode Agents
+
+This repo also ships opencode subagents in `.opencode/agent/`. Install them
+with the small companion script:
+
+```bash
+# User-level: ~/.config/opencode/agent/
+~/.local/share/add/scripts/install-opencode-agents.sh
+
+# Project-level: <project>/.opencode/agent/
+~/.local/share/add/scripts/install-opencode-agents.sh --project /workspaces/myproject
+```
+
+Restart opencode or run `/reload` after installing.
 
 ### Plugin Install (Claude Code Only)
 
