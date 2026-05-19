@@ -182,7 +182,7 @@ Use the latest concrete guidance in this order:
 1. newest `Review Log` entry with blocking findings or a concrete next action
 2. latest `Session Handoff`
 3. latest `Progress Log` milestone
-4. the step `Goal` / `Acceptance`
+4. the step `Purpose` / `Actors` / `Scenarios / Behavior Examples` / `Acceptance`
 
 If these conflict, prefer the higher source in the list above and record the conflict in the progress log.
 
@@ -226,8 +226,8 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Treat `MASTER.md` plus the selected step file as the source of truth
 - Respect the latest review/handoff CTA before widening scope
 - Continue only this step plus required dependencies
-- Inspect the relevant code and tests before the first change in this session. Use the story's `## Verification`, `## Critical Files`, `## Discovery Notes`, and latest runtime notes to choose the smallest focused seam for the next behavior.
-- Before choosing or continuing a red seam, rebuild a compact acceptance proof ledger from the current story: list every `A<n>` id and, for any acceptance item that names variants, modes, branches, fallback paths, error cases, or examples, list each named case separately. Check the latest handoff/review feedback against this ledger so continuation work does not leave sibling variants untested.
+- Inspect the relevant code and tests before the first change in this session. Use the story's `## Actors`, `## Scenarios / Behavior Examples`, `## Verification`, `## Critical Files`, `## Discovery Notes`, and latest runtime notes to choose the smallest focused seam for the next behavior.
+- Before choosing or continuing a red seam, rebuild a compact acceptance proof ledger from the current story: list every `A<n>` id and, for any acceptance item that names variants, modes, branches, fallback paths, error cases, or examples, list each named case separately. If `## Scenarios / Behavior Examples` contains `S<n> Covers: A<n>`, include the linked scenario case under that acceptance id. Check the latest handoff/review feedback against this ledger so continuation work does not leave sibling variants or scenario cases untested.
 - Run a Debt Friction check before the first patch in this session: ask whether implementation is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only write a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
 - Default to red-first: make that focused seam fail, implement until it passes, then broaden verification.
 - Do not jump straight to broad suites or code-first implementation if a smaller focused seam is available.

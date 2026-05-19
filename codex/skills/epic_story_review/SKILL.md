@@ -107,7 +107,8 @@ Before doing a full review:
 - if the tracker has a `Plan` column and the matched row's `Plan` is not `🟢 PLAN APPROVED`, implementation cannot be approved; record a `request_changes` verdict with next action `epic_story_plan_converge $EPIC $STORY`
 - inspect any `Active Claim`, `Progress Log`, `Session Handoff`, and `PR Tracking` sections in the step file
 - inspect the story's `## Acceptance` and `## Verification` contract before
-  treating the implementation as review-ready
+  treating the implementation as review-ready; if `## Actors` or
+  `## Scenarios / Behavior Examples` are present, inspect them too
 - if `<epic>/CONTRACT.md` exists, inspect the sections that define epic-wide invariants or shared obligations for this story
 
 If the story is clearly not reviewable yet, abort fast with a concise reason.
@@ -198,6 +199,11 @@ When launched by a converger, you may receive `Shared Research Board from parent
   stricter application assumptions, treat it as an `Input Boundary Shape Risk`:
   proof must start at the raw input boundary for every in-scope case, or the
   story must record an explicit exclusion / unknown with mitigation.
+- When `## Scenarios / Behavior Examples` is present, enforce the funnel
+  `Scenario -> Acceptance -> Verification`: every normative `S<n>` scenario
+  must use `Covers: A<n>`, and the linked acceptance/proof path must satisfy
+  that scenario's concrete behavior. Orientation-only scenarios are not proof
+  obligations but must not contradict the implemented behavior.
 - Treat external or local technical docs as contract hints, not implementation
   proof. If a story claims an exact route, model family, auth mode, metadata
   label, or dispatch path, verify repo code or tests prove that exact behavior.
@@ -237,7 +243,10 @@ Multipass planning:
 4. Keep tests, regressions, and gap checks inside the pass that owns the
    subsystem risk unless they need a truly independent evidence path.
 5. Map every acceptance item to at least one planned pass.
-6. Each pass must have a clear title, acceptance items covered, risk focus, and
+6. For every scenario with `Covers: A<n>`, map the scenario-relevant case to
+   the pass that covers that acceptance id. If no pass covers the linked
+   scenario behavior, add one or record a gate finding.
+7. Each pass must have a clear title, acceptance items covered, risk focus, and
    expected evidence surface.
 
 Focused pass execution:
@@ -284,6 +293,10 @@ Multipass synthesis:
   just that a cited `file:line` exists.
 - Read the plan and all focused-pass outputs.
 - Map every `## Acceptance` item to at least one completed focused-pass result.
+- Map every `S<n> Covers: A<n>` scenario to the completed focused-pass result
+  that proves the linked acceptance behavior. If implementation satisfies the
+  acceptance wording generally but not the linked scenario case, record a
+  `Gate Finding`.
 - Dedupe repeated findings while preserving original `Sources: path:line`
   evidence.
 - Classify accumulated findings into `Gate Findings`, `Product Assessment`,
@@ -411,6 +424,9 @@ Before approving, verify:
 - If red-first was bypassed, was the exception recorded before proceeding and
   was the alternative proof path concrete?
 - Are there adequate tests for the change?
+- If `## Scenarios / Behavior Examples` is present, does every normative
+  scenario flow through a linked acceptance id and final proof row, and does
+  implementation satisfy the scenario's concrete behavior?
 - Are there hidden packaging/runtime/ops implications not captured in the step?
 - Is every acceptance id still covered by the final proof matrix?
 - Are any matrix rows still `provisional`?
@@ -509,6 +525,8 @@ If a `Review Log` section does not exist, create it.
 Approval is not allowed if the proof contract is still unresolved. A story is
 only eligible for approval when:
 - every acceptance id remains covered
+- every normative scenario linked with `Covers: A<n>` is satisfied through its
+  linked acceptance id and final proof row
 - every proof row is `final`
 - the matrix matches the actual implementation and verification surfaces
 - every named end-to-end proof starts at the claimed entry boundary, or the story

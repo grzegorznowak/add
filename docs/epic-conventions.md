@@ -152,16 +152,60 @@ time by `/epic-story-plan`, and they are read by every other command.
 | Section | Purpose |
 |---|---|
 | `## Purpose` | One paragraph: what user-visible outcome this story delivers. |
+| `## Actors` | Role-based participants affected by or involved in the story, such as operator, reviewer, implementation agent, system, or external service. |
 | `## Triggering Need` | Why now, what prompted this story. |
 | `## Expected Prerequisites` | Bulleted list of dependency story numbers and titles. |
 | `## Scope` | What is in scope. |
 | `## Out of Scope` | What is deliberately not in scope. |
+| `## Scenarios / Behavior Examples` | Concrete examples that funnel into acceptance. Normative scenarios use `Covers: A<n>`; orientation-only scenarios must say `Orientation only`. |
 | `## Acceptance` | Observable criteria a reviewer can verify. Every bullet uses a stable `A<n>` id and covers exactly one independently provable behavior. |
 | `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands` and `### Acceptance Proof Matrix`, and must add `### Surface / Branch Proof Matrix` and/or `### Fail-open Checks` when the story's risk surface requires them. Rows reference acceptance IDs instead of restating full acceptance prose. |
 | `## Discovery Notes` | Source-derived facts that prevent rediscovery: reusable code, gotchas, hidden coupling, test seams, operational constraints, or Debt Friction. Not a transcript. |
 | `## Critical Files` | File paths and each path's role. |
 | `## Implementation Notes` | Execution brief: source-inspection focus, red-first seam guidance, phases, constraints, and known exceptions. |
 | `## Locked Decisions` | What was decided during planning, plus the alternatives considered and rejected. |
+
+`## Actors` and `## Scenarios / Behavior Examples` are part of the modern story shape for new `/epic-story-plan` drafts. Legacy stories remain reviewable when either section is absent; absence alone is not a blocker. When either section is present, every planning and implementation review must validate it for correctness and consistency with the rest of the story.
+
+#### `## Actors`
+
+- Use lightweight role bullets, not personas.
+- Include at least one `Primary:` actor when the section is present.
+- Add `Secondary:`, `Reviewer:`, `System:`, or external-service roles only when they clarify behavior or review responsibility.
+- Actor claims must stay consistent with `## Purpose`, `## Scope`, `## Acceptance`, and `## Verification`.
+
+Example:
+
+```md
+## Actors
+- Primary: epic operator
+- Secondary: implementation agent
+- Reviewer: plan-review agent
+- System: story planning workflow
+```
+
+#### `## Scenarios / Behavior Examples`
+
+Scenarios are a funnel into acceptance, not a parallel requirements list:
+
+```text
+Scenario -> Acceptance -> Verification
+```
+
+- Use lightweight `S<n>` bullets. Prefer Given/When/Then phrasing when the behavior is procedural.
+- Every normative scenario must end with `Covers: A<n>` or `Covers: A<n>, A<m>`.
+- Every orientation-only scenario must explicitly say `Orientation only`.
+- A scenario that describes required behavior but does not map to acceptance is invalid.
+- A linked scenario is review-blocking when its linked acceptance item or verification row does not cover the scenario's concrete behavior.
+- Scenarios do not get their own proof matrix. Proof still flows through `## Acceptance` and `## Verification`.
+
+Example:
+
+```md
+## Scenarios / Behavior Examples
+- S1: Given a legacy story has no `## Actors`, when plan-review runs, then absence alone is not a blocker. Covers: A2.
+- S2: Background: older approved stories may predate this template. Orientation only.
+```
 
 #### `## Acceptance`
 
@@ -541,7 +585,7 @@ edits appends a new entry — the log is the story's plan revision history.
   - Verdict: approve | request_changes | blocked | not_reviewable
   - Plan lane transition: 🟡 PLAN DRAFT -> 🟢 PLAN APPROVED
   - Status transition: ⚪ TODO -> ⚪ TODO
-  - Sections reviewed: Purpose, Acceptance, Verification, Critical Files, Locked Decisions, Discovery Notes, Expected Prerequisites, Scope
+  - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Locked Decisions, Discovery Notes
   - Key findings:
     - <short bullet>
   - Debt Friction: none | <decision + short title>

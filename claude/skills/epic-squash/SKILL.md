@@ -82,6 +82,8 @@ Build three discrepancy lists:
 - **Story discrepancies**: claims in stories that don't match the codebase, or required workflow evidence that is missing from `## Progress Log` / `## Session Handoff` (focused red seam or explicit written exception). Codebase wins; update the squashed contract to match the code, and report the story drift.
 - **Code-level discrepancies**: stale defaults in legacy compat paths, dead code left over from removed approaches, file-vs-tracker status drift, etc. These are candidates for Phase 6.
 
+Treat `## Scenarios / Behavior Examples` as durable contract input only when a scenario is normative and linked with `Covers: A<n>`. Orientation-only scenarios are historical context and should not be consolidated unless the same behavior is also present in Acceptance or the final contract.
+
 Present all three lists plus the story classification. **CHECKPOINT 2**: confirm classification and discrepancy lists before editing anything.
 
 ## Phase 4 — Draft contract edits

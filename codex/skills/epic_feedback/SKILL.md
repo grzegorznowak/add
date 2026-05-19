@@ -241,7 +241,7 @@ For contract-changing `resume-current-story`, also append a concise replanning c
 ```md
 - <UTC ISO timestamp> Replanning checkpoint from feedback absorption
   - Feedback ID: FB-###
-  - Contract sections updated: <Acceptance, Verification, Surface / Branch Proof Matrix, Input Boundary Shape Risk, etc.>
+  - Contract sections updated: <Actors, Scenarios / Behavior Examples, Acceptance, Verification, Surface / Branch Proof Matrix, Input Boundary Shape Risk, etc.>
   - Plan lane: <from> -> <to>
   - Required next action: `epic_story_plan_review <epic> <story>`
 ```
@@ -255,7 +255,7 @@ For `queue-planning-feedback`, append or create `## Plan Review Log` with a requ
   - Verdict: request_changes
   - Plan lane transition: <from> -> 🟠 PLAN CHANGES REQUESTED
   - Status transition: <current status> -> <current status>
-  - Sections reviewed: <Acceptance, Verification, Scope, Locked Decisions, etc.>
+  - Sections reviewed: <Actors, Scenarios / Behavior Examples, Acceptance, Verification, Scope, Locked Decisions, etc.>
   - Key findings:
     - <finding, including required matrix/proof updates when relevant>
   - Debt Friction: none | <decision + short title>
@@ -266,6 +266,8 @@ For `amend-existing-story`, edit only these story sections:
 
 - `## Acceptance`
 - `## Verification`
+- `## Actors`
+- `## Scenarios / Behavior Examples`
 - `## Scope`
 - `## Out of Scope`
 - `## Critical Files`
@@ -299,8 +301,10 @@ For `resume-current-story`, append to the story's `## Review Log` using the impl
   - Next action: <one concrete resume/rework action>
 ```
 
-If feedback changes acceptance boundaries, proof surfaces, supported branches, input-boundary shape assumptions, or fail-open risks, fully blend those changes before recommending `epic_story_resume`:
+If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, supported branches, input-boundary shape assumptions, or fail-open risks, fully blend those changes before recommending `epic_story_resume`:
 
+- update `## Actors` when feedback changes who initiates, participates in, reviews, or is affected by the behavior
+- update `## Scenarios / Behavior Examples` when feedback changes concrete flows or examples; every normative scenario must use `Covers: A<n>` and funnel into Acceptance and Verification
 - update `## Acceptance` and `## Verification` together
 - update `### Acceptance Proof Matrix` for every acceptance id and named variant/failure mode
 - update `### Surface / Branch Proof Matrix` when surfaces, variants, modes, or orchestration branches are introduced or changed

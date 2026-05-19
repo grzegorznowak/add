@@ -26,11 +26,16 @@ transition is a fresh session**:
   step. The next fresh session reads that instead of inheriting a stale
   context window.
 - **TDD is a planning constraint, not an implementation afterthought.**
-  `/epic-story-plan` requires a verification proof matrix — mapping every
-  acceptance criterion to a concrete test seam — before the story can leave
-  `⚪ TODO`. By the time `/epic-story-claim` starts writing code, the
-  question is not "should we test this?" but "which failing seam do we turn
-  green first?"
+   `/epic-story-plan` requires a verification proof matrix — mapping every
+   acceptance criterion to a concrete test seam — before the story can leave
+   `⚪ TODO`. By the time `/epic-story-claim` starts writing code, the
+   question is not "should we test this?" but "which failing seam do we turn
+   green first?"
+
+- **Scenarios funnel into acceptance.** Modern stories capture lightweight
+  actor roles and concrete behavior examples. Scenarios are not a parallel
+  requirements list: a normative example maps to an acceptance id, and that
+  acceptance id maps to verification evidence.
 
 - **A rigid plan eliminates improvisation.** The story spec is an engineering
   blueprint, not a suggestion. Implementation has no room to drift because
@@ -60,7 +65,7 @@ Twelve coordinated workflow commands plus two small utilities:
 | Command | What it does |
 |---|---|
 | `/epic-plan` | Bootstrap a new epic via guided interview. Produces `MASTER.md`. |
-| `/epic-story-plan` | Plan and publish a new `⚪ TODO` story with acceptance criteria and proof matrix. |
+| `/epic-story-plan` | Plan and publish a new `⚪ TODO` story with actors, scenario examples, acceptance criteria, and proof matrix. |
 | `/epic-story-plan-review` | Review a `⚪ TODO` story's plan against the live repo before claiming. |
 | `/epic-story-plan-converge` | Loop fresh plan-review and plan-resume sessions for one `⚪ TODO` story until approved, blocked, or stopped; carries session-only sourced research forward. |
 | `/epic-story-claim` | Claim an unclaimed story, find the smallest failing seam, and execute red-first. |

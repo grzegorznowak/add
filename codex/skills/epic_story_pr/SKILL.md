@@ -202,6 +202,8 @@ alone: *does this code deliver what the story promised?*
 
 Extract **only** product-facing content from the resolved step file:
 - the story **Purpose** / **Goal** (what outcome the user gets)
+- role-based **Actors** when they clarify who the PR affects
+- normative **Scenarios / Behavior Examples** only when they are linked to acceptance ids with `Covers: A<n>` and help the reviewer understand expected behavior
 - explicit **original ticket/card links** from `Triggering Need`, `Purpose`,
   `Scope`, or other product-facing prose, when present
 - the **Acceptance criteria** (observable behavior the code must satisfy)
@@ -278,10 +280,12 @@ Read these sections of the step file in order and map them to the body:
    product-facing prose → explicit original ticket/card links only. Include
    links near the top when found; omit `## Original tickets` silently when no
    link is found.
-3. `## Acceptance` / `## Acceptance criteria` → Acceptance criteria
-4. `## Scope` → filter for contract-affecting parts only → Contract changes
-5. `## Out of Scope` → Out of scope
-6. `## Verification` → filter for user-facing checks only → How to verify
+3. `## Actors` → Requirements only when role context is product-facing
+4. `## Scenarios / Behavior Examples` → Acceptance criteria only for normative scenarios linked with `Covers: A<n>`; omit orientation-only examples
+5. `## Acceptance` / `## Acceptance criteria` → Acceptance criteria
+6. `## Scope` → filter for contract-affecting parts only → Contract changes
+7. `## Out of Scope` → Out of scope
+8. `## Verification` → filter for user-facing checks only → How to verify
 
 For original ticket/card links:
 - Include links only; never summarize or quote original ticket text.
