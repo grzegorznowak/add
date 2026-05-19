@@ -198,8 +198,17 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Read dependency step files for context, but do not widen scope unless required
   to finish the claimed step correctly.
 - Inspect the relevant code and tests before the first change. Use the story's
-  `## Verification`, `## Critical Files`, and `## Discovery Notes` to choose
-  the smallest focused seam that covers the next behavior.
+  `## Actors`, normative `## Scenarios / Behavior Examples` linked with exactly
+  one `Covers: A<n>`, `## Verification`, `## Critical Files`, and
+  `## Discovery Notes` to choose the smallest focused seam that covers the next
+  behavior. Treat `Orientation only` scenarios as context only; they must not
+  create implementation or proof obligations unless the same behavior is also
+  present in `## Acceptance`.
+- Before choosing the first red seam, build a compact acceptance proof ledger
+  from the story. List every `A<n>` id, each named variant/mode/branch/fallback
+  path/error case, and every `S<n> Covers: A<n>` scenario case under the linked
+  acceptance id. Do not treat one variant, linked scenario, or orientation-only
+  example as covering siblings unless the story explicitly excludes them.
 - Run a Debt Friction check before the first patch: ask whether implementation
   is being made harder by unclear ownership, duplicated behavior, weak or mocked
   tests, missing seams, hidden behavior, or unsafe structure. Only write a

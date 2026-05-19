@@ -49,6 +49,8 @@ Abort if there is no included source at all: no `CONTRACT.md` and no non-archive
 Read only product-facing sections from non-archived DONE stories:
 
 - `## Purpose`
+- `## Actors` when role context is product-facing
+- normative `## Scenarios / Behavior Examples` linked with exactly one `Covers: A<n>`
 - `## Triggering Need`
 - `## Scope`
 - `## Out of Scope`

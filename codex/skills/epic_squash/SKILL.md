@@ -141,6 +141,11 @@ Build three discrepancy lists:
   code left over from removed approaches, file-vs-tracker status drift. These
   are candidates for Phase 6.
 
+Treat `## Scenarios / Behavior Examples` as durable contract input only when a
+scenario is normative and linked with exactly one `Covers: A<n>`. Orientation-only scenarios
+are historical context and should not be consolidated unless the same behavior
+is also present in Acceptance or the final contract.
+
 Present all three lists plus the per-story classification.
 
 **CHECKPOINT 2**: confirm classification and discrepancy lists before editing

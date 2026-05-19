@@ -16,7 +16,7 @@ Treat `$STORY` as the story selector. It may be either:
   example `story-03-bootstrap-and-docs-rewrite.md`
 
 You are a maintainer reviewing one story's **planning contract** at any lifecycle point — its Purpose,
-Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, and surrounding
+Actors, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, and surrounding
 spec sections — against the live repository. The highest-leverage part of this review is the acceptance/proof
 contract: atomic acceptance ids plus a reviewer-facing proof matrix that is
 credible enough to drive red-first implementation without drifting into fake
@@ -34,7 +34,7 @@ This command only edits the resolved story file's `## Plan Review Log` section a
 - the files listed in the story's `## Critical Files`
 - any spec section of the story file (`## Purpose`, `## Triggering Need`,
   `## Expected Prerequisites`, `## Scope`, `## Out of Scope`,
-  `## Acceptance`, `## Verification`, `## Discovery Notes`,
+  `## Actors`, `## Scenarios / Behavior Examples`, `## Acceptance`, `## Verification`, `## Discovery Notes`,
   `## Critical Files`, `## Implementation Notes`, `## Locked Decisions`)
 - any other runtime section (`## Active Claim`, `## Progress Log`,
   `## Session Handoff`, `## Review Log`, `## PR Tracking`)
@@ -117,6 +117,10 @@ of these hold:
   `## Verification` — say which
   section is missing
 
+Legacy compatibility: if `## Actors` and/or `## Scenarios / Behavior Examples`
+are fully absent, do not fail solely for that absence. If either section is
+present, review it for correctness and consistency with the full plan.
+
 Resolve the planning lane before review:
 
 - If `MASTER.md` has a `Plan` column, use that value as the planning-lane authority.
@@ -151,13 +155,14 @@ When launched by a converger, you may receive `Shared Research Board from parent
    does not already have reusable implementations the plan missed, confirm
    `## Locked Decisions` do not contradict `AGENTS.md` or established
    patterns.
-3. Treat `## Verification` plus `## Implementation Notes` as the
-   proof-design and implementation-method contract, not as proof that the
-   implementation already exists. Do not run the planned tests expecting them
-   to pass at this phase. Instead, validate whether the commands, seams, and
-   owning surfaces are concrete, plausible, aimed at the real acceptance
-   behavior rather than a mocked caricature of it, and specific enough to
-   support red-first implementation after source inspection.
+3. Treat `## Scenarios / Behavior Examples`, `## Verification`, and
+   `## Implementation Notes` as the behavior-funnel, proof-design, and
+   implementation-method contract, not as proof that the implementation
+   already exists. Do not run the planned tests expecting them to pass at this
+   phase. Instead, validate whether scenarios funnel into acceptance, whether
+   commands, seams, and owning surfaces are concrete, plausible, aimed at the
+   real acceptance behavior rather than a mocked caricature of it, and specific
+   enough to support red-first implementation after source inspection.
 4. Use `git status` to confirm the worktree is not mid-implementation (if
    there are large pending changes, note it — plan review on a dirty
    worktree is a warning signal).
@@ -190,43 +195,57 @@ Before approving, verify every item:
    stories.
 5. **`Out of Scope` is non-empty and meaningful.** A missing `## Out of
    Scope` is a warning, not a failure.
-6. **`Acceptance` criteria are observable.** Each bullet must be checkable
+6. **`Actors` are concrete when present.** Legacy absence is not a failure. If
+   present, the section must use role bullets and stay consistent with Purpose,
+   Scope, Acceptance, and Verification.
+7. **`Scenarios / Behavior Examples` funnel into acceptance when present.**
+   Legacy absence is not a failure. Every normative `S<n>` scenario must
+   include exactly one `Covers: A<n>` link; multiple `Covers` ids in one
+   scenario are a `request_changes` finding and should be split or reshaped.
+   Every orientation-only scenario must say `Orientation only`. A scenario
+   that describes required behavior without acceptance coverage is a
+   `request_changes` finding.
+8. **Linked scenarios are covered.** For every `S<n> Covers: A<n>` mapping,
+   the linked acceptance item must include the scenario's expected behavior and
+   `## Verification` must prove the scenario-relevant case through that
+   acceptance id. Drift at either hop blocks approval.
+9. **`Acceptance` criteria are observable.** Each bullet must be checkable
    by a command, a file read, or a UI observation. Fails on "works
    correctly" / "is clean" / "is performant" with no measurable threshold.
-7. **`Acceptance` ids are stable and atomic.** Every bullet must start with
+10. **`Acceptance` ids are stable and atomic.** Every bullet must start with
    `A<n>:` and cover one independently provable behavior. Split any bullet
    whose parts could fail independently.
-8. **`Verification` uses the required proof-contract shape.** `## Verification`
+11. **`Verification` uses the required proof-contract shape.** `## Verification`
     must contain exact `### Verification Commands` and
     `### Acceptance Proof Matrix` subsections, plus any required
     `### Surface / Branch Proof Matrix`, `### Input Boundary Shape Risk`, and
     `### Fail-open Checks` subsections when the story's risk surface calls for
     them.
-9. **The proof matrix covers every acceptance id.** Every acceptance id must
+12. **The proof matrix covers every acceptance id.** Every acceptance id must
    appear in at least one matrix row. Shared rows are allowed only when the
    same proof action and failure signal genuinely cover all listed ids.
-10. **Proof-matrix rows are concrete.** Every row must have a real proof
+13. **Proof-matrix rows are concrete.** Every row must have a real proof
     method, reviewer action, expected evidence, and relevant surfaces. Fails
     on vague instructions like "run the relevant tests" or "check manually".
-11. **`Proof Maturity` is valid.** Only `final` or `provisional` are allowed.
+14. **`Proof Maturity` is valid.** Only `final` or `provisional` are allowed.
     `provisional` rows are acceptable during story review, even if all rows
     are provisional, but every provisional row must state its unresolved part
     in `Open Detail`.
-12. **Multi-surface stories expand into branch-aware proof.** If the story
+15. **Multi-surface stories expand into branch-aware proof.** If the story
     spans multiple supported surfaces, variants, modes, or orchestration
     branches, `## Verification` must include `### Surface / Branch Proof
     Matrix` with rows for each in-scope combination or an explicit exclusion.
-13. **Helper proof is not routing proof.** When multiple supported callsites or
+16. **Helper proof is not routing proof.** When multiple supported callsites or
     orchestration paths exist, the surface / branch matrix must explicitly
     distinguish `helper`, `routing`, and `behavior` proof classes. Helper-only
     proof is insufficient; at least one routing proof must show that the
     supported callsites actually invoke the intended helper or branch logic.
-14. **Fail-open prompt risks are covered when relevant.** Prompt-, template-,
+17. **Fail-open prompt risks are covered when relevant.** Prompt-, template-,
     or placeholder-driven stories must include `### Fail-open Checks` proving
     supported renders leave no unresolved placeholders or raw tokens, enabled
     supported paths actually activate the feature, and an appropriate
     disabled/default path remains unchanged.
-15. **Input boundary shape risks are covered when relevant.** If raw
+18. **Input boundary shape risks are covered when relevant.** If raw
     persisted, external, framework, or generated input crosses into stricter
     application assumptions, the proof contract must cover every in-scope
     boundary and shape case at the real raw-input boundary, or explicitly
@@ -234,39 +253,39 @@ Before approving, verify every item:
     required when multiple boundaries, variants, or mitigations would be hard
     to audit from acceptance rows alone. Unknown evidence must include the
     reason evidence is unavailable, a mitigation, and a follow-up path.
-16. **Proof seams target the real contract and are focused enough for
+19. **Proof seams target the real contract and are focused enough for
     red-first execution.** Reject rows that mainly validate mocked helpers,
     monkeypatched internals, or synthetic seams that would not meaningfully
     exercise the promised acceptance behavior. The plan must still leave room
     for the implementer to choose the smallest focused seam after reading
     sources.
-17. **Feasibility is grounded when possible.** Probe referenced commands,
+20. **Feasibility is grounded when possible.** Probe referenced commands,
     files, and surfaces against the live repo. Existing seams should exist;
     planned seams should still point at the right owning surface.
-18. **`Implementation Notes` make red-first the default implementation
+21. **`Implementation Notes` make red-first the default implementation
     method.** The plan must clearly say implementation inspects sources first,
     chooses the smallest focused seam it can make fail, turns it green, then
     broadens verification. If the plan anticipates a reason red-first may be
     infeasible, it must require an explicit written exception before deviating.
-19. **`Critical Files` exist.** Resolve every path. Missing or renamed files
+22. **`Critical Files` exist.** Resolve every path. Missing or renamed files
     are plan-staleness signals.
-20. **`Critical Files` are the right surfaces.** Grep the plan's domain
+23. **`Critical Files` are the right surfaces.** Grep the plan's domain
     keywords; if obvious owners of that domain are missing from the list,
     flag it.
-21. **`Discovery Notes` mentions reusable existing code.** Search the repo
+24. **`Discovery Notes` mentions reusable existing code.** Search the repo
     for 2–3 domain terms from the plan and cross-reference against
     `## Discovery Notes`. If the plan invents something that clearly exists
     already, that is a `request_changes` finding.
-22. **`Locked Decisions` don't contradict `AGENTS.md` or established
+25. **`Locked Decisions` don't contradict `AGENTS.md` or established
     patterns.** Read `AGENTS.md` and spot-check each decision.
-23. **No hidden gotchas in `Critical Files`.** Skim each Critical File for
+26. **No hidden gotchas in `Critical Files`.** Skim each Critical File for
     things the plan didn't mention but should have: migrations, public
     APIs, existing tests that would break, cross-module coupling.
-24. **`Implementation Notes` are internally consistent** with `## Acceptance`
+27. **`Implementation Notes` are internally consistent** with `## Acceptance`
     and `## Scope` (the plan's own self-consistency).
-25. **No `<TODO: ...>` placeholders** left in spec sections. If any remain,
+28. **No `<TODO: ...>` placeholders** left in spec sections. If any remain,
     verdict is at minimum `request_changes`.
-26. **Debt Friction is surfaced when it affects proof or scope.** If current
+29. **Debt Friction is surfaced when it affects proof or scope.** If current
     story planning is made harder by debt, the finding must use the
     `docs/epic-conventions.md` shape in `## Plan Review Log`. A plan may be
     blocked for Debt Friction only when meaningful acceptance or proof planning
@@ -298,7 +317,7 @@ entry:
   - Verdict: approve | request_changes | blocked | not_reviewable
   - Plan lane transition: <from> -> <to>
   - Status transition: <from> -> <to>
-  - Sections reviewed: Purpose, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes, Expected Prerequisites, Scope
+  - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
   - Key findings:
     - <short bullet>
     - <short bullet>

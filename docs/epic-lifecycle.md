@@ -15,9 +15,10 @@ planning chain:
    tracker). Never touches story files or tracker rows. Aborts if the
    epic directory already exists.
 2. **`/epic-story-plan EPIC=<slug>`** — once per story. Interviews the
-   operator, validates the implementation-ready `Acceptance` contract
-   and `Verification` proof matrix, writes `story-NN-<slug>.md`, and
-   appends the `⚪ TODO` tracker row to `MASTER.md`.
+   operator, captures actor context and scenario examples, validates the
+   implementation-ready `Acceptance` contract and `Verification` proof matrix,
+   writes `story-NN-<slug>.md`, and appends the `⚪ TODO` tracker row to
+   `MASTER.md`.
 
 Planning is proof-first: the proof surfaces must be concrete enough that
 an implementer can inspect the repo and choose a smallest focused red
@@ -30,6 +31,16 @@ prompt- or placeholder-driven, the story must include fail-open checks. If
 raw persisted, external, framework, or generated input crosses into stricter
 application assumptions, the proof contract must cover the `Input Boundary
 Shape Risk` at the real input boundary.
+
+Modern story drafts include `## Actors` and `## Scenarios / Behavior Examples`.
+Legacy stories remain reviewable when either section is absent; absence alone is
+not a blocker.
+When scenarios are present, they funnel into the hard contract as
+`Scenario -> Acceptance -> Verification`: each normative scenario must map to
+exactly one acceptance id, and the linked acceptance/proof path must cover the
+scenario's concrete behavior. Orientation-only scenarios remain context only;
+they do not create implementation or proof scope unless the same behavior is
+also present in `## Acceptance`.
 
 This phase is upstream of the state-machine states. `/epic-story-plan`
 feeds the first row of the tracker; the state diagram starts at
