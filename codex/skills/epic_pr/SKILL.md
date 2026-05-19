@@ -54,7 +54,7 @@ Read only product-facing sections from non-archived DONE stories:
 
 - `## Purpose`
 - `## Actors` when role context is product-facing
-- normative `## Scenarios / Behavior Examples` linked with `Covers: A<n>`
+- normative `## Scenarios / Behavior Examples` linked with exactly one `Covers: A<n>`
 - `## Triggering Need`
 - `## Scope`
 - `## Out of Scope`

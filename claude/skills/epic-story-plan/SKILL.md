@@ -140,8 +140,8 @@ Scenarios are a funnel into acceptance, not a parallel requirements list:
 Scenario -> Acceptance -> Verification
 ```
 
-- Normative scenarios must end with `Covers: A<n>` once the acceptance ids exist. If acceptance ids are not finalized yet, draft the expected mapping and reconcile it during Question 8.
-- Orientation-only scenarios must explicitly say `Orientation only`.
+- Normative scenarios must end with exactly one `Covers: A<n>` once the acceptance ids exist. If acceptance ids are not finalized yet, draft the expected mapping and reconcile it during Question 8.
+- Orientation-only scenarios must explicitly say `Orientation only` and must not create implementation or proof obligations unless the same behavior is also present in Acceptance.
 - If a scenario describes required behavior, make sure Question 8 creates or updates an acceptance id for it.
 
 Example:
@@ -168,7 +168,7 @@ If an acceptance bullet names variants, modes, branches, fallback paths, error c
 
 Propose observable rewrites and iterate until every bullet names a concrete check, uses an `A<n>` id, and stays atomic.
 
-Reconcile `## Scenarios / Behavior Examples` before leaving this question: every normative `S<n>` scenario must map to one or more acceptance ids with `Covers: A<n>`, and every linked acceptance item must include the scenario's concrete behavior. If a scenario is useful context but not required behavior, label it `Orientation only` instead of forcing acceptance coverage.
+Reconcile `## Scenarios / Behavior Examples` before leaving this question: every normative `S<n>` scenario must map to exactly one acceptance id with `Covers: A<n>`, and that linked acceptance item must include the scenario's concrete behavior. If one example appears to span multiple acceptance ids, split it into multiple scenarios or reshape the acceptance items. If a scenario is useful context but not required behavior, label it `Orientation only` instead of forcing acceptance coverage.
 
 ### Question 9 — Verification contract
 
@@ -205,7 +205,7 @@ Build `## Verification` around two required parts and any conditional proof sect
 
 Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers. Provisional rows are allowed, but every acceptance id and every named variant/failure mode inside that id still needs a row and every provisional row must state what remains undecided. For input-boundary shape risks, helper-level proof with already-normalized intermediate data is insufficient unless the story explicitly narrows the proof row and records why that is safe.
 
-Validate the scenario funnel before leaving this question: every scenario with `Covers: A<n>` must be covered by the linked acceptance item's proof row(s). Do not add a separate scenario proof matrix; strengthen `## Acceptance` or `## Verification` instead.
+Validate the scenario funnel before leaving this question: every normative scenario with `Covers: A<n>` must be covered by the linked acceptance item's proof row(s). Do not add a separate scenario proof matrix; strengthen `## Acceptance` or `## Verification` instead.
 
 Debt Friction check: actively ask whether proof planning is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
 
@@ -294,7 +294,7 @@ Before the checkpoint:
    - Cross-epic refs pass through and are flagged as unverified.
 5. Validate the proof contract:
    - `## Actors` exists, uses role bullets, and includes at least one `Primary:` actor
-   - `## Scenarios / Behavior Examples` exists, every normative `S<n>` scenario has `Covers: A<n>`, and every orientation-only scenario says `Orientation only`
+   - `## Scenarios / Behavior Examples` exists, every normative `S<n>` scenario has exactly one `Covers: A<n>`, and every orientation-only scenario says `Orientation only`
    - every linked scenario is covered by its acceptance id and by that id's proof row(s)
    - every acceptance bullet begins with `A<n>:`
    - `## Verification` contains `### Verification Commands` and `### Acceptance Proof Matrix`

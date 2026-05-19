@@ -157,7 +157,7 @@ time by `/epic-story-plan`, and they are read by every other command.
 | `## Expected Prerequisites` | Bulleted list of dependency story numbers and titles. |
 | `## Scope` | What is in scope. |
 | `## Out of Scope` | What is deliberately not in scope. |
-| `## Scenarios / Behavior Examples` | Concrete examples that funnel into acceptance. Normative scenarios use `Covers: A<n>`; orientation-only scenarios must say `Orientation only`. |
+| `## Scenarios / Behavior Examples` | Concrete examples that funnel into acceptance. Normative scenarios use exactly one `Covers: A<n>` link; orientation-only scenarios must say `Orientation only`. |
 | `## Acceptance` | Observable criteria a reviewer can verify. Every bullet uses a stable `A<n>` id and covers exactly one independently provable behavior. |
 | `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands` and `### Acceptance Proof Matrix`, and must add `### Surface / Branch Proof Matrix` and/or `### Fail-open Checks` when the story's risk surface requires them. Rows reference acceptance IDs instead of restating full acceptance prose. |
 | `## Discovery Notes` | Source-derived facts that prevent rediscovery: reusable code, gotchas, hidden coupling, test seams, operational constraints, or Debt Friction. Not a transcript. |
@@ -193,8 +193,9 @@ Scenario -> Acceptance -> Verification
 ```
 
 - Use lightweight `S<n>` bullets. Prefer Given/When/Then phrasing when the behavior is procedural.
-- Every normative scenario must end with `Covers: A<n>` or `Covers: A<n>, A<m>`.
-- Every orientation-only scenario must explicitly say `Orientation only`.
+- Every normative scenario must end with exactly one `Covers: A<n>` link.
+- If one example appears to span multiple acceptance ids, split it into multiple scenarios or reshape the acceptance items before review.
+- Every orientation-only scenario must explicitly say `Orientation only` and must not create implementation or proof obligations unless the same behavior is also present in `## Acceptance`.
 - A scenario that describes required behavior but does not map to acceptance is invalid.
 - A linked scenario is review-blocking when its linked acceptance item or verification row does not cover the scenario's concrete behavior.
 - Scenarios do not get their own proof matrix. Proof still flows through `## Acceptance` and `## Verification`.

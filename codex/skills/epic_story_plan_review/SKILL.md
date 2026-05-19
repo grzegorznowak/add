@@ -200,9 +200,11 @@ Before approving, verify every item:
    Scope, Acceptance, and Verification.
 7. **`Scenarios / Behavior Examples` funnel into acceptance when present.**
    Legacy absence is not a failure. Every normative `S<n>` scenario must
-   include `Covers: A<n>`; every orientation-only scenario must say
-   `Orientation only`. A scenario that describes required behavior without
-   acceptance coverage is a `request_changes` finding.
+   include exactly one `Covers: A<n>` link; multiple `Covers` ids in one
+   scenario are a `request_changes` finding and should be split or reshaped.
+   Every orientation-only scenario must say `Orientation only`. A scenario
+   that describes required behavior without acceptance coverage is a
+   `request_changes` finding.
 8. **Linked scenarios are covered.** For every `S<n> Covers: A<n>` mapping,
    the linked acceptance item must include the scenario's expected behavior and
    `## Verification` must prove the scenario-relevant case through that

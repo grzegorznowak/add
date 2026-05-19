@@ -159,7 +159,7 @@ When launched by a converger, you may receive `Shared Research Board from parent
 - Read the latest `## Review Log` entry before source inspection and carry every prior concern into the review as `resolved`, `still_open`, `superseded`, or `not_assessable`.
 - When an acceptance or proof row names an end-to-end boundary, verify the proof starts at that named boundary. A lower-level test with hand-built intermediate data does not satisfy a resolver/orchestration acceptance item unless the row explicitly permits that narrower proof.
 - When an acceptance item names variants, modes, branches, fallback paths, error cases, or examples, treat each named case as a required proof obligation. A test or proof row that covers only one variant does not cover sibling variants unless the story explicitly excludes them with rationale.
-- When `## Scenarios / Behavior Examples` is present, enforce the funnel `Scenario -> Acceptance -> Verification`: every normative `S<n>` scenario must use `Covers: A<n>`, and the linked acceptance/proof path must satisfy that scenario's concrete behavior. Orientation-only scenarios are not proof obligations but must not contradict the implemented behavior.
+- When `## Scenarios / Behavior Examples` is present, enforce the funnel `Scenario -> Acceptance -> Verification`: every normative `S<n>` scenario must use exactly one `Covers: A<n>`, and the linked acceptance/proof path must satisfy that scenario's concrete behavior. Orientation-only scenarios are not proof obligations, must not drive required implementation scope unless also present in Acceptance, and must not contradict the implemented behavior.
 - When raw persisted, external, framework, or generated input crosses into stricter application assumptions, treat it as an `Input Boundary Shape Risk`: proof must start at the raw input boundary for every in-scope case, or the story must record an explicit exclusion / unknown with mitigation.
 - Treat external or local technical docs as contract hints, not implementation proof. If a story claims an exact route, model family, auth mode, metadata label, or dispatch path, verify repo code or tests prove that exact behavior.
 - If a story touches surfaces owned by dependency stories, inspect the relevant dependency proof rows and ensure prior accepted contracts still hold.
@@ -196,7 +196,7 @@ Multipass planning:
    subsystem risk unless they need a truly independent evidence path.
 5. Map every acceptance item to at least one planned pass.
 6. For acceptance items with named variants, modes, fallback paths, or failure cases, map every named case to at least one planned pass or record an explicit exclusion.
-7. For every scenario with `Covers: A<n>`, map the scenario-relevant case to the pass that covers that acceptance id. If no pass covers the linked scenario behavior, add one or record a gate finding.
+7. For every normative scenario with exactly one `Covers: A<n>`, map the scenario-relevant case to the pass that covers that acceptance id. If no pass covers the linked scenario behavior, add one or record a gate finding.
 8. Each pass must have a clear title, acceptance items covered, risk focus, and
    expected evidence surface.
 
@@ -244,7 +244,7 @@ Multipass synthesis:
   just that a cited `file:line` exists.
 - Read the plan and all focused-pass outputs.
 - Map every `## Acceptance` item, including every named variant/failure mode inside an item, to at least one completed focused-pass result or explicit exclusion.
-- Map every `S<n> Covers: A<n>` scenario to the completed focused-pass result that proves the linked acceptance behavior. If implementation satisfies the acceptance wording generally but not the linked scenario case, record a `Gate Finding`.
+- Map every `S<n> Covers: A<n>` normative scenario to the completed focused-pass result that proves the linked acceptance behavior. If implementation satisfies the acceptance wording generally but not the linked scenario case, record a `Gate Finding`.
 - Dedupe repeated findings while preserving original `Sources: path:line`
   evidence.
 - Classify accumulated findings into `Gate Findings`, `Product Assessment`,
@@ -424,7 +424,7 @@ If a `Review Log` section does not exist, create it.
 Approval is not allowed if the proof contract is still unresolved. A story is only eligible for approval when:
 - every acceptance id remains covered
 - every named variant, mode, branch, fallback path, and failure case inside an acceptance id is covered or explicitly excluded
-- every normative scenario linked with `Covers: A<n>` is satisfied through its linked acceptance id and final proof row
+- every normative scenario linked with exactly one `Covers: A<n>` is satisfied through its linked acceptance id and final proof row
 - every proof row is `final`
 - the matrix matches the actual implementation and verification surfaces
 - every named end-to-end proof starts at the claimed entry boundary, or the story explicitly narrows the proof row

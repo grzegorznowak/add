@@ -218,7 +218,7 @@ After constructing story spec/proof edits and before writing, run these phases i
 8. If `## Actors` is present, it uses role bullets with at least one `Primary:` actor and stays consistent with Purpose, Scope, Scenarios, Acceptance, and Verification.
 9. If feedback changes who initiates, participates in, reviews, or is affected by the behavior, the edit updates `## Actors` or records an explicit non-change rationale before writing.
 10. If feedback changes concrete flows or examples, the edit updates `## Scenarios / Behavior Examples` or records an explicit non-change rationale before writing.
-11. If `## Scenarios / Behavior Examples` is present, every normative `S<n>` scenario has `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
+11. If `## Scenarios / Behavior Examples` is present, every normative `S<n>` scenario has exactly one `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
 12. Every normative scenario funnels through Acceptance and Verification: the covered `A<n>` wording includes the scenario behavior, and that acceptance id has proof row(s) covering the scenario, including named variants, modes, branches, fallback paths, and failure cases or explicit exclusions.
 13. If the story spans surfaces, supported variants, modes, or internal orchestration branches, `### Surface / Branch Proof Matrix` exists and covers every in-scope combination or records an explicit exclusion.
 14. If raw persisted, external, framework, or generated input crosses stricter application assumptions, `### Input Boundary Shape Risk` exists when needed and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
@@ -309,7 +309,7 @@ For `resume-current-story`, append to the story's `## Review Log` using the impl
 If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, supported branches, input-boundary shape assumptions, or fail-open risks, fully blend those changes before recommending `epic_story_resume`:
 
 - update `## Actors` when feedback changes who initiates, participates in, reviews, or is affected by the behavior
-- update `## Scenarios / Behavior Examples` when feedback changes concrete flows or examples; every normative scenario must use `Covers: A<n>` and funnel into Acceptance and Verification
+- update `## Scenarios / Behavior Examples` when feedback changes concrete flows or examples; every normative scenario must use exactly one `Covers: A<n>` and funnel into Acceptance and Verification
 - update `## Acceptance` and `## Verification` together
 - update `### Acceptance Proof Matrix` for every acceptance id and named variant/failure mode
 - update `### Surface / Branch Proof Matrix` when surfaces, variants, modes, or orchestration branches are introduced or changed

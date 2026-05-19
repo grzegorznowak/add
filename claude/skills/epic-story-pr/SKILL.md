@@ -121,7 +121,7 @@ Abort for `IN PROGRESS`, `BLOCKED`, `TODO`, or any unknown status with a recover
 Extract **only** product-facing content from the resolved step file:
 - the story **Purpose** / **Goal** (what outcome the user gets)
 - role-based **Actors** when they clarify who the PR affects
-- normative **Scenarios / Behavior Examples** only when they are linked to acceptance ids with `Covers: A<n>` and help the reviewer understand expected behavior
+- normative **Scenarios / Behavior Examples** only when they are linked to a single acceptance id with `Covers: A<n>` and help the reviewer understand expected behavior
 - explicit **original ticket/card links** from `Triggering Need`, `Purpose`,
   `Scope`, or other product-facing prose, when present
 - the **Acceptance criteria** (observable behavior the code must satisfy)
@@ -185,7 +185,7 @@ Read these sections of the step file in order and map them to the body:
    links near the top when found; omit `## Original tickets` silently when no
    link is found.
 3. `## Actors` → Requirements only when role context is product-facing
-4. `## Scenarios / Behavior Examples` → Acceptance criteria only for normative scenarios linked with `Covers: A<n>`; omit orientation-only examples
+4. `## Scenarios / Behavior Examples` → Acceptance criteria only for normative scenarios linked with exactly one `Covers: A<n>`; omit orientation-only examples
 5. `## Acceptance` / `## Acceptance criteria` → Acceptance criteria
 6. `## Scope` → filter for contract-affecting parts only → Contract changes
 7. `## Out of Scope` → Out of scope

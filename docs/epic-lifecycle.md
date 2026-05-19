@@ -36,9 +36,11 @@ Modern story drafts include `## Actors` and `## Scenarios / Behavior Examples`.
 Legacy stories remain reviewable when either section is absent; absence alone is
 not a blocker.
 When scenarios are present, they funnel into the hard contract as
-`Scenario -> Acceptance -> Verification`: normative scenarios must map to
-acceptance ids, and the linked acceptance/proof path must cover the scenario's
-concrete behavior.
+`Scenario -> Acceptance -> Verification`: each normative scenario must map to
+exactly one acceptance id, and the linked acceptance/proof path must cover the
+scenario's concrete behavior. Orientation-only scenarios remain context only;
+they do not create implementation or proof scope unless the same behavior is
+also present in `## Acceptance`.
 
 This phase is upstream of the state-machine states. `/epic-story-plan`
 feeds the first row of the tracker; the state diagram starts at

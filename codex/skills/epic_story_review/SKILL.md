@@ -201,9 +201,10 @@ When launched by a converger, you may receive `Shared Research Board from parent
   story must record an explicit exclusion / unknown with mitigation.
 - When `## Scenarios / Behavior Examples` is present, enforce the funnel
   `Scenario -> Acceptance -> Verification`: every normative `S<n>` scenario
-  must use `Covers: A<n>`, and the linked acceptance/proof path must satisfy
-  that scenario's concrete behavior. Orientation-only scenarios are not proof
-  obligations but must not contradict the implemented behavior.
+  must use exactly one `Covers: A<n>`, and the linked acceptance/proof path must
+  satisfy that scenario's concrete behavior. Orientation-only scenarios are not
+  proof obligations, must not drive required implementation scope unless also
+  present in Acceptance, and must not contradict the implemented behavior.
 - Treat external or local technical docs as contract hints, not implementation
   proof. If a story claims an exact route, model family, auth mode, metadata
   label, or dispatch path, verify repo code or tests prove that exact behavior.
@@ -243,9 +244,9 @@ Multipass planning:
 4. Keep tests, regressions, and gap checks inside the pass that owns the
    subsystem risk unless they need a truly independent evidence path.
 5. Map every acceptance item to at least one planned pass.
-6. For every scenario with `Covers: A<n>`, map the scenario-relevant case to
-   the pass that covers that acceptance id. If no pass covers the linked
-   scenario behavior, add one or record a gate finding.
+6. For every normative scenario with exactly one `Covers: A<n>`, map the
+   scenario-relevant case to the pass that covers that acceptance id. If no pass
+   covers the linked scenario behavior, add one or record a gate finding.
 7. Each pass must have a clear title, acceptance items covered, risk focus, and
    expected evidence surface.
 
@@ -293,7 +294,7 @@ Multipass synthesis:
   just that a cited `file:line` exists.
 - Read the plan and all focused-pass outputs.
 - Map every `## Acceptance` item to at least one completed focused-pass result.
-- Map every `S<n> Covers: A<n>` scenario to the completed focused-pass result
+- Map every `S<n> Covers: A<n>` normative scenario to the completed focused-pass result
   that proves the linked acceptance behavior. If implementation satisfies the
   acceptance wording generally but not the linked scenario case, record a
   `Gate Finding`.
@@ -525,7 +526,7 @@ If a `Review Log` section does not exist, create it.
 Approval is not allowed if the proof contract is still unresolved. A story is
 only eligible for approval when:
 - every acceptance id remains covered
-- every normative scenario linked with `Covers: A<n>` is satisfied through its
+- every normative scenario linked with exactly one `Covers: A<n>` is satisfied through its
   linked acceptance id and final proof row
 - every proof row is `final`
 - the matrix matches the actual implementation and verification surfaces

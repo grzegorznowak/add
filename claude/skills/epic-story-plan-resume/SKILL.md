@@ -66,7 +66,7 @@ A required spec section is structurally complete when:
 - `## Expected Prerequisites` — exists, lists deps that resolve to `MASTER.md` rows, or explicitly "none".
 - `## Scope` — exists, non-empty, describes atomic work.
 - `## Out of Scope` — exists (if missing: warning, not blocker).
-- `## Scenarios / Behavior Examples` — legacy absence is not a blocker. If present, every normative `S<n>` scenario maps to acceptance with `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
+- `## Scenarios / Behavior Examples` — legacy absence is not a blocker. If present, every normative `S<n>` scenario maps to exactly one acceptance id with `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
 - `## Acceptance` — exists, has at least one `A<n>:` bullet, each bullet is atomic. If a bullet names variants, modes, branches, fallback paths, or failure cases, those variants are either split into separate acceptance ids or clearly treated as separate proof obligations.
 - `## Verification` — exists, has both `### Verification Commands` and `### Acceptance Proof Matrix` subsections; the matrix covers every `A<n>` id and every named variant/failure mode inside an id.
 
@@ -176,7 +176,7 @@ Walk the operator through each incomplete section in order. For each:
 4. **Expected Prerequisites** — if missing or unresolved. Walk `MASTER.md` for candidate deps. Interview as question 5.
 5. **Scope** — if missing or non-atomic. Push back on multi-story scope. Interview as question 6.
 6. **Out of Scope** — if missing, propose a best-guess draft from Scope boundaries and confirm.
-7. **Scenarios / Behavior Examples** — if present but incomplete, or if this repair changes concrete flows, scope, acceptance, or verification and the section is missing. Interview as question 7. Normative scenarios must use `Covers: A<n>`; orientation-only scenarios must say `Orientation only`.
+7. **Scenarios / Behavior Examples** — if present but incomplete, or if this repair changes concrete flows, scope, acceptance, or verification and the section is missing. Interview as question 7. Normative scenarios must use exactly one `Covers: A<n>`; orientation-only scenarios must say `Orientation only`.
 8. **Acceptance** — if missing or structurally incomplete. Interview as question 8. Every bullet must be `A<n>:`, atomic, observable. Reject compound bullets. If a bullet names variants, modes, fallback paths, or failure cases, split it or require variant-level proof obligations in Verification. Every normative scenario must map to an acceptance id whose wording covers the scenario's behavior.
 9. **Verification** — if missing or structurally incomplete. Interview as question 9. Must produce `### Verification Commands` and `### Acceptance Proof Matrix` with full coverage for every acceptance id, every named variant/failure mode inside an id, and every linked scenario case. Add `### Surface / Branch Proof Matrix` when multi-surface, `Input Boundary Shape Risk` proof when raw input crosses into stricter assumptions, and `### Fail-open Checks` when prompt-driven. When tests must be added or changed, include planned test seams at variant granularity: file path, test function/class name when knowable, and the expected failing assertion or RED signal.
 
@@ -227,7 +227,7 @@ After all mode work completes, validate the full story:
 
 1. Every required spec section exists and is structurally complete (as defined in readiness check).
 2. If `## Actors` is present, it has role bullets and at least one `Primary:` actor.
-3. If `## Scenarios / Behavior Examples` is present, every normative `S<n>` scenario has `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
+3. If `## Scenarios / Behavior Examples` is present, every normative `S<n>` scenario has exactly one `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
 4. Every linked scenario is covered by its acceptance id and by that id's proof row(s); drift at either hop is invalid.
 5. Every acceptance bullet begins with `A<n>:`, covers exactly one behavior, and has at least one proof matrix row. Any named variants, modes, fallback paths, or failure cases inside the bullet are split into separate acceptance ids or represented as separate proof obligations.
 6. Proof matrix has the required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`, and covers every named variant/failure mode or records an explicit exclusion.
