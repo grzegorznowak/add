@@ -56,8 +56,8 @@ A required spec section is structurally complete when:
 - `## Scope` — exists, non-empty, describes atomic work.
 - `## Out of Scope` — exists (if missing: warning, not blocker).
 - `## Scenarios / Behavior Examples` — legacy absence is not a blocker. If present, every normative `S<n>` scenario maps to acceptance with `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
-- `## Acceptance` — exists, has at least one `A<n>:` bullet, each bullet is atomic.
-- `## Verification` — exists, has both `### Verification Commands` and `### Acceptance Proof Matrix` subsections; the matrix covers every `A<n>` id.
+- `## Acceptance` — exists, has at least one `A<n>:` bullet, each bullet is atomic. If a bullet names variants, modes, branches, fallback paths, or failure cases, those variants are either split into separate acceptance ids or clearly treated as separate proof obligations.
+- `## Verification` — exists, has both `### Verification Commands` and `### Acceptance Proof Matrix` subsections; the matrix covers every `A<n>` id and every named variant/failure mode inside an id.
 
 ## Read first
 
@@ -108,7 +108,7 @@ For every chronologically-ordered pending entry:
 
 1. **Present** the entry's verdict and full key findings to the operator. Show the exact text as it appears in the log, including the `Sections reviewed` list.
 2. **Map** each finding to the spec section it targets. If the finding does not name a section explicitly, ask the operator which section it relates to.
-3. **Propose** a concrete edit to address each finding. Use the story's existing conventions and phrasing style. Show a before/after of the proposed change. Findings about who is affected map to `## Actors`. Findings about concrete flows or examples map to `## Scenarios / Behavior Examples` and then through the funnel into `## Acceptance` and `## Verification` when they are normative. For acceptance or verification changes, re-check atomicity and proof coverage.
+3. **Propose** a concrete edit to address each finding. Use the story's existing conventions and phrasing style. Show a before/after of the proposed change. Findings about who is affected map to `## Actors`. Findings about concrete flows or examples map to `## Scenarios / Behavior Examples` and then through the funnel into `## Acceptance` and `## Verification` when they are normative. For acceptance or verification changes, re-check atomicity and proof coverage. If an acceptance item names variants, modes, fallback paths, or failure cases, ensure each named case has its own proof row or explicit exclusion. If the finding introduces or changes surfaces, orchestration branches, raw input shape assumptions, or fail-open prompt/template risks, update the corresponding `### Surface / Branch Proof Matrix`, `### Input Boundary Shape Risk`, or `### Fail-open Checks` section in the same pass.
 4. **Confirm**: "Apply this change? (y/n/edit)". On `y`, apply the edit. On `n`, ask the operator for an alternative. On `edit`, ask the operator to state the replacement and apply it.
 5. **Record** after all findings in the entry are addressed. Append a new timestamped bullet under `## Plan Review Log`:
 
@@ -166,8 +166,8 @@ Walk the operator through each incomplete section in order. For each:
 5. **Scope** — if missing or non-atomic. Push back on multi-story scope. Interview as question 6.
 6. **Out of Scope** — if missing, propose a best-guess draft from Scope boundaries and confirm.
 7. **Scenarios / Behavior Examples** — if present but incomplete, or if this repair changes concrete flows, scope, acceptance, or verification and the section is missing. Interview as question 7. Normative scenarios must use `Covers: A<n>`; orientation-only scenarios must say `Orientation only`.
-8. **Acceptance** — if missing or structurally incomplete. Interview as question 8. Every bullet must be `A<n>:`, atomic, observable. Reject compound bullets. Every normative scenario must map to an acceptance id whose wording covers the scenario's behavior.
-9. **Verification** — if missing or structurally incomplete. Interview as question 9. Must produce `### Verification Commands` and `### Acceptance Proof Matrix` with full coverage for every acceptance id and every linked scenario case. Add `### Surface / Branch Proof Matrix` when multi-surface, `Input Boundary Shape Risk` proof when raw input crosses into stricter assumptions, and `### Fail-open Checks` when prompt-driven.
+8. **Acceptance** — if missing or structurally incomplete. Interview as question 8. Every bullet must be `A<n>:`, atomic, observable. Reject compound bullets. If a bullet names variants, modes, fallback paths, or failure cases, split it or require variant-level proof obligations in Verification. Every normative scenario must map to an acceptance id whose wording covers the scenario's behavior.
+9. **Verification** — if missing or structurally incomplete. Interview as question 9. Must produce `### Verification Commands` and `### Acceptance Proof Matrix` with full coverage for every acceptance id, every named variant/failure mode inside an id, and every linked scenario case. Add `### Surface / Branch Proof Matrix` when multi-surface, `Input Boundary Shape Risk` proof when raw input crosses into stricter assumptions, and `### Fail-open Checks` when prompt-driven. When tests must be added or changed, include planned test seams at variant granularity: file path, test function/class name when knowable, and the expected failing assertion or RED signal.
 
 For sections 1-7 and 9, consult existing `## Discovery Notes`, `## Critical Files`, `## Implementation Notes`, and `## Locked Decisions` for hints — do not duplicate material across sections.
 
@@ -215,8 +215,8 @@ After all mode work completes, validate the full story:
 2. If `## Actors` is present, it has role bullets and at least one `Primary:` actor.
 3. If `## Scenarios / Behavior Examples` is present, every normative `S<n>` scenario has `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
 4. Every linked scenario is covered by its acceptance id and by that id's proof row(s); drift at either hop is invalid.
-5. Every acceptance bullet begins with `A<n>:`, covers exactly one behavior, and has at least one proof matrix row.
-6. Proof matrix has the required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`.
+5. Every acceptance bullet begins with `A<n>:`, covers exactly one behavior, and has at least one proof matrix row. Any named variants, modes, fallback paths, or failure cases inside the bullet are split into separate acceptance ids or represented as separate proof obligations.
+6. Proof matrix has the required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`, and covers every named variant/failure mode or records an explicit exclusion.
 7. Every `Proof Maturity` value is `final` or `provisional`. Every `provisional` row has non-blank `Open Detail`.
 8. When the story spans multiple surfaces, variants, or orchestration branches: `### Surface / Branch Proof Matrix` is present.
 9. When raw persisted, external, framework, or generated input crosses stricter application assumptions: `### Input Boundary Shape Risk` is present and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.

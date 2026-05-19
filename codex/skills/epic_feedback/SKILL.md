@@ -215,9 +215,14 @@ After constructing story spec/proof edits and before writing, run these phases i
 5. `Proof Maturity` is `final` or `provisional` only.
 6. Every `provisional` row has non-blank `Open Detail`.
 7. No `<TODO: ...>` placeholders in `## Acceptance` or `## Verification`.
-8. If the story spans surfaces, supported variants, modes, or internal orchestration branches, `### Surface / Branch Proof Matrix` exists and covers every in-scope combination or records an explicit exclusion.
-9. If raw persisted, external, framework, or generated input crosses stricter application assumptions, `### Input Boundary Shape Risk` exists when needed and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
-10. If prompt placeholders, template variables, or string substitution can fail open, `### Fail-open Checks` exists and covers enabled and disabled/default paths.
+8. If `## Actors` is present, it uses role bullets with at least one `Primary:` actor and stays consistent with Purpose, Scope, Scenarios, Acceptance, and Verification.
+9. If feedback changes who initiates, participates in, reviews, or is affected by the behavior, the edit updates `## Actors` or records an explicit non-change rationale before writing.
+10. If feedback changes concrete flows or examples, the edit updates `## Scenarios / Behavior Examples` or records an explicit non-change rationale before writing.
+11. If `## Scenarios / Behavior Examples` is present, every normative `S<n>` scenario has `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
+12. Every normative scenario funnels through Acceptance and Verification: the covered `A<n>` wording includes the scenario behavior, and that acceptance id has proof row(s) covering the scenario, including named variants, modes, branches, fallback paths, and failure cases or explicit exclusions.
+13. If the story spans surfaces, supported variants, modes, or internal orchestration branches, `### Surface / Branch Proof Matrix` exists and covers every in-scope combination or records an explicit exclusion.
+14. If raw persisted, external, framework, or generated input crosses stricter application assumptions, `### Input Boundary Shape Risk` exists when needed and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
+15. If prompt placeholders, template variables, or string substitution can fail open, `### Fail-open Checks` exists and covers enabled and disabled/default paths.
 
 **Phase B — Contract-preservation diff.** Compare the edited sections against the originals:
 - Every pre-existing `A<n>` still appears in at least one proof row in the edited version (coverage match — row shape may change).
