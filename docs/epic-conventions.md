@@ -738,15 +738,21 @@ epic/story arguments. Three strategies exist:
    relevant to later passes; executor agents only decide whether the needed
    fact is present in the provided board. When it is present, they verify it
    with direct reads/search against the cited anchors instead of rerunning
-   expensive research. Loopers pass the full board to fresh lifecycle sessions
-   and must ask the operator before compacting or excluding entries. Loopers
-   must not pass persuasive verdict framing such as "the prior reviewer was
-   wrong" or "approval is expected".
+   expensive research. If direct verification shows a provided entry no longer
+   supports its claim, the executor reports a board-refresh signal with the
+   entry id and live-source anchors; the looper decides whether to update,
+   replace, retire, or ask about that board entry. Loopers pass the full board
+   to fresh lifecycle sessions and must ask the operator before compacting or
+   excluding entries. Loopers must not pass persuasive verdict framing such as
+   "the prior reviewer was wrong" or "approval is expected".
 4. **Research Events return path**: lifecycle skills launched by a converger
    must return `Research Events` with reused board entries, newly sourced
-   research, or `- None.` when no research was used or produced. Reused entries
-   should name the board entry and the direct-read/search anchors used to verify
-   it. Newly sourced research requires exact anchors.
+   research, board-refresh signals, or `- None.` when no research was used or
+   produced. Reused entries should name the board entry and the
+   direct-read/search anchors used to verify it. Board-refresh signals should
+   name the board entry or absent needed fact, describe the verification miss,
+   and cite the direct-read/search anchors proving the miss or replacement fact.
+   Newly sourced research and board-refresh signals require exact anchors.
 5. **Final reports are not thinking logs**: loopers must return only their
    required report sections. They must not include `Thinking:` blocks, private
    deliberation, or comments about tentative next actions outside the structured

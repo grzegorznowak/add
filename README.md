@@ -339,7 +339,10 @@ source anchors, and is never persisted as a physical cache. The looper owns
 keeping that board relevant for later passes; executor agents only decide
 whether the needed fact is present in the provided board. When it is present,
 they verify it with direct reads/search against the cited anchors instead of
-rerunning expensive research. Loopers pass the full board unless the operator
+rerunning expensive research. If direct verification shows a provided entry no
+longer supports its claim, the executor reports a board-refresh signal with the
+entry id and live-source anchors; the looper decides how to update, replace, or
+retire that board entry. Loopers pass the full board unless the operator
 approves compaction.
 Looper final reports are structured operational handoffs only, not thinking
 logs; `DONE` means the authoritative story status is `✅ DONE`, while local
