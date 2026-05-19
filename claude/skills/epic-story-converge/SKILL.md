@@ -79,7 +79,7 @@ For each cycle:
 
    ```text
    Shared Research Board from parent orchestration session:
-   This is allowed cross-session context because every item is sourced research. Use it for orientation only. Verify behavior against live source before editing, planning approval, or implementation approval.
+   This is allowed cross-session context because every item is sourced research. Use it for orientation only. The converger owns keeping it relevant; executor subagents only decide whether the needed fact is present. If present, verify behavior with direct reads/search against the cited anchors before editing, planning approval, or implementation approval instead of rerunning expensive research.
 
    - <entry id>: <claim or result>
      - Source: <tool/query/path, file:line, symbol, or command/output excerpt>
@@ -96,7 +96,7 @@ For each cycle:
    ```
 
 5. End the task prompt with the exact slash command line, then launch exactly one fresh subagent.
-6. Require every subagent final response to include `## Research Events`, with `- None.` allowed. After the pass finishes, append only sourced research events to the in-memory Research Board. Do not append verdicts, implementation opinions, or unanchored summaries.
+6. Require every subagent final response to include `## Research Events`, with `- None.` allowed. Reused board entries must name the entry and direct-read/search anchors used to verify it. After the pass finishes, append only newly sourced research events to the in-memory Research Board. Do not append verdicts, implementation opinions, or unanchored summaries.
 7. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that pass only. The next lifecycle pass still starts in a new fresh subagent.
 8. After the pass finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive decisions from the newest authoritative sections and status, not from chat output alone.
 9. If a claim or resume pass leaves the story at `🟣 IN REVIEW`, the same cycle may launch a fresh review pass.
@@ -121,7 +121,7 @@ Record neutral operational facts only:
 
 Do not record persuasive verdict framing. Never tell a later reviewer that a previous reviewer was wrong, that approval is expected, or that a finding should be ignored.
 
-Research Board entries are the only allowed cross-subagent context beyond neutral operational notes. Each entry must be sourced by an exact anchor: file path plus line range or symbol, command plus relevant output excerpt, or tool name plus query/action/resource/path/URL and relevant output excerpt for any sourced tool. The board is an orientation aid, not authority; every subagent must verify behavior against live source before editing or approving. If the board becomes too large to pass in full, ask the operator before compacting or excluding entries. Never persist the board to disk.
+Research Board entries are the only allowed cross-subagent context beyond neutral operational notes. Each entry must be sourced by an exact anchor: file path plus line range or symbol, command plus relevant output excerpt, or tool name plus query/action/resource/path/URL and relevant output excerpt for any sourced tool. The board is an orientation aid, not authority. The converger owns keeping it relevant for later passes; executor subagents only decide whether the needed fact is present in the provided board. If present, the executor verifies behavior with direct reads/search against the cited anchors before editing or approving instead of rerunning expensive research. If absent, the executor follows the underlying skill's normal research rules. If the board becomes too large to pass in full, ask the operator before compacting or excluding entries. Never persist the board to disk.
 
 Stop early for conservative no-progress when all are true:
 
@@ -175,7 +175,8 @@ Return only the compact report below. Do not include internal deliberation, anal
 - Entries: <n>
 - Hotspots: <paths/symbols surfaced by sourced research, or none>
 - New this run: <n>
-- Corrected/stale-risk: <summary or none>
+- Reused and directly verified: <summary or none>
+- Refresh signals: <needed facts absent from provided board, or none>
 - Persistence: session memory only; no physical cache files written
 
 ## Commit Recommendation

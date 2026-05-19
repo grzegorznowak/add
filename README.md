@@ -335,8 +335,12 @@ all writes to the underlying lifecycle commands. They may carry neutral
 in-memory notes about blockers, hotspots, repeated tool friction, and a
 session-only Research Board of sourced facts.
 The Research Board is passed to fresh agents as orientation only, requires exact
-source anchors, and is never persisted as a physical cache. Loopers pass the
-full board unless the operator approves compaction.
+source anchors, and is never persisted as a physical cache. The looper owns
+keeping that board relevant for later passes; executor agents only decide
+whether the needed fact is present in the provided board. When it is present,
+they verify it with direct reads/search against the cited anchors instead of
+rerunning expensive research. Loopers pass the full board unless the operator
+approves compaction.
 Looper final reports are structured operational handoffs only, not thinking
 logs; `DONE` means the authoritative story status is `✅ DONE`, while local
 approval that still awaits the optional PR stage is reported as `APPROVED`.

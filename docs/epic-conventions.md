@@ -734,14 +734,19 @@ epic/story arguments. Three strategies exist:
    Research Board whose entries all have exact source anchors such as
    `path:line`, symbols, command/output excerpts, or tool/query/path.
    Research Board facts are orientation only and must be verified against live
-   source before editing or approving. Loopers pass the full board to fresh
-   lifecycle sessions and must ask the operator before compacting or excluding
-   entries. Loopers must not pass persuasive verdict framing such as
-   "the prior reviewer was wrong" or "approval is expected".
+   source before editing or approving. The looper owns keeping the board
+   relevant to later passes; executor agents only decide whether the needed
+   fact is present in the provided board. When it is present, they verify it
+   with direct reads/search against the cited anchors instead of rerunning
+   expensive research. Loopers pass the full board to fresh lifecycle sessions
+   and must ask the operator before compacting or excluding entries. Loopers
+   must not pass persuasive verdict framing such as "the prior reviewer was
+   wrong" or "approval is expected".
 4. **Research Events return path**: lifecycle skills launched by a converger
-   must return `Research Events` with reused, added, corrected, and stale-risk
-   entries, or `- None.` when no research was used or produced. Added,
-   corrected, and stale-risk entries require exact anchors.
+   must return `Research Events` with reused board entries, newly sourced
+   research, or `- None.` when no research was used or produced. Reused entries
+   should name the board entry and the direct-read/search anchors used to verify
+   it. Newly sourced research requires exact anchors.
 5. **Final reports are not thinking logs**: loopers must return only their
    required report sections. They must not include `Thinking:` blocks, private
    deliberation, or comments about tentative next actions outside the structured

@@ -75,7 +75,7 @@ A required spec section is structurally complete when:
 
 ## Shared Research Board Input
 
-When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only; every board fact must still be verified against live source before it affects a story edit. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only. The converger owns keeping it relevant; you only decide whether the needed fact is present in the provided board. If present, verify it with direct reads/search against the cited anchors before it affects a story edit instead of rerunning expensive research. If absent, follow this skill's normal research rules. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
 
 ## Assessment
 
@@ -230,5 +230,5 @@ If validation passes and any spec or proof section changed, set the `Plan` lane 
 - which modes were entered (feedback absorption, planning continuation, or both)
 - sections edited
 - whether re-validation passed
-- `## Research Events` with reused, added, corrected, and stale-risk bullets; include exact anchors for added, corrected, and stale-risk entries, and use `- None.` when no research was used or produced
+- `## Research Events` with reused board entries and newly sourced research; for reused entries, name the board entry plus the direct-read/search anchors used to verify it; for new research, include exact anchors; use `- None.` when no research was used or produced
 - the exact next action: `epic_story_plan_review $EPIC <NN>` for a fresh contract review; after `Plan` becomes `🟢 PLAN APPROVED`, use `epic_story_claim $EPIC <NN>` if implementation `Status` is `⚪ TODO`, or `epic_story_resume $EPIC <NN>` if implementation has already started

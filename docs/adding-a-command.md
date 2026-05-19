@@ -85,8 +85,10 @@ Argument: `$ARGUMENTS` — <what the user passes>.
   fresh sessions, pass neutral operational context plus sourced Research Board
   entries only, document hard stops and no-progress gates, and avoid persuasive
   verdict framing. If they pass a session Research Board, require exact source
-  anchors, treat it as orientation only, ask before compacting it, and never
-  persist it.
+  anchors, treat it as orientation only, make the looper responsible for keeping
+  it relevant, tell executor sessions to verify present facts with direct
+  reads/search against cited anchors before rerunning expensive research, ask
+  before compacting it, and never persist it.
 - End with a `## Final response` section describing what the operator
   should see when the command finishes.
 
