@@ -168,7 +168,14 @@ next, but any lane or status change is made by `/epic-feedback`,
 `/epic-story-resume`, `/epic-story-review`, or `/epic-story-pr` according to
 the table above. They may carry a session-only
 Research Board of exactly sourced facts across fresh agents, but that board is
-orientation only and never replaces live-source verification.
+orientation only and never replaces live-source verification. The looper owns
+keeping the board relevant to later passes. Fresh lifecycle agents only decide
+whether the needed fact is present in the provided board; when it is, they
+verify it with direct reads/search against the cited anchors instead of
+rerunning expensive research. If direct verification shows a provided entry no
+longer supports its claim, the executor reports a board-refresh signal with the
+entry id and live-source anchors; the looper decides how to update, replace, or
+retire that board entry.
 
 `/epic-pr` is outside the story status state machine. It opens or refreshes an
 epic-level PR from `CONTRACT.md` plus current non-archived `✅ DONE` stories,
@@ -245,7 +252,10 @@ files, never changes implementation `Status`, and never sets `Plan` to
     already-started implementation work. Neither replaces `/epic-story-pr`, and
     neither directly writes coordination files, source files, tests, or commits.
     Their Research Board remains in parent-session memory only and is not a
-    durable cache.
+    durable cache. It is still a reusable source guide for later fresh agents:
+    the looper curates relevance, while executors verify provided entries
+    directly before trusting them and report refresh signals when a provided
+    entry does not verify.
 16. **Looper final reports are operational only.**
     `/epic-story-converge` reports `APPROVED` when local review approves but the
     authoritative status remains `🟣 IN REVIEW`, and reports `DONE` only when

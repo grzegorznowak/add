@@ -44,7 +44,7 @@ Do **not** try to rediscover or redefine the epic from scratch. Do **not** claim
 
 ## Shared Research Board Input
 
-When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only; every board fact must still be verified against live source before it affects implementation, proof updates, or coordination write-back. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only. The converger owns keeping it relevant; you only decide whether the needed fact is present in the provided board. If present, verify it with direct reads/search against the cited anchors before it affects implementation, proof updates, or coordination write-back instead of rerunning expensive research. If a provided entry does not verify, report a board-refresh signal with exact anchors; do not decide how to curate the board. If absent, follow this skill's normal research rules. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
 
 ## Step selection
 
@@ -270,5 +270,5 @@ State:
 - its final status
 - files changed
 - whether the epic master was updated
-- `## Research Events` with reused, added, corrected, and stale-risk bullets; include exact anchors for added, corrected, and stale-risk entries, and use `- None.` when no research was used or produced
+- `## Research Events` with reused board entries, board-refresh signals, and newly sourced research; for reused entries, name the board entry plus the direct-read/search anchors used to verify it; for board-refresh signals, name the board entry or absent needed fact plus anchors proving the miss or replacement fact; for new research, include exact anchors; use `- None.` when no research was used or produced
 - the exact next action for the next fresh session

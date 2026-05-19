@@ -85,7 +85,7 @@ Do not infer identity from filename shape or naming conventions that are not exp
 
 ## Shared Research Board Input
 
-When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only; every board fact must still be verified against live source before it affects a finding, approval, or write-back. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only. The converger owns keeping it relevant; you only decide whether the needed fact is present in the provided board. If present, verify it with direct reads/search against the cited anchors before it affects a finding, approval, or write-back instead of rerunning expensive research. If a provided entry does not verify, report a board-refresh signal with exact anchors; do not decide how to curate the board. If absent, follow this skill's normal research rules. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
 
 ## Plan review process
 
@@ -183,10 +183,9 @@ Start with findings, ordered by severity, with section references.
 - [unchanged: <status> -> <status>]
 
 ## Research Events
-- reused: <board entries used, or none>
+- reused: <board entries verified by direct reads/search with anchors, or none>
+- board-refresh: <provided entries not verified or needed facts absent, with anchors, or none>
 - added: <new sourced research facts with anchors, or none>
-- corrected: <board entries corrected with anchors, or none>
-- stale-risk: <board entries that need re-checking, or none>
 
 **Next Action**
 - [single concrete next step, e.g. "/epic-story-claim <epic>" or "edit <sections> in <story file> and re-run /epic-story-plan-review from a fresh session"]
