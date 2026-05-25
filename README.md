@@ -1,8 +1,8 @@
 # add — Agentic Driven Development
 
 A personal, pluggable collection of agent skills for managing software work via
-the **epic / story** lifecycle. Authored once, installed into both **Claude
-Code** and **Codex** with one command.
+the **epic / story** lifecycle. Authored once, installed into **Claude
+Code**, **Codex**, and **pi** with one command.
 
 ## Why this works
 
@@ -120,7 +120,8 @@ The installer writes to one or more of these locations:
 Codex and pi outputs are generated from `claude/skills/` at install time; there
 is no committed `codex/skills/` source tree to maintain. Claude installs remain
 symlink-based and refuse to clobber non-symlink targets unless you pass
-`--force`.
+`--force`. Generated Codex/pi installers also refuse to overwrite modified
+existing `SKILL.md` or `agents/openai.yaml` files unless `--force` is set.
 
 ### Non-Interactive Install
 
@@ -136,8 +137,8 @@ Flags:
 - `--agents claude|codex|pi|both|all` — which runtimes (default: `both`, meaning Claude+Codex; `all` includes pi)
 - `--project <path>` — also install into `<path>/.claude/skills/` and
   `<path>/.agents/skills/` for runtimes with project-level skill roots
-- `--yes` — skip the confirmation prompt
-- `--force` — overwrite non-symlink Claude targets
+- `--yes` — skip the confirmation prompt; required for non-TTY installs that mutate files
+- `--force` — overwrite non-symlink Claude targets and modified generated Codex/pi files
 - `--dry-run` — show what would happen, change nothing
 
 ### opencode Agents
@@ -157,7 +158,7 @@ Restart opencode or run `/reload` after installing.
 
 ### Plugin Install (Claude Code Only)
 
-If you only use Claude Code and do not need the Codex side, install via the
+If you only use Claude Code and do not need the Codex or pi side, install via the
 plugin marketplace. The repo ships `.claude-plugin/plugin.json` and a
 `marketplace.json` manifest.
 

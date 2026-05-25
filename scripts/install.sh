@@ -14,7 +14,8 @@
 #                                    (<path>/.claude/skills/ for Claude,
 #                                     <path>/.agents/skills/ for Codex)
 #   --yes                            skip the confirmation prompt
-#   --force                          overwrite non-symlink Claude targets
+#   --force                          overwrite non-symlink Claude targets and
+#                                    modified generated Codex/pi files
 #   --dry-run                        show what would happen, change nothing
 #   --help                           show this message
 
@@ -120,7 +121,7 @@ install_codex_skills_into() {
   local dest_root="$1"
   ensure_dir "$dest_root"
   log "Codex skills (generated) → $dest_root"
-  if ! run env "CODEX_SKILLS_DIR=$dest_root" "$REPO_ROOT/scripts/install-codex.sh"; then
+  if ! run env "CODEX_SKILLS_DIR=$dest_root" "ADD_INSTALL_FORCE=$FORCE" "$REPO_ROOT/scripts/install-codex.sh"; then
     err "install-codex.sh failed"
     exit 1
   fi
@@ -130,7 +131,7 @@ install_pi_skills_into() {
   local dest_root="$1"
   ensure_dir "$dest_root"
   log "pi skills (generated) → $dest_root"
-  if ! run env "PI_SKILLS_DIR=$dest_root" "$REPO_ROOT/scripts/install-pi.sh"; then
+  if ! run env "PI_SKILLS_DIR=$dest_root" "ADD_INSTALL_FORCE=$FORCE" "$REPO_ROOT/scripts/install-pi.sh"; then
     err "install-pi.sh failed"
     exit 1
   fi
@@ -298,6 +299,11 @@ if [[ $# -eq 0 && -t 0 ]]; then
   run_wizard
 else
   parse_flags "$@"
+fi
+
+if [[ ! -t 0 && $YES -ne 1 && $DRY_RUN -ne 1 ]]; then
+  err "non-interactive installs require --yes (or --dry-run)"
+  exit 2
 fi
 
 if [[ $YES -ne 1 && $DRY_RUN -ne 1 ]]; then

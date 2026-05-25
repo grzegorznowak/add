@@ -109,7 +109,8 @@ directories are generated rather than committed:
 
 `scripts/install-codex.sh` compiles each `claude/skills/<name>/SKILL.md` by:
 
-1. stripping Claude-only `## Shared Research Board Input` transport sections,
+1. preserving the Claude Research Board input and `## Research Events` contract
+   because generated Codex convergers still delegate with those sections,
 2. converting the directory and frontmatter `name:` from kebab-case to
    snake_case, and
 3. writing `agents/openai.yaml` with `allow_implicit_invocation: false`.

@@ -14,7 +14,7 @@ Argument: `<epic> <story> [MAX_CYCLES=5]`. No `WORKTREE=` — planning never tou
 1. Parse `$ARGUMENTS`: `<epic>` required, `<story>` required, `MAX_CYCLES=<n>` optional (default 5).
 2. Resolve `<epic_dir>` = `<cwd>/agent_coordination/epics/<epic>`.
 3. Read `<epic_dir>/MASTER.md`. Match `<story>` by `Step`, then `Spec`. Abort on mismatch or ambiguity.
-4. Resolve `<story_file>` from the matched row's `Spec` value.
+4. Resolve `<step>` from the matched row's `Step` value and `<story_file>` from its `Spec` value. Use `<step>` — never the raw `<story>` selector — in every ledger key and child prompt.
 
 ## Phase 2 — Eligibility Gate
 
@@ -27,44 +27,44 @@ Run up to `MAX_CYCLES` cycles. Before each child launch, re-read `MASTER.md` and
 ### Ledger entries
 
 Maintain two ledger entries:
-- `plan-babysit-<epic>-<story>` — neutral operational notes
-- `plan-research-<epic>-<story>` — sourced Research Board entries (path:line anchors required)
+- `plan-babysit-<epic>-<step>` — neutral operational notes
+- `plan-research-<epic>-<step>` — sourced Research Board entries (path:line anchors required)
 
 ### Launching children
 
 For each cycle, decide pass type:
 - Missing/incomplete spec sections, no newer unaddressed review finding → `/epic-story-plan-resume`
 - Story ready for review → `/epic-story-plan-review`
-- After review `request_changes` → follow with `/epic-story-plan-resume`
+- After review `request_changes` or `not_reviewable` → follow with `/epic-story-plan-resume`
 
 Spawn one child per pass. Name the exact owning workflow skill in the prompt: `epic-story-plan-review` for review passes or `epic-story-plan-resume` for resume passes.
 
 Use one of these exact opening lines, based on the selected pass:
-- Plan-review child: `You are executing the epic-story-plan-review workflow for story <epic>/<story>. Treat this as the pi-native equivalent of /epic-story-plan-review <epic> <story>.`
-- Plan-resume child: `You are executing the epic-story-plan-resume workflow for story <epic>/<story>. Treat this as the pi-native equivalent of /epic-story-plan-resume <epic> <story>.`
+- Plan-review child: `You are executing the epic-story-plan-review workflow for story <epic>/<step>. Treat this as the pi-native equivalent of /epic-story-plan-review <epic> <step>.`
+- Plan-resume child: `You are executing the epic-story-plan-resume workflow for story <epic>/<step>. Treat this as the pi-native equivalent of /epic-story-plan-resume <epic> <step>.`
 
 ```
 spawn({
   prompt: "<exact opening line for plan-review/plan-resume>
-  Retrieve ledger entries: 'plan-research-<epic>-<story>' (verify with direct reads), 'plan-babysit-<epic>-<story>' (operational notes).
-  Write new sourced research to 'plan-research-<epic>-<story>'. Report blockers or repeated failures.",
+  Retrieve ledger entries: 'plan-research-<epic>-<step>' (verify with direct reads), 'plan-babysit-<epic>-<step>' (operational notes).
+  Write new sourced research to 'plan-research-<epic>-<step>'. Report blockers or repeated failures.",
   thinking: "high"
 })
 ```
 
 After each child:
 1. Re-read `MASTER.md` and story file. Derive decisions from file state.
-2. Read `ledger_get("plan-research-<epic>-<story>")`. Curate entries.
-3. Update `plan-babysit-<epic>-<story>` with neutral operational facts.
+2. Read `ledger_get("plan-research-<epic>-<step>")`. Curate entries.
+3. Update `plan-babysit-<epic>-<step>` with neutral operational facts.
 4. If child asks operator question: pause, ask, resume same child for that pass only.
 5. If review decision is `approve` or `Plan` reaches `🟢 PLAN APPROVED` → stop. Recommend `/epic-story-claim` or `/epic-story-resume`.
 6. If `blocked` → stop.
-7. If `request_changes` → launch resume child, then next cycle.
+7. If `request_changes` or `not_reviewable` → launch resume child, then next cycle.
 8. If implementation `Status` changes during convergence → stop (unexpected state).
 
 ## Phase 4 — No-Progress Gate
 
-Stop when: latest review requested changes, subsequent resume didn't materially edit targeted sections, same blocker would go to review unchanged.
+Stop when: latest review returned `request_changes` or `not_reviewable`, subsequent resume didn't materially edit targeted sections, same blocker would go to review unchanged.
 
 Other stops: `MAX_CYCLES`, `blocked`, implementation status change, subagent failure, operator declines required interaction.
 
@@ -81,9 +81,9 @@ Other stops: `MAX_CYCLES`, `blocked`, implementation status change, subagent fai
 - Cycle 2: ...
 
 ## Research Board Snapshot
-- Entries: <n> (ledger: plan-research-<epic>-<story>)
+- Entries: <n> (ledger: plan-research-<epic>-<step>)
 - Hotspots: <paths/symbols>
-- Persistence: ledger entry `plan-research-<epic>-<story>`
+- Persistence: ledger entry `plan-research-<epic>-<step>`
 
 ## Babysitter Notes
 - <neutral operational fact>
