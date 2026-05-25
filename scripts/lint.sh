@@ -2,18 +2,19 @@
 # lint.sh — validate that the repo is in a shippable state.
 #
 # Checks:
-#   1. Frontmatter shape on every Claude SKILL.md and every Codex SKILL.md.
-#   2. agents/openai.yaml present on every Codex skill with
-#      allow_implicit_invocation: false.
-#   3. Pairing — every Claude skill has a Codex skill counterpart and vice
-#      versa, except for entries on the explicit known-singletons list.
-#   4. Phase-heading parity between paired files (drift signal).
-#   5. Codex skill directory name matches the `name:` field inside its
-#      SKILL.md.
-#   6. Codex skills do not carry prompt-era compatibility scaffolding.
-#   7. No `cure_workspace` absolute paths anywhere.
-#   8. Claude skill directory name matches the `name:` field inside its
-#      SKILL.md.
+#   1. Frontmatter shape on every Claude SKILL.md.
+#   2. Claude skill directory name matches the `name:` field.
+#   3. pi-fragments/: append fragments have no YAML frontmatter;
+#      replace fragments DO have YAML frontmatter; names match.
+#   4. install-codex.sh and install-pi.sh run cleanly against claude/skills/.
+#   5. Frontmatter shape on generated Codex SKILL.md and generated Pi SKILL.md.
+#   6. Generated Codex skills have valid agents/openai.yaml.
+#   7. Generated Codex skills have no Shared Research Board Input sections.
+#   8. Generated Pi skills have no Shared Research Board Input sections.
+#   9. Pairing — every Claude skill has a Codex and Pi counterpart.
+#   10. Phase-heading parity between Claude and generated Codex skills.
+#   11. Codex skills do not carry prompt-era compatibility scaffolding.
+#   12. No `cure_workspace` absolute paths anywhere.
 #
 # Exit codes:
 #   0 — clean
@@ -23,13 +24,11 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_SKILLS="${REPO_ROOT}/claude/skills"
-CODEX_SKILLS="${REPO_ROOT}/codex/skills"
-
-# Singletons: entries that legitimately only exist on one side. Names use the
-# Codex form (underscored). The Claude form is the same string with underscores
-# converted to hyphens.
-SINGLETONS_CODEX_ONLY=(memorize)
-SINGLETONS_CLAUDE_ONLY=()
+PI_FRAGMENTS="${REPO_ROOT}/pi-fragments"
+TMPDIR="$(mktemp -d)"
+trap 'rm -rf "$TMPDIR"' EXIT
+CODEX_SKILLS="$TMPDIR/codex-skills"
+PI_SKILLS="$TMPDIR/pi-skills"
 
 FAIL=0
 fail() { printf 'FAIL %s\n' "$*" >&2; FAIL=1; }
@@ -114,74 +113,160 @@ else
 fi
 
 echo
-echo "lint: codex/skills/"
-declare -a CODEX_NAMES=()
-if [[ ! -d "$CODEX_SKILLS" ]]; then
-  fail "missing directory: $CODEX_SKILLS"
+echo "lint: pi-fragments/"
+declare -a PI_REPLACE_NAMES=()
+declare -a PI_APPEND_NAMES=()
+if [[ ! -d "$PI_FRAGMENTS" ]]; then
+  fail "missing directory: $PI_FRAGMENTS"
 else
-  for skill_dir in "$CODEX_SKILLS"/*/; do
-    [[ -d "$skill_dir" ]] || continue
-    dir_name="$(basename "$skill_dir")"
-    skill_md="$skill_dir/SKILL.md"
-    openai_yaml="$skill_dir/agents/openai.yaml"
+  for fragment in "$PI_FRAGMENTS"/*.md; do
+    [[ -f "$fragment" ]] || continue
+    frag_name="$(basename "$fragment" .md)"
+    first_line="$(head -1 "$fragment")"
 
-    if [[ ! -f "$skill_md" ]]; then
-      fail "$skill_dir: missing SKILL.md"
-      continue
+    if [[ "$first_line" == "---" ]]; then
+      # Replace fragment: must have valid frontmatter and name field
+      declared_name="$(extract_name "$fragment")"
+      if [[ -z "$declared_name" ]]; then
+        fail "$fragment: replace fragment missing 'name:' in frontmatter"
+      elif [[ "$declared_name" != "$frag_name" ]]; then
+        fail "$fragment: name '$declared_name' does not match filename '$frag_name'"
+      else
+        ok "$frag_name (replace)"
+        PI_REPLACE_NAMES+=("$frag_name")
+      fi
+    else
+      # Append fragment: must have matching Claude skill
+      if [[ -d "$CLAUDE_SKILLS/$frag_name" ]]; then
+        ok "$frag_name (append)"
+        PI_APPEND_NAMES+=("$frag_name")
+      else
+        fail "$fragment: append fragment has no matching claude/skills/$frag_name/"
+      fi
     fi
-
-    check_frontmatter_fields "$skill_md" name description
-
-    declared_name="$(extract_name "$skill_md")"
-    if [[ -z "$declared_name" ]]; then
-      fail "$skill_md: empty or unparsable name field"
-      continue
-    elif [[ "$declared_name" != "$dir_name" ]]; then
-      fail "$skill_md: name '$declared_name' does not match directory '$dir_name'"
-      continue
-    fi
-
-    if [[ ! -f "$openai_yaml" ]]; then
-      fail "$skill_dir: missing agents/openai.yaml"
-      continue
-    fi
-    if ! grep -Eq '^[[:space:]]*allow_implicit_invocation:[[:space:]]*false' "$openai_yaml"; then
-      fail "$openai_yaml: missing or wrong 'allow_implicit_invocation: false'"
-      continue
-    fi
-
-    ok "$dir_name"
-    CODEX_NAMES+=("$dir_name")
   done
 fi
 
 echo
-echo "lint: pairing"
+echo "lint: generating codex skills (install-codex.sh)"
+if ! CODEX_SKILLS_DIR="$CODEX_SKILLS" "$REPO_ROOT/scripts/install-codex.sh" >/dev/null 2>&1; then
+  fail "install-codex.sh failed"
+else
+  ok "install-codex.sh succeeded"
+fi
+
+echo
+echo "lint: generating pi skills (install-pi.sh)"
+if ! PI_SKILLS_DIR="$PI_SKILLS" "$REPO_ROOT/scripts/install-pi.sh" >/dev/null 2>&1; then
+  fail "install-pi.sh failed"
+else
+  ok "install-pi.sh succeeded"
+fi
+
+echo
+echo "lint: generated codex/skills/"
+declare -a CODEX_NAMES=()
+for skill_dir in "$CODEX_SKILLS"/*/; do
+  [[ -d "$skill_dir" ]] || continue
+  dir_name="$(basename "$skill_dir")"
+  skill_md="$skill_dir/SKILL.md"
+  openai_yaml="$skill_dir/agents/openai.yaml"
+
+  if [[ ! -f "$skill_md" ]]; then
+    fail "$skill_dir: missing SKILL.md"
+    continue
+  fi
+
+  check_frontmatter_fields "$skill_md" name description
+
+  declared_name="$(extract_name "$skill_md")"
+  if [[ -z "$declared_name" ]]; then
+    fail "$skill_md: empty or unparsable name field"
+    continue
+  elif [[ "$declared_name" != "$dir_name" ]]; then
+    fail "$skill_md: name '$declared_name' does not match directory '$dir_name'"
+    continue
+  fi
+
+  if [[ ! -f "$openai_yaml" ]]; then
+    fail "$skill_dir: missing agents/openai.yaml"
+    continue
+  fi
+  if ! grep -Eq '^[[:space:]]*allow_implicit_invocation:[[:space:]]*false' "$openai_yaml"; then
+    fail "$openai_yaml: missing or wrong 'allow_implicit_invocation: false'"
+    continue
+  fi
+
+  ok "$dir_name"
+  CODEX_NAMES+=("$dir_name")
+done
+
+echo
+echo "lint: generated pi/skills/"
+declare -a PI_GEN_NAMES=()
+for skill_dir in "$PI_SKILLS"/*/; do
+  [[ -d "$skill_dir" ]] || continue
+  dir_name="$(basename "$skill_dir")"
+  skill_md="$skill_dir/SKILL.md"
+
+  if [[ ! -f "$skill_md" ]]; then
+    fail "$skill_dir: missing SKILL.md"
+    continue
+  fi
+
+  check_frontmatter_fields "$skill_md" name description
+
+  declared_name="$(extract_name "$skill_md")"
+  if [[ -z "$declared_name" ]]; then
+    fail "$skill_md: empty or unparsable name field"
+    continue
+  elif [[ "$declared_name" != "$dir_name" ]]; then
+    fail "$skill_md: name '$declared_name' does not match directory '$dir_name'"
+    continue
+  fi
+
+  ok "$dir_name"
+  PI_GEN_NAMES+=("$dir_name")
+done
+
+echo
+echo "lint: research board stripped from generated skills"
+if grep -Rl '^## Shared Research Board Input$' "$CODEX_SKILLS" 2>/dev/null; then
+  fail "generated codex skills still contain Shared Research Board Input section"
+else
+  ok "codex: no Shared Research Board Input"
+fi
+if grep -Rl '^## Shared Research Board Input$' "$PI_SKILLS" 2>/dev/null; then
+  fail "generated pi skills still contain Shared Research Board Input section"
+else
+  ok "pi: no Shared Research Board Input"
+fi
+
+echo
+echo "lint: pairing (claude ↔ codex)"
 for cn in "${CLAUDE_NAMES[@]:-}"; do
   [[ -z "$cn" ]] && continue
-  expected_codex="$(hyphen_to_underscore "$cn")"
-  if in_array "$expected_codex" "${CODEX_NAMES[@]:-}"; then
-    ok "$cn ↔ $expected_codex"
-  elif in_array "$expected_codex" "${SINGLETONS_CLAUDE_ONLY[@]:-}"; then
-    ok "$cn (claude-only singleton)"
+  expected="$(hyphen_to_underscore "$cn")"
+  if in_array "$expected" "${CODEX_NAMES[@]:-}"; then
+    ok "$cn ↔ $expected"
   else
-    fail "claude skill '$cn' has no codex counterpart (expected '$expected_codex')"
-  fi
-done
-for cn in "${CODEX_NAMES[@]:-}"; do
-  [[ -z "$cn" ]] && continue
-  expected_claude="$(underscore_to_hyphen "$cn")"
-  if in_array "$expected_claude" "${CLAUDE_NAMES[@]:-}"; then
-    : # already reported in the previous loop
-  elif in_array "$cn" "${SINGLETONS_CODEX_ONLY[@]:-}"; then
-    ok "$cn (codex-only singleton)"
-  else
-    fail "codex skill '$cn' has no claude counterpart (expected '$expected_claude')"
+    fail "claude skill '$cn' has no generated codex counterpart (expected '$expected')"
   fi
 done
 
 echo
-echo "lint: phase-heading parity"
+echo "lint: pairing (claude ↔ pi)"
+for cn in "${CLAUDE_NAMES[@]:-}"; do
+  [[ -z "$cn" ]] && continue
+  if in_array "$cn" "${PI_GEN_NAMES[@]:-}"; then
+    ok "$cn ↔ $cn"
+  else
+    fail "claude skill '$cn' has no generated pi counterpart"
+  fi
+done
+
+echo
+echo "lint: phase-heading parity (claude ↔ codex)"
 for cn in "${CLAUDE_NAMES[@]:-}"; do
   [[ -z "$cn" ]] && continue
   expected_codex="$(hyphen_to_underscore "$cn")"
@@ -191,7 +276,7 @@ for cn in "${CLAUDE_NAMES[@]:-}"; do
   claude_phases="$(extract_phase_headings "$claude_md" | sed -E 's/[[:space:]]+/ /g')"
   codex_phases="$(extract_phase_headings "$codex_md" | sed -E 's/[[:space:]]+/ /g')"
   if [[ "$claude_phases" != "$codex_phases" ]]; then
-    fail "$cn: phase headings differ between claude and codex versions"
+    fail "$cn: phase headings differ between claude and generated codex versions"
   else
     ok "$cn (phases aligned)"
   fi
@@ -200,7 +285,7 @@ done
 echo
 echo "lint: codex skill content hygiene"
 if grep -RInE '^(legacy-argument-hint:)|^This skill was migrated one-to-one from the former custom prompt|^Original argument hint:' "$CODEX_SKILLS" >/dev/null 2>&1; then
-  fail "prompt-era Codex scaffolding found in codex/skills/ (matches below)"
+  fail "prompt-era Codex scaffolding found in generated codex skills (matches below)"
   grep -RInE '^(legacy-argument-hint:)|^This skill was migrated one-to-one from the former custom prompt|^Original argument hint:' "$CODEX_SKILLS" 2>&1 | sed 's/^/  /' >&2 || true
 else
   ok "no prompt-era Codex scaffolding"
@@ -208,7 +293,7 @@ fi
 
 echo
 echo "lint: no cure_workspace absolute paths"
-if grep -RIn 'cure_workspace' "$CLAUDE_SKILLS" "$CODEX_SKILLS" "$REPO_ROOT/docs" "$REPO_ROOT/README.md" 2>/dev/null; then
+if grep -RIn 'cure_workspace' "$CLAUDE_SKILLS" "$PI_FRAGMENTS" "$REPO_ROOT/docs" "$REPO_ROOT/README.md" 2>/dev/null; then
   fail "found 'cure_workspace' references (above) — strip project-specific paths"
 else
   ok "no cure_workspace leakage"

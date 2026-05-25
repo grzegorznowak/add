@@ -29,6 +29,13 @@ for skill_dir in "$CLAUDE_SKILLS"/*/; do
   stripped=$(strip_transport < "$skill_file")
   codex_name="${skill_name//-/_}"
 
+  # Transform name: field in YAML frontmatter to snake_case
+  stripped=$(printf '%s\n' "$stripped" | awk -v new_name="$codex_name" '
+    /^---$/ { fm=!fm; print; next }
+    fm && /^name:/ { print "name: " new_name; next }
+    { print }
+  ')
+
   out_dir="$CODEX_DEST/$codex_name"
   mkdir -p "$out_dir/agents"
   printf '%s\n' "$stripped" > "$out_dir/SKILL.md"
