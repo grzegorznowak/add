@@ -38,14 +38,20 @@ Maintain two ledger entries:
 ### Launching children
 
 For each cycle, spawn one child. Build the prompt with:
-- The task description (claim/resume/review the story)
+- The exact owning workflow skill name: `epic-story-claim`, `epic-story-resume`, or `epic-story-review`
+- The task description and resolved story (`<epic>/<story>`)
 - Reference ledger entry names so the child can `ledger_get` them
 - `WORKTREE=` values if provided
 - Operational context from `babysit-<epic>-<story>` (summarize, don't inline full content)
 
+Use one of these exact opening lines, based on the selected pass:
+- Claim child: `You are executing the epic-story-claim workflow for story <epic>/<story>. Treat this as the pi-native equivalent of /epic-story-claim <epic> <story>.`
+- Resume child: `You are executing the epic-story-resume workflow for story <epic>/<story>. Treat this as the pi-native equivalent of /epic-story-resume <epic> <story>.`
+- Review child: `You are executing the epic-story-review workflow for story <epic>/<story>. Treat this as the pi-native equivalent of /epic-story-review <epic> <story>.`
+
 ```
 spawn({
-  prompt: "<task: claim/resume/review story <epic>/<story>.
+  prompt: "<exact opening line for claim/resume/review>
   Retrieve ledger entries: 'research-<epic>-<story>' (cached research, verify with direct reads), 'babysit-<epic>-<story>' (operational notes).
   Write new sourced research to 'research-<epic>-<story>'. Report blockers or repeated failures so the converger can update 'babysit-<epic>-<story>'.
   WORKTREE=\"<basename>=<path>\" ...",

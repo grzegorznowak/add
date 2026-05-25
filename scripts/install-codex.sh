@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install-codex.sh — compile Codex skills from canonical Claude source.
-# Strips Research Board / Research Events transport sections, renames
-# kebab-case → snake_case, writes to ~/.codex/skills/.
+# Strips Research Board transport sections, renames kebab-case → snake_case,
+# writes to ~/.codex/skills/.
 # No fragments — Codex doesn't use pi primitives.
 
 set -euo pipefail
@@ -13,7 +13,6 @@ CODEX_DEST="${CODEX_SKILLS_DIR:-$HOME/.codex/skills}"
 strip_transport() {
   awk '
     /^## Shared Research Board Input$/ { skip=1; next }
-    /^## Research Events$/            { skip=1; next }
     /^## /                            { skip=0 }
     !skip
   '
@@ -29,10 +28,11 @@ for skill_dir in "$CLAUDE_SKILLS"/*/; do
   stripped=$(strip_transport < "$skill_file")
   codex_name="${skill_name//-/_}"
 
-  # Transform name: field in YAML frontmatter to snake_case
+  # Transform only the first YAML frontmatter name: field to snake_case.
   stripped=$(printf '%s\n' "$stripped" | awk -v new_name="$codex_name" '
-    /^---$/ { fm=!fm; print; next }
-    fm && /^name:/ { print "name: " new_name; next }
+    NR == 1 && /^---$/ { fm=1; print; next }
+    fm && /^---$/      { fm=0; done=1; print; next }
+    fm && !done && /^name:/ { print "name: " new_name; next }
     { print }
   ')
 

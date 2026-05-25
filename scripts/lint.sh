@@ -13,8 +13,9 @@
 #   8. Generated Pi skills have no Shared Research Board Input sections.
 #   9. Pairing — every Claude skill has a Codex and Pi counterpart.
 #   10. Phase-heading parity between Claude and generated Codex skills.
-#   11. Codex skills do not carry prompt-era compatibility scaffolding.
-#   12. No `cure_workspace` absolute paths anywhere.
+#   11. Main installer Codex dry-run uses the generated compiler path.
+#   12. Codex skills do not carry prompt-era compatibility scaffolding.
+#   13. No `cure_workspace` absolute paths anywhere.
 #
 # Exit codes:
 #   0 — clean
@@ -281,6 +282,19 @@ for cn in "${CLAUDE_NAMES[@]:-}"; do
     ok "$cn (phases aligned)"
   fi
 done
+
+echo
+echo "lint: main installer dry-run (codex)"
+installer_dry_run_output=""
+if ! installer_dry_run_output="$("$REPO_ROOT/scripts/install.sh" --agents codex --yes --dry-run 2>&1)"; then
+  fail "scripts/install.sh --agents codex --yes --dry-run failed"
+elif grep -Fq "$REPO_ROOT/codex/skills" <<<"$installer_dry_run_output"; then
+  fail "scripts/install.sh codex dry-run still references deleted $REPO_ROOT/codex/skills"
+elif ! grep -Fq "install-codex.sh" <<<"$installer_dry_run_output"; then
+  fail "scripts/install.sh codex dry-run did not route through install-codex.sh"
+else
+  ok "install.sh codex dry-run uses install-codex.sh"
+fi
 
 echo
 echo "lint: codex skill content hygiene"

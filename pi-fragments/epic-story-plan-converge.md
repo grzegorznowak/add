@@ -37,11 +37,15 @@ For each cycle, decide pass type:
 - Story ready for review → `/epic-story-plan-review`
 - After review `request_changes` → follow with `/epic-story-plan-resume`
 
-Spawn one child per pass:
+Spawn one child per pass. Name the exact owning workflow skill in the prompt: `epic-story-plan-review` for review passes or `epic-story-plan-resume` for resume passes.
+
+Use one of these exact opening lines, based on the selected pass:
+- Plan-review child: `You are executing the epic-story-plan-review workflow for story <epic>/<story>. Treat this as the pi-native equivalent of /epic-story-plan-review <epic> <story>.`
+- Plan-resume child: `You are executing the epic-story-plan-resume workflow for story <epic>/<story>. Treat this as the pi-native equivalent of /epic-story-plan-resume <epic> <story>.`
 
 ```
 spawn({
-  prompt: "<task: plan-review or plan-resume story <epic>/<story>.
+  prompt: "<exact opening line for plan-review/plan-resume>
   Retrieve ledger entries: 'plan-research-<epic>-<story>' (verify with direct reads), 'plan-babysit-<epic>-<story>' (operational notes).
   Write new sourced research to 'plan-research-<epic>-<story>'. Report blockers or repeated failures.",
   thinking: "high"

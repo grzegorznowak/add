@@ -90,11 +90,12 @@ There are two main skill installation paths, and they coexist cleanly:
 
 1. **Claude Code plugin** — for users who only want the Claude side, via the
    marketplace or `--plugin-dir`. See [Plugin install](#plugin-install-claude-code-only).
-2. **Paired installer** — the custom shell script in this repo. Installs both
-   the Claude skills and the Codex skills in one pass, user-level or
-   project-level. Required if you want the Codex side.
+2. **Runtime installer** — the custom shell script in this repo. Installs
+   Claude skills by symlink and compiles generated Codex/pi skills from the
+   canonical `claude/skills/` source, user-level or project-level where the
+   runtime supports it. Required if you want Codex or pi skills.
 
-### Paired Installer
+### Runtime Installer
 
 ```bash
 git clone https://github.com/grzegorznowak/add.git ~/.local/share/add
@@ -104,18 +105,21 @@ git clone https://github.com/grzegorznowak/add.git ~/.local/share/add
 Run with no arguments on a TTY and the installer enters an interactive wizard
 that asks:
 
-1. Which agents to install for: Claude Code, Codex, or both
+1. Which agents to install for: Claude Code, Codex, pi, or all three
 2. User-level vs project-level scope
 3. A confirmation screen before any filesystem changes
 
-The installer creates symlinks at one or more of these locations:
+The installer writes to one or more of these locations:
 
-- `claude/skills/<name>/` -> `~/.claude/skills/<name>` (Claude user-level)
-- `claude/skills/<name>/` -> `<project>/.claude/skills/<name>` (Claude project)
-- `codex/skills/<name>/` -> `~/.codex/skills/<name>` (Codex user-level)
-- `codex/skills/<name>/` -> `<project>/.agents/skills/<name>` (Codex project)
+- `claude/skills/<name>/` -> `~/.claude/skills/<name>` (Claude user-level symlink)
+- `claude/skills/<name>/` -> `<project>/.claude/skills/<name>` (Claude project symlink)
+- generated Codex skill -> `~/.codex/skills/<snake_name>/` (Codex user-level)
+- generated Codex skill -> `<project>/.agents/skills/<snake_name>/` (Codex project)
+- generated pi skill -> `~/.pi/skills/<name>/` (pi user-level)
 
-It is idempotent and refuses to clobber non-symlink targets unless you pass
+Codex and pi outputs are generated from `claude/skills/` at install time; there
+is no committed `codex/skills/` source tree to maintain. Claude installs remain
+symlink-based and refuse to clobber non-symlink targets unless you pass
 `--force`.
 
 ### Non-Interactive Install
@@ -123,17 +127,17 @@ It is idempotent and refuses to clobber non-symlink targets unless you pass
 ```bash
 ~/.local/share/add/scripts/install.sh \
   --yes \
-  --agents both \
+  --agents all \
   --project /workspaces/myproject
 ```
 
 Flags:
 
-- `--agents claude|codex|both` — which runtimes (default: both)
-- `--project <path>` — also link into `<path>/.claude/skills/` and
-  `<path>/.agents/skills/`
+- `--agents claude|codex|pi|both|all` — which runtimes (default: `both`, meaning Claude+Codex; `all` includes pi)
+- `--project <path>` — also install into `<path>/.claude/skills/` and
+  `<path>/.agents/skills/` for runtimes with project-level skill roots
 - `--yes` — skip the confirmation prompt
-- `--force` — overwrite non-symlink targets
+- `--force` — overwrite non-symlink Claude targets
 - `--dry-run` — show what would happen, change nothing
 
 ### opencode Agents
@@ -174,15 +178,18 @@ claude --plugin-dir ~/.local/share/add
 
 The `--plugin-dir` flag loads skills for the current session only.
 
-The Codex skills are not installed by either plugin path. Use
-`scripts/install.sh --agents codex` if you want to add the Codex side later.
+The Codex and pi skills are not installed by either plugin path. Use
+`scripts/install.sh --agents codex`, `--agents pi`, or `--agents all` if you
+want to add generated runtime skills later.
 
 ## Updating
 
-Symlinks mean updates are propagation-by-pull. No reinstall step:
+Claude symlinks update by pull. Generated Codex/pi skills should be recompiled
+after pulling changes:
 
 ```bash
 cd ~/.local/share/add && git pull
+scripts/install.sh --yes --agents all
 ```
 
 ## Uninstall
@@ -192,7 +199,8 @@ cd ~/.local/share/add && git pull
 ```
 
 Only symlinks pointing at this repo are removed. Anything you authored yourself
-is left untouched.
+is left untouched. Generated Codex/pi directories are real files and can be
+removed manually from `~/.codex/skills/` or `~/.pi/skills/` if needed.
 
 ## Lifecycle
 
@@ -402,10 +410,11 @@ See [`docs/epic-conventions.md`](docs/epic-conventions.md) for the full schema.
 ## Contributing
 
 To add a new command, see [`docs/adding-a-command.md`](docs/adding-a-command.md).
-The short version: write the Claude Skill at `claude/skills/<name>/SKILL.md`
-and the Codex skill at `codex/skills/<name>/SKILL.md`, create
-`codex/skills/<name>/agents/openai.yaml`, then run `scripts/lint.sh` until it
-passes.
+The short version: write the canonical Claude Skill at
+`claude/skills/<name>/SKILL.md`, add a `pi-fragments/<name>.md` fragment only
+when pi needs runtime-specific instructions, then run `scripts/lint.sh` until
+it passes. Codex skills and `agents/openai.yaml` files are generated by
+`scripts/install-codex.sh`.
 
 ## Why "add"
 

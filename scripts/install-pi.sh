@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install-pi.sh — compile pi-native skills from canonical Claude source + pi fragments.
-# Strips Research Board / Research Events transport sections, appends pi-specific
-# fragment (or replaces full skill for converge rewrites), writes to ~/.pi/skills/.
+# Strips Research Board transport sections, appends pi-specific fragments
+# (or replaces full skill for converge rewrites), writes to ~/.pi/skills/.
 #
 # Detection:
 #   - Fragment starts with "---" (YAML frontmatter) → full replace
@@ -18,7 +18,6 @@ PI_DEST="${PI_SKILLS_DIR:-$HOME/.pi/skills}"
 strip_transport() {
   awk '
     /^## Shared Research Board Input$/ { skip=1; next }
-    /^## Research Events$/            { skip=1; next }
     /^## /                            { skip=0 }
     !skip
   '
@@ -35,6 +34,7 @@ for skill_dir in "$CLAUDE_SKILLS"/*/; do
   stripped=$(strip_transport < "$skill_file")
   fragment="$PI_FRAGMENTS/$skill_name.md"
 
+  tmp_skill="$(mktemp "${TMPDIR:-/tmp}/pi-skill.XXXXXX")"
   if [[ -f "$fragment" ]]; then
     if head -1 "$fragment" | grep -q '^---$'; then
       # replace mode: fragment IS the full skill
@@ -46,11 +46,11 @@ for skill_dir in "$CLAUDE_SKILLS"/*/; do
     fi
   else
     printf '%s\n' "$stripped"
-  fi > /tmp/pi-skill-tmp.md
+  fi > "$tmp_skill"
 
   out_dir="$PI_DEST/$skill_name"
   mkdir -p "$out_dir"
-  mv /tmp/pi-skill-tmp.md "$out_dir/SKILL.md"
+  mv "$tmp_skill" "$out_dir/SKILL.md"
   echo "  $skill_name -> $out_dir/SKILL.md"
 done
 
