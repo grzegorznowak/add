@@ -199,7 +199,8 @@ Before deep implementation work:
 ```md
 ## Active Claim
 - Claimed at: <UTC ISO timestamp>
-- Claimed by: Claude continuation session
+- Claimed by: $RUNTIME_NAME continuation session
+- Model: $MODEL (the exact model name used for this resume)
 - Scope: <one sentence for this pickup chunk>
 - Worktrees:
   - <repo-basename>: <absolute-worktree-path>

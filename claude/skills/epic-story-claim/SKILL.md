@@ -163,7 +163,8 @@ Before deep implementation work:
 ```md
 ## Active Claim
 - Claimed at: <UTC ISO timestamp>
-- Claimed by: Claude fresh session
+- Claimed by: $RUNTIME_NAME fresh session
+- Model: $MODEL (the exact model name used for this claim)
 - Scope: <one sentence>
 - Worktrees:
   - <repo-basename>: <absolute-worktree-path>

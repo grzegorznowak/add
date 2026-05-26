@@ -6,14 +6,6 @@ argument-hint: "<epic-name> <story-number-or-spec-file>"
 allowed-tools: Read Edit Write Grep Glob Bash
 ---
 
----
-name: epic-story-plan-resume
-description: Pick up a story's planning contract — incorporate plan review feedback, complete unfinished spec sections, or both. Leaves implementation status unchanged and the Plan lane ready for review.
-disable-model-invocation: true
-argument-hint: "<epic-name> <story-number-or-spec-file>"
-allowed-tools: Read Edit Write Grep Glob Bash
----
-
 # Epic Story Plan Resume
 
 Pick up a story's planning contract — either to incorporate plan review feedback, complete unfinished spec sections, or both. Leaves implementation `Status` unchanged and moves the story's `Plan` lane toward fresh review.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# install.sh — install Claude Skills and Codex skills from this repo into the
+# install.sh — install Claude, Codex, and pi skills from this repo into the
 # user's agent runtime directories. Idempotent.
 #
 # Two modes:
@@ -7,12 +7,15 @@
 #   - Scripted (any args, or non-TTY): flag-driven for CI / devcontainers.
 #
 # Scripted-mode flags:
-#   --agents <claude|codex|both>     which runtimes to install (default: both)
+#   --agents <claude|codex|pi|both|all>
+#                                    runtimes to install (default: both;
+#                                    both = Claude+Codex, all includes pi)
 #   --project <path>                 also install into project scope
 #                                    (<path>/.claude/skills/ for Claude,
 #                                     <path>/.agents/skills/ for Codex)
 #   --yes                            skip the confirmation prompt
-#   --force                          overwrite non-symlink targets
+#   --force                          overwrite non-symlink Claude targets and
+#                                    modified generated Codex/pi files
 #   --dry-run                        show what would happen, change nothing
 #   --help                           show this message
 
@@ -20,12 +23,12 @@ set -uo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_SKILLS_SRC="${REPO_ROOT}/claude/skills"
-CODEX_SKILLS_SRC="${REPO_ROOT}/codex/skills"
 
 CLAUDE_USER_DEST="${HOME}/.claude/skills"
 CODEX_SKILLS_USER_DEST="${HOME}/.codex/skills"
+PI_SKILLS_USER_DEST="${HOME}/.pi/skills"
 
-AGENTS=""           # claude | codex | both
+AGENTS=""           # claude | codex | pi | both | all
 PROJECT_PATH=""
 YES=0
 FORCE=0
@@ -53,6 +56,14 @@ ensure_dir() {
     log "creating $d"
     run mkdir -p "$d"
   fi
+}
+
+agent_selected() {
+  local agent="$1"
+  [[ "$AGENTS" == "all" ]] && return 0
+  [[ "$AGENTS" == "$agent" ]] && return 0
+  [[ "$AGENTS" == "both" && ( "$agent" == "claude" || "$agent" == "codex" ) ]] && return 0
+  return 1
 }
 
 # $1 = source path, $2 = destination path, $3 = "dir" or "file"
@@ -109,26 +120,29 @@ install_claude_into() {
 install_codex_skills_into() {
   local dest_root="$1"
   ensure_dir "$dest_root"
-  log "Codex skills → $dest_root"
-  for skill_dir in "$CODEX_SKILLS_SRC"/*/; do
-    [[ -d "$skill_dir" ]] || continue
-    local name
-    name="$(basename "$skill_dir")"
-    local skill_md="$skill_dir/SKILL.md"
-    if [[ ! -f "$skill_md" ]]; then
-      warn "skip  $name (no SKILL.md inside)"
-      continue
-    fi
-    link_one "${skill_dir%/}" "$dest_root/$name" "dir"
-  done
+  log "Codex skills (generated) → $dest_root"
+  if ! run env "CODEX_SKILLS_DIR=$dest_root" "ADD_INSTALL_FORCE=$FORCE" "$REPO_ROOT/scripts/install-codex.sh"; then
+    err "install-codex.sh failed"
+    exit 1
+  fi
+}
+
+install_pi_skills_into() {
+  local dest_root="$1"
+  ensure_dir "$dest_root"
+  log "pi skills (generated) → $dest_root"
+  if ! run env "PI_SKILLS_DIR=$dest_root" "ADD_INSTALL_FORCE=$FORCE" "$REPO_ROOT/scripts/install-pi.sh"; then
+    err "install-pi.sh failed"
+    exit 1
+  fi
 }
 
 # ---------- Wizard ----------
 
-# $1 = prompt, $2 = options string (e.g. "1=foo  2=bar"), $3 = default key
-# Echoes the chosen key on stdout.
+# $1 = prompt, $2 = options string (e.g. "1=foo  2=bar"), $3 = default key,
+# $4 = allowed keys regex alternation (e.g. "1|2|3"). Echoes chosen key.
 ask_choice() {
-  local prompt="$1" options="$2" default="$3"
+  local prompt="$1" options="$2" default="$3" allowed="${4:-1|2|3}"
   local reply
   while true; do
     printf '\n%s\n' "$prompt"
@@ -138,10 +152,11 @@ ask_choice() {
       reply=""
     fi
     [[ -z "$reply" ]] && reply="$default"
-    case "$reply" in
-      1|2|3) printf '%s' "$reply"; return 0 ;;
-      *) printf '  unrecognized choice; try again\n' >&2 ;;
-    esac
+    if [[ "$reply" =~ ^($allowed)$ ]]; then
+      printf '%s' "$reply"
+      return 0
+    fi
+    printf '  unrecognized choice; try again\n' >&2
   done
 }
 
@@ -186,17 +201,19 @@ run_wizard() {
   choice="$(ask_choice "Install for which agents?" \
     "  1) Claude Code only
   2) Codex only
-  3) Both (Claude Code + Codex)" "3")"
+  3) pi only
+  4) All (Claude Code + Codex + pi)" "4" "1|2|3|4")"
   case "$choice" in
     1) AGENTS="claude" ;;
     2) AGENTS="codex" ;;
-    3) AGENTS="both" ;;
+    3) AGENTS="pi" ;;
+    4) AGENTS="all" ;;
   esac
 
   # Q2: scope
   choice="$(ask_choice "Install scope?" \
-    "  1) User-level (~/.claude/skills, ~/.codex/skills)
-  2) Project-level (also link into <project>/.claude/skills and <project>/.agents/skills)" "1")"
+    "  1) User-level (~/.claude/skills, ~/.codex/skills, ~/.pi/skills)
+  2) Project-level (also link into <project>/.claude/skills and <project>/.agents/skills; pi remains user-level)" "1" "1|2")"
   if [[ "$choice" == "2" ]]; then
     PROJECT_PATH="$(ask_path "Project path:")"
   fi
@@ -220,13 +237,17 @@ print_install_plan() {
   fi
   log
   log "Targets:"
-  if [[ "$AGENTS" == "claude" || "$AGENTS" == "both" ]]; then
+  if agent_selected claude; then
     log "  - $CLAUDE_USER_DEST/<skill>"
     [[ -n "$PROJECT_PATH" ]] && log "  - $PROJECT_PATH/.claude/skills/<skill>"
   fi
-  if [[ "$AGENTS" == "codex" || "$AGENTS" == "both" ]]; then
+  if agent_selected codex; then
     log "  - $CODEX_SKILLS_USER_DEST/<skill>"
     [[ -n "$PROJECT_PATH" ]] && log "  - $PROJECT_PATH/.agents/skills/<skill>"
+  fi
+  if agent_selected pi; then
+    log "  - $PI_SKILLS_USER_DEST/<skill>"
+    [[ -n "$PROJECT_PATH" ]] && log "    (pi project-level skills are not supported; using user-level only)"
   fi
   log
 }
@@ -240,8 +261,8 @@ parse_flags() {
       --agents)
         [[ $# -ge 2 ]] || { err "--agents requires a value"; exit 2; }
         case "$2" in
-          claude|codex|both) AGENTS="$2" ;;
-          *) err "--agents must be claude|codex|both"; exit 2 ;;
+          claude|codex|pi|both|all) AGENTS="$2" ;;
+          *) err "--agents must be claude|codex|pi|both|all"; exit 2 ;;
         esac
         shift 2
         ;;
@@ -257,7 +278,11 @@ parse_flags() {
       --force)  FORCE=1; shift ;;
       --dry-run) DRY_RUN=1; shift ;;
       -h|--help)
-        sed -n '2,25p' "$0" | sed 's/^# \{0,1\}//'
+        awk '
+          NR == 1 { next }
+          /^#/ { sub(/^# ?/, ""); print; next }
+          { exit }
+        ' "$0"
         exit 0
         ;;
       *)
@@ -276,6 +301,11 @@ else
   parse_flags "$@"
 fi
 
+if [[ ! -t 0 && $YES -ne 1 && $DRY_RUN -ne 1 ]]; then
+  err "non-interactive installs require --yes (or --dry-run)"
+  exit 2
+fi
+
 if [[ $YES -ne 1 && $DRY_RUN -ne 1 ]]; then
   banner "Install plan"
   print_install_plan
@@ -289,7 +319,7 @@ fi
 log
 
 # Claude
-if [[ "$AGENTS" == "claude" || "$AGENTS" == "both" ]]; then
+if agent_selected claude; then
   install_claude_into "$CLAUDE_USER_DEST"
   log
   if [[ -n "$PROJECT_PATH" ]]; then
@@ -299,13 +329,19 @@ if [[ "$AGENTS" == "claude" || "$AGENTS" == "both" ]]; then
 fi
 
 # Codex
-if [[ "$AGENTS" == "codex" || "$AGENTS" == "both" ]]; then
+if agent_selected codex; then
   install_codex_skills_into "$CODEX_SKILLS_USER_DEST"
   log
   if [[ -n "$PROJECT_PATH" ]]; then
     install_codex_skills_into "${PROJECT_PATH}/.agents/skills"
     log
   fi
+fi
+
+# pi
+if agent_selected pi; then
+  install_pi_skills_into "$PI_SKILLS_USER_DEST"
+  log
 fi
 
 log "done."

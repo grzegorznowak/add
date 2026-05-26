@@ -1,0 +1,116 @@
+---
+name: epic-story-converge
+description: Run fresh claim, resume, and review children against one story until implementation is locally approved, blocked, or the loop reaches a hard stop.
+---
+
+# Epic Story Converge
+
+Coordinate implementation-side ping-pong for one story. Spawn children for `/epic-story-claim`, `/epic-story-resume`, and `/epic-story-review` in cycles. Use the ledger for Research Board and babysitting notes. Stop on local approval, blocker, no-progress, or cycle-budget exhaustion.
+
+Argument: `<epic> <story> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"]...`. `MAX_CYCLES` defaults to 5. `WORKTREE=` values pass through to children unchanged.
+
+## Phase 1 — Parse and Resolve
+
+1. Parse `$ARGUMENTS`: `<epic>` required, `<story>` required, `MAX_CYCLES=<n>` optional (default 5), `WORKTREE=` optional repeatable.
+2. Resolve `<epic_dir>` = `<cwd>/agent_coordination/epics/<epic>`.
+3. Read `<epic_dir>/MASTER.md`. Match `<story>` by `Step`, then `Spec`. Abort on mismatch or ambiguity.
+4. Resolve `<step>` from the matched row's `Step` value and `<story_file>` from its `Spec` value. Use `<step>` — never the raw `<story>` selector — in every ledger key and child prompt.
+
+## Phase 2 — Eligibility Gate
+
+Allowed starting states: `⚪ TODO` (plan-approved only), `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR` (with requested changes), `✅ DONE` (stop immediately).
+
+Reject with next action:
+- `Plan` not `🟢 PLAN APPROVED` → `/epic-story-plan-converge`
+- `⛔ BLOCKED` → operator must unblock
+- Status drift → ask operator to resolve
+
+## Phase 3 — Cycle Loop
+
+Run up to `MAX_CYCLES` cycles. Before each child launch, re-read `MASTER.md` and story file. Choose child type from current status: `⚪ TODO` → claim, `🔄 IN PROGRESS` → resume, `🟣 IN REVIEW` → review, `🔵 IN PR` with changes → resume.
+
+### Ledger entries
+
+Maintain two ledger entries:
+- `babysit-<epic>-<step>` — neutral operational notes (command failures, hotspots, repeated findings)
+- `research-<epic>-<step>` — sourced Research Board entries (path:line anchors required)
+
+### Launching children
+
+For each cycle, spawn one child. Build the prompt with:
+- The exact owning workflow skill name: `epic-story-claim`, `epic-story-resume`, or `epic-story-review`
+- The task description and resolved story (`<epic>/<step>`, with `<spec>` if useful)
+- Reference ledger entry names so the child can `ledger_get` them
+- `WORKTREE=` values if provided
+- Operational context from `babysit-<epic>-<step>` (summarize, don't inline full content)
+
+Use one of these exact opening lines, based on the selected pass:
+- Claim child: `You are executing the epic-story-claim workflow for story <epic>/<step>. Treat this as the pi-native equivalent of /epic-story-claim <epic> <step>.`
+- Resume child: `You are executing the epic-story-resume workflow for story <epic>/<step>. Treat this as the pi-native equivalent of /epic-story-resume <epic> <step>.`
+- Review child: `You are executing the epic-story-review workflow for story <epic>/<step>. Treat this as the pi-native equivalent of /epic-story-review <epic> <step>.`
+
+```
+spawn({
+  prompt: "<exact opening line for claim/resume/review>
+  Retrieve ledger entries: 'research-<epic>-<step>' (cached research, verify with direct reads), 'babysit-<epic>-<step>' (operational notes).
+  Write new sourced research to 'research-<epic>-<step>'. Report blockers or repeated failures so the converger can update 'babysit-<epic>-<step>'.
+  WORKTREE=\"<basename>=<path>\" ...",
+  thinking: "high"
+})
+```
+
+After the child completes:
+1. Re-read `MASTER.md` and story file. Derive decisions from file state, not chat output.
+2. Read `ledger_get("research-<epic>-<step>")`. Curate: keep verified entries, replace invalidated entries, retire stale ones. Every entry must have a source anchor.
+3. Update `babysit-<epic>-<step>` with new operational facts (neutral, no verdicts).
+4. If child asks an operator question, pause, ask, then resume with same child for that pass only.
+5. If a claim or resume leaves story at `🟣 IN REVIEW`, same cycle may launch a fresh review child.
+6. If review returns `approve`, stop successfully (APPROVED, not DONE unless status is `✅ DONE`).
+7. If review returns `request_changes` or `not_reviewable`, same cycle may launch one corrective resume, then next cycle starts with fresh review.
+8. Stop on `⛔ BLOCKED`, `✅ DONE`, or no-progress.
+
+## Phase 4 — No-Progress Gate
+
+Stop when all are true: latest review returned `request_changes` or `not_reviewable`, subsequent resume didn't add new progress/addressing the finding, and same blocker would go to another review unchanged.
+
+Other hard stops: `MAX_CYCLES` reached, status is `⛔ BLOCKED`, story enters status owned by another command, subagent failure, operator declines required interaction.
+
+## Phase 5 — Commit Recommendation
+
+For each worktree in story's `## Active Claim`, run `git -C <path> status --porcelain`. Recommend commit on branch `<epic>/<story-slug>` for dirty changes belonging to the story. Never commit directly.
+
+- Final commit: when approved or DONE with dirty worktrees
+- WIP checkpoint: stopped at MAX_CYCLES, operator input, or no-progress with useful changes
+
+## Phase 6 — Final Response
+
+```markdown
+**Convergence Result**: APPROVED | DONE | BLOCKED | STOPPED | MAX_CYCLES
+**Story**: Step <step> / <spec>
+**Cycles Used**: <n>/<MAX_CYCLES>
+**Final Status**: <status>
+
+## Trace
+- Cycle 1: claim/resume/review -> <result>
+- Cycle 2: ...
+
+## Research Board Snapshot
+- Entries: <n> (ledger: research-<epic>-<step>)
+- Hotspots: <paths/symbols>
+- Persistence: ledger entry `research-<epic>-<step>`
+
+## Babysitter Notes
+- <neutral operational fact>
+- None.
+
+## Commit Recommendation
+- <final commit, WIP checkpoint, or none>
+- Suggested command: `git -C <path> status && git -C <path> add -A && git -C <path> commit -m "<epic>/<story-slug>: <summary>"`
+
+## Operator Nice-To-Haves
+- <proposed improvement>
+- None.
+
+## Next Action
+- <single concrete command or decision>
+```
