@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # install-codex.sh — compile Codex skills from canonical Claude source.
-# Renames kebab-case → snake_case and writes to ~/.codex/skills/.
+# Renames kebab-case → snake_case, rewrites Claude argument syntax to
+# Codex named variables, and writes to ~/.codex/skills/.
 # No fragments — Codex doesn't use pi primitives.
 
 set -euo pipefail
@@ -30,7 +31,15 @@ done
 
 ensure_dir_path() {
   local path="$1"
-  if [[ -e "$path" && ( -L "$path" || ! -d "$path" ) ]]; then
+  if [[ -L "$path" ]]; then
+    if [[ "$FORCE" == "1" ]]; then
+      printf 'warn: replacing symlink %s\n' "$path" >&2
+      rm -f "$path"
+    else
+      printf 'error: refusing to replace existing symlink %s (use --force)\n' "$path" >&2
+      return 1
+    fi
+  elif [[ -e "$path" && ! -d "$path" ]]; then
     if [[ "$FORCE" == "1" ]]; then
       printf 'warn: replacing conflicting path %s\n' "$path" >&2
       rm -rf "$path"
@@ -72,6 +81,99 @@ write_content_if_safe() {
   mv "$tmp" "$dest"
 }
 
+# Transform Claude-specific positional $ARGUMENTS → Codex named-variable
+# conventions.  The mapping is per-skill because the source paragraph
+# describes different argument shapes per command.
+codex_args() {
+  local skill="$1"
+
+  # Common replacements applied to every skill:
+  # - $RUNTIME_NAME → Codex
+  # - "Claimed by: Claude" / actor-identity text is already handled by
+  #   $RUNTIME_NAME; any other hard-coded "Claude" in agent-identity
+  #   context gets normalised.
+  # - $ARGUMENTS (the Claude positional-arg variable) → Codex named vars
+  #   appropriate for this skill.
+  #
+  # The Argument line is rewritten per skill.  Body references to
+  # $ARGUMENTS are replaced with "EPIC and STORY" (or the appropriate
+  # subset) so the resolution instructions stay readable.
+
+  local arg_line_body_repl
+
+  case "$skill" in
+    epic-story-claim)
+      arg_line='s/^Argument:.*/Argument: EPIC=<name> [STORY=<step>] [WORKTREE="<basename>=<path>"].../'
+      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
+      ;;
+    epic-story-resume)
+      arg_line='s/^Argument:.*/Argument: EPIC=<name> [STORY=<step>] [WORKTREE="<basename>=<path>"].../'
+      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
+      ;;
+    epic-story-review)
+      arg_line='s/^Argument:.*/Argument: EPIC=<name> STORY=<step> [WORKTREE="<basename>=<path>"].../'
+      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
+      ;;
+    epic-story-converge)
+      arg_line='s/^Argument:.*/Argument: EPIC=<name> STORY=<step> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"].../'
+      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
+      ;;
+    epic-story-plan-converge)
+      arg_line='s/^Argument:.*/Argument: EPIC=<name> STORY=<step> [MAX_CYCLES=5]/'
+      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
+      ;;
+    epic-story-plan-review)
+      arg_line='s/^Argument:.*/Argument: EPIC=<name> STORY=<step>/'
+      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
+      ;;
+    epic-story-plan-resume)
+      arg_line='s/^Argument:.*/Argument: EPIC=<name> STORY=<step>/'
+      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
+      ;;
+    epic-story-plan)
+      arg_line='s/^Argument:.*/Argument: [EPIC=<name>]/'
+      body_repl='s/\$ARGUMENTS/EPIC/g'
+      ;;
+    epic-plan)
+      arg_line='s/^Argument:.*/Argument: [NAME=<slug>]/'
+      body_repl='s/\$ARGUMENTS/the named variables/g'
+      ;;
+    epic-squash)
+      arg_line='s/^Argument:.*/Argument: EPIC=<epic-path>/'
+      body_repl='s/\$ARGUMENTS/EPIC/g'
+      ;;
+    epic-pr)
+      arg_line='s/^Argument:.*/Argument: EPIC=<name-or-path> [<pr_url_or_OPEN=true>]/'
+      body_repl='s/\$ARGUMENTS/EPIC/g'
+      ;;
+    epic-story-pr)
+      arg_line='s/^Argument:.*/Argument: EPIC=<name> STORY=<step> [<pr_url_or_OPEN=true>]/'
+      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
+      ;;
+    epic-feedback)
+      arg_line='s/^Argument:.*/Argument: EPIC=<name-or-path> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]/'
+      body_repl='s/\$ARGUMENTS/EPIC/g'
+      ;;
+    merge-conflict-analysis)
+      # Already key-value pairs — keep the original line structure, just drop
+      # the Claude-specific \$ARGUMENTS wrapper token.
+      arg_line='s/`\$ARGUMENTS` — //'
+      body_repl='s/\$ARGUMENTS/the named variables/g'
+      ;;
+    *)
+      # Skills with no $ARGUMENTS — pass through unchanged
+      arg_line=''
+      body_repl=''
+      ;;
+  esac
+
+  if [[ -n "$arg_line" ]]; then
+    sed -E "$arg_line"
+  else
+    cat
+  fi | sed -E "$body_repl" | sed 's/\$RUNTIME_NAME/Codex/g'
+}
+
 ensure_dir_path "$CODEX_DEST"
 
 for skill_dir in "$CLAUDE_SKILLS"/*/; do
@@ -81,7 +183,7 @@ for skill_dir in "$CLAUDE_SKILLS"/*/; do
 
   # Codex convergers inherit the Claude Research Board handoff protocol, so keep
   # executor-side board input and Research Events sections intact.
-  stripped="$(cat "$skill_file")"
+  stripped="$(cat "$skill_file" | codex_args "$skill_name")"
   codex_name="${skill_name//-/_}"
 
   # Transform only the first YAML frontmatter name: field to snake_case.

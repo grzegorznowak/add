@@ -44,7 +44,15 @@ strip_transport() {
 
 ensure_dir_path() {
   local path="$1"
-  if [[ -e "$path" && ( -L "$path" || ! -d "$path" ) ]]; then
+  if [[ -L "$path" ]]; then
+    if [[ "$FORCE" == "1" ]]; then
+      printf 'warn: replacing symlink %s\n' "$path" >&2
+      rm -f "$path"
+    else
+      printf 'error: refusing to replace existing symlink %s (use --force)\n' "$path" >&2
+      return 1
+    fi
+  elif [[ -e "$path" && ! -d "$path" ]]; then
     if [[ "$FORCE" == "1" ]]; then
       printf 'warn: replacing conflicting path %s\n' "$path" >&2
       rm -rf "$path"
@@ -95,7 +103,7 @@ fragment_is_replace() {
 compile_skill() {
   local skill_name="$1" skill_file="$2" fragment="$3"
   local stripped
-  stripped="$(strip_transport < "$skill_file")"
+  stripped="$(strip_transport < "$skill_file" | sed 's/$RUNTIME_NAME/pi/g')"
 
   if [[ -f "$fragment" ]]; then
     if fragment_is_replace "$fragment"; then
@@ -132,7 +140,7 @@ for fragment in "$PI_FRAGMENTS"/*.md; do
   skill_name="$(basename "$fragment" .md)"
   [[ -d "$CLAUDE_SKILLS/$skill_name" ]] && continue  # already handled
 
-  compiled="$(cat "$fragment")"
+  compiled="$(sed 's/$RUNTIME_NAME/pi/g' < "$fragment")"
   out_dir="$PI_DEST/$skill_name"
   ensure_dir_path "$out_dir"
   write_content_if_safe "$out_dir/SKILL.md" "$compiled"
