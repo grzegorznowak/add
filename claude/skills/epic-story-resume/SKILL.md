@@ -228,7 +228,7 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Respect the latest review/handoff CTA before widening scope
 - Continue only this step plus required dependencies
 - Inspect the relevant code and tests before the first change in this session. Use the story's `## Actors`, normative `## Scenarios / Behavior Examples` linked with exactly one `Covers: A<n>`, `## Verification`, `## Critical Files`, `## Discovery Notes`, and latest runtime notes to choose the smallest focused seam for the next behavior. Treat `Orientation only` scenarios as context only; they must not create implementation or proof obligations unless the same behavior is also present in `## Acceptance`.
-- Before choosing or continuing a red seam, rebuild a compact acceptance proof ledger from the current story: list every `A<n>` id and, for any acceptance item that names variants, modes, branches, fallback paths, error cases, or examples, list each named case separately. If `## Scenarios / Behavior Examples` contains `S<n> Covers: A<n>`, include the linked scenario case under that acceptance id. Check the latest handoff/review feedback against this ledger so continuation work does not leave sibling variants or linked scenario cases untested; do not let orientation-only examples expand implementation scope.
+- Before choosing or continuing a red seam, rebuild a compact acceptance proof map from the current story: list every `A<n>` id and, for any acceptance item that names variants, modes, branches, fallback paths, error cases, or examples, list each named case separately. If `## Scenarios / Behavior Examples` contains `S<n> Covers: A<n>`, include the linked scenario case under that acceptance id. Check the latest handoff/review feedback against this proof map so continuation work does not leave sibling variants or linked scenario cases untested; do not let orientation-only examples expand implementation scope.
 - Run a Debt Friction check before the first patch in this session: ask whether implementation is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only write a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
 - Default to red-first: make that focused seam fail, implement until it passes, then broaden verification.
 - Do not jump straight to broad suites or code-first implementation if a smaller focused seam is available.
@@ -246,7 +246,7 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 Append concise timestamped bullets under `## Progress Log` after meaningful milestones. Examples:
 - focused red seam chosen
 - focused seam turned green
-- acceptance proof ledger checked or updated when named variants/failure modes exist
+- acceptance proof map checked or updated when named variants/failure modes exist
 - design change locked
 - files patched
 - tests added/updated

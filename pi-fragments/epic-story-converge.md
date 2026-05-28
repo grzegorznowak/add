@@ -5,7 +5,7 @@ description: Run fresh claim, resume, and review children against one story unti
 
 # Epic Story Converge
 
-Coordinate implementation-side ping-pong for one story. Spawn children for `/epic-story-claim`, `/epic-story-resume`, and `/epic-story-review` in cycles. Use the ledger for Research Board and babysitting notes. Stop on local approval, blocker, no-progress, or cycle-budget exhaustion.
+Coordinate implementation-side ping-pong for one story. Spawn children for `/epic-story-claim`, `/epic-story-resume`, and `/epic-story-review` in cycles. Use notebook pages for the Research Board and babysitting notes. Stop on local approval, blocker, no-progress, or cycle-budget exhaustion.
 
 Argument: `<epic> <story> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"]...`. `MAX_CYCLES` defaults to 5. `WORKTREE=` values pass through to children unchanged.
 
@@ -14,7 +14,7 @@ Argument: `<epic> <story> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"]...`. `MA
 1. Parse `$ARGUMENTS`: `<epic>` required, `<story>` required, `MAX_CYCLES=<n>` optional (default 5), `WORKTREE=` optional repeatable.
 2. Resolve `<epic_dir>` = `<cwd>/agent_coordination/epics/<epic>`.
 3. Read `<epic_dir>/MASTER.md`. Match `<story>` by `Step`, then `Spec`. Abort on mismatch or ambiguity.
-4. Resolve `<step>` from the matched row's `Step` value and `<story_file>` from its `Spec` value. Use `<step>` — never the raw `<story>` selector — in every ledger key and child prompt.
+4. Resolve `<step>` from the matched row's `Step` value and `<story_file>` from its `Spec` value. Use `<step>` — never the raw `<story>` selector — in every notebook page name and child prompt.
 
 ## Phase 2 — Eligibility Gate
 
@@ -29,9 +29,9 @@ Reject with next action:
 
 Run up to `MAX_CYCLES` cycles. Before each child launch, re-read `MASTER.md` and story file. Choose child type from current status: `⚪ TODO` → claim, `🔄 IN PROGRESS` → resume, `🟣 IN REVIEW` → review, `🔵 IN PR` with changes → resume.
 
-### Ledger entries
+### Notebook pages
 
-Maintain two ledger entries:
+Maintain two notebook pages:
 - `babysit-<epic>-<step>` — neutral operational notes (command failures, hotspots, repeated findings)
 - `research-<epic>-<step>` — sourced Research Board entries (path:line anchors required)
 
@@ -40,7 +40,7 @@ Maintain two ledger entries:
 For each cycle, spawn one child. Build the prompt with:
 - The exact owning workflow skill name: `epic-story-claim`, `epic-story-resume`, or `epic-story-review`
 - The task description and resolved story (`<epic>/<step>`, with `<spec>` if useful)
-- Reference ledger entry names so the child can `ledger_get` them
+- Reference notebook page names so the child can `notebook_read` them
 - `WORKTREE=` values if provided
 - Operational context from `babysit-<epic>-<step>` (summarize, don't inline full content)
 
@@ -52,8 +52,8 @@ Use one of these exact opening lines, based on the selected pass:
 ```
 spawn({
   prompt: "<exact opening line for claim/resume/review>
-  Retrieve ledger entries: 'research-<epic>-<step>' (cached research, verify with direct reads), 'babysit-<epic>-<step>' (operational notes).
-  Write new sourced research to 'research-<epic>-<step>'. Report blockers or repeated failures so the converger can update 'babysit-<epic>-<step>'.
+  Retrieve notebook pages: 'research-<epic>-<step>' (cached research, verify with direct reads), 'babysit-<epic>-<step>' (operational notes).
+  Write new sourced research to notebook page 'research-<epic>-<step>'. Report blockers or repeated failures so the converger can update notebook page 'babysit-<epic>-<step>'.
   WORKTREE=\"<basename>=<path>\" ...",
   thinking: "high"
 })
@@ -61,8 +61,8 @@ spawn({
 
 After the child completes:
 1. Re-read `MASTER.md` and story file. Derive decisions from file state, not chat output.
-2. Read `ledger_get("research-<epic>-<step>")`. Curate: keep verified entries, replace invalidated entries, retire stale ones. Every entry must have a source anchor.
-3. Update `babysit-<epic>-<step>` with new operational facts (neutral, no verdicts).
+2. Read `notebook_read({name: "research-<epic>-<step>"})`. Curate: keep verified entries, replace invalidated entries, retire stale ones. Every entry must have a source anchor.
+3. Update notebook page `babysit-<epic>-<step>` with new operational facts (neutral, no verdicts).
 4. If child asks an operator question, pause, ask, then resume with same child for that pass only.
 5. If a claim or resume leaves story at `🟣 IN REVIEW`, same cycle may launch a fresh review child.
 6. If review returns `approve`, stop successfully (APPROVED, not DONE unless status is `✅ DONE`).
@@ -95,9 +95,9 @@ For each worktree in story's `## Active Claim`, run `git -C <path> status --porc
 - Cycle 2: ...
 
 ## Research Board Snapshot
-- Entries: <n> (ledger: research-<epic>-<step>)
+- Entries: <n> (notebook: research-<epic>-<step>)
 - Hotspots: <paths/symbols>
-- Persistence: ledger entry `research-<epic>-<step>`
+- Persistence: notebook page `research-<epic>-<step>`
 
 ## Babysitter Notes
 - <neutral operational fact>
