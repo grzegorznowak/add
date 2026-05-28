@@ -536,8 +536,14 @@ review logs.
   - Technical verdict: approve | request_changes | reject | not_assessed
   - Multipass review: not_triggered | completed | incomplete
   - Prior review concerns: none | resolved | still_open | superseded | not_assessable
+  - Plan lane at review time: <value or absent>
   - Epic contract drift: none | present
   - Status transition: 🟣 IN REVIEW -> ✅ DONE
+  - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
+  - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
+  - Traceability: forward <complete|gaps>; backward <complete|gaps>
+  - Code surfaces searched: <paths/patterns/entrypoints or none beyond changed files>
+  - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
   - Files reviewed: <paths>
   - Hypothesis triage:
     - suspicious surface: <file/API/flow>; tentative issue: <possible failure>; next proof target: <source/test/proof to check>
@@ -569,7 +575,11 @@ final review output and `## Review Log`. Finding summaries must carry
 assumptions, downgrade factors, code trail, and reproduction when applicable.
 When a story already has review-log findings, the next review records whether
 those concerns are resolved, still open, superseded, or not assessable from the
-current evidence before approving.
+current evidence before approving. The traceability fields make implementation
+review evidence durable: which original intent sources were checked, which spec
+sections and code surfaces were searched, whether forward/backward traceability
+from intent to implementation is complete, and what evidence remains inferred,
+unknown, or provisional.
 
 #### `## Plan Review Log`
 
