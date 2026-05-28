@@ -283,7 +283,8 @@ Keep story-body edits as the durable contract change. If the amendment changes a
 - FB-001: amended `Acceptance` and `Verification` from <source>. See epic log.
 ```
 
-For `resume-current-story`, append to the story's `## Review Log` using the implementation-review schema:
+For `resume-current-story`, append to the story's `## Review Log` using the implementation-review schema.
+Keep the feedback provenance fields and include the canonical traceability/evidence fields so later resume and review sessions can reconstruct what was checked:
 
 ```md
 - <UTC ISO timestamp> Review feedback absorbed from PR
@@ -293,8 +294,14 @@ For `resume-current-story`, append to the story's `## Review Log` using the impl
   - Approval gate: fail
   - Product verdict: approve | request_changes | reject | not_assessed
   - Technical verdict: approve | request_changes | reject | not_assessed
+  - Plan lane at review time: <value or absent>
   - Epic contract drift: none | present
   - Status transition: <current status> -> <current status>
+  - Sections reviewed: <story sections checked against the feedback, or n/a>
+  - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
+  - Traceability: forward <complete|gaps>; backward <complete|gaps>
+  - Code surfaces searched: <paths/patterns/entrypoints or none beyond feedback scope>
+  - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
   - Files reviewed: <paths or n/a>
   - Key findings:
     - <short finding>
