@@ -5,7 +5,7 @@ description: Run fresh plan-review and plan-resume children against one story un
 
 # Epic Story Plan Converge
 
-Coordinate planning-side ping-pong for one story. Spawn children for `/epic-story-plan-review` and `/epic-story-plan-resume` in cycles. Use the ledger for Research Board and babysitting notes. Stop on approval, blocker, no-progress, or cycle-budget exhaustion.
+Coordinate planning-side ping-pong for one story. Spawn children for `/epic-story-plan-review` and `/epic-story-plan-resume` in cycles. Use notebook pages for the Research Board and babysitting notes. Stop on approval, blocker, no-progress, or cycle-budget exhaustion.
 
 Argument: `<epic> <story> [MAX_CYCLES=5]`. No `WORKTREE=` — planning never touches source code.
 
@@ -14,7 +14,7 @@ Argument: `<epic> <story> [MAX_CYCLES=5]`. No `WORKTREE=` — planning never tou
 1. Parse `$ARGUMENTS`: `<epic>` required, `<story>` required, `MAX_CYCLES=<n>` optional (default 5).
 2. Resolve `<epic_dir>` = `<cwd>/agent_coordination/epics/<epic>`.
 3. Read `<epic_dir>/MASTER.md`. Match `<story>` by `Step`, then `Spec`. Abort on mismatch or ambiguity.
-4. Resolve `<step>` from the matched row's `Step` value and `<story_file>` from its `Spec` value. Use `<step>` — never the raw `<story>` selector — in every ledger key and child prompt.
+4. Resolve `<step>` from the matched row's `Step` value and `<story_file>` from its `Spec` value. Use `<step>` — never the raw `<story>` selector — in every notebook page name and child prompt.
 
 ## Phase 2 — Eligibility Gate
 
@@ -24,9 +24,9 @@ Abort if: implementation `Status` is `✅ DONE`, `Plan` is already `🟢 PLAN AP
 
 Run up to `MAX_CYCLES` cycles. Before each child launch, re-read `MASTER.md` and story file. A planning cycle is one opportunity to get the plan approved.
 
-### Ledger entries
+### Notebook pages
 
-Maintain two ledger entries:
+Maintain two notebook pages:
 - `plan-babysit-<epic>-<step>` — neutral operational notes
 - `plan-research-<epic>-<step>` — sourced Research Board entries (path:line anchors required)
 
@@ -46,16 +46,16 @@ Use one of these exact opening lines, based on the selected pass:
 ```
 spawn({
   prompt: "<exact opening line for plan-review/plan-resume>
-  Retrieve ledger entries: 'plan-research-<epic>-<step>' (verify with direct reads), 'plan-babysit-<epic>-<step>' (operational notes).
-  Write new sourced research to 'plan-research-<epic>-<step>'. Report blockers or repeated failures.",
+  Retrieve notebook pages: 'plan-research-<epic>-<step>' (verify with direct reads), 'plan-babysit-<epic>-<step>' (operational notes).
+  Write new sourced research to notebook page 'plan-research-<epic>-<step>'. Report blockers or repeated failures so the converger can update notebook page 'plan-babysit-<epic>-<step>'.",
   thinking: "high"
 })
 ```
 
 After each child:
 1. Re-read `MASTER.md` and story file. Derive decisions from file state.
-2. Read `ledger_get("plan-research-<epic>-<step>")`. Curate entries.
-3. Update `plan-babysit-<epic>-<step>` with neutral operational facts.
+2. Read `notebook_read({name: "plan-research-<epic>-<step>"})`. Curate entries.
+3. Update notebook page `plan-babysit-<epic>-<step>` with neutral operational facts.
 4. If child asks operator question: pause, ask, resume same child for that pass only.
 5. If review decision is `approve` or `Plan` reaches `🟢 PLAN APPROVED` → stop. Recommend `/epic-story-claim` or `/epic-story-resume`.
 6. If `blocked` → stop.
@@ -81,9 +81,9 @@ Other stops: `MAX_CYCLES`, `blocked`, implementation status change, subagent fai
 - Cycle 2: ...
 
 ## Research Board Snapshot
-- Entries: <n> (ledger: plan-research-<epic>-<step>)
+- Entries: <n> (notebook: plan-research-<epic>-<step>)
 - Hotspots: <paths/symbols>
-- Persistence: ledger entry `plan-research-<epic>-<step>`
+- Persistence: notebook page `plan-research-<epic>-<step>`
 
 ## Babysitter Notes
 - <neutral operational fact>

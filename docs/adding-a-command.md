@@ -122,7 +122,7 @@ directories are generated rather than committed:
 - Same phase headings as the Claude side (when present). The lint script
   enforces phase-heading parity between Claude and generated Codex output.
 - Keep canonical wording runtime-neutral where practical. If a workflow needs
-  pi-specific spawn/ledger instructions, put those in `pi-fragments/` instead
+  pi-specific spawn/notebook instructions, put those in `pi-fragments/` instead
   of creating a Codex source file.
 
 ## Runtime pairing
