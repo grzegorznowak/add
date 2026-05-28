@@ -586,12 +586,25 @@ edits appends a new entry — the log is the story's plan revision history.
   - Verdict: approve | request_changes | blocked | not_reviewable
   - Plan lane transition: 🟡 PLAN DRAFT -> 🟢 PLAN APPROVED
   - Status transition: ⚪ TODO -> ⚪ TODO
-  - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Locked Decisions, Discovery Notes
+  - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
+  - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
+  - Traceability: forward <complete|gaps>; backward <complete|gaps>
+  - Code surfaces searched: <paths/patterns/entrypoints or none beyond Critical Files>
+  - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
   - Key findings:
     - <short bullet>
+  - Hypothesis triage: none | <material suspicious surface + proof target summary>
   - Debt Friction: none | <decision + short title>
   - Next action: <one concrete recommendation — typically "/epic-story-claim <epic>" or "edit <sections> and re-run">
 ```
+
+The traceability fields above are part of the `/epic-story-plan-review` entry
+schema. They make review evidence durable: which original intent sources were
+checked, whether forward/backward traceability is complete, which code surfaces
+were searched, and what evidence remains inferred, unknown, or provisional.
+Planning feedback entries routed by `/epic-feedback` may use their feedback
+receipt shape, but independent plan-review verdicts should include the full
+traceability shape.
 
 #### `## Feedback Absorption Log` (story-local receipt)
 
