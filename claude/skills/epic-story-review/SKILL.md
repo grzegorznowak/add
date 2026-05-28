@@ -3,7 +3,7 @@ name: epic-story-review
 description: Review one implemented story against its spec, current repo state, and recorded handoff context. Read-only for code; updates only the story's coordination file.
 disable-model-invocation: true
 argument-hint: "<epic-name> <story-number-or-spec-file>"
-allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git diff:*) Bash(git log:*) Bash(git rev-parse:*) Bash(git worktree:*) Bash(basename:*)
+allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git diff:*) Bash(git log:*) Bash(git show:*) Bash(git rev-parse:*) Bash(git worktree:*) Bash(basename:*) Bash(gh issue view:*) Bash(gh pr view:*) Bash(jira issue view:*)
 ---
 
 # Epic Story Review
@@ -22,6 +22,7 @@ You can only change the coordination files in the epic, **never** the source cod
 - Do not run destructive git operations (push, `reset --hard`, force commands, branch deletion).
 - Never write outside the worktree, the story's coordination directory, or `/tmp`.
 - Test execution is permitted only to verify the story's proof matrix (not for broad exploration).
+- GitHub/Jira access is read-only for intent mining. Use view-only commands such as `gh issue view`, `gh pr view`, and `jira issue view`; do not use generic API commands that can issue mutating requests.
 
 ## Why operator-explicit (arg or menu) selection
 
@@ -60,7 +61,8 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
 3. the resolved step file
 4. dependency step files listed for the resolved step in `MASTER.md`
 5. `<epic>/CONTRACT.md` if present
-6. any sibling story files that define shared constraints, interfaces, or proof surfaces the resolved story claims to satisfy, when relevant
+6. original intent artifacts explicitly linked or keyed from `MASTER.md`, the story file, dependency stories, branch names, commit messages, or existing PR text: GitHub issues, GitHub PRs, Jira tickets, or stable ticket/card ids
+7. any sibling story files that define shared constraints, interfaces, or proof surfaces the resolved story claims to satisfy, when relevant
 
 ## Review intent
 
@@ -68,7 +70,7 @@ Do **not** rediscover the epic from scratch. Your job is to:
 1. Understand the story spec in the resolved step file
 2. Inspect the actual implementation and current worktree
 3. Inspect epic-wide contract and targeted sibling-story context when they materially constrain the story
-4. Review the implementation against the step spec, epic contract, and surrounding architecture
+4. Review the implementation against the step spec, epic contract, original intent when explicitly available, and surrounding architecture
 5. Record the review result back into the coordination file
 
 ## Review readiness check
@@ -76,8 +78,9 @@ Do **not** rediscover the epic from scratch. Your job is to:
 Before doing a full review:
 - inspect the row for the resolved step in `MASTER.md`
 - inspect any `Active Claim`, `Progress Log`, `Session Handoff`, and `PR Tracking` sections in the step file
-- inspect the story's `## Acceptance` and `## Verification` contract before treating the implementation as review-ready; if `## Actors` or `## Scenarios / Behavior Examples` are present, inspect them too
+- inspect every relevant story-spec section as a claim, not only `## Acceptance` and `## Verification`: `## Purpose`, `## Actors`, `## Triggering Need`, `## Expected Prerequisites`, `## Scope`, `## Out of Scope`, `## Scenarios / Behavior Examples`, `## Acceptance`, `## Verification`, `## Critical Files`, `## Implementation Notes`, `## Locked Decisions`, and `## Discovery Notes` when present
 - if `<epic>/CONTRACT.md` exists, inspect the sections that define epic-wide invariants or shared obligations for this story
+- inspect original issue/PR/Jira/card intent only when explicitly linked or keyed; if unavailable, weak, or contradictory, record that instead of inventing linkage
 
 If the story is clearly not reviewable yet, abort fast with a concise reason. Examples:
 - step is still `TODO` and there is no implementation / handoff evidence
@@ -146,7 +149,10 @@ After reading the story's `## Active Claim`, build `<project_root_map>` from wha
 3. `<epic>/CONTRACT.md` when present
 4. dependency step files
 5. relevant sibling story files or contract sections the resolved story depends on
-6. actual code, tests, and worktree diff
+6. original issue/ticket/PR/Jira intent and acceptance criteria, when explicitly linkable and not superseded by `CONTRACT.md` or code
+7. actual code, tests, and worktree diff
+
+`CONTRACT.md` is authoritative for already-squashed epic scope. If original ticket/PR/Jira intent conflicts with `CONTRACT.md`, do not silently prefer the ticket; the implementation is not approvable unless the story records an explicit reopen, scope-deviation, or contract-staleness decision. If `CONTRACT.md` conflicts with the live codebase, name the conflict: codebase facts win as evidence of reality, and the finding should route contract repair through `/epic-squash`, `/epic-feedback`, or `/epic-story-plan-converge` as appropriate rather than silently approving drift. Never invent linkage: if ticket/PR/Jira evidence is absent, inaccessible, weak, or contradictory, say so explicitly and review against the remaining epic/story/code sources.
 
 Do not infer identity from filename shape or naming conventions that are not explicitly recorded in `MASTER.md`.
 
@@ -157,6 +163,11 @@ When launched by a converger, you may receive `Shared Research Board from parent
 ## Proof-boundary discipline
 
 - Read the latest `## Review Log` entry before source inspection and carry every prior concern into the review as `resolved`, `still_open`, `superseded`, or `not_assessable`.
+- Treat every relevant story-spec section as a review claim. Purpose, Triggering Need, Scope, Out of Scope, Discovery Notes, Critical Files, Implementation Notes, and Locked Decisions can all create implementation obligations or exclusions; do not validate only Acceptance and Verification.
+- Build an implementation trace map before approval:
+  - forward trace: `CONTRACT.md`/original issue/ticket/epic intent -> story Purpose/Scope/Scenarios/Acceptance -> final Verification proof rows -> changed code/tests/config/runtime surfaces
+  - backward trace: every changed file, symbol, helper, command, test, config, generated/runtime surface, and proof row -> Acceptance id -> in-scope story rationale or explicit exclusion
+  Orphan changed surfaces, gold-plated behavior, or proof rows for unrequested behavior block approval unless the story records a safe justification.
 - When an acceptance or proof row names an end-to-end boundary, verify the proof starts at that named boundary. A lower-level test with hand-built intermediate data does not satisfy a resolver/orchestration acceptance item unless the row explicitly permits that narrower proof.
 - When an acceptance item names variants, modes, branches, fallback paths, error cases, or examples, treat each named case as a required proof obligation. A test or proof row that covers only one variant does not cover sibling variants unless the story explicitly excludes them with rationale.
 - When `## Scenarios / Behavior Examples` is present, enforce the funnel `Scenario -> Acceptance -> Verification`: every normative `S<n>` scenario must use exactly one `Covers: A<n>`, and the linked acceptance/proof path must satisfy that scenario's concrete behavior. Orientation-only scenarios are not proof obligations, must not drive required implementation scope unless also present in Acceptance, and must not contradict the implemented behavior.
@@ -184,6 +195,12 @@ When `## Acceptance` has 6 or more concrete items, multipass review is
 required. Multipass is also required when the combined diff across all
 target repos exceeds 30 files or 1500 lines, even if acceptance items
 are fewer than 6.
+
+Diff-size computation:
+- Compute the combined diff per repo before deciding whether multipass is triggered. Prefer the story branch delta from the merge-base with the repo's default branch (`git -C <root> diff --numstat <base>...HEAD`) when reviewing a worktree on the story branch.
+- If the implementation is recorded on a dirty main tree or the branch base cannot be identified, count the reviewable uncommitted delta with `git -C <root> diff --numstat` and `git -C <root> diff --cached --numstat`, then state that fallback in `Steps taken`.
+- Sum unique changed file paths across target repos for the file threshold, and sum added plus deleted lines for the line threshold. Rename-only rows count as one file and zero changed lines unless the numstat row reports additions/deletions.
+- If diff size cannot be computed credibly, record a `Gate Finding`; do not use uncertainty to avoid multipass.
 
 Multipass planning:
 1. Build a compact review plan with 2-8 focused passes.
@@ -233,6 +250,7 @@ Focused pass return contract:
   `- None.` when clean.
 - Verification/proof notes: proof rows checked, tests inspected, commands
   rerun, or reason commands were not rerun.
+- Evidence quality: `confirmed`, `inferred`, `unknown`, and/or `provisional` evidence used by the pass, with unknowns/provisional items called out.
 - Result: `clean | findings | inconclusive`.
 - Evidence gaps: use `- None.` when none.
 
@@ -312,18 +330,23 @@ precision when evidence is insufficient.
 
 ## Review process
 
-1. Use code search and direct reading to understand the story's implementation and impacted surfaces
+1. Use code search and direct reading to understand the story's implementation and impacted surfaces. Record the owner-discovery searches you performed (`Code surfaces searched`) including domain terms, callsites/routes, existing tests, duplicate owners, generated/config/runtime surfaces, and any areas intentionally not searched.
 2. Use `git -C <project_root_map>[<basename>] status`, `git -C <project_root_map>[<basename>] diff`, and targeted file reads to inspect what was actually changed. When the story spans multiple repos, run status/diff per repo (iterating over `<project_root_map>` in sorted basename order) and group findings per-repo in the review write-back. Each `<basename>` resolves to either an implementer's worktree (most common) or the main tree at `<workspace_root>/projects/<basename>` (clean main-tree fallback case from the preflight).
-3. Read any existing `## Review Log` entries in the story before deciding. If prior review runs requested changes or recorded blockers, explicitly verify whether each concern is resolved, still open, superseded by later story changes, or not assessable from current evidence.
-4. Before approving implementation, verify the matched `MASTER.md` row's `Plan` lane is `🟢 PLAN APPROVED` when the column exists. If `Plan` is `🟡 PLAN DRAFT`, `🟣 PLAN IN REVIEW`, `🟠 PLAN CHANGES REQUESTED`, or `⛔ PLAN BLOCKED`, the implementation cannot be approved; record a `request_changes` verdict with next action `/epic-story-plan-converge <epic> <story>`.
-5. Never speculate about code you haven't read
-6. When `<epic>/CONTRACT.md` exists, inspect the sections relevant to the resolved story's owned surfaces and invariants
-7. If the final implementation or final proof matrix clearly differs from the earlier planned proof path, consult `## Progress Log` and `## Session Handoff` to confirm the change was recorded and justified
-8. If sibling stories define shared interfaces, invariants, or proof surfaces this story touches, inspect those targeted stories rather than assuming the resolved step file is complete
-9. Run a Debt Friction check: ask whether implementation or review was made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` finding when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
-10. Break the reviewed implementation into logical groups; explain the grouping briefly
-11. Review each group sequentially
-12. Prioritize:
+3. Read all relevant story-spec sections and treat each section as a claim: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, and Discovery Notes when present.
+4. Read any existing `## Review Log` entries in the story before deciding. If prior review runs requested changes or recorded blockers, explicitly verify whether each concern is resolved, still open, superseded by later story changes, or not assessable from current evidence.
+5. Before approving implementation, verify the matched `MASTER.md` row's `Plan` lane is `🟢 PLAN APPROVED` when the column exists. If `Plan` is `🟡 PLAN DRAFT`, `🟣 PLAN IN REVIEW`, `🟠 PLAN CHANGES REQUESTED`, or `⛔ PLAN BLOCKED`, the implementation cannot be approved; record a `request_changes` verdict with next action `/epic-story-plan-converge <epic> <story>`.
+6. Mine original intent only from explicit anchors: ticket/PR URLs, Jira keys, issue numbers, branch names, commit messages, `MASTER.md`, dependency stories, PR bodies, or story prose. Use read-only commands such as `gh issue view`, `gh pr view`, `jira issue view`, `git log`, and `git show` when available and relevant. If an external source cannot be accessed, record the missing source and do not invent its content.
+7. Build the implementation trace map and record whether forward/backward traceability is complete or has gaps. Every changed source/test/config/runtime surface and every proof row must map back to an acceptance id plus story scope, `CONTRACT.md`/original intent, or an explicit exclusion.
+8. Classify material evidence as `confirmed`, `inferred`, `unknown`, or `provisional`. Unknown or provisional evidence that affects acceptance, route ownership, ticket intent, contract drift, or proof credibility blocks approval unless safely scoped out with a follow-up path.
+9. Never speculate about code you haven't read
+10. When `<epic>/CONTRACT.md` exists, inspect the sections relevant to the resolved story's owned surfaces and invariants
+11. If the final implementation or final proof matrix clearly differs from the earlier planned proof path, consult `## Progress Log` and `## Session Handoff` to confirm the change was recorded and justified
+12. If sibling stories define shared interfaces, invariants, or proof surfaces this story touches, inspect those targeted stories rather than assuming the resolved step file is complete
+13. If ticket intent, `CONTRACT.md`, story text, and live code point in different directions, name the conflict and route it: contract-changing findings go to `/epic-story-plan-converge` or `/epic-feedback`, stale merged contracts go to `/epic-squash`/contract repair, and unimplemented in-scope story obligations go to `/epic-story-resume`.
+14. Run a Debt Friction check: ask whether implementation or review was made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` finding when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
+15. Break the reviewed implementation into logical groups; explain the grouping briefly
+16. Review each group sequentially
+17. Prioritize:
    - correctness
    - regressions
    - product / acceptance drift from the requested outcome
@@ -365,13 +388,19 @@ Before approving, verify:
 - If the story has `Input Boundary Shape Risk`, does final evidence start at each named raw input boundary and cover every in-scope shape case, or record an explicit exclusion / unknown with mitigation?
 - If proof paths changed, was the story updated and the drift logged?
 - If sibling stories or the epic contract declare shared interfaces or obligations this story touches, does the implementation still match them, or is any intentional drift explicitly recorded?
+- Do all relevant story-spec sections still hold as claims against the implementation, including Purpose, Triggering Need, Scope, Out of Scope, Critical Files, Implementation Notes, Locked Decisions, and Discovery Notes when present?
+- If an original issue, PR, Jira ticket, parent epic, or stable card id is available, does each Purpose/Scope/Acceptance claim map to that source, to `CONTRACT.md` when the contract superseded it, or to an explicit scoped deviation?
+- If grounded ticket intent, `CONTRACT.md`, story text, and current code shape point in different directions, is the conflict named with a routed decision rather than silently letting one source erase another?
+- Does every changed helper, API, test, command, config/runtime surface, generated artifact, and proof row map backward to an acceptance id and in-scope rationale? Orphan implementation work blocks approval unless explicitly justified.
+- Was owner discovery broad enough beyond listed Critical Files: domain owners, similar implementations, tests, routes/callsites, fixtures, CLI/API entrypoints, generated artifacts, config/runtime owners, and deprecation paths?
+- Are evidence-quality categories explicit, and do any `unknown` or `provisional` items affect acceptance, route ownership, ticket intent, contract drift, or proof credibility? If yes, approval is blocked unless the story safely scopes them out.
 - If any `Debt Friction` entry used `fix-now`, did the cleanup stay within its `Scope Justification`, remain enabling for this story, and have verification? If not, request changes or split the debt into a follow-up recommendation.
 
 ## Status transitions
 
-Before transitioning to `✅ DONE`, check `## Active Claim` -> `- Worktrees:` for uncommitted changes. If any worktree is dirty, offer to commit before marking done: `git -C <path> add -A && git -C <path> commit -m "<epic-name>/<story-slug>: review sign-off"`. If the step has no `## Active Claim` section (review-only session), skip.
+Before transitioning to `✅ DONE`, check `## Active Claim` -> `- Worktrees:` for uncommitted changes. Review is read-only for source: do **not** run `git add`, `git commit`, or otherwise mutate the target repo from this skill. If any review-target worktree is dirty, approval is allowed only when the dirty state is the implementation being reviewed and the review log names the reviewed worktree/diff; otherwise request changes or block with a cleanup/explicit-worktree instruction. If the step has no `## Active Claim` section (review-only session), skip.
 
-You may update `MASTER.md` as part of the review. Use this policy:
+You may update only coordination files (`MASTER.md` and the story file) as part of the review. Use this policy:
 
 - if review starts on a step marked `🔄 IN PROGRESS` but implementation is clearly ready for review, move it to `🟣 IN REVIEW`
 - if review passes with no blocking findings AND the epic does not use the optional GitHub PR stage for this story, mark it `✅ DONE`
@@ -393,8 +422,14 @@ Append or update a `## Review Log` section in the step file with a new entry:
   - Technical verdict: approve | request_changes | reject | not_assessed
   - Multipass review: not_triggered | completed | incomplete
   - Prior review concerns: none | resolved | still_open | superseded | not_assessable
+  - Plan lane at review time: <value or absent>
   - Epic contract drift: none | present
   - Status transition: <from> -> <to>
+  - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
+  - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
+  - Traceability: forward <complete|gaps>; backward <complete|gaps>
+  - Code surfaces searched: <paths/patterns/entrypoints or none beyond changed files>
+  - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
   - Files reviewed: <paths>
   - Hypothesis triage:
     - suspicious surface: <file/API/flow>; tentative issue: <possible failure>; next proof target: <source/test/proof to check>
@@ -438,6 +473,8 @@ Approval is not allowed if the proof contract is still unresolved. A story is on
 - any apparent proof drift was logged when it happened
 - the step file records either the focused red seam that was used or an explicit written exception with the alternative proof path
 - any relevant epic contract or sibling-story obligation touched by this story remains satisfied, or the intentional drift is explicitly recorded and reflected in the review verdict
+- forward and backward traceability are complete, or every traceability gap is safely scoped out and does not affect acceptance, proof, ownership, or contract fidelity
+- evidence quality is explicit, with no unknown or provisional evidence affecting acceptance, route ownership, ticket intent, contract drift, or proof credibility
 
 ## Classification rules
 
@@ -457,6 +494,7 @@ Approval is not allowed if the proof contract is still unresolved. A story is on
 - `In Scope Issues` are issues the resolved story directly owns or must satisfy to pass.
 - `Out of Scope Issues` are adjacent problems, follow-on work, or broader epic concerns worth flagging but not required for this story to pass.
 - `Epic Contract Drift` is only for mismatches between this story and epic-level commitments in `MASTER.md`, `CONTRACT.md`, dependencies, or relevant sibling stories. Do not use it for generic cleanup or unrelated debt.
+- Contract-changing feedback discovered during implementation review must be routed explicitly. If the implementation seems reasonable but the story/contract is stale, request contract repair through `/epic-story-plan-converge`, `/epic-feedback`, or `/epic-squash` rather than approving a hidden contract change. If the story contract is current and code is wrong, route to `/epic-story-resume`.
 - Order findings in every issue list by severity, include file references, and use `- None.` when a list is empty.
 
 ## Output format
@@ -469,7 +507,11 @@ Start with gate findings and issue lists, ordered by severity, with file referen
 **Status Transition**: [<old> -> <new>]
 **Grouping**: [brief grouping logic]
 **Epic Context Used**: [MASTER.md, CONTRACT.md if present, dependency stories, sibling stories reviewed, handoff/progress sections]
+**Original Intent Used**: [issues/PRs/Jira/tickets/epic sources inspected, none found, or inaccessible]
 **Prior Review Log Check**: [none, or prior concerns checked with resolved/still open/superseded/not assessable status]
+**Traceability**: [forward complete/gaps; backward complete/gaps]
+**Code Surfaces Searched**: [paths/patterns/entrypoints/domain terms searched]
+**Evidence Quality**: [confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>]
 **Approval Gate**: [PASS | FAIL]
 
 ### Steps taken
