@@ -294,6 +294,8 @@ Keep the feedback provenance fields and include the canonical traceability/evide
   - Approval gate: fail
   - Product verdict: approve | request_changes | reject | not_assessed
   - Technical verdict: approve | request_changes | reject | not_assessed
+  - Multipass review: not_triggered
+  - Prior review concerns: not_assessable
   - Plan lane at review time: <value or absent>
   - Epic contract drift: none | present
   - Status transition: <current status> -> <current status>
@@ -303,8 +305,25 @@ Keep the feedback provenance fields and include the canonical traceability/evide
   - Code surfaces searched: <paths/patterns/entrypoints or none beyond feedback scope>
   - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
   - Files reviewed: <paths or n/a>
+  - Hypothesis triage:
+    - suspicious surface: <feedback source/code/API/flow>; tentative issue: <possible failure from the feedback>; next proof target: <source/test/proof to check>
   - Key findings:
-    - <short finding>
+    - <finding summary> Sources: `<source URL, source ID, or path:line>`
+
+      <details open>
+      <summary><b>SEVERITY_LABEL</b> severity · <b>LIKELIHOOD_LABEL</b> likelihood</summary>
+
+      **Why:** <operator-facing reason>
+
+      **Assumptions / Preconditions:** <required conditions, or `None.`>
+
+      **Downgrade Factors:** <confidence/impact reducers, or `None.`>
+
+      **Code Trail:** <grounded path from cited evidence to conclusion>
+
+      **Reproduction:** <brief reproduction narrative, or `Not applicable.`>
+
+      </details>
   - Debt Friction: none | <decision + short title>
   - Next action: <one concrete resume/rework action>
 ```
