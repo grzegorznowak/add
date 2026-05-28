@@ -1,9 +1,9 @@
 ---
 name: epic-story-plan-review
-description: Review a story's planning contract at any lifecycle point — validate Purpose / Actors / Scenarios / Acceptance / Verification / Critical Files / Locked Decisions against the live repo and record a Plan Review verdict in the Plan lane.
+description: Review a story's planning contract at any lifecycle point — validate Purpose / Actors / Scenarios / Acceptance / Verification / Critical Files / Locked Decisions against original intent, the live repo, and traceability gaps, then record a Plan Review verdict in the Plan lane.
 disable-model-invocation: true
 argument-hint: "<epic-name> <story-number-or-spec-file>"
-allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git log:*)
+allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git log:*) Bash(git show:*) Bash(gh issue view:*) Bash(gh pr view:*) Bash(gh api:*) Bash(jira issue view:*)
 ---
 
 # Epic Story Plan Review
@@ -53,8 +53,11 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
 
 1. the main repo `AGENTS.md` for the repo the plan will touch
 2. `<epic>/MASTER.md`
-3. the resolved story file
-4. dependency story files listed for the resolved row in `MASTER.md` and in the story's `## Expected Prerequisites`
+3. `<epic>/CONTRACT.md` if present
+4. the resolved story file
+5. original intent artifacts explicitly linked or keyed from `MASTER.md`, the story file, dependency stories, branch names, commit messages, or existing PR text: GitHub issues, GitHub PRs, Jira tickets, or stable ticket/card ids
+6. dependency story files listed for the resolved row in `MASTER.md` and in the story's `## Expected Prerequisites`
+7. materially relevant sibling stories when they define the same shared interface, proof surface, actor flow, or locked decision
 
 ## Plan readiness check
 
@@ -78,10 +81,14 @@ When `MASTER.md` has a `Plan` column, remember the pre-review `Plan` value, then
 ## Source-of-truth hierarchy
 
 1. the main repo `AGENTS.md`
-2. `<epic>/MASTER.md`
-3. the resolved story file
-4. dependency story files
-5. actual code referenced by the story's `## Critical Files` (read-only probes only)
+2. `<epic>/MASTER.md` for story identity, tracker state, and dependency rows
+3. actual code and tests for already-implemented behavior, including but not limited to the files referenced by the story's `## Critical Files` (read-only probes only)
+4. `<epic>/CONTRACT.md` if present, for merged authoritative epic product contract
+5. original issue/ticket/PR intent and acceptance criteria, when explicitly linkable and not superseded by `CONTRACT.md` or code
+6. the resolved story file
+7. dependency story files and materially relevant sibling stories
+
+`CONTRACT.md` is authoritative for already-squashed epic scope. If original ticket/PR/Jira intent conflicts with `CONTRACT.md`, do not silently prefer the ticket; the plan is not approvable unless it records an explicit reopen, scope-deviation, or contract-staleness decision. If `CONTRACT.md` conflicts with the live codebase, the codebase wins and the finding should say the contract is stale and `/epic-squash` or equivalent contract repair is needed. Never invent linkage: if ticket/PR/Jira evidence is absent, inaccessible, weak, or contradictory, say so explicitly and review against the remaining epic/story sources.
 
 Do not infer identity from filename shape or naming conventions that are not explicitly recorded in `MASTER.md`.
 
@@ -91,15 +98,33 @@ When launched by a converger, you may receive `Shared Research Board from parent
 
 ## Plan review process
 
-1. Read every spec section of the story file. Treat each one as a claim that must hold against the live repo.
-2. Use `Read`, `Grep`, and `Glob` to probe the repository — confirm `## Critical Files` paths resolve, confirm the domain the plan covers does not already have reusable implementations the plan missed, confirm `## Locked Decisions` do not contradict `AGENTS.md` or established patterns.
-3. Treat `## Scenarios / Behavior Examples`, `## Verification`, and `## Implementation Notes` as the behavior-funnel, proof-design, and implementation-method contract, not as proof that the implementation already exists. Do not run the planned tests expecting them to pass at this phase. Instead, validate whether scenarios funnel into acceptance, whether commands, seams, owning surfaces, branch decomposition, routing proofs, and fail-open checks are concrete, plausible, aimed at the real acceptance behavior rather than a mocked caricature of it, and specific enough to support red-first implementation after source inspection.
-4. Use `git status` to confirm the worktree is not mid-implementation (if there are large pending changes, note it — plan review on a dirty worktree is a warning signal).
-5. Use `git log` to skim recent history for related work the plan should have referenced but did not.
-6. Never speculate about code you haven't read. If a claim in the plan can be checked, check it.
-7. Run a Debt Friction check: ask whether the plan hides story-local friction from unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` finding when there is a causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
-8. If the plan looks structurally wrong, verdict is `request_changes` with a pointer to which sections to edit. Do not rewrite the plan inside the log.
-9. Walk the full validation checklist below before settling on a verdict.
+You are the reviewer-of-record and orchestration layer: you resolve the story, decide source-of-truth conflicts, own the final verdict, write the Plan Review Log, and perform any Plan lane transition. Do not outsource final judgment. When useful, delegate self-contained evidence-gathering probes to subagents (or the platform's spawn equivalent) while keeping them read-only: original intent/ticket archaeology, broad codebase owner discovery beyond `## Critical Files`, dependency/sibling/`CONTRACT.md` drift checks, verification/proof-surface audits, and traceability or hypothesis probes. Subagent outputs must cite inspected anchors and be verified enough before they support findings, evidence gaps, or approval.
+
+1. Read every spec section of the story file. Treat each one as a claim that must hold against `CONTRACT.md` when present, original intent, sibling contracts, and the live repo.
+2. Build an **intent and traceability map** before approving anything:
+   - forward trace: `CONTRACT.md`/original issue/ticket/epic intent -> Purpose/Scope/Scenarios/Acceptance -> Verification proof rows -> owning code/test surfaces
+   - backward trace: every planned code/test surface, helper, command, and proof row -> Acceptance id -> story scope -> `CONTRACT.md`/original issue/ticket/epic intent or explicit in-story rationale
+   Missing links are not automatically blockers when no original ticket exists, but they must be visible in findings or evidence gaps.
+3. Mine original intent aggressively but only from explicit anchors: ticket/PR URLs, Jira keys, issue numbers, branch names, commit messages, `MASTER.md`, dependency stories, PR bodies, or story prose. Use `gh issue view`, `gh pr view`, `gh api`, `jira issue view`, `git log`, and `git show` when available and relevant. If an external source cannot be accessed, record the exact missing source and do not invent its content. If external intent conflicts with `CONTRACT.md`, treat that as a contract conflict requiring an explicit decision rather than as a reason to override the contract.
+4. Use `Read`, `Grep`, and `Glob` to probe the repository beyond `## Critical Files` — confirm paths resolve, search for 2–4 domain terms, inspect existing tests, public APIs, similar helpers, deprecated duplicate owners, routing/callsite surfaces, and sibling story contracts. Confirm the domain the plan covers does not already have reusable implementations the plan missed, and confirm `## Locked Decisions` do not contradict `AGENTS.md`, `CONTRACT.md`, ticket intent, or established patterns.
+5. Treat `## Scenarios / Behavior Examples`, `## Verification`, and `## Implementation Notes` as the behavior-funnel, proof-design, and implementation-method contract, not as proof that the implementation already exists. Do not run the planned tests expecting them to pass at this phase. Instead, validate whether scenarios funnel into acceptance, whether commands, seams, owning surfaces, branch decomposition, routing proofs, and fail-open checks are concrete, plausible, aimed at the real acceptance behavior rather than a mocked caricature of it, and specific enough to support red-first implementation after source inspection.
+6. Use `git status` to confirm the worktree is not mid-implementation (if there are large pending changes, note it — plan review on a dirty worktree is a warning signal).
+7. Use `git log` and, when useful, `git show` to skim recent related history for code movement, prior fixes, reverted approaches, hidden tests, or ticket references the plan should have referenced but did not.
+8. Run adversarial lenses explicitly: requirements completeness, code-owner discovery, negative-space/missing cases, variant and branch coverage, fail-open/default behavior, data-shape boundaries, migration/config/runtime impact, backward traceability, and alternatives to each major locked decision.
+9. Never speculate about code, tests, tickets, or PRs you haven't read. If a claim in the plan can be checked, check it. If it cannot be checked, classify it as confirmed, inferred, unknown, or provisional.
+10. Run a Debt Friction check: ask whether the plan hides story-local friction from unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` finding when there is a causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
+11. If the plan looks structurally wrong, verdict is `request_changes` with a pointer to which sections to edit. Do not rewrite the plan inside the log.
+12. Walk the full validation checklist below before settling on a verdict.
+
+## Hypothesis triage and evidence grounding
+
+Before final verdict, write a short private triage list and then carry only material items into findings or evidence gaps:
+
+```md
+- suspicious surface: <file/API/flow/ticket/plan section>; tentative issue: <possible plan failure>; next proof target: <source/ticket/test/code to check>
+```
+
+Every concrete finding must cite at least one inspected anchor: story section, ticket/PR/Jira anchor, `path:line` when available, command output excerpt, or exact missing source. Separate confirmed requirements from reviewer inference. A plan can be approved with known unknowns only when each unknown is explicitly bounded, does not undermine acceptance/proof, and has a follow-up path.
 
 ## Critical checks
 
@@ -134,6 +159,14 @@ Before approving, verify every item:
 27. **No `<TODO: ...>` placeholders** left in spec sections. If any remain, verdict is at minimum `request_changes`.
 28. **Debt Friction is surfaced when it affects proof or scope.** If current story planning is made harder by debt, the finding must use the `docs/epic-conventions.md` shape in `## Plan Review Log`. A plan may be blocked for Debt Friction only when meaningful acceptance or proof planning is not possible.
 29. **Interface-contract completeness.** If the story modifies an existing function signature, verify the new signature is recorded in Locked Decisions or Implementation Notes with exact parameter names, types, and defaults. If the plan wires parameters through to a callee function, verify each omission has a stated reason. Signature changes or wiring contracts recorded only in advisory sections (Implementation Notes, Discovery Notes) without a corresponding Locked Decision are a `request_changes` finding: the implementer treats advisory prose as non-binding. Acceptable forms: a Locked Decision with the exact Python signature, or Implementation Notes with a before/after diff excerpt AND a Locked Decision cross-reference.
+30. **Original-intent traceability.** If an original issue, PR, Jira ticket, parent epic, or stable card id is available, every Purpose/Scope/Acceptance claim must map to that source, to `CONTRACT.md` when the contract has superseded the source, or to an explicit scoped deviation. If no original source is found, record `none found` and verify the plan is still coherent against `MASTER.md`, `CONTRACT.md` when present, dependency stories, and live code.
+31. **Ticket/contract/code conflict resolution.** If grounded ticket intent, `CONTRACT.md`, and current code shape point in different directions, the plan must name the conflict and choose a resolution with rationale that respects the convention: codebase wins over stale `CONTRACT.md`, and `CONTRACT.md` wins over stale story or ticket intent unless the operator records an explicit reopen/scope-deviation decision. Do not approve a plan that silently lets existing code shape erase ticket-backed behavior or silently lets stale ticket text override the merged contract.
+32. **Backward traceability / orphan scope.** Every planned helper, API change, test file, proof row, command, config change, or implementation branch must map back to an acceptance id and in-scope rationale. Orphan work, gold-plating, and proof rows that validate unrequested behavior are `request_changes` findings unless explicitly marked out-of-scope follow-up.
+33. **Existing owner discovery is broad enough.** Approval requires searching beyond the listed Critical Files for domain owners, similar implementations, tests, routes/callsites, fixtures, CLI/API entrypoints, generated artifacts, and deprecation paths. If ownership remains ambiguous, require the plan to state how implementation will resolve it before changing code.
+34. **Alternatives and consequences for locked decisions.** Major `Locked Decisions` must capture context, rejected alternatives, consequences, and fit with established architecture or ticket constraints. A decision that just says what to do without why is insufficient when multiple plausible implementations exist.
+35. **Sibling/contract drift.** If `<epic>/CONTRACT.md`, dependency stories, sibling stories, or prior review logs define a shared actor, interface, verification convention, or locked decision, the plan must align with it or explicitly exclude/defer the drift with rationale.
+36. **Operational and lifecycle risks are named.** Plans touching migrations, persistence, auth, external I/O, prompts/templates, config/defaults, background jobs, CLI/API contracts, concurrency, or generated files must include rollback/default/fail-open/fail-closed behavior and verification at the owning boundary.
+37. **Evidence quality is explicit.** Approval findings and log entries must distinguish `confirmed`, `inferred`, `unknown`, and `provisional` evidence. Unknowns that affect acceptance, route ownership, ticket intent, or proof credibility block approval unless the plan explicitly scopes them out with a safe follow-up.
 
 ## Plan lane transitions
 
@@ -156,9 +189,14 @@ Append or create a `## Plan Review Log` section on the story file with a new ent
   - Plan lane transition: <from> -> <to>
   - Status transition: <from> -> <to>
   - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
+  - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
+  - Traceability: forward <complete|gaps>; backward <complete|gaps>
+  - Code surfaces searched: <paths/patterns/entrypoints or none beyond Critical Files>
+  - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
   - Key findings:
     - <short bullet>
     - <short bullet>
+  - Hypothesis triage: none | <material suspicious surface + proof target summary>
   - Debt Friction: none | <decision + short title>
   - Next action: <one concrete recommendation>
 ```
@@ -174,9 +212,17 @@ Start with findings, ordered by severity, with section references.
 **Reviewed Story**: [Step <resolved_step_number> / <resolved_spec_file>]
 **Plan coverage**: [sections present / missing / thin]
 **Mode**: [pre-implementation plan review | contract review]
+**Original Intent Used**: [issues/PRs/Jira/tickets/epic sources inspected, none found, or inaccessible]
+**Traceability**: [forward complete/gaps; backward complete/gaps]
+
+## Hypothesis Triage
+- [suspicious surface -> tentative issue -> next proof target, or None]
+
+## Evidence Gaps
+- [unknown/inaccessible/weak evidence that matters, or None]
 
 **Findings**
-- [Severity] [section] issue
+- [Severity] [section] issue with inspected anchor
 
 **Summary**
 - [2–4 short bullets]
