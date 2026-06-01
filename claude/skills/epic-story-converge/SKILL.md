@@ -44,7 +44,7 @@ Use `<epic_dir>/MASTER.md` as the implementation status and planning-lane author
 
 Allowed starting states:
 
-- `⚪ TODO` only when the story is plan-approved and unstarted.
+- `⬜ TODO` or `⚪ TODO` only when the story is plan-approved and unstarted.
 - `🔄 IN PROGRESS` only when `Plan` is `🟢 PLAN APPROVED` or legacy plan-approved inference passes.
 - `🟣 IN REVIEW` only when `Plan` is `🟢 PLAN APPROVED` or legacy plan-approved inference passes.
 - `🔵 IN PR` only when `## PR Tracking` says PR review is requesting changes and `Plan` is `🟢 PLAN APPROVED` or legacy plan-approved inference passes.
@@ -54,7 +54,7 @@ Reject with a precise next action:
 
 - any non-DONE story whose `Plan` column exists and is not `🟢 PLAN APPROVED`: use `/epic-story-plan-converge <epic> <story>`.
 - legacy `⚪ TODO` without a latest effective plan-review `approve`: use `/epic-story-plan-converge <epic> <story>`.
-- `⚪ TODO` with runtime sections already present: status drift; ask the operator to resolve before converging.
+- `⬜ TODO` or `⚪ TODO` with runtime sections already present: status drift; ask the operator to resolve before converging.
 - `🔵 IN PR` without requested changes: use `/epic-story-pr <epic> <story>` for PR refresh or merge-state handling.
 - `⛔ BLOCKED`: blocked stories need operator unblocking before convergence.
 
@@ -66,7 +66,7 @@ Run at most `MAX_CYCLES` cycles. An implementation cycle is one opportunity to g
 
 Before each subagent launch, build the command line from the current status:
 
-- `⚪ TODO` and plan-approved: `/epic-story-claim <epic> <story> [WORKTREE=...]`.
+- `⬜ TODO` or `⚪ TODO` and plan-approved: `/epic-story-claim <epic> <story> [WORKTREE=...]`.
 - `🔄 IN PROGRESS`: `/epic-story-resume <epic> <story> [WORKTREE=...]`.
 - `🟣 IN REVIEW`: `/epic-story-review <epic> <story> [WORKTREE=...]`.
 - `🔵 IN PR` with requested changes: `/epic-story-resume <epic> <story> [WORKTREE=...]`.
@@ -100,8 +100,8 @@ For each cycle:
 7. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that pass only. The next lifecycle pass still starts in a new fresh subagent.
 8. After the pass finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive decisions from the newest authoritative sections and status, not from chat output alone.
 9. If a claim or resume pass leaves the story at `🟣 IN REVIEW`, the same cycle may launch a fresh review pass.
-10. If a review pass returns `approve`, stop successfully. Local approval is convergence even when the story remains `🟣 IN REVIEW` because the optional PR stage is next. Report this as `APPROVED`, not `DONE`, unless the authoritative final status is already `✅ DONE`.
-11. If a review pass returns `request_changes` or `not_reviewable`, the same cycle may launch one fresh `/epic-story-resume` corrective pass, then the next cycle starts with a fresh review when ready.
+10. If a review pass returns `approve`, confirm the latest story `## Review Log` records risk-lens review and finding closure (or explicit `none material`) before stopping successfully. If approval lacks that evidence, launch one fresh review child focused on risk-lens closure instead of accepting chat output alone. Local approval is convergence even when the story remains `🟣 IN REVIEW` because the optional PR stage is next. Report this as `APPROVED`, not `DONE`, unless the authoritative final status is already `✅ DONE`.
+11. If a review pass returns `request_changes` or `not_reviewable`, the same cycle may launch one fresh `/epic-story-resume` corrective pass, then the next cycle starts with a fresh review when ready. If the finding exposes a new risk lens, ensure the resume child treats that lens as part of the acceptance/proof closure or routes back to planning.
 12. If any pass moves the story to `⛔ BLOCKED`, stop.
 13. If any pass moves the story to `✅ DONE`, stop successfully.
 14. Run the no-progress gate before starting the next cycle.
@@ -128,6 +128,8 @@ Stop early for conservative no-progress when all are true:
 - the latest review requested changes or said not reviewable;
 - the subsequent claim/resume pass did not add newer progress, handoff, proof-matrix, test, or source changes addressing the finding;
 - the same blocker or finding would be handed to another review unchanged.
+
+Do not use another broad cycle to compensate for an oversized or under-specified story; route newly discovered contract/risk-lens gaps back to planning.
 
 Other hard stops:
 
@@ -188,7 +190,7 @@ Return only the compact report below. Do not include internal deliberation, anal
 - None.
 
 ## Operator Nice-To-Haves
-- <proposed future improvement surfaced by repeated friction>
+- <proposed future improvement surfaced by repeated friction, including recurring risk/miss category worth automating or adding to future planning>
 - None.
 
 ## Next Action

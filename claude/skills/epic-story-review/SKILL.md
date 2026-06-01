@@ -10,7 +10,7 @@ allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git diff:*) Bash(git 
 
 Review one story implementation against its spec, current repo state, and recorded handoff context. Record the verdict back into the coordination file.
 
-Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [WORKTREE="<basename>=<path>"]...`. Both positional args are required (a menu fallback is shown when either is omitted, see `## Resolution`). `WORKTREE=` is an optional, repeatable opt-in that overrides the preflight's worktree lookup per target repo. Two forms are accepted: `WORKTREE="<basename>=<path>"` (multi form, repeatable, preferred) and legacy `WORKTREE="<path>"` (valid only when the story has exactly one target repo; the path is applied to that sole repo). Mixing the two forms in a single invocation is an error. When `WORKTREE=` is absent, the preflight reads any `- Worktrees:` list from the story's `## Active Claim`, falling back to a legacy `- Worktree:` singular bullet for stories claimed before the multi-worktree format.
+Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [WORKTREE="<basename>=<path>"]...`. Both positional args are recommended; if either is omitted, this command uses the explicit menu fallback in `## Resolution`. `WORKTREE=` is an optional, repeatable opt-in that overrides the preflight's worktree lookup per target repo. Two forms are accepted: `WORKTREE="<basename>=<path>"` (multi form, repeatable, preferred) and legacy `WORKTREE="<path>"` (valid only when the story has exactly one target repo; the path is applied to that sole repo). Mixing the two forms in a single invocation is an error. When `WORKTREE=` is absent, the preflight reads any `- Worktrees:` list from the story's `## Active Claim`, falling back to a legacy `- Worktree:` singular bullet for stories claimed before the multi-worktree format.
 
 ## Important
 
@@ -20,8 +20,8 @@ You can only change the coordination files in the epic, **never** the source cod
 
 - Do not modify source code — review is read-only.
 - Do not run destructive git operations (push, `reset --hard`, force commands, branch deletion).
-- Never write outside the worktree, the story's coordination directory, or `/tmp`.
-- Test execution is permitted only to verify the story's proof matrix (not for broad exploration).
+- Never write outside the story's coordination directory or `/tmp`; do not edit target worktrees.
+- Test execution is permitted only to verify the story's proof matrix (not for broad exploration), even when normal test tooling writes caches or artifacts.
 - GitHub/Jira access is read-only for intent mining. Use view-only commands such as `gh issue view`, `gh pr view`, and `jira issue view`; do not use generic API commands that can issue mutating requests.
 
 ## Why operator-explicit (arg or menu) selection
@@ -204,7 +204,7 @@ Diff-size computation:
 
 Multipass planning:
 1. Build a compact review plan with 2-8 focused passes.
-2. Group passes by acceptance-area risk, not mechanically one pass per
+2. Group passes by acceptance-area and activated-risk lens, not mechanically one pass per
    acceptance item.
 3. Use the fewest genuinely independent passes needed for strong coverage.
    Merge candidate passes that would inspect the same changed-file cluster,
@@ -344,9 +344,10 @@ precision when evidence is insufficient.
 12. If sibling stories define shared interfaces, invariants, or proof surfaces this story touches, inspect those targeted stories rather than assuming the resolved step file is complete
 13. If ticket intent, `CONTRACT.md`, story text, and live code point in different directions, name the conflict and route it: contract-changing findings go to `/epic-story-plan-converge` or `/epic-feedback`, stale merged contracts go to `/epic-squash`/contract repair, and unimplemented in-scope story obligations go to `/epic-story-resume`.
 14. Run a Debt Friction check: ask whether implementation or review was made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` finding when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
-15. Break the reviewed implementation into logical groups; explain the grouping briefly
-16. Review each group sequentially
-17. Prioritize:
+15. Run a risk-sensitive sanity pass for activated risk lenses. Use story text, diff, source inspection, and tests to identify material domains such as async/event-loop behavior, concurrency, process/resource lifecycle, platform/OS APIs, filesystem/network/subprocess I/O, permissions/security, persistence, retries/timeouts, generated artifacts, prompt/template fail-open behavior, external services, and naming-sensitive invariants. Review those domains by failure mode and existing repo idiom, not only by changed file.
+16. Break the reviewed implementation into logical groups; explain the grouping briefly
+17. Review each group sequentially
+18. Prioritize:
    - correctness
    - regressions
    - product / acceptance drift from the requested outcome
@@ -393,6 +394,12 @@ Before approving, verify:
 - If grounded ticket intent, `CONTRACT.md`, story text, and current code shape point in different directions, is the conflict named with a routed decision rather than silently letting one source erase another?
 - Does every changed helper, API, test, command, config/runtime surface, generated artifact, and proof row map backward to an acceptance id and in-scope rationale? Orphan implementation work blocks approval unless explicitly justified.
 - Was owner discovery broad enough beyond listed Critical Files: domain owners, similar implementations, tests, routes/callsites, fixtures, CLI/API entrypoints, generated artifacts, config/runtime owners, and deprecation paths?
+- Are activated risk lenses identified and reviewed at the owning boundary? Check material domains such as async/event-loop behavior, concurrency, platform/OS APIs, external I/O, permissions/security, persistence, resource lifecycle, retries/timeouts, generated artifacts, and naming-sensitive invariants.
+- For async or event-loop paths, are blocking sync calls avoided, offloaded, or justified with a safe rationale consistent with existing project idioms?
+- For platform/API/external-reality operations, are common sibling failure modes handled or explicitly excluded, including not-found/stale, permission/access denied, already complete, timeout/cancellation, unsupported platform, and partial failure?
+- Do tests prove caller-observable behavior and contract signals rather than only private helper calls, retry counts, sleeps, ordering, or implementation choreography? Treat internal-mechanics assertions as supplementary unless the story makes them contractual.
+- Do names, comments, and tests state sensitive invariants truthfully, without implying stronger identity, ownership, lifecycle, durability, permission, locking, or safety guarantees than the code provides?
+- Were review findings and feedback fixes closed with disposition, fix proof, and regression/side-effect verification rather than only prose acknowledgement?
 - Are evidence-quality categories explicit, and do any `unknown` or `provisional` items affect acceptance, route ownership, ticket intent, contract drift, or proof credibility? If yes, approval is blocked unless the story safely scopes them out.
 - If any `Debt Friction` entry used `fix-now`, did the cleanup stay within its `Scope Justification`, remain enabling for this story, and have verification? If not, request changes or split the debt into a follow-up recommendation.
 
@@ -429,6 +436,8 @@ Append or update a `## Review Log` section in the step file with a new entry:
   - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
   - Traceability: forward <complete|gaps>; backward <complete|gaps>
   - Code surfaces searched: <paths/patterns/entrypoints or none beyond changed files>
+  - Risk lenses reviewed: <activated lenses and exclusions, or none material>
+  - Finding closure: <disposition + fix proof + regression/side-effect check, or none>
   - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
   - Files reviewed: <paths>
   - Hypothesis triage:
@@ -475,6 +484,8 @@ Approval is not allowed if the proof contract is still unresolved. A story is on
 - any relevant epic contract or sibling-story obligation touched by this story remains satisfied, or the intentional drift is explicitly recorded and reflected in the review verdict
 - forward and backward traceability are complete, or every traceability gap is safely scoped out and does not affect acceptance, proof, ownership, or contract fidelity
 - evidence quality is explicit, with no unknown or provisional evidence affecting acceptance, route ownership, ticket intent, contract drift, or proof credibility
+- activated risk lenses are reviewed at their owning boundary, or explicitly excluded with rationale
+- prior findings and feedback fixes have disposition, fix proof, and regression/side-effect verification
 
 ## Classification rules
 
@@ -511,6 +522,8 @@ Start with gate findings and issue lists, ordered by severity, with file referen
 **Prior Review Log Check**: [none, or prior concerns checked with resolved/still open/superseded/not assessable status]
 **Traceability**: [forward complete/gaps; backward complete/gaps]
 **Code Surfaces Searched**: [paths/patterns/entrypoints/domain terms searched]
+**Risk Lenses**: [activated lenses reviewed, proof/exclusion gaps, or none material]
+**Finding Closure**: [dispositions, fix proof, regression/side-effect check, or none]
 **Evidence Quality**: [confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>]
 **Approval Gate**: [PASS | FAIL]
 

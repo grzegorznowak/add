@@ -65,7 +65,7 @@ Do not infer identity from filename shape or naming conventions that are not exp
 Each material fact should have one canonical home:
 
 - `## Acceptance` owns required behavior.
-- `## Verification` owns proof actions, proof status, and reviewer evidence.
+- `## Verification` owns proof actions, proof status, reviewer evidence, and risk-lens obligations.
 - `## Actors` owns role-based participants and responsibility context.
 - `## Scenarios / Behavior Examples` owns concrete examples that funnel into acceptance: `Scenario -> Acceptance -> Verification`.
 - `## Scope` owns boundaries, not implementation steps.
@@ -172,7 +172,9 @@ Reconcile `## Scenarios / Behavior Examples` before leaving this question: every
 
 ### Question 9 — Verification contract
 
-Build `## Verification` around two required parts and any conditional proof sections the story needs:
+Build `## Verification` around two required parts and any conditional proof sections the story needs.
+
+Before locking proof rows, classify activated risk lenses. Use story-specific evidence, not a generic checklist. Common lenses include async/event-loop behavior, concurrency, process or resource lifecycle, retries/timeouts, platform/OS APIs, filesystem/network/subprocess I/O, permissions/security, persistence/migrations, generated artifacts, prompt/template fail-open behavior, external services, and naming-sensitive invariants. If a lens is activated, add proof obligations or an explicit exclusion; if none are material, record that no additional risk lens was identified.
 
 1. `### Verification Commands`
    - Ask for exact commands or exact manual/file-read actions a reviewer can run.
@@ -202,8 +204,13 @@ Build `## Verification` around two required parts and any conditional proof sect
    - Require a negative proof that supported renders leave no unresolved placeholders or raw feature tokens.
    - Require a proof that enabled supported paths activate the feature.
    - Require at least one disabled/default path proof showing baseline behavior is unchanged.
+6. `### Risk Lens Inventory` when any activated risk lens is not already fully covered by the matrices above.
+   - Required columns: `Risk Lens | Activated By | Planning / Proof Obligation | Owner Surface | Exclusion / Rationale`.
+   - For async/event-loop work, identify synchronous API crossings and the approved nonblocking/offload pattern or explicit exception.
+   - For platform, process, filesystem, network, permissions, cleanup, retries, or resource-lifecycle work, list common sibling failure modes such as stale/not-found, permission/access denied, already completed, timeout/cancellation, unsupported platform, and partial failure.
+   - For sensitive lifecycle, ownership, security, persistence, or concurrency invariants, record terminology that must remain truthful in names/comments/tests.
 
-Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers. Provisional rows are allowed, but every acceptance id and every named variant/failure mode inside that id still needs a row and every provisional row must state what remains undecided. For input-boundary shape risks, helper-level proof with already-normalized intermediate data is insufficient unless the story explicitly narrows the proof row and records why that is safe.
+Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers. Planned assertions should prefer caller-observable behavior and contract outcomes; private retry counts, sleeps, helper call order, temporary names, or implementation choreography are contractual only when the story explicitly locks them. Provisional rows are allowed, but every acceptance id and every named variant/failure mode inside that id still needs a row and every provisional row must state what remains undecided. For input-boundary shape risks, helper-level proof with already-normalized intermediate data is insufficient unless the story explicitly narrows the proof row and records why that is safe.
 
 Validate the scenario funnel before leaving this question: every normative scenario with `Covers: A<n>` must be covered by the linked acceptance item's proof row(s). Do not add a separate scenario proof matrix; strengthen `## Acceptance` or `## Verification` instead.
 
@@ -228,6 +235,7 @@ Ask for only the execution context that changes implementation:
 - smallest likely red-first seam or seam family
 - phases if sequencing matters
 - known constraints or live/manual exceptions
+- activated risk lenses and existing project idioms the implementer should compare against
 - required written exception if red-first may be infeasible
 
 Move decisions and rejected alternatives to `## Locked Decisions`; do not duplicate them here.
@@ -302,7 +310,8 @@ Before the checkpoint:
    - every acceptance id appears in at least one proof row
    - every `Proof Maturity` value is `final` or `provisional`
    - every `provisional` row has non-blank `Open Detail`
-   - required surface/branch, input-boundary, and fail-open sections are present when the story risk surface calls for them
+   - required surface/branch, input-boundary, fail-open, and risk-lens sections are present when the story risk surface calls for them
+   - proof rows separate observable behavior from implementation mechanics unless the mechanics are explicitly contractual
    - no `<TODO: ...>` placeholders exist in any required spec section
 
 Abort or continue the interview if validation fails. Do not write malformed story state.
@@ -315,7 +324,7 @@ Show the operator:
 - Dependency validation report.
 - Section list, including which optional narrative sections were included, omitted, or forced by sibling convention.
 - Acceptance/proof validation summary.
-- Surface/branch and fail-open coverage summaries when present.
+- Surface/branch, fail-open, and risk-lens coverage summaries when present.
 - The full drafted story file content.
 - The exact `MASTER.md` row to append.
 

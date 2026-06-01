@@ -18,7 +18,7 @@ Argument: `<epic> <story> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"]...`. `MA
 
 ## Phase 2 — Eligibility Gate
 
-Allowed starting states: `⚪ TODO` (plan-approved only), `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR` (with requested changes), `✅ DONE` (stop immediately).
+Allowed starting states: `⬜ TODO` or `⚪ TODO` (plan-approved only), `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR` (with requested changes), `✅ DONE` (stop immediately).
 
 Reject with next action:
 - `Plan` not `🟢 PLAN APPROVED` → `/epic-story-plan-converge`
@@ -27,7 +27,7 @@ Reject with next action:
 
 ## Phase 3 — Cycle Loop
 
-Run up to `MAX_CYCLES` cycles. Before each child launch, re-read `MASTER.md` and story file. Choose child type from current status: `⚪ TODO` → claim, `🔄 IN PROGRESS` → resume, `🟣 IN REVIEW` → review, `🔵 IN PR` with changes → resume.
+Run up to `MAX_CYCLES` cycles. Before each child launch, re-read `MASTER.md` and story file. Choose child type from current status: `⬜ TODO` or `⚪ TODO` → claim, `🔄 IN PROGRESS` → resume, `🟣 IN REVIEW` → review, `🔵 IN PR` with changes → resume.
 
 ### Notebook pages
 
@@ -65,13 +65,13 @@ After the child completes:
 3. Update notebook page `babysit-<epic>-<step>` with new operational facts (neutral, no verdicts).
 4. If child asks an operator question, pause, ask, then resume with same child for that pass only.
 5. If a claim or resume leaves story at `🟣 IN REVIEW`, same cycle may launch a fresh review child.
-6. If review returns `approve`, stop successfully (APPROVED, not DONE unless status is `✅ DONE`).
-7. If review returns `request_changes` or `not_reviewable`, same cycle may launch one corrective resume, then next cycle starts with fresh review.
+6. If review returns `approve`, confirm the latest story `## Review Log` records risk-lens review and finding closure (or explicit `none material`) before stopping successfully. If approval lacks that evidence, launch one fresh review child focused on risk-lens closure instead of accepting chat output alone.
+7. If review returns `request_changes` or `not_reviewable`, same cycle may launch one corrective resume, then next cycle starts with fresh review. If the finding exposes a new risk lens, ensure the resume child treats that lens as part of the acceptance/proof closure or routes back to planning.
 8. Stop on `⛔ BLOCKED`, `✅ DONE`, or no-progress.
 
 ## Phase 4 — No-Progress Gate
 
-Stop when all are true: latest review returned `request_changes` or `not_reviewable`, subsequent resume didn't add new progress/addressing the finding, and same blocker would go to another review unchanged.
+Stop when all are true: latest review returned `request_changes` or `not_reviewable`, subsequent resume didn't add new progress/addressing the finding, and same blocker would go to another review unchanged. Do not use another broad cycle to compensate for an oversized or under-specified story; route newly discovered contract/risk-lens gaps back to planning.
 
 Other hard stops: `MAX_CYCLES` reached, status is `⛔ BLOCKED`, story enters status owned by another command, subagent failure, operator declines required interaction.
 
@@ -108,7 +108,7 @@ For each worktree in story's `## Active Claim`, run `git -C <path> status --porc
 - Suggested command: `git -C <path> status && git -C <path> add -A && git -C <path> commit -m "<epic>/<story-slug>: <summary>"`
 
 ## Operator Nice-To-Haves
-- <proposed improvement>
+- <proposed improvement, including recurring risk/miss category worth automating or adding to future planning>
 - None.
 
 ## Next Action

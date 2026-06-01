@@ -10,7 +10,7 @@ allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git log:*) Bash(git s
 
 Review one story's **planning contract** against the live repository at any lifecycle point. This is the planning-side analog of `/epic-story-review`: read-only for code, read-only for the story's spec sections, and writes only to a new `## Plan Review Log` entry on the story file plus the `Plan` lane in `MASTER.md`. The highest-leverage part of this review is the acceptance/proof contract: atomic acceptance ids plus a reviewer-facing proof matrix that is credible enough to drive red-first implementation without drifting into fake seams.
 
-Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file>`. Both required.
+Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file>`. Both are recommended; if either is omitted, this command uses the explicit menu fallback in `## Resolution`.
 
 ## Important
 
@@ -110,11 +110,12 @@ You are the reviewer-of-record and orchestration layer: you resolve the story, d
 5. Treat `## Scenarios / Behavior Examples`, `## Verification`, and `## Implementation Notes` as the behavior-funnel, proof-design, and implementation-method contract, not as proof that the implementation already exists. Do not run the planned tests expecting them to pass at this phase. Instead, validate whether scenarios funnel into acceptance, whether commands, seams, owning surfaces, branch decomposition, routing proofs, and fail-open checks are concrete, plausible, aimed at the real acceptance behavior rather than a mocked caricature of it, and specific enough to support red-first implementation after source inspection.
 6. Use `git status` to confirm the worktree is not mid-implementation (if there are large pending changes, note it — plan review on a dirty worktree is a warning signal).
 7. Use `git log` and, when useful, `git show` to skim recent related history for code movement, prior fixes, reverted approaches, hidden tests, or ticket references the plan should have referenced but did not.
-8. Run adversarial lenses explicitly: requirements completeness, code-owner discovery, negative-space/missing cases, variant and branch coverage, fail-open/default behavior, data-shape boundaries, migration/config/runtime impact, backward traceability, and alternatives to each major locked decision.
+8. Run adversarial lenses explicitly: requirements completeness, code-owner discovery, negative-space/missing cases, variant and branch coverage, activated risk lenses, behavior-vs-mechanics proof quality, fail-open/default behavior, data-shape boundaries, migration/config/runtime impact, backward traceability, and alternatives to each major locked decision.
 9. Never speculate about code, tests, tickets, or PRs you haven't read. If a claim in the plan can be checked, check it. If it cannot be checked, classify it as confirmed, inferred, unknown, or provisional.
-10. Run a Debt Friction check: ask whether the plan hides story-local friction from unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` finding when there is a causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
-11. If the plan looks structurally wrong, verdict is `request_changes` with a pointer to which sections to edit. Do not rewrite the plan inside the log.
-12. Walk the full validation checklist below before settling on a verdict.
+10. Run a risk-lens plan check: identify which domain risks the story activates (for example async/event-loop, concurrency, platform/OS APIs, external I/O, permissions/security, persistence, resource lifecycle, retries/timeouts, generated artifacts, or naming-sensitive invariants) and verify the plan either proves each activated risk at the owning boundary or explicitly excludes it with rationale.
+11. Run a Debt Friction check: ask whether the plan hides story-local friction from unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` finding when there is a causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
+12. If the plan looks structurally wrong, verdict is `request_changes` with a pointer to which sections to edit. Do not rewrite the plan inside the log.
+13. Walk the full validation checklist below before settling on a verdict.
 
 ## Hypothesis triage and evidence grounding
 
@@ -167,12 +168,17 @@ Before approving, verify every item:
 35. **Sibling/contract drift.** If `<epic>/CONTRACT.md`, dependency stories, sibling stories, or prior review logs define a shared actor, interface, verification convention, or locked decision, the plan must align with it or explicitly exclude/defer the drift with rationale.
 36. **Operational and lifecycle risks are named.** Plans touching migrations, persistence, auth, external I/O, prompts/templates, config/defaults, background jobs, CLI/API contracts, concurrency, or generated files must include rollback/default/fail-open/fail-closed behavior and verification at the owning boundary.
 37. **Evidence quality is explicit.** Approval findings and log entries must distinguish `confirmed`, `inferred`, `unknown`, and `provisional` evidence. Unknowns that affect acceptance, route ownership, ticket intent, or proof credibility block approval unless the plan explicitly scopes them out with a safe follow-up.
+38. **Activated risk lenses are identified.** Plans should name material domain risks triggered by the work, such as async/event-loop behavior, concurrency, platform/OS APIs, external I/O, permissions/security, persistence, resource lifecycle, retries/timeouts, generated artifacts, prompt/template fail-open behavior, or naming-sensitive invariants. Missing a material lens is a `request_changes` finding unless the risk is already fully covered by another required matrix.
+39. **Risk-lens proof is behavior-centered.** Planned proof should prefer caller-observable outcomes and contract signals. Assertions on private retry counts, sleeps, helper call order, temporary names, or implementation choreography are acceptable only when the story explicitly makes those mechanics contractual.
+40. **Failure-mode breadth is explicit for external reality.** For platform APIs, process/filesystem/network/subprocess work, permissions, cleanup, retries, or resource lifecycle, the plan must cover common sibling failures such as stale/not-found, permission/access denied, already completed, timeout/cancellation, unsupported platform, and partial failure, or record explicit exclusions.
+41. **Existing-idiom comparison is planned for risky areas.** When the plan chooses a pattern in an activated risk lens, it should direct implementers to inspect established repo idioms for that risk class before finalizing code. Unexplained deviation from obvious existing patterns is a review finding.
+42. **Sensitive invariant terminology is truthful.** For lifecycle, ownership, identity, security, persistence, or concurrency-sensitive work, names and locked terminology must not imply stronger guarantees than the plan can prove.
 
 ## Plan lane transitions
 
 You may update the matched `MASTER.md` row's `Plan` column as part of this review. Never change the implementation `Status` column or the story file's `Status:` header from this command.
 
-- `approve` → set `Plan` to `🟢 PLAN APPROVED`. If implementation `Status` is `⚪ TODO`, tell the operator the next action is `/epic-story-claim <epic>` from a fresh session. If implementation has already started, tell the operator the next action is `/epic-story-resume <epic> <story>` or the appropriate implementation command.
+- `approve` → set `Plan` to `🟢 PLAN APPROVED`. If implementation `Status` is `⬜ TODO` or `⚪ TODO`, tell the operator the next action is `/epic-story-claim <epic> <story>` from a fresh session. If implementation has already started, tell the operator the next action is `/epic-story-resume <epic> <story>` or the appropriate implementation command.
 - `request_changes` → set `Plan` to `🟠 PLAN CHANGES REQUESTED`. Tell the operator to run `/epic-story-plan-resume <epic> <story>` to edit the specific spec sections you named, then re-run `/epic-story-plan-review <epic> <story>` from a fresh session. For a ground-up rewrite before implementation starts, recommend deleting the story file and tracker row, then re-running `/epic-story-plan`.
 - `blocked` → set `Plan` to `⛔ PLAN BLOCKED`. Use this only when the plan is unsalvageable as written and the operator needs to pause on this story (e.g., the plan depends on an upstream story that does not exist, or a `## Locked Decision` directly contradicts the architecture and the plan cannot be minimally amended).
 - `not_reviewable` → set `Plan` to `🟠 PLAN CHANGES REQUESTED` if missing context can be repaired in the story contract. If missing context cannot be repaired in the story contract, restore the pre-review `Plan` value from before this command wrote `🟣 PLAN IN REVIEW` and say what context is missing. Never leave the final lane at `🟣 PLAN IN REVIEW` for a completed `not_reviewable` verdict.
@@ -187,11 +193,12 @@ Append or create a `## Plan Review Log` section on the story file with a new ent
 - <UTC ISO timestamp> Plan review run by fresh maintainer session
   - Verdict: approve | request_changes | blocked | not_reviewable
   - Plan lane transition: <from> -> <to>
-  - Status transition: <from> -> <to>
+  - Status transition: unchanged: <status> -> <status>
   - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
   - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
   - Traceability: forward <complete|gaps>; backward <complete|gaps>
   - Code surfaces searched: <paths/patterns/entrypoints or none beyond Critical Files>
+  - Risk lenses reviewed: <activated lenses and exclusions, or none material>
   - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
   - Key findings:
     - <short bullet>
@@ -214,6 +221,7 @@ Start with findings, ordered by severity, with section references.
 **Mode**: [pre-implementation plan review | contract review]
 **Original Intent Used**: [issues/PRs/Jira/tickets/epic sources inspected, none found, or inaccessible]
 **Traceability**: [forward complete/gaps; backward complete/gaps]
+**Risk Lenses**: [activated lenses reviewed, proof/exclusion gaps, or none material]
 
 ## Hypothesis Triage
 - [suspicious surface -> tentative issue -> next proof target, or None]

@@ -103,7 +103,7 @@ After reading the story file's `## Active Claim`, build `<project_root_map>` for
 
    Branch on the four cases:
 
-   **(a) Explicit override present** (`<explicit_worktree_map>[<repo-basename>]` is set): `<wt-path>` = explicit path. Mark for create-or-reattach in step 8 regardless of dirtiness.
+   **(a) Explicit override present** (`<explicit_worktree_map>[<repo-basename>]` is set): `<wt-path>` = explicit path. Mark for create-or-reattach in step 9 regardless of dirtiness.
 
    **(b) Recorded entry present** (`<recorded_worktree_map>[<repo-basename>]` is set, no explicit override): verify it via `git -C <target_repo> worktree list --porcelain`. If a `worktree <recorded path>` line exists AND the recorded path exists on disk, reuse: `<project_root_map>[<repo-basename>]` = recorded path. Skip step 8 for this repo. If the recorded entry is stale (path missing or unregistered), prompt the operator once for this repo:
 
@@ -114,7 +114,7 @@ After reading the story file's `## Active Claim`, build `<project_root_map>` for
    Reply: `default`, `recorded`, a new path, or `no`.
    ```
 
-   On `no`: `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree), warn "proceeding on dirty main tree for `<repo-basename>`" if the repo is dirty, otherwise no warning. On `default`: `<wt-path>` = `<default-path>`, mark for create-or-reattach. On `recorded`: `<wt-path>` = recorded path, mark for create-or-reattach. On a path: `<wt-path>` = normalized absolute, mark for create-or-reattach.
+   On `no`: `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree), warn "proceeding on dirty main tree for `<repo-basename>`" if the repo is dirty, otherwise no warning. On `default`: `<wt-path>` = `<default-path>`, mark for create-or-reattach in step 9. On `recorded`: `<wt-path>` = recorded path, mark for create-or-reattach in step 9. On a path: `<wt-path>` = normalized absolute, mark for create-or-reattach in step 9.
 
    **(c) Neither recorded nor explicit, `<target_repo>` is clean**: `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree). Done for this repo.
 
@@ -149,7 +149,7 @@ After reading the story file's `## Active Claim`, build `<project_root_map>` for
 
 10. **Re-read the story's current state per worktree**. For every `<basename>` in `<project_root_map>` whose value is a worktree, re-read any branch-local files that the resume needs from that worktree path. Coordination files (`<epic>/MASTER.md`, the step file, dependency step files) are NOT re-read from worktrees — they remain anchored at `<workspace_root>/agent_coordination/...` unconditionally. Subsequent "Resume intent" prioritization operates on the workspace-anchored copies.
 
-11. **Stale-recorded-entries warning**. If `<recorded_worktree_map>` had basenames that did not resolve to any real repo in step 5, retain those entries in the upcoming claim refresh (step 9 of `## Claim refresh protocol`) so they are not silently dropped, and warn: "recorded worktree for `<basename>` could not be resolved to any repo on disk — retained in next claim refresh for manual review".
+11. **Stale-recorded-entries warning**. If `<recorded_worktree_map>` had basenames that did not resolve to any real repo in step 5, retain those entries in the upcoming `## Active Claim` refresh so they are not silently dropped, and warn: "recorded worktree for `<basename>` could not be resolved to any repo on disk — retained in next claim refresh for manual review".
 
 12. **Conditional `<workspace_root>` sanity check**. Run this check ONLY if ALL of the following are true:
     - `<workspace_root>` is itself a git repo,
@@ -229,6 +229,7 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Continue only this step plus required dependencies
 - Inspect the relevant code and tests before the first change in this session. Use the story's `## Actors`, normative `## Scenarios / Behavior Examples` linked with exactly one `Covers: A<n>`, `## Verification`, `## Critical Files`, `## Discovery Notes`, and latest runtime notes to choose the smallest focused seam for the next behavior. Treat `Orientation only` scenarios as context only; they must not create implementation or proof obligations unless the same behavior is also present in `## Acceptance`.
 - Before choosing or continuing a red seam, rebuild a compact acceptance proof map from the current story: list every `A<n>` id and, for any acceptance item that names variants, modes, branches, fallback paths, error cases, or examples, list each named case separately. If `## Scenarios / Behavior Examples` contains `S<n> Covers: A<n>`, include the linked scenario case under that acceptance id. Check the latest handoff/review feedback against this proof map so continuation work does not leave sibling variants or linked scenario cases untested; do not let orientation-only examples expand implementation scope.
+- Rebuild the activated-risk map from the current story, latest review feedback, handoff, and source inspection before the first patch in this session. Note material lenses such as async/event-loop behavior, concurrency, process/resource lifecycle, platform/OS APIs, filesystem/network/subprocess I/O, permissions/security, persistence, retries/timeouts, generated artifacts, prompt/template fail-open behavior, external services, and naming-sensitive invariants. If review feedback exposed a new risk lens, treat closure of that lens as part of the resume task unless it requires plan rework.
 - Run a Debt Friction check before the first patch in this session: ask whether implementation is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only write a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
 - Default to red-first: make that focused seam fail, implement until it passes, then broaden verification.
 - Do not jump straight to broad suites or code-first implementation if a smaller focused seam is available.
@@ -236,9 +237,10 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - If the step is in progress because of review feedback, address that feedback first
 - If you discover an epic-wide architectural contradiction, update `MASTER.md` minimally and note it in the step file
 - If you discover non-material evidence drift where the contract is still correct but the actual proof command/name changed, update only the concrete evidence row in `## Verification` and record why in `## Progress Log` before continuing.
-- If implementation reveals variant-level proof needs, acceptance gaps, branch coverage gaps, input-boundary shape risk, or material contract drift not captured in the story, stop implementation work. Record a concise blocker in `## Progress Log`, set or ask to set the `Plan` lane to `🟠 PLAN CHANGES REQUESTED` when available, and route the story to `/epic-feedback` or `/epic-story-plan-converge`. Do not perform replanning inside `/epic-story-resume`.
+- If implementation reveals variant-level proof needs, acceptance gaps, branch coverage gaps, input-boundary shape risk, activated risk lenses, or material contract drift not captured in the story, stop implementation work. Record a concise blocker in `## Progress Log`, set or ask to set the `Plan` lane to `🟠 PLAN CHANGES REQUESTED` when available, and route the story to `/epic-feedback` or `/epic-story-plan-converge`. Do not perform replanning inside `/epic-story-resume`.
 - If red-first is not feasible, record an explicit written exception in `## Progress Log` before proceeding. Name the reason, the alternative proof seam, and the verification path you will use instead.
 - If Debt Friction exists, record it in `## Progress Log` using the `docs/epic-conventions.md` shape. Use `fix-now` only for enabling cleanup directly required to make this story correct, testable, reviewable, or safely maintainable; include `Scope Justification`. Use `split-story`, `defer-explicitly`, or `block` for debt that is non-enabling, too large, too non-local, or proof-blocking.
+- Before moving back to `🟣 IN REVIEW`, run a reviewer-mindset self-check over every activated risk lens: compare risky choices with existing repo idioms; check async paths for blocking sync calls; check external/OS/API operations for sibling failure modes such as not-found, permission denied, timeout/cancellation, already-complete, unsupported, and partial failure; verify tests assert observable behavior rather than private choreography unless the mechanic is contractual; verify sensitive names/comments do not overstate identity, ownership, lifecycle, or safety invariants; and confirm every review finding or discovered risk has disposition, fix proof, and regression/side-effect verification.
 - If the step is blocked by a hard external dependency or contradiction, stop broadening scope and mark it `⛔ BLOCKED`
 
 ## Progress tracking
@@ -247,6 +249,7 @@ Append concise timestamped bullets under `## Progress Log` after meaningful mile
 - focused red seam chosen
 - focused seam turned green
 - acceptance proof map checked or updated when named variants/failure modes exist
+- activated-risk map checked or updated when review feedback or implementation reveals new risk lenses
 - design change locked
 - files patched
 - tests added/updated
@@ -276,6 +279,8 @@ At the end of the session:
 - Red-first path: <focused seam + red/green outcome, or explicit exception + alternative proof path>
 - Tests run: <commands/results or not run>
 - Acceptance proof coverage: <all acceptance ids and named variants covered | gaps/exclusions listed>
+- Risk-lens self-check: <activated lenses checked, exclusions, or none material>
+- Finding closure: <review/feedback findings fixed with proof and regression check, or none>
 - Remaining work: <short bullets>
 - Unresolved Debt Friction: <split-story / defer-explicitly / block / unfinished fix-now entries, or none>
 - Blockers / risks: <short bullets>

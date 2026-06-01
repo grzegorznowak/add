@@ -27,7 +27,7 @@ Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [MAX_CYCLES=
    - `<epic>`: required first positional token.
    - `<story>`: required second positional token.
    - `MAX_CYCLES=<n>`: optional positive integer; default `5`.
-2. Reject unknown flags. This command does not accept `WORKTREE=` because planning convergence never touches source code.
+2. Reject unknown flags. This command does not accept `WORKTREE=` because planning may read source code for evidence but never writes source code.
 3. Set `<workspace_root>` = `<cwd>` and resolve `<epic_dir>` = `<workspace_root>/agent_coordination/epics/<epic>`.
 4. Read `<epic_dir>/MASTER.md` and resolve `<story>` exactly like the underlying plan commands:
    - first match one row whose `Step` equals `<story>`;
@@ -90,7 +90,7 @@ For each cycle:
 
 7. Require every subagent final response to include `## Research Events`, with `- None.` allowed. Reused board entries must name the entry and direct-read/search anchors used to verify it. Board-refresh signals must name the board entry or absent needed fact, describe the verification miss, and cite the direct-read/search anchors proving the miss or replacement fact. After the pass finishes, append newly sourced research events and use board-refresh signals to update, replace, retire, or ask about affected board entries. Do not append verdicts, implementation opinions, or unanchored summaries.
 8. After the review agent finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive the review decision from the newest `## Plan Review Log` entry and current `Plan` lane, not from chat output alone.
-9. If the decision is `approve` or `Plan` is `🟢 PLAN APPROVED`, stop successfully. Do not claim or resume the story. Recommend `/epic-story-claim <epic> <story>` if implementation `Status` is `⚪ TODO`, or `/epic-story-resume <epic> <story>` if implementation has already started.
+9. If the decision is `approve` or `Plan` is `🟢 PLAN APPROVED`, confirm the latest story `## Plan Review Log` records activated risk lenses or explicit `none material` before stopping. If approval lacks that evidence, launch one fresh plan-review child focused on risk-lens coverage rather than accepting chat output alone. Then stop successfully. Do not claim or resume the story. Recommend `/epic-story-claim <epic> <story>` if implementation `Status` is `⚪ TODO` or `⬜ TODO`, or `/epic-story-resume <epic> <story>` if implementation has already started.
 10. If the decision is `blocked` or `Plan` is `⛔ PLAN BLOCKED`, stop with blocked planning status.
 11. If the decision is `request_changes` or `not_reviewable`, prepare and launch a different fresh subagent whose task prompt ends with:
 
@@ -124,6 +124,8 @@ Stop early for conservative no-progress when all are true:
 - the subsequent resume pass did not add a newer addressed-feedback entry or materially edit the targeted spec sections;
 - the same blocker or finding would be handed to another review unchanged.
 
+Do not use repeated cycles to paper over an under-specified or over-large story; newly discovered risk-lens or proof-contract gaps must be edited into the story contract or explicitly excluded.
+
 Other hard stops:
 
 - `MAX_CYCLES` reached;
@@ -140,7 +142,8 @@ Return only the compact report below. Do not include internal deliberation, anal
 **Convergence Result**: APPROVED | BLOCKED | STOPPED | MAX_CYCLES
 **Story**: Step <step> / <spec>
 **Cycles Used**: <n>/<MAX_CYCLES>
-**Final Status**: <status>
+**Final Plan Lane**: <plan>
+**Final Implementation Status**: <status>
 
 ## Trace
 - Cycle 1: plan-review -> <decision>; plan-resume -> <completed/skipped>
@@ -159,7 +162,7 @@ Return only the compact report below. Do not include internal deliberation, anal
 - None.
 
 ## Operator Nice-To-Haves
-- <proposed future improvement surfaced by repeated friction>
+- <proposed future improvement surfaced by repeated friction, including recurring risk/miss category worth automating or adding to future planning>
 - None.
 
 ## Next Action
