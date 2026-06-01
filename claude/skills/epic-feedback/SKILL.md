@@ -1,6 +1,6 @@
 ---
 name: epic-feedback
-description: Absorb CURe, PR, or reviewer feedback into an epic by routing it to story edits, review rework, story candidates, or epic notes. Use when feedback needs to be incorporated without bloating or drifting stories.
+description: Absorb structured review/tool, PR, or reviewer feedback into an epic by routing it to story edits, review rework, story candidates, or epic notes. Use when feedback needs to be incorporated without bloating or drifting stories.
 disable-model-invocation: true
 argument-hint: "<epic-name-or-path> [--pr <pr-url>] [--latest|--all] [--since <source-id>] [feedback-or-file]"
 allowed-tools: Read Edit Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*)
@@ -8,7 +8,7 @@ allowed-tools: Read Edit Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -
 
 # Epic Feedback
 
-Absorb structured feedback into one epic without turning PR reviews or CURe output into messy story prose. This command classifies each feedback item first, shows a lightweight acknowledgement plan, then applies the smallest coordination-doc edits needed to preserve story intent, feedback provenance, and the story's planning lane.
+Absorb structured feedback into one epic without turning PR reviews or tool output into messy story prose. This command classifies each feedback item first, shows a lightweight acknowledgement plan, then applies the smallest coordination-doc edits needed to preserve story intent, feedback provenance, and the story's planning lane.
 
 Argument: `$ARGUMENTS` - `<epic_name_or_path> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]`. The epic is required by argument or explicit menu selection. PR mode defaults to the latest unabsorbed actionable feedback item.
 
@@ -120,10 +120,11 @@ Continue after the highest existing `FB-###` in the epic `Feedback Absorption Lo
 - Evidence: <short excerpt or source-local fact, not a long paste>
 - Affected paths: <paths mentioned by the feedback, if any>
 - Candidate stories: <story numbers that may be affected>
+- Risk / miss category: <async/event-loop | platform/API failure | behavior-vs-mechanics proof | semantic invariant naming | security | persistence | resource lifecycle | other | none>
 - Actionability: actionable | non_actionable | ambiguous
 ```
 
-When a feedback item is ambiguous, ask one focused question before classification. Do not guess a target story just because it is the most recent story in the epic.
+When a feedback item is ambiguous, ask one focused question before classification. Do not guess a target story just because it is the most recent story in the epic. When feedback exposes an escaped miss, classify the recurring miss category so the epic log can feed future planning, review, tests, lint/static checks, and skill updates without making the target story carry a retrospective essay.
 
 ## Phase 3 — Classify targets and draft absorption plan
 
@@ -219,6 +220,8 @@ After constructing story spec/proof edits and before writing, run these phases i
 13. If the story spans surfaces, supported variants, modes, or internal orchestration branches, `### Surface / Branch Proof Matrix` exists and covers every in-scope combination or records an explicit exclusion.
 14. If raw persisted, external, framework, or generated input crosses stricter application assumptions, `### Input Boundary Shape Risk` exists when needed and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
 15. If prompt placeholders, template variables, or string substitution can fail open, `### Fail-open Checks` exists and covers enabled and disabled/default paths.
+16. If feedback introduces or exposes an activated risk lens, the amended contract covers it through existing matrices or `### Risk Lens Inventory` with proof obligations or explicit exclusions.
+17. Planned proof remains behavior-centered: private retry counts, sleeps, helper call order, timing, or implementation choreography are contractual only when explicitly locked.
 
 **Phase B — Contract-preservation diff.** Compare the edited sections against the originals:
 - Every pre-existing `A<n>` still appears in at least one proof row in the edited version (coverage match — row shape may change).
@@ -242,7 +245,8 @@ For contract-changing `resume-current-story`, also append a concise replanning c
 ```md
 - <UTC ISO timestamp> Replanning checkpoint from feedback absorption
   - Feedback ID: FB-###
-  - Contract sections updated: <Actors, Scenarios / Behavior Examples, Acceptance, Verification, Surface / Branch Proof Matrix, Input Boundary Shape Risk, etc.>
+  - Contract sections updated: <Actors, Scenarios / Behavior Examples, Acceptance, Verification, Surface / Branch Proof Matrix, Input Boundary Shape Risk, Risk Lens Inventory, etc.>
+  - Risk / miss category: <category or none>
   - Plan lane: <from> -> <to>
   - Required next action: `/epic-story-plan-review <epic> <story>`
 ```
@@ -303,6 +307,9 @@ Keep the feedback provenance fields and include the canonical traceability/evide
   - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
   - Traceability: forward <complete|gaps>; backward <complete|gaps>
   - Code surfaces searched: <paths/patterns/entrypoints or none beyond feedback scope>
+  - Risk / miss category: <category or none>
+  - Risk lenses reviewed: <activated lenses and exclusions, or none material>
+  - Finding closure required: <disposition + fix proof + regression/side-effect check>
   - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
   - Files reviewed: <paths or n/a>
   - Hypothesis triage:
@@ -328,7 +335,7 @@ Keep the feedback provenance fields and include the canonical traceability/evide
   - Next action: <one concrete resume/rework action>
 ```
 
-If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, supported branches, input-boundary shape assumptions, or fail-open risks, fully blend those changes before recommending `/epic-story-resume`:
+If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, supported branches, input-boundary shape assumptions, fail-open risks, or activated risk lenses, fully blend those changes before recommending `/epic-story-resume`:
 
 - update `## Actors` when feedback changes who initiates, participates in, reviews, or is affected by the behavior
 - update `## Scenarios / Behavior Examples` when feedback changes concrete flows or examples; every normative scenario must use exactly one `Covers: A<n>` and funnel into Acceptance and Verification
@@ -337,6 +344,7 @@ If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, su
 - update `### Surface / Branch Proof Matrix` when surfaces, variants, modes, or orchestration branches are introduced or changed
 - update `### Input Boundary Shape Risk` when raw input shape assumptions are introduced or changed
 - update `### Fail-open Checks` when prompt/template fail-open risks are introduced or changed
+- update or add `### Risk Lens Inventory` when feedback exposes async/event-loop, platform/API, external I/O, permissions/security, resource lifecycle, retries/timeouts, semantic invariant, or other domain risks not already covered
 - append the replanning checkpoint to `## Progress Log`
 - set `Plan` to `🟠 PLAN CHANGES REQUESTED` after the validation gate passes and make `/epic-story-plan-review` the next action; this command cannot approve its own contract edits
 
@@ -378,7 +386,7 @@ For every disposition, append one canonical row to `<epic>/MASTER.md` under `## 
 
 | ID | Source Type | Source ID | Source URL | Created | Updated | Disposition | Target | Changed | Status |
 |---|---|---|---|---|---|---|---|---|---|
-| FB-001 | github_pr_review_comment | PRRC_... | https://... | 2026-04-28T10:40:00Z | 2026-04-28T11:05:00Z | resume-current-story | story-05 | Review Log | absorbed |
+| FB-001 | github_pr_review_comment | PRRC_... | https://... | 2026-04-28T10:40:00Z | 2026-04-28T11:05:00Z | resume-current-story | story-05 | Review Log; miss-category=platform/API failure | absorbed |
 ```
 
 Preserve existing rows. If the section does not exist, add it after the story tracker unless a local epic convention clearly places operational logs elsewhere.
@@ -391,6 +399,7 @@ Report:
 - files changed
 - disposition and target for each item
 - any items skipped or left ambiguous
+- recurring risk / miss categories observed, or none
 - exact next command when relevant, such as `/epic-story-resume`, `/epic-story-pr`, or `/epic-story-plan`
 
 When `amend-existing-story` touched any contract/proof section, include in the response:

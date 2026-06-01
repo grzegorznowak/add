@@ -7,7 +7,7 @@ description: Run fresh plan-review and plan-resume children against one story un
 
 Coordinate planning-side ping-pong for one story. Spawn children for `/epic-story-plan-review` and `/epic-story-plan-resume` in cycles. Use notebook pages for the Research Board and babysitting notes. Stop on approval, blocker, no-progress, or cycle-budget exhaustion.
 
-Argument: `<epic> <story> [MAX_CYCLES=5]`. No `WORKTREE=` — planning never touches source code.
+Argument: `<epic> <story> [MAX_CYCLES=5]`. No `WORKTREE=` — planning may read source code for evidence but never writes source code.
 
 ## Phase 1 — Parse and Resolve
 
@@ -57,14 +57,14 @@ After each child:
 2. Read `notebook_read({name: "plan-research-<epic>-<step>"})`. Curate entries.
 3. Update notebook page `plan-babysit-<epic>-<step>` with neutral operational facts.
 4. If child asks operator question: pause, ask, resume same child for that pass only.
-5. If review decision is `approve` or `Plan` reaches `🟢 PLAN APPROVED` → stop. Recommend `/epic-story-claim` or `/epic-story-resume`.
+5. If review decision is `approve` or `Plan` reaches `🟢 PLAN APPROVED`, confirm the latest story `## Plan Review Log` records activated risk lenses or explicit `none material` before stopping. If approval lacks that evidence, launch one fresh plan-review child focused on risk-lens coverage rather than accepting chat output alone. Then recommend `/epic-story-claim` or `/epic-story-resume`.
 6. If `blocked` → stop.
 7. If `request_changes` or `not_reviewable` → launch resume child, then next cycle.
 8. If implementation `Status` changes during convergence → stop (unexpected state).
 
 ## Phase 4 — No-Progress Gate
 
-Stop when: latest review returned `request_changes` or `not_reviewable`, subsequent resume didn't materially edit targeted sections, same blocker would go to review unchanged.
+Stop when: latest review returned `request_changes` or `not_reviewable`, subsequent resume didn't materially edit targeted sections, same blocker would go to review unchanged. Do not use repeated cycles to paper over an under-specified or over-large story; newly discovered risk-lens or proof-contract gaps must be edited into the story contract or explicitly excluded.
 
 Other stops: `MAX_CYCLES`, `blocked`, implementation status change, subagent failure, operator declines required interaction.
 
@@ -74,7 +74,8 @@ Other stops: `MAX_CYCLES`, `blocked`, implementation status change, subagent fai
 **Convergence Result**: APPROVED | BLOCKED | STOPPED | MAX_CYCLES
 **Story**: Step <step> / <spec>
 **Cycles Used**: <n>/<MAX_CYCLES>
-**Final Status**: <status>
+**Final Plan Lane**: <plan>
+**Final Implementation Status**: <status>
 
 ## Trace
 - Cycle 1: plan-review -> <decision>; plan-resume -> <completed/skipped>
@@ -90,7 +91,7 @@ Other stops: `MAX_CYCLES`, `blocked`, implementation status change, subagent fai
 - None.
 
 ## Operator Nice-To-Haves
-- <proposed improvement>
+- <proposed improvement, including recurring risk/miss category worth automating or adding to future planning>
 - None.
 
 ## Next Action
