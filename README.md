@@ -115,7 +115,7 @@ The installer writes to one or more of these locations:
 - `claude/skills/<name>/` -> `<project>/.claude/skills/<name>` (Claude project symlink)
 - generated Codex skill -> `~/.codex/skills/<snake_name>/` (Codex user-level)
 - generated Codex skill -> `<project>/.agents/skills/<snake_name>/` (Codex project)
-- generated pi skill -> `~/.pi/skills/<name>/` (pi user-level)
+- generated pi skill -> `~/.pi/agent/skills/<name>/` (pi user-level)
 
 Codex and pi outputs are generated from `claude/skills/` at install time; there
 is no committed `codex/skills/` source tree to maintain. Claude installs remain
@@ -201,7 +201,7 @@ scripts/install.sh --yes --agents all
 
 Only symlinks pointing at this repo are removed. Anything you authored yourself
 is left untouched. Generated Codex/pi directories are real files and can be
-removed manually from `~/.codex/skills/` or `~/.pi/skills/` if needed.
+removed manually from `~/.codex/skills/` or `~/.pi/agent/skills/` if needed.
 
 ## Lifecycle
 

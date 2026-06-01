@@ -26,7 +26,7 @@ CLAUDE_SKILLS_SRC="${REPO_ROOT}/claude/skills"
 
 CLAUDE_USER_DEST="${HOME}/.claude/skills"
 CODEX_SKILLS_USER_DEST="${HOME}/.codex/skills"
-PI_SKILLS_USER_DEST="${HOME}/.pi/skills"
+PI_SKILLS_USER_DEST="${HOME}/.pi/agent/skills"
 
 AGENTS=""           # claude | codex | pi | both | all
 PROJECT_PATH=""
@@ -212,7 +212,7 @@ run_wizard() {
 
   # Q2: scope
   choice="$(ask_choice "Install scope?" \
-    "  1) User-level (~/.claude/skills, ~/.codex/skills, ~/.pi/skills)
+    "  1) User-level (~/.claude/skills, ~/.codex/skills, ~/.pi/agent/skills)
   2) Project-level (also link into <project>/.claude/skills and <project>/.agents/skills; pi remains user-level)" "1" "1|2")"
   if [[ "$choice" == "2" ]]; then
     PROJECT_PATH="$(ask_path "Project path:")"

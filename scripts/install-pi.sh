@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # install-pi.sh — compile pi-native skills from canonical Claude source + pi fragments.
 # Strips Research Board transport sections, appends pi-specific fragments
-# (or replaces full skill for converge rewrites), writes to ~/.pi/skills/.
+# (or replaces full skill for converge rewrites), writes to ~/.pi/agent/skills/.
 #
 # Detection:
 #   - Fragment starts with "---" (YAML frontmatter) → full replace
@@ -13,7 +13,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_SKILLS="$REPO_ROOT/claude/skills"
 PI_FRAGMENTS="$REPO_ROOT/pi-fragments"
-PI_DEST="${PI_SKILLS_DIR:-$HOME/.pi/skills}"
+PI_DEST="${PI_SKILLS_DIR:-$HOME/.pi/agent/skills}"
 FORCE="${ADD_INSTALL_FORCE:-0}"
 
 usage() {
@@ -21,7 +21,7 @@ usage() {
 Usage: install-pi.sh [--force]
 
 Compile pi skills from claude/skills plus pi-fragments into PI_SKILLS_DIR
-(default: ~/.pi/skills). Existing generated files are overwritten only when
+(default: ~/.pi/agent/skills). Existing generated files are overwritten only when
 their content is unchanged; use --force to replace local edits or conflicts.
 EOF
 }
