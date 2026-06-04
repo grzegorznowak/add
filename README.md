@@ -337,7 +337,10 @@ This view shows the status machine for each story row.
 ```
 
 Planning helper: `[/grillme]` can stress-test a plan or design before an epic,
-between stories, or whenever the operator wants a sharper interview.
+between stories, or whenever the operator wants a sharper interview. It is
+exploratory/non-binding: design discussion becomes story contract only when the
+operator copies it into `Scenarios`, `Acceptance`, or `Verification` (including
+`Design Sources` / `Design Element Trace`).
 
 Feedback helper: `[/epic-feedback]` can absorb the latest unprocessed PR review
 comment, a CURe feedback block, or pasted reviewer notes into the epic without

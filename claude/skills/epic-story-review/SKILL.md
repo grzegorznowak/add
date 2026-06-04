@@ -149,8 +149,9 @@ After reading the story's `## Active Claim`, build `<project_root_map>` from wha
 3. `<epic>/CONTRACT.md` when present
 4. dependency step files
 5. relevant sibling story files or contract sections the resolved story depends on
-6. original issue/ticket/PR/Jira intent and acceptance criteria, when explicitly linkable and not superseded by `CONTRACT.md` or code
-7. actual code, tests, and worktree diff
+6. durable design sources explicitly listed as `normative` in the resolved story's `### Design Sources`; orientation-only design sources are context only
+7. original issue/ticket/PR/Jira intent and acceptance criteria, when explicitly linkable and not superseded by `CONTRACT.md` or code
+8. actual code, tests, and worktree diff
 
 `CONTRACT.md` is authoritative for already-squashed epic scope. If original ticket/PR/Jira intent conflicts with `CONTRACT.md`, do not silently prefer the ticket; the implementation is not approvable unless the story records an explicit reopen, scope-deviation, or contract-staleness decision. If `CONTRACT.md` conflicts with the live codebase, name the conflict: codebase facts win as evidence of reality, and the finding should route contract repair through `/epic-squash`, `/epic-feedback`, or `/epic-story-plan-converge` as appropriate rather than silently approving drift. Never invent linkage: if ticket/PR/Jira evidence is absent, inaccessible, weak, or contradictory, say so explicitly and review against the remaining epic/story/code sources.
 
@@ -167,12 +168,14 @@ When launched by a converger, you may receive `Shared Research Board from parent
 - Build an implementation trace map before approval:
   - forward trace: `CONTRACT.md`/original issue/ticket/epic intent -> story Purpose/Scope/Scenarios/Acceptance -> final Verification proof rows -> changed code/tests/config/runtime surfaces
   - backward trace: every changed file, symbol, helper, command, test, config, generated/runtime surface, and proof row -> Acceptance id -> in-scope story rationale or explicit exclusion
+  - design trace when applicable: normative design source anchor -> visible element/state -> `required` or bounded `flexible` trace row -> Scenario -> Acceptance -> final proof row -> rendered artifact or reviewer observation
   Orphan changed surfaces, gold-plated behavior, or proof rows for unrequested behavior block approval unless the story records a safe justification.
 - When an acceptance or proof row names an end-to-end boundary, verify the proof starts at that named boundary. A lower-level test with hand-built intermediate data does not satisfy a resolver/orchestration acceptance item unless the row explicitly permits that narrower proof.
 - When an acceptance item names variants, modes, branches, fallback paths, error cases, or examples, treat each named case as a required proof obligation. A test or proof row that covers only one variant does not cover sibling variants unless the story explicitly excludes them with rationale.
 - When `## Scenarios / Behavior Examples` is present, enforce the funnel `Scenario -> Acceptance -> Verification`: every normative `S<n>` scenario must use exactly one `Covers: A<n>`, and the linked acceptance/proof path must satisfy that scenario's concrete behavior. Orientation-only scenarios are not proof obligations, must not drive required implementation scope unless also present in Acceptance, and must not contradict the implemented behavior.
 - When raw persisted, external, framework, or generated input crosses into stricter application assumptions, treat it as an `Input Boundary Shape Risk`: proof must start at the raw input boundary for every in-scope case, or the story must record an explicit exclusion / unknown with mitigation.
 - Treat external or local technical docs as contract hints, not implementation proof. If a story claims an exact route, model family, auth mode, metadata label, or dispatch path, verify repo code or tests prove that exact behavior.
+- Treat normative design sources as extraction inputs to the story contract, not as a free-form implementation checklist. Mapped `### Design Element Trace` rows are review claims. Also inspect normative design sources enough to catch obvious unmapped visible elements/states; classify those as planning-contract extraction gaps routed to `/epic-story-plan-converge` or `/epic-feedback`, not direct implementation failures unless the element is mapped in Acceptance/trace.
 - If a story touches surfaces owned by dependency stories, inspect the relevant dependency proof rows and ensure prior accepted contracts still hold.
 - If progress logs, review logs, or code structure reveal duplicated live owners for one behavior, include each owner in the review plan; do not approve a story that updates or proves only one side without an explicit exclusion.
 
@@ -351,6 +354,7 @@ precision when evidence is insufficient.
    - correctness
    - regressions
    - product / acceptance drift from the requested outcome
+   - design-source extraction gaps and rendered-surface proof gaps where relevant
    - epic contract drift from `MASTER.md`, `CONTRACT.md`, or sibling-story commitments
    - architectural consistency
    - duplication / missed reuse
@@ -382,6 +386,9 @@ Before approving, verify:
 - Are any matrix rows still `provisional`?
 - Does every proof row start at the boundary it claims to prove, rather than bypassing it with hand-built intermediate state?
 - Are route/model/auth/metadata claims grounded in repo behavior or tests, not only in external or local documentation?
+- If the story includes `### Design Element Trace`, does the implementation satisfy every mapped `required` row and every bounded `flexible` row within its stated bounds?
+- If the story names normative design sources, did review inspect those durable sources enough to catch obvious unmapped visible elements/states and route any extraction gap as a planning-contract issue rather than a direct implementation failure?
+- For design obligations involving visibility, placement, navigation, copy, responsive behavior, or interaction state, is there rendered-surface evidence (browser/manual UI observation, screenshot, rendered DOM/output, or equivalent) unless the story records an explicit exception or narrower proof boundary?
 - If the story spans multiple surfaces / variants / branches, does the final proof contract still cover every in-scope row from the `Surface / Branch Proof Matrix`, or log an explicit intentional exclusion?
 - If an acceptance item defines fallback, default, degraded, malformed, missing-data, or error behavior, is that path directly proven? Success-path tests do not cover fallback behavior.
 - If shared helpers or multiple callsites were in scope, is there explicit routing proof showing that each supported callsite actually reaches the intended helper or branch logic rather than only proving helper correctness?
@@ -435,6 +442,7 @@ Append or update a `## Review Log` section in the step file with a new entry:
   - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
   - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
   - Traceability: forward <complete|gaps>; backward <complete|gaps>
+  - Design trace: complete|gaps|not applicable; rendered evidence: complete|gaps|not applicable
   - Code surfaces searched: <paths/patterns/entrypoints or none beyond changed files>
   - Risk lenses reviewed: <activated lenses and exclusions, or none material>
   - Finding closure: <disposition + fix proof + regression/side-effect check, or none>
@@ -478,6 +486,9 @@ Approval is not allowed if the proof contract is still unresolved. A story is on
 - multipass review is either not triggered or completed with every acceptance
   item covered by a focused-pass result
 - required fail-open checks are satisfied for prompt/template/placeholder-driven features
+- required design trace rows are satisfied, with every mapped `required` row proven and every `flexible` row within its explicit bounds
+- rendered-surface evidence exists for visibility, placement, navigation, copy, responsive, and interaction-state design obligations unless the story records an explicit exception or narrower proof boundary
+- obvious unmapped visible elements/states from normative design sources have been routed as planning-contract gaps rather than silently ignored
 - required input-boundary shape risk rows are covered by real-boundary evidence, explicitly excluded, or recorded as unknown with mitigation
 - any apparent proof drift was logged when it happened
 - the step file records either the focused red seam that was used or an explicit written exception with the alternative proof path
@@ -521,6 +532,7 @@ Start with gate findings and issue lists, ordered by severity, with file referen
 **Original Intent Used**: [issues/PRs/Jira/tickets/epic sources inspected, none found, or inaccessible]
 **Prior Review Log Check**: [none, or prior concerns checked with resolved/still open/superseded/not assessable status]
 **Traceability**: [forward complete/gaps; backward complete/gaps]
+**Design Trace**: [complete | gaps | not applicable; rendered evidence complete | gaps | not applicable]
 **Code Surfaces Searched**: [paths/patterns/entrypoints/domain terms searched]
 **Risk Lenses**: [activated lenses reviewed, proof/exclusion gaps, or none material]
 **Finding Closure**: [dispositions, fix proof, regression/side-effect check, or none]

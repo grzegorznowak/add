@@ -159,7 +159,7 @@ time by `/epic-story-plan`, and they are read by every other command.
 | `## Out of Scope` | What is deliberately not in scope. |
 | `## Scenarios / Behavior Examples` | Concrete examples that funnel into acceptance. Normative scenarios use exactly one `Covers: A<n>` link; orientation-only scenarios must say `Orientation only`. |
 | `## Acceptance` | Observable criteria a reviewer can verify. Every bullet uses a stable `A<n>` id and covers exactly one independently provable behavior. |
-| `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands` and `### Acceptance Proof Matrix`, and must add `### Surface / Branch Proof Matrix` and/or `### Fail-open Checks` when the story's risk surface requires them. Rows reference acceptance IDs instead of restating full acceptance prose. |
+| `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands` and `### Acceptance Proof Matrix`, and must add conditional subsections such as `### Surface / Branch Proof Matrix`, `### Design Sources`, `### Design Element Trace`, `### Input Boundary Shape Risk`, `### Fail-open Checks`, and/or `### Risk Lens Inventory` when the story's risk surface requires them. Rows reference acceptance IDs instead of restating full acceptance prose. |
 | `## Discovery Notes` | Source-derived facts that prevent rediscovery: reusable code, gotchas, hidden coupling, test seams, operational constraints, or Debt Friction. Not a transcript. |
 | `## Critical Files` | File paths and each path's role. |
 | `## Implementation Notes` | Execution brief: source-inspection focus, red-first seam guidance, phases, constraints, and known exceptions. |
@@ -292,6 +292,50 @@ Rules for `### Surface / Branch Proof Matrix`:
 - The matrix must be specific enough that a reviewer can tell which supported
   branches are covered, and which are intentionally out of scope, from the
   story alone.
+
+Add `### Design Sources` whenever the story references a mockup, wireframe,
+screenshot, Figma frame, presentation blueprint, prior `/grillme` discussion,
+or other design artifact. A valid source anchor must be durable and reviewable:
+a repo file, Figma/frame URL, stored screenshot/evidence artifact, presentation
+blueprint copied into the story, or self-contained operator-approved summary.
+Mark each source as `normative` or `orientation only`. Orientation-only sources
+are context; they create no implementation or proof obligation unless the same
+behavior is repeated in `## Acceptance`.
+
+When any design source is `normative`, add `### Design Element Trace`:
+
+```md
+### Design Sources
+| Source Anchor | Status | Notes / Supersession |
+|---|---|---|
+| <repo path / Figma URL / stored screenshot / copied summary> | normative | <what this source controls> |
+| <source> | orientation only | <why it is context only> |
+
+### Design Element Trace
+| Source Anchor | Visible Element / State | Obligation | Bounds / Required Behavior | Scenario | Acceptance ID | Proof Row / Reviewer Action |
+|---|---|---|---|---|---|---|
+| <source> | <visible element, copy, placement, responsive state, or interaction state> | required | <required visible behavior> | S<n> | A<n> | <matrix row / rendered reviewer action> |
+| <source> | <visible element or state> | flexible | <explicit allowed variance bounds> | S<n> | A<n> | <matrix row / rendered reviewer action> |
+```
+
+Rules for design-heavy stories:
+
+- `Obligation` uses only `required` or `flexible`.
+- `required` rows state the exact visible behavior or state the story must ship.
+- `flexible` rows require explicit allowed-variance bounds. Unbounded flexible
+  rows are invalid.
+- Do not use a normal omitted/ignored class for accepted normative designs. If a
+  visible element from a normative source should not ship, revise or supersede
+  the source, mark it orientation-only, re-scope/split with operator approval,
+  or record an explicit operator-approved story-scope narrowing before approval.
+- Every visible element/state in a normative source must map to a required or
+  bounded flexible row, then through `Scenario -> Acceptance -> Verification`.
+  Unmapped normative visible elements are planning-contract gaps.
+- Vague acceptance such as "matches the mockup" or "follows the design" is
+  insufficient without enumerated trace rows, acceptance coverage, and proof.
+- Rendered-surface proof is mandatory for visibility, placement, navigation,
+  copy, responsive behavior, and interaction-state obligations unless the story
+  records an explicit exception or narrower proof boundary.
 
 Add this proof obligation whenever raw persisted, external, framework, or
 generated input crosses into stricter application assumptions such as parsing,
@@ -542,6 +586,7 @@ review logs.
   - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
   - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
   - Traceability: forward <complete|gaps>; backward <complete|gaps>
+  - Design trace: complete|gaps|not applicable; rendered evidence: complete|gaps|not applicable
   - Code surfaces searched: <paths/patterns/entrypoints or none beyond changed files>
   - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
   - Files reviewed: <paths>
@@ -578,8 +623,9 @@ those concerns are resolved, still open, superseded, or not assessable from the
 current evidence before approving. The traceability fields make implementation
 review evidence durable: which original intent sources were checked, which spec
 sections and code surfaces were searched, whether forward/backward traceability
-from intent to implementation is complete, and what evidence remains inferred,
-unknown, or provisional.
+from intent to implementation is complete, whether normative design elements and
+rendered evidence were complete when applicable, and what evidence remains
+inferred, unknown, or provisional.
 
 #### `## Plan Review Log`
 
@@ -599,6 +645,7 @@ edits appends a new entry — the log is the story's plan revision history.
   - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
   - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
   - Traceability: forward <complete|gaps>; backward <complete|gaps>
+  - Design trace: complete|gaps|not applicable
   - Code surfaces searched: <paths/patterns/entrypoints or none beyond Critical Files>
   - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
   - Key findings:
@@ -610,8 +657,9 @@ edits appends a new entry — the log is the story's plan revision history.
 
 The traceability fields above are part of the `/epic-story-plan-review` entry
 schema. They make review evidence durable: which original intent sources were
-checked, whether forward/backward traceability is complete, which code surfaces
-were searched, and what evidence remains inferred, unknown, or provisional.
+checked, whether forward/backward traceability is complete, whether design trace
+is complete when normative design sources apply, which code surfaces were
+searched, and what evidence remains inferred, unknown, or provisional.
 Planning feedback entries routed by `/epic-feedback` may use their feedback
 receipt shape, but independent plan-review verdicts should include the full
 traceability shape.

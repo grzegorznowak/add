@@ -30,7 +30,13 @@ distinguish helper, routing, and behavior proofs. If the feature is
 prompt- or placeholder-driven, the story must include fail-open checks. If
 raw persisted, external, framework, or generated input crosses into stricter
 application assumptions, the proof contract must cover the `Input Boundary
-Shape Risk` at the real input boundary.
+Shape Risk` at the real input boundary. If the story references a mockup,
+wireframe, screenshot, Figma frame, prior `/grillme` discussion, or other
+design source, `## Verification` must record `### Design Sources`; when any
+source is normative, it must add `### Design Element Trace` and rendered-surface
+proof for visibility, placement, navigation, copy, responsive, and interaction
+state obligations unless the story records an explicit exception or narrower
+proof boundary.
 
 Modern story drafts include `## Actors` and `## Scenarios / Behavior Examples`.
 Legacy stories remain reviewable when either section is absent; absence alone is
@@ -252,12 +258,18 @@ files, never changes implementation `Status`, and never sets `Plan` to
     application assumptions, approval requires proof from the named input
     boundary for every in-scope shape case, or an explicit exclusion / unknown
     with mitigation.
-14. **Epic contract obligations are part of local review when present.**
+14. **Design-heavy UI stories need source-to-render trace.** When a story
+    references design sources, approval requires durable `Design Sources`; any
+    normative source requires every visible element/state to be mapped as
+    `required` or bounded `flexible` in `Design Element Trace`, with acceptance
+    and rendered-surface proof. Orientation-only sources stay non-binding unless
+    their behavior is repeated in `## Acceptance`.
+15. **Epic contract obligations are part of local review when present.**
     If `CONTRACT.md`, dependency stories, or relevant sibling stories define
     shared interfaces or invariants the story touches, `/epic-story-review` cannot
     approve while those obligations are violated unless the intentional drift is
     explicitly recorded and reflected in the review outcome.
-15. **Use loopers to converge, not to change ownership.**
+16. **Use loopers to converge, not to change ownership.**
     `/epic-story-plan-converge` is for repeated plan-review/plan-resume passes
     before claim. `/epic-story-converge` is for an approved unstarted story or
     already-started implementation work. Neither replaces `/epic-story-pr`, and
@@ -267,7 +279,7 @@ files, never changes implementation `Status`, and never sets `Plan` to
     the looper curates relevance, while executors verify provided entries
     directly before trusting them and report refresh signals when a provided
     entry does not verify.
-16. **Looper final reports are operational only.**
+17. **Looper final reports are operational only.**
     `/epic-story-converge` reports `APPROVED` when local review approves but the
     authoritative status remains `🟣 IN REVIEW`, and reports `DONE` only when
     the authoritative status is `✅ DONE`. It should not suggest
