@@ -22,6 +22,7 @@ Retrieve: `notebook_read({name: "review-probe-<epic>-<step>"})`.
 Before verdict, write a compact implementation trace map to `notebook_write({name: "review-trace-<epic>-<step>", content: "..."})` covering:
 - forward trace: `CONTRACT.md`/original intent/epic source → Purpose/Scope/Scenarios/Acceptance → final Verification rows → changed code/tests/config/runtime surfaces
 - backward trace: every changed file/helper/API/test/proof/command/config/generated/runtime branch → Acceptance id → in-scope rationale and `CONTRACT.md`/original-intent source when available
+- design trace when applicable: normative `Design Sources` anchor → visible element/state → required or bounded flexible trace row → Acceptance/final proof row → rendered artifact or reviewer observation; note any unmapped normative-source extraction gaps
 - orphan changed surfaces or proof rows for unrequested behavior, or none
 - contract conflicts: ticket/PR/Jira intent vs `CONTRACT.md` vs story vs codebase, or none
 - code surfaces searched: paths/patterns/entrypoints/domain terms and any intentional omissions

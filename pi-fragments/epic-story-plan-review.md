@@ -20,6 +20,7 @@ Retrieve: `notebook_read({name: "plan-review-probe-<epic>-<step>"})`.
 Before verdict, write a compact trace map to `notebook_write({name: "plan-review-trace-<epic>-<step>", content: "..."})` covering:
 - forward trace: `CONTRACT.md`/original intent/epic source → Purpose/Scope/Scenarios/Acceptance → Verification rows → code/test surfaces
 - backward trace: every planned helper/API/test/proof/command/config branch → Acceptance id → in-scope rationale and `CONTRACT.md`/original-intent source when available
+- design trace when applicable: `Design Sources` anchor → visible element/state → required or bounded flexible trace row → Scenario → Acceptance → Verification row/rendered reviewer action
 - contract conflicts: ticket/PR/Jira intent vs `CONTRACT.md` vs codebase, or none
 - hypothesis triage: suspicious surface → tentative plan failure → next proof target
 - evidence quality: confirmed / inferred / unknown / provisional
