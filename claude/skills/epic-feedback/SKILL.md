@@ -120,7 +120,7 @@ Continue after the highest existing `FB-###` in the epic `Feedback Absorption Lo
 - Evidence: <short excerpt or source-local fact, not a long paste>
 - Affected paths: <paths mentioned by the feedback, if any>
 - Candidate stories: <story numbers that may be affected>
-- Risk / miss category: <async/event-loop | platform/API failure | behavior-vs-mechanics proof | semantic invariant naming | security | persistence | resource lifecycle | other | none>
+- Risk / miss category: <async/event-loop | platform/API failure | behavior-vs-mechanics proof | design trace extraction | semantic invariant naming | security | persistence | resource lifecycle | other | none>
 - Actionability: actionable | non_actionable | ambiguous
 ```
 
@@ -218,14 +218,17 @@ After constructing story spec/proof edits and before writing, run these phases i
 11. If `## Scenarios / Behavior Examples` is present, every normative `S<n>` scenario has exactly one `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
 12. Every normative scenario funnels through Acceptance and Verification: the covered `A<n>` wording includes the scenario behavior, and that acceptance id has proof row(s) covering the scenario, including named variants, modes, branches, fallback paths, and failure cases or explicit exclusions.
 13. If the story spans surfaces, supported variants, modes, or internal orchestration branches, `### Surface / Branch Proof Matrix` exists and covers every in-scope combination or records an explicit exclusion.
-14. If raw persisted, external, framework, or generated input crosses stricter application assumptions, `### Input Boundary Shape Risk` exists when needed and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
-15. If prompt placeholders, template variables, or string substitution can fail open, `### Fail-open Checks` exists and covers enabled and disabled/default paths.
-16. If feedback introduces or exposes an activated risk lens, the amended contract covers it through existing matrices or `### Risk Lens Inventory` with proof obligations or explicit exclusions.
-17. Planned proof remains behavior-centered: private retry counts, sleeps, helper call order, timing, or implementation choreography are contractual only when explicitly locked.
+14. If feedback introduces, changes, or exposes a design source, `### Design Sources` exists with durable/reviewable anchors and every source is marked `normative` or `orientation only`.
+15. If any design source is `normative`, `### Design Element Trace` exists; every feedback-mentioned or obvious visible element/state from the normative source is mapped as `required` or bounded `flexible`; every trace row maps through Scenario -> Acceptance -> Verification/proof row; and visibility, placement, navigation, copy, responsive, or interaction-state obligations name rendered-surface proof or an explicit exception.
+16. If raw persisted, external, framework, or generated input crosses stricter application assumptions, `### Input Boundary Shape Risk` exists when needed and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
+17. If prompt placeholders, template variables, or string substitution can fail open, `### Fail-open Checks` exists and covers enabled and disabled/default paths.
+18. If feedback introduces or exposes an activated risk lens, the amended contract covers it through existing matrices or `### Risk Lens Inventory` with proof obligations or explicit exclusions.
+19. Planned proof remains behavior-centered: private retry counts, sleeps, helper call order, timing, or implementation choreography are contractual only when explicitly locked.
 
 **Phase B — Contract-preservation diff.** Compare the edited sections against the originals:
 - Every pre-existing `A<n>` still appears in at least one proof row in the edited version (coverage match — row shape may change).
 - Pre-existing `## Out of Scope` items have not been silently pulled into `## Scope` without explicit override.
+- Pre-existing `### Design Sources` anchors/statuses and `### Design Element Trace` rows have not been silently removed, downgraded, or loosened unless the feedback explicitly overrides them and the operator confirms.
 - Pre-existing `## Locked Decisions` have not been removed unless the feedback explicitly overrides them and the operator confirms.
 
 **Phase C — Red-first seam alignment.** When `## Acceptance` or `## Scope` was edited and `## Implementation Notes` mentions a red-first seam:
@@ -245,7 +248,7 @@ For contract-changing `resume-current-story`, also append a concise replanning c
 ```md
 - <UTC ISO timestamp> Replanning checkpoint from feedback absorption
   - Feedback ID: FB-###
-  - Contract sections updated: <Actors, Scenarios / Behavior Examples, Acceptance, Verification, Surface / Branch Proof Matrix, Input Boundary Shape Risk, Risk Lens Inventory, etc.>
+  - Contract sections updated: <Actors, Scenarios / Behavior Examples, Acceptance, Verification, Surface / Branch Proof Matrix, Design Sources, Design Element Trace, Input Boundary Shape Risk, Risk Lens Inventory, etc.>
   - Risk / miss category: <category or none>
   - Plan lane: <from> -> <to>
   - Required next action: `/epic-story-plan-review <epic> <story>`
@@ -260,7 +263,7 @@ For `queue-planning-feedback`, append or create `## Plan Review Log` with a requ
   - Verdict: request_changes
   - Plan lane transition: <from> -> 🟠 PLAN CHANGES REQUESTED
   - Status transition: <current status> -> <current status>
-  - Sections reviewed: <Actors, Scenarios / Behavior Examples, Acceptance, Verification, Scope, Locked Decisions, etc.>
+  - Sections reviewed: <Actors, Scenarios / Behavior Examples, Acceptance, Verification, Design Sources, Design Element Trace, Scope, Locked Decisions, etc.>
   - Key findings:
     - <finding, including required matrix/proof updates when relevant>
   - Debt Friction: none | <decision + short title>
@@ -270,7 +273,7 @@ For `queue-planning-feedback`, append or create `## Plan Review Log` with a requ
 For `amend-existing-story`, edit only these story sections:
 
 - `## Acceptance`
-- `## Verification`
+- `## Verification` (including conditional subsections such as `### Design Sources` and `### Design Element Trace`)
 - `## Actors`
 - `## Scenarios / Behavior Examples`
 - `## Scope`
@@ -284,7 +287,7 @@ Keep story-body edits as the durable contract change. If the amendment changes a
 
 ```md
 ## Feedback Absorption Log
-- FB-001: amended `Acceptance` and `Verification` from <source>. See epic log.
+- FB-001: amended `Acceptance`, `Verification`, and affected `Design Element Trace` rows from <source>. See epic log.
 ```
 
 For `resume-current-story`, append to the story's `## Review Log` using the implementation-review schema.
@@ -306,6 +309,7 @@ Keep the feedback provenance fields and include the canonical traceability/evide
   - Sections reviewed: <story sections checked against the feedback, or n/a>
   - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
   - Traceability: forward <complete|gaps>; backward <complete|gaps>
+  - Design trace: complete|gaps|not applicable; rendered evidence: complete|gaps|not applicable
   - Code surfaces searched: <paths/patterns/entrypoints or none beyond feedback scope>
   - Risk / miss category: <category or none>
   - Risk lenses reviewed: <activated lenses and exclusions, or none material>
@@ -335,13 +339,15 @@ Keep the feedback provenance fields and include the canonical traceability/evide
   - Next action: <one concrete resume/rework action>
 ```
 
-If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, supported branches, input-boundary shape assumptions, fail-open risks, or activated risk lenses, fully blend those changes before recommending `/epic-story-resume`:
+If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, design sources, design element obligations, supported branches, input-boundary shape assumptions, fail-open risks, or activated risk lenses, fully blend those changes before recommending `/epic-story-resume`:
 
 - update `## Actors` when feedback changes who initiates, participates in, reviews, or is affected by the behavior
 - update `## Scenarios / Behavior Examples` when feedback changes concrete flows or examples; every normative scenario must use exactly one `Covers: A<n>` and funnel into Acceptance and Verification
 - update `## Acceptance` and `## Verification` together
 - update `### Acceptance Proof Matrix` for every acceptance id and named variant/failure mode
 - update `### Surface / Branch Proof Matrix` when surfaces, variants, modes, or orchestration branches are introduced or changed
+- update `### Design Sources` when feedback introduces, changes, supersedes, or reclassifies a design artifact; anchors must be durable/reviewable and every source must be marked `normative` or `orientation only`
+- update `### Design Element Trace` when feedback exposes unmapped or changed normative visible elements/states; use only `required` or bounded `flexible`, do not add an `omitted`/`ignored` class for accepted normative designs, map every row through Scenario -> Acceptance -> Verification/proof row, and require rendered-surface proof for visibility, placement, navigation, copy, responsive behavior, and interaction-state obligations unless an explicit exception is recorded
 - update `### Input Boundary Shape Risk` when raw input shape assumptions are introduced or changed
 - update `### Fail-open Checks` when prompt/template fail-open risks are introduced or changed
 - update or add `### Risk Lens Inventory` when feedback exposes async/event-loop, platform/API, external I/O, permissions/security, resource lifecycle, retries/timeouts, semantic invariant, or other domain risks not already covered
