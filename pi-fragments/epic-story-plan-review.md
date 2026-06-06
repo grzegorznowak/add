@@ -12,14 +12,14 @@ Retrieve: `notebook_read({name: "plan-review-intent-<epic>-<step>"})`.
 
 ### Codebase probing → spawn
 When verifying Critical Files, searching domain keywords, checking Locked Decisions against AGENTS.md, or looking for omitted owners, delegate to parallel children:
-`spawn({prompt: "Probe <files/keywords> for story <epic>/<step>. Verify Critical Files resolve; search beyond them for domain owners, existing tests, public APIs, callsites/routes, duplicate/deprecated implementations, reusable code, hidden gotchas, and Locked Decision conflicts with AGENTS.md or established patterns. Be read-only. Write findings to notebook page 'plan-review-probe-<epic>-<step>' with path:line anchors.", thinking: "medium"})`.
+`spawn({prompt: "Probe <files/keywords> for story <epic>/<step>. Verify Critical Files resolve; search beyond them for domain owners, existing tests, test layout/markers/fixtures/CI lanes, public APIs, callsites/routes, duplicate/deprecated implementations, reusable code, hidden gotchas, and Locked Decision conflicts with AGENTS.md or established patterns. Be read-only. Write findings to notebook page 'plan-review-probe-<epic>-<step>' with path:line anchors.", thinking: "medium"})`.
 
 Retrieve: `notebook_read({name: "plan-review-probe-<epic>-<step>"})`.
 
 ### Traceability / adversarial review → notebook
 Before verdict, write a compact trace map to `notebook_write({name: "plan-review-trace-<epic>-<step>", content: "..."})` covering:
-- forward trace: `CONTRACT.md`/original intent/epic source → Purpose/Scope/Scenarios/Acceptance → Verification rows → code/test surfaces
-- backward trace: every planned helper/API/test/proof/command/config branch → Acceptance id → in-scope rationale and `CONTRACT.md`/original-intent source when available
+- forward trace: `CONTRACT.md`/original intent/epic source → Purpose/Scope/Scenarios/Acceptance → Test Architecture Plan → Verification rows → code/test surfaces
+- backward trace: every planned helper/API/test/TAP row/proof/command/config branch → Acceptance id → in-scope rationale and `CONTRACT.md`/original-intent source when available
 - design trace when applicable: `Design Sources` anchor → visible element/state → required or bounded flexible trace row → Scenario → Acceptance → Verification row/rendered reviewer action
 - contract conflicts: ticket/PR/Jira intent vs `CONTRACT.md` vs codebase, or none
 - hypothesis triage: suspicious surface → tentative plan failure → next proof target

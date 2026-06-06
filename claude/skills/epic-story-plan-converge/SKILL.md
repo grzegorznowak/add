@@ -90,7 +90,7 @@ For each cycle:
 
 7. Require every subagent final response to include `## Research Events`, with `- None.` allowed. Reused board entries must name the entry and direct-read/search anchors used to verify it. Board-refresh signals must name the board entry or absent needed fact, describe the verification miss, and cite the direct-read/search anchors proving the miss or replacement fact. After the pass finishes, append newly sourced research events and use board-refresh signals to update, replace, retire, or ask about affected board entries. Do not append verdicts, implementation opinions, or unanchored summaries.
 8. After the review agent finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive the review decision from the newest `## Plan Review Log` entry and current `Plan` lane, not from chat output alone.
-9. If the decision is `approve` or `Plan` is `🟢 PLAN APPROVED`, confirm the latest story `## Plan Review Log` records activated risk lenses or explicit `none material` before stopping. If approval lacks that evidence, launch one fresh plan-review child focused on risk-lens coverage rather than accepting chat output alone. Then stop successfully. Do not claim or resume the story. Recommend `/epic-story-claim <epic> <story>` if implementation `Status` is `⚪ TODO` or `⬜ TODO`, or `/epic-story-resume <epic> <story>` if implementation has already started.
+9. If the decision is `approve` or `Plan` is `🟢 PLAN APPROVED`, confirm the latest story `## Plan Review Log` records Test Architecture Plan coverage/alignment plus activated risk lenses or explicit `none material` before stopping. If approval lacks that evidence, launch one fresh plan-review child focused on TAP and risk-lens coverage rather than accepting chat output alone. Then stop successfully. Do not claim or resume the story. Recommend `/epic-story-claim <epic> <story>` if implementation `Status` is `⚪ TODO` or `⬜ TODO`, or `/epic-story-resume <epic> <story>` if implementation has already started.
 10. If the decision is `blocked` or `Plan` is `⛔ PLAN BLOCKED`, stop with blocked planning status.
 11. If the decision is `request_changes` or `not_reviewable`, prepare and launch a different fresh subagent whose task prompt ends with:
 
@@ -110,7 +110,7 @@ Record neutral operational facts only:
 
 - command failures and their exact command names;
 - missing environment or worktree prerequisites;
-- story sections or proof rows that repeatedly block progress;
+- story sections, TAP rows, or proof rows that repeatedly block progress;
 - files or concepts that multiple agents identify as hotspots;
 - time-consuming operations that later fresh agents should avoid repeating blindly.
 
@@ -124,7 +124,7 @@ Stop early for conservative no-progress when all are true:
 - the subsequent resume pass did not add a newer addressed-feedback entry or materially edit the targeted spec sections;
 - the same blocker or finding would be handed to another review unchanged.
 
-Do not use repeated cycles to paper over an under-specified or over-large story; newly discovered risk-lens or proof-contract gaps must be edited into the story contract or explicitly excluded.
+Do not use repeated cycles to paper over an under-specified or over-large story; newly discovered test-architecture, risk-lens, or proof-contract gaps must be edited into the story contract or explicitly excluded.
 
 Other hard stops:
 

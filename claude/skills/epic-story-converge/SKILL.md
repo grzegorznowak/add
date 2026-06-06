@@ -100,8 +100,8 @@ For each cycle:
 7. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that pass only. The next lifecycle pass still starts in a new fresh subagent.
 8. After the pass finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. Derive decisions from the newest authoritative sections and status, not from chat output alone.
 9. If a claim or resume pass leaves the story at `🟣 IN REVIEW`, the same cycle may launch a fresh review pass.
-10. If a review pass returns `approve`, confirm the latest story `## Review Log` records risk-lens review and finding closure (or explicit `none material`) before stopping successfully. If approval lacks that evidence, launch one fresh review child focused on risk-lens closure instead of accepting chat output alone. Local approval is convergence even when the story remains `🟣 IN REVIEW` because the optional PR stage is next. Report this as `APPROVED`, not `DONE`, unless the authoritative final status is already `✅ DONE`.
-11. If a review pass returns `request_changes` or `not_reviewable`, the same cycle may launch one fresh `/epic-story-resume` corrective pass, then the next cycle starts with a fresh review when ready. If the finding exposes a new risk lens, ensure the resume child treats that lens as part of the acceptance/proof closure or routes back to planning.
+10. If a review pass returns `approve`, confirm the latest story `## Review Log` records Test Architecture Plan alignment, risk-lens review, and finding closure (or explicit `none material`) before stopping successfully. If approval lacks that evidence, launch one fresh review child focused on TAP/risk-lens closure instead of accepting chat output alone. Local approval is convergence even when the story remains `🟣 IN REVIEW` because the optional PR stage is next. Report this as `APPROVED`, not `DONE`, unless the authoritative final status is already `✅ DONE`.
+11. If a review pass returns `request_changes` or `not_reviewable`, the same cycle may launch one fresh `/epic-story-resume` corrective pass, then the next cycle starts with a fresh review when ready. If the finding exposes a new Test Architecture Plan gap or risk lens, ensure the resume child treats that gap as part of acceptance/proof closure or routes back to planning.
 12. If any pass moves the story to `⛔ BLOCKED`, stop.
 13. If any pass moves the story to `✅ DONE`, stop successfully.
 14. Run the no-progress gate before starting the next cycle.
@@ -115,7 +115,7 @@ Record neutral operational facts only:
 - command failures and exact command names;
 - test commands that failed because of missing environment or setup;
 - worktree or dirty-tree blockers;
-- files, symbols, proof rows, or acceptance ids repeatedly implicated as hotspots;
+- files, symbols, TAP rows, proof rows, or acceptance ids repeatedly implicated as hotspots;
 - slow commands or broad searches that later fresh agents should not repeat blindly;
 - repeated review findings that appear unchanged after resume.
 
@@ -126,10 +126,10 @@ Research Board entries are the only allowed cross-subagent context beyond neutra
 Stop early for conservative no-progress when all are true:
 
 - the latest review requested changes or said not reviewable;
-- the subsequent claim/resume pass did not add newer progress, handoff, proof-matrix, test, or source changes addressing the finding;
+- the subsequent claim/resume pass did not add newer progress, handoff, TAP/proof-matrix, test, or source changes addressing the finding;
 - the same blocker or finding would be handed to another review unchanged.
 
-Do not use another broad cycle to compensate for an oversized or under-specified story; route newly discovered contract/risk-lens gaps back to planning.
+Do not use another broad cycle to compensate for an oversized or under-specified story; route newly discovered contract, test-architecture, or risk-lens gaps back to planning.
 
 Other hard stops:
 

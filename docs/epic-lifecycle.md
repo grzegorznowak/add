@@ -16,27 +16,30 @@ planning chain:
    epic directory already exists.
 2. **`/epic-story-plan EPIC=<slug>`** — once per story. Interviews the
    operator, captures actor context and scenario examples, validates the
-   implementation-ready `Acceptance` contract and `Verification` proof matrix,
-   writes `story-NN-<slug>.md`, and appends the `⚪ TODO` tracker row to
-   `MASTER.md`.
+   implementation-ready `Acceptance` contract and `Verification` contract
+   (`Verification Commands`, `Test Architecture Plan`, and `Acceptance Proof
+   Matrix`), writes `story-NN-<slug>.md`, and appends the `⚪ TODO` tracker row
+   to `MASTER.md`.
 
-Planning is proof-first: the proof surfaces must be concrete enough that
-an implementer can inspect the repo and choose a smallest focused red
-seam without re-planning the story. If the story spans multiple product
-surfaces, variants, modes, or orchestration branches, the story must
-expand that risk surface into a `Surface / Branch Proof Matrix`. If
-shared helpers or multiple callsites are involved, the story must
-distinguish helper, routing, and behavior proofs. If the feature is
-prompt- or placeholder-driven, the story must include fail-open checks. If
-raw persisted, external, framework, or generated input crosses into stricter
-application assumptions, the proof contract must cover the `Input Boundary
-Shape Risk` at the real input boundary. If the story references a mockup,
-wireframe, screenshot, Figma frame, prior `/grillme` discussion, or other
-design source, `## Verification` must record `### Design Sources`; when any
-source is normative, it must add `### Design Element Trace` and rendered-surface
-proof for visibility, placement, navigation, copy, responsive, and interaction
-state obligations unless the story records an explicit exception or narrower
-proof boundary.
+Planning is proof-first and test-architecture-aware: the proof surfaces and
+suite placement must be concrete enough that an implementer can inspect the
+repo and choose a smallest focused red seam without re-planning the story. The
+`Test Architecture Plan` records the layer/scope, owning suite/file, exercised
+boundary, fixture/data strategy, CI lane/command, and split/merge rationale for
+every added or changed test/proof surface. If the story spans multiple product
+surfaces, variants, modes, or orchestration branches, the story must expand
+that risk surface into a `Surface / Branch Proof Matrix`. If shared helpers or
+multiple callsites are involved, the story must distinguish helper, routing,
+and behavior proofs. If the feature is prompt- or placeholder-driven, the story
+must include fail-open checks. If raw persisted, external, framework, or
+generated input crosses into stricter application assumptions, the proof
+contract must cover the `Input Boundary Shape Risk` at the real input boundary.
+If the story references a mockup, wireframe, screenshot, Figma frame, prior
+`/grillme` discussion, or other design source, `## Verification` must record
+`### Design Sources`; when any source is normative, it must add `### Design
+Element Trace` and rendered-surface proof for visibility, placement,
+navigation, copy, responsive, and interaction state obligations unless the
+story records an explicit exception or narrower proof boundary.
 
 Modern story drafts include `## Actors` and `## Scenarios / Behavior Examples`.
 Legacy stories remain reviewable when either section is absent; absence alone is
@@ -74,7 +77,7 @@ Planning lane values are orthogonal to implementation status:
 |---|---|
 | `⚪ TODO` | Not started yet. The default state for newly created stories. |
 | `🔄 IN PROGRESS` | A session is actively working on this story. Default method is red-first: inspect sources, choose the smallest focused failing seam, turn it green, then broaden verification. Contract drift or any explicit exception to red-first must be logged before review. |
-| `🟣 IN REVIEW` | Implementation is done enough to review, the focused red-first path or explicit exception is recorded, the proof matrix is fully finalized, and any relevant epic-contract obligations are concrete enough to judge. Local review may still find issues, including epic contract drift. |
+| `🟣 IN REVIEW` | Implementation is done enough to review, the focused red-first path or explicit exception is recorded, the Test Architecture Plan and proof matrix are finalized/aligned, and any relevant epic-contract obligations are concrete enough to judge. Local review may still find issues, including epic contract drift. |
 | `🔵 IN PR` | **Optional.** Local review passed and the changes are in a GitHub PR awaiting remote review and merge. Skip this stage entirely if a story does not need a PR. A local-DONE story moves back here if `/epic-story-pr` later opens or attaches an unmerged PR. |
 | `✅ DONE` | Implementation and review are complete for the workflow known at the time. If a PR stage is active, the PR is merged. If a PR stage is added late to a local-DONE story, `/epic-story-pr` moves it back to `🔵 IN PR` until remote review completes. |
 | `⛔ BLOCKED` | An external implementation blocker prevents progress. Planning blockers use `⛔ PLAN BLOCKED` in the `Plan` lane. |
@@ -229,9 +232,9 @@ files, never changes implementation `Status`, and never sets `Plan` to
    updates the `Plan` lane and `## Plan Review Log`. It must never move a story
    into `⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR`, `✅ DONE`, or
    implementation `⛔ BLOCKED`.
-7. **Proof contracts must be final before local implementation review passes.**
-   Planning may use `provisional` proof rows, but `/epic-story-review` cannot approve
-   while any row remains provisional.
+7. **Proof contracts and test architecture must be final before local implementation review passes.**
+   Planning may use `provisional` Acceptance Proof Matrix rows, but `/epic-story-review` cannot approve
+   while any proof row remains provisional or while the Test Architecture Plan no longer matches actual test placement, fixture strategy, and verification commands.
 8. **Broad acceptance scope requires focused multipass review.** When
    `## Acceptance` has 6 or more concrete items, `/epic-story-review` cannot
    approve until every acceptance item is covered by a focused pass and the

@@ -65,13 +65,13 @@ After the child completes:
 3. Update notebook page `babysit-<epic>-<step>` with new operational facts (neutral, no verdicts).
 4. If child asks an operator question, pause, ask, then resume with same child for that pass only.
 5. If a claim or resume leaves story at `🟣 IN REVIEW`, same cycle may launch a fresh review child.
-6. If review returns `approve`, confirm the latest story `## Review Log` records risk-lens review and finding closure (or explicit `none material`) before stopping successfully. If approval lacks that evidence, launch one fresh review child focused on risk-lens closure instead of accepting chat output alone.
-7. If review returns `request_changes` or `not_reviewable`, same cycle may launch one corrective resume, then next cycle starts with fresh review. If the finding exposes a new risk lens, ensure the resume child treats that lens as part of the acceptance/proof closure or routes back to planning.
+6. If review returns `approve`, confirm the latest story `## Review Log` records Test Architecture Plan alignment, risk-lens review, and finding closure (or explicit `none material`) before stopping successfully. If approval lacks that evidence, launch one fresh review child focused on TAP/risk-lens closure instead of accepting chat output alone.
+7. If review returns `request_changes` or `not_reviewable`, same cycle may launch one corrective resume, then next cycle starts with fresh review. If the finding exposes a new Test Architecture Plan gap or risk lens, ensure the resume child treats that gap as part of acceptance/proof closure or routes back to planning.
 8. Stop on `⛔ BLOCKED`, `✅ DONE`, or no-progress.
 
 ## Phase 4 — No-Progress Gate
 
-Stop when all are true: latest review returned `request_changes` or `not_reviewable`, subsequent resume didn't add new progress/addressing the finding, and same blocker would go to another review unchanged. Do not use another broad cycle to compensate for an oversized or under-specified story; route newly discovered contract/risk-lens gaps back to planning.
+Stop when all are true: latest review returned `request_changes` or `not_reviewable`, subsequent resume didn't add new progress/addressing the finding, and same blocker would go to another review unchanged. Do not use another broad cycle to compensate for an oversized or under-specified story; route newly discovered contract, test-architecture, or risk-lens gaps back to planning.
 
 Other hard stops: `MAX_CYCLES` reached, status is `⛔ BLOCKED`, story enters status owned by another command, subagent failure, operator declines required interaction.
 
