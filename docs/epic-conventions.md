@@ -261,9 +261,15 @@ Rules:
   `unit/domain`, `functional/component/API`,
   `integration/routing/filesystem/network`, `contract`,
   `acceptance/E2E/manual/golden`, and `static/packaging`.
-- Prefer the cheapest reliable layer for each behavior. Broad E2E/manual proof
-  is not a substitute for lower-layer deterministic proof unless the story
-  records why lower-level proof is insufficient.
+- TAP quality lens: every row proves behavior at the cheapest reliable real
+  boundary by naming the seam, behavior-facing assertion or observable reviewer
+  signal, fixture/data isolation, focused command/CI lane, and fallback. Broad
+  E2E/manual proof is valid only when the row explains why lower-layer
+  deterministic seams cannot provide equivalent confidence; hidden live
+  dependencies, implementation-choreography assertions unless explicitly
+  contractual, named variants left without proof or explicit exclusion, and
+  unrelated behaviors collapsed into one file without repo-convention rationale
+  are invalid.
 - Every added or changed test/proof surface must appear in TAP with its owning
   suite/file, boundary exercised, assertions/observability, fixture/data
   strategy, CI lane/command, fallback plan, and split/merge rationale.
