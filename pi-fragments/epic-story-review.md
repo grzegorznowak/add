@@ -13,10 +13,15 @@ When the story, MASTER row, branch/history, dependency stories, PR text, or comm
 Retrieve: `notebook_read({name: "review-intent-<epic>-<step>"})`.
 
 ### Codebase probing / owner discovery → spawn
-When checking changed surfaces, omitted owners, callsites/routes, duplicate implementations, generated/config/runtime surfaces, or reusable existing code, delegate parallel read-only children:
-`spawn({prompt: "Probe implementation surfaces for review <epic>/<step>. Search beyond changed files for domain owners, existing tests, public APIs, callsites/routes, duplicate/deprecated implementations, generated/config/runtime surfaces, fixtures, CLI/API entrypoints, and sibling contract obligations. Be read-only. Write findings to notebook page 'review-probe-<epic>-<step>' with path:line anchors and searches performed.", thinking: "medium"})`.
+When a review uncertainty would be expensive to resolve inline, spawn a read-only child for one selected uncertainty instead of a broad general probe:
+- TAP/proof alignment for a named acceptance/TAP row
+- generated/config/runtime surfaces
+- sibling contract obligations
+- route/callsite or owner discovery
 
-Retrieve: `notebook_read({name: "review-probe-<epic>-<step>"})`.
+`spawn({prompt: "Implementation-review evidence probe for <epic>/<step>: <specific uncertainty>. Be read-only. Cite path:line anchors, list searches performed, and write findings to notebook page 'review-probe-<epic>-<step>-<slug>'. Do not decide the verdict or edit files.", thinking: "medium"})`.
+
+Retrieve each probe with `notebook_read`. The parent verifies evidence, synthesizes findings, and owns the final decision and write-back.
 
 ### Traceability / evidence notebook page
 Before verdict, write a compact implementation trace map to `notebook_write({name: "review-trace-<epic>-<step>", content: "..."})` covering:

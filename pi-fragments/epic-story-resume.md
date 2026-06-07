@@ -13,8 +13,8 @@ Retrieve cached state from prior sessions:
 If none exist, rebuild from the story file as usual.
 
 ### Research before continuing
-Spawn a read-only child to refresh codebase understanding before the first change:
-`spawn({prompt: "Re-inspect the codebase for <epic>/<step>. Focus on areas flagged by latest Review Log / Progress Log. Verify Critical Files still resolve, check for drift. Write findings to notebook page 'research-<epic>-<step>' with path:line anchors.", thinking: "high"})`.
+Spawn a read-only child for the next acceptance/TAP slice or review finding you are about to address, not for broad architecture:
+`spawn({prompt: "For <epic>/<step>, re-inspect the next resume slice: <A<n>> / <TAP-*> / latest finding <id>. Checklist: Critical Files still resolve; changed or reusable owners/callsites; test layout, fixtures, and CI lane still match the TAP; expected assertion/observable signal; fallback if the planned seam drifted. Write findings to notebook page 'research-<epic>-<step>' with path:line anchors.", thinking: "high"})`.
 
 ### Review feedback re-inspection
 When resuming after `request_changes`, spawn a child to re-inspect flagged files:

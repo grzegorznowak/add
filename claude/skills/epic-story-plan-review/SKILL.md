@@ -100,7 +100,7 @@ When launched by a converger, you may receive `Shared Research Board from parent
 
 ## Plan review process
 
-You are the reviewer-of-record and orchestration layer: you resolve the story, decide source-of-truth conflicts, own the final verdict, write the Plan Review Log, and perform any Plan lane transition. Do not outsource final judgment. When useful, delegate self-contained evidence-gathering probes to subagents (or the platform's spawn equivalent) while keeping them read-only: original intent/ticket archaeology, broad codebase owner discovery beyond `## Critical Files`, dependency/sibling/`CONTRACT.md` drift checks, verification/proof-surface audits, and traceability or hypothesis probes. Subagent outputs must cite inspected anchors and be verified enough before they support findings, evidence gaps, or approval.
+You are the reviewer-of-record and orchestration layer: you resolve the story, decide source-of-truth conflicts, own the final verdict, write the Plan Review Log, and perform any Plan lane transition. Do not outsource final judgment. When useful, split your own read/search work into focused evidence probes: original intent/ticket archaeology, broad codebase owner discovery beyond `## Critical Files`, dependency/sibling/`CONTRACT.md` drift checks, verification/proof-surface audits, and traceability or hypothesis probes. Evidence must cite inspected anchors before it supports findings, evidence gaps, or approval. Do not assume unavailable delegation tools; runtime-specific child-agent guidance belongs in runtime-specific fragments.
 
 1. Read every spec section of the story file. Treat each one as a claim that must hold against `CONTRACT.md` when present, original intent, sibling contracts, and the live repo.
 2. Build an **intent and traceability map** before approving anything:
@@ -132,53 +132,73 @@ Every concrete finding must cite at least one inspected anchor: story section, t
 
 ## Critical checks
 
-Before approving, verify every item:
+Before approving, walk the grouped gate below. Treat blocker bullets as `request_changes` unless they are explicitly scoped out with safe rationale; warnings must still be named in the Plan Review Log when material.
 
-1. **`Purpose` is concrete and user-visible.** Fails on vague phrasing ("improve X", "refactor Y") with no observable outcome.
-2. **`Triggering Need` is real.** Fails if tautological ("because we need it") or missing a concrete pain link.
-3. **`Expected Prerequisites` match `MASTER.md`.** For every dependency story number listed: the row exists; its status is `✅ DONE` or realistically close; cross-epic deps are flagged but not failed.
-4. **`Scope` is atomic.** Fails if the scope reads like multiple independent stories.
-5. **`Out of Scope` is non-empty and meaningful.** A missing `## Out of Scope` is a warning, not a failure.
-6. **`Actors` are concrete when present.** Legacy absence is not a failure. If present, the section must use role bullets and stay consistent with Purpose, Scope, Acceptance, and Verification.
-7. **`Scenarios / Behavior Examples` funnel into acceptance when present.** Legacy absence is not a failure. Every normative `S<n>` scenario must include exactly one `Covers: A<n>` link; multiple `Covers` ids in one scenario are a `request_changes` finding and should be split or reshaped. Every orientation-only scenario must say `Orientation only`. A scenario that describes required behavior without acceptance coverage is a `request_changes` finding.
-8. **Linked scenarios are covered.** For every `S<n> Covers: A<n>` mapping, the linked acceptance item must include the scenario's expected behavior and `## Verification` must prove the scenario-relevant case through that acceptance id. Drift at either hop blocks approval.
-9. **`Acceptance` criteria are observable, atomic, and stable.** Each bullet must begin with `A<n>`, be checkable by a command, a file read, or a UI observation, and cover exactly one independently provable behavior. Fails on vague thresholds or compound bullets that could fail independently.
-10. **`Verification` has the required shape.** It must contain exact `### Verification Commands` and `### Acceptance Proof Matrix` subsections, plus any required `### Surface / Branch Proof Matrix`, `### Design Sources`, `### Design Element Trace`, `### Input Boundary Shape Risk`, and `### Fail-open Checks` subsections when the story's risk surface calls for them.
-11. **Every acceptance id is covered by the matrix.** Missing rows are a `request_changes` finding, even when the prose acceptance section looks reasonable.
-12. **Named acceptance variants are covered.** If an acceptance item names variants, modes, branches, fallback paths, error cases, or examples, the plan must either split them into separate acceptance ids or list each named case as a separate proof obligation in the matrix. A row that proves only one variant does not cover sibling variants unless the plan records an explicit exclusion with rationale.
-13. **Matrix rows are structurally valid.** `Proof Maturity` must be `final` or `provisional`; `provisional` rows require non-blank `Open Detail`; shared rows are valid only when the same proof action and failure signal genuinely cover all listed acceptance ids and named variants.
-14. **Multi-surface stories expand into branch-aware proof.** If the story spans multiple supported surfaces, variants, modes, or orchestration branches, `## Verification` must include `### Surface / Branch Proof Matrix` with rows for each in-scope combination or an explicit exclusion.
-15. **Helper proof is not routing proof.** When multiple supported callsites or orchestration paths exist, the surface / branch matrix must explicitly distinguish `helper`, `routing`, and `behavior` proof classes. Helper-only proof is insufficient; at least one routing proof must show that the supported callsites actually invoke the intended helper or branch logic.
-16. **Fail-open prompt risks are covered when relevant.** Prompt-, template-, or placeholder-driven stories must include `### Fail-open Checks` proving supported renders leave no unresolved placeholders or raw tokens, enabled supported paths actually activate the feature, and an appropriate disabled/default path remains unchanged.
-17. **Input boundary shape risks are covered when relevant.** If raw persisted, external, framework, or generated input crosses into stricter application assumptions, the proof contract must cover every in-scope boundary and shape case at the real raw-input boundary, or explicitly exclude it with a reason. A `### Input Boundary Shape Risk` mini-matrix is required when multiple boundaries, variants, or mitigations would be hard to audit from acceptance rows alone. Unknown evidence must include the reason evidence is unavailable, a mitigation, and a follow-up path.
-18. **Proof seams are credible and focused.** Reject rows that mainly validate mocked helpers or otherwise disconnected seams instead of the real acceptance surface. Provisional rows are allowed if they still anchor to the right owning surface and are concrete enough to guide implementation toward a smallest focused red seam after source inspection.
-19. **`Verification Commands` are real reviewer actions.** Fails if the story says "run the tests" with no command, or claims an existing test file that does not exist. When new tests are expected, the plan should name the planned file and test function/class names when knowable, or mark the names provisional and state the RED assertion each test must prove.
-20. **`Implementation Notes` make red-first the default implementation method.** The plan must clearly say implementation inspects sources first, chooses the smallest focused seam it can make fail, turns it green, then broadens verification. If the plan anticipates a reason red-first may be infeasible, it must require an explicit written exception before deviating.
-21. **`Critical Files` exist.** Resolve every path with `Read` or `Glob`. Missing or renamed files are plan-staleness signals.
-22. **`Critical Files` are the right surfaces.** Grep the plan's domain keywords; if obvious owners of that domain are missing from the list, flag it.
-23. **`Discovery Notes` mentions reusable existing code.** Search the repo for 2–3 domain terms from the plan and cross-reference against `## Discovery Notes`. If the plan invents something that clearly exists already, that is a `request_changes` finding.
-24. **`Locked Decisions` don't contradict `AGENTS.md` or established patterns.** Read `AGENTS.md` and spot-check each decision.
-25. **No hidden gotchas in `Critical Files`.** Skim each Critical File for things the plan didn't mention but should have: migrations, public APIs, existing tests that would break, cross-module coupling.
-26. **`Implementation Notes` are internally consistent** with `## Acceptance` and `## Scope` (the plan's own self-consistency).
-27. **No `<TODO: ...>` placeholders** left in spec sections. If any remain, verdict is at minimum `request_changes`.
-28. **Debt Friction is surfaced when it affects proof or scope.** If current story planning is made harder by debt, the finding must use the `docs/epic-conventions.md` shape in `## Plan Review Log`. A plan may be blocked for Debt Friction only when meaningful acceptance or proof planning is not possible.
-29. **Interface-contract completeness.** If the story modifies an existing function signature, verify the new signature is recorded in Locked Decisions or Implementation Notes with exact parameter names, types, and defaults. If the plan wires parameters through to a callee function, verify each omission has a stated reason. Signature changes or wiring contracts recorded only in advisory sections (Implementation Notes, Discovery Notes) without a corresponding Locked Decision are a `request_changes` finding: the implementer treats advisory prose as non-binding. Acceptable forms: a Locked Decision with the exact Python signature, or Implementation Notes with a before/after diff excerpt AND a Locked Decision cross-reference.
-30. **Original-intent traceability.** If an original issue, PR, Jira ticket, parent epic, or stable card id is available, every Purpose/Scope/Acceptance claim must map to that source, to `CONTRACT.md` when the contract has superseded the source, or to an explicit scoped deviation. If no original source is found, record `none found` and verify the plan is still coherent against `MASTER.md`, `CONTRACT.md` when present, dependency stories, and live code.
-31. **Ticket/contract/code conflict resolution.** If grounded ticket intent, `CONTRACT.md`, and current code shape point in different directions, the plan must name the conflict and choose a resolution with rationale that respects the convention: codebase wins over stale `CONTRACT.md`, and `CONTRACT.md` wins over stale story or ticket intent unless the operator records an explicit reopen/scope-deviation decision. Do not approve a plan that silently lets existing code shape erase ticket-backed behavior or silently lets stale ticket text override the merged contract.
-32. **Backward traceability / orphan scope.** Every planned helper, API change, test file, proof row, command, config change, or implementation branch must map back to an acceptance id and in-scope rationale. Orphan work, gold-plating, and proof rows that validate unrequested behavior are `request_changes` findings unless explicitly marked out-of-scope follow-up.
-33. **Existing owner discovery is broad enough.** Approval requires searching beyond the listed Critical Files for domain owners, similar implementations, tests, routes/callsites, fixtures, CLI/API entrypoints, generated artifacts, and deprecation paths. If ownership remains ambiguous, require the plan to state how implementation will resolve it before changing code.
-34. **Alternatives and consequences for locked decisions.** Major `Locked Decisions` must capture context, rejected alternatives, consequences, and fit with established architecture or ticket constraints. A decision that just says what to do without why is insufficient when multiple plausible implementations exist.
-35. **Sibling/contract drift.** If `<epic>/CONTRACT.md`, dependency stories, sibling stories, or prior review logs define a shared actor, interface, verification convention, or locked decision, the plan must align with it or explicitly exclude/defer the drift with rationale.
-36. **Operational and lifecycle risks are named.** Plans touching migrations, persistence, auth, external I/O, prompts/templates, config/defaults, background jobs, CLI/API contracts, concurrency, or generated files must include rollback/default/fail-open/fail-closed behavior and verification at the owning boundary.
-37. **Evidence quality is explicit.** Approval findings and log entries must distinguish `confirmed`, `inferred`, `unknown`, and `provisional` evidence. Unknowns that affect acceptance, route ownership, ticket intent, or proof credibility block approval unless the plan explicitly scopes them out with a safe follow-up.
-38. **Activated risk lenses are identified.** Plans should name material domain risks triggered by the work, such as async/event-loop behavior, concurrency, platform/OS APIs, external I/O, permissions/security, persistence, resource lifecycle, retries/timeouts, generated artifacts, prompt/template fail-open behavior, or naming-sensitive invariants. Missing a material lens is a `request_changes` finding unless the risk is already fully covered by another required matrix.
-39. **Risk-lens proof is behavior-centered.** Planned proof should prefer caller-observable outcomes and contract signals. Assertions on private retry counts, sleeps, helper call order, temporary names, or implementation choreography are acceptable only when the story explicitly makes those mechanics contractual.
-40. **Failure-mode breadth is explicit for external reality.** For platform APIs, process/filesystem/network/subprocess work, permissions, cleanup, retries, or resource lifecycle, the plan must cover common sibling failures such as stale/not-found, permission/access denied, already completed, timeout/cancellation, unsupported platform, and partial failure, or record explicit exclusions.
-41. **Existing-idiom comparison is planned for risky areas.** When the plan chooses a pattern in an activated risk lens, it should direct implementers to inspect established repo idioms for that risk class before finalizing code. Unexplained deviation from obvious existing patterns is a review finding.
-42. **Sensitive invariant terminology is truthful.** For lifecycle, ownership, identity, security, persistence, or concurrency-sensitive work, names and locked terminology must not imply stronger guarantees than the plan can prove.
-43. **Design sources are durable and classified.** If the story references a mockup, wireframe, screenshot, Figma frame, prior `/grillme` discussion, or other design source, `## Verification` must include `### Design Sources` with durable/reviewable anchors and `normative` or `orientation only` status. Chat-only references are not sufficient unless converted into a self-contained operator-approved summary.
-44. **Normative design elements are fully traced.** Every visible element/state in a normative design source must appear in `### Design Element Trace` as `required` or bounded `flexible`, map to a scenario when scenarios are present, map to an acceptance id, and map to a proof row or reviewer action. Missing rows, `omitted` classes, or unbounded `flexible` rows are `request_changes` findings.
-45. **Design proof uses rendered surfaces when needed.** For visibility, placement, navigation, copy, responsive behavior, or interaction-state obligations, planned proof must inspect the rendered surface (browser/manual UI observation, screenshot, rendered DOM/output, or equivalent) unless the story records an explicit exception or narrower proof boundary. Code-only proof is insufficient for those obligations.
+### 1. Core planning contract
+
+Blockers:
+- `Purpose` is not concrete and user-visible, or `Triggering Need` lacks a real pain/source.
+- `Scope` is not atomic, reads like multiple independent stories, or pulls in work not justified by the story.
+- `Acceptance` bullets are missing stable `A<n>` ids, are vague, unobservable, or combine behaviors that can fail independently.
+- Required spec sections contain `<TODO: ...>` placeholders.
+- `Implementation Notes` do not make source inspection, smallest credible red seam, green implementation, and broadened verification the default path, or they permit red-first bypass without requiring a written exception.
+
+Warnings unless they distort scope/proof:
+- `Out of Scope` is missing or thin.
+- Legacy `Actors` or `Scenarios / Behavior Examples` sections are absent. If present, they must be structurally valid and consistent with Purpose, Scope, Acceptance, and Verification.
+
+### 2. Scenario, acceptance, and traceability funnel
+
+Blockers:
+- Any normative `S<n>` scenario lacks exactly one `Covers: A<n>` link, maps to acceptance wording that does not contain the scenario behavior, or lacks proof through the linked acceptance id.
+- Orientation-only scenarios create implementation/proof obligations, or contradict required behavior.
+- Named variants, modes, branches, fallback paths, examples, or failure cases inside an acceptance item are neither split into separate acceptance ids nor listed as separate proof obligations with evidence or explicit exclusions.
+- Forward trace from `CONTRACT.md`/original intent/epic source to Purpose/Scope/Scenarios/Acceptance/Verification is missing where a source exists and matters.
+- Backward trace leaves planned helpers, APIs, test files, commands, config changes, TAP rows, proof rows, or implementation branches orphaned from acceptance ids and in-scope rationale.
+
+### 3. Verification and TAP proof gate
+
+Blockers:
+- `## Verification` lacks exact `### Verification Commands`, `### Test Architecture Plan`, or `### Acceptance Proof Matrix` subsections.
+- Verification commands are vague (`run the tests`), claim non-existent files, or fail to name reviewer-runnable commands/manual/file-read actions.
+- `### Test Architecture Plan` lacks required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale`.
+- TAP rows fail the TAP quality gate from `docs/epic-conventions.md`: stable `TAP-*` ids; cheapest reliable real boundary; exact seam; behavior-facing assertion or reviewer-visible signal; fixture/data isolation and live-dependency policy; focused command/CI lane; fallback plan; and repo-convention split/merge rationale when behavior shares a file.
+- Broad E2E/manual proof is used when an obvious lower-layer deterministic seam would provide equivalent confidence without an explicit rationale.
+- Hidden live dependencies, slow/flaky/order-coupled fixtures, private-choreography assertions unless contractual, fake mocked-helper seams, or grab-bag test placement would make proof unreliable.
+- `Acceptance Proof Matrix` omits any `A<n>` id, uses proof maturity outside `final|provisional`, leaves `Open Detail` blank for a provisional row, or combines ids/variants whose failure signal is not genuinely shared.
+- Rows for changed tests/proof surfaces do not reference relevant `TAP-*` ownership when tests or proof surfaces change.
+
+### 4. Conditional proof sections and risk lenses
+
+Blockers when the condition applies:
+- Multi-surface, variant, mode, or orchestration-branch stories lack `### Surface / Branch Proof Matrix`, omit an in-scope combination, or rely on helper proof when routing proof is required for supported callsites.
+- Prompt/template/placeholder/string-substitution work lacks `### Fail-open Checks` proving no unresolved placeholders/raw tokens, enabled-path activation, and disabled/default-path baseline behavior.
+- Raw persisted, external, framework, or generated input crosses stricter assumptions without proof at the raw boundary, an `### Input Boundary Shape Risk` matrix when needed, or explicit exclusions/unknowns with mitigation.
+- Normative design sources lack durable anchors, `### Design Sources`, or complete `### Design Element Trace` rows using only `required` or bounded `flexible` obligations mapped through Scenario -> Acceptance -> Verification.
+- Visibility, placement, navigation, copy, responsive, or interaction-state design obligations lack rendered-surface proof or an explicit narrower proof boundary.
+- Material activated risk lenses (async/event-loop, concurrency, platform/OS APIs, external I/O, permissions/security, persistence, resource lifecycle, retries/timeouts, generated artifacts, prompt/template fail-open behavior, naming-sensitive invariants, etc.) are not proven at the owning boundary or explicitly excluded.
+- External reality failure modes such as stale/not-found, permission/access denied, already-complete, timeout/cancellation, unsupported platform, or partial failure are omitted for platform/process/filesystem/network/subprocess/resource-lifecycle work without an exclusion.
+
+### 5. Repo/source fit and ownership
+
+Blockers:
+- `Critical Files` paths do not resolve, omit obvious domain owners, or hide migrations/public APIs/existing tests/coupling that should affect the plan.
+- Existing reusable code, tests, routes/callsites, fixtures, CLI/API entrypoints, generated artifacts, deprecated duplicate owners, or config/runtime surfaces are missed after domain-term search.
+- Planned ownership remains ambiguous without a source-inspection step that will resolve it before code changes.
+- `Locked Decisions` contradict `AGENTS.md`, `CONTRACT.md`, ticket intent, or established patterns; major decisions omit context, rejected alternatives, consequences, or architecture fit.
+- Signature changes, parameter-wiring contracts, or output/report schemas are recorded only as advisory prose when a locked interface decision is required.
+- Dependency/sibling stories or `<epic>/CONTRACT.md` define shared actors, interfaces, verification conventions, or decisions that the plan silently drifts from.
+- Ticket/contract/code conflicts are not named with an explicit resolution. Respect the convention: codebase facts expose stale contracts; `CONTRACT.md` supersedes stale story/ticket intent unless the operator records a reopen or scoped deviation.
+
+### 6. Evidence quality, debt, and findings
+
+Blockers:
+- Review evidence speculates about code, tests, tickets, PRs, or Jira sources that were not inspected or explicitly classified as inaccessible/unknown.
+- Unknown or provisional evidence affects acceptance, route ownership, ticket intent, proof credibility, or contract drift without safe bounds and a follow-up path.
+- Debt Friction that affects proof or scope is hidden instead of recorded with the `docs/epic-conventions.md` shape. A plan is `blocked` for Debt Friction only when meaningful acceptance or proof planning is not possible.
+
+Warnings:
+- Non-blocking evidence gaps, repo-fit concerns, or optional follow-ups should be logged with severity and next action instead of silently ignored.
 
 ## Plan lane transitions
 
@@ -215,7 +235,7 @@ Append or create a `## Plan Review Log` section on the story file with a new ent
   - Next action: <one concrete recommendation>
 ```
 
-If a `Plan Review Log` section does not exist on the story file, create it at the end of the file. Never delete or rewrite previous entries — the log is append-only and records the plan's revision history across re-runs.
+If a `Plan Review Log` section does not exist on the story file, create it at the end of the file. Append the new review entry during this command. Later `/epic-story-plan-resume` may squash stale addressed history, but unresolved blockers, operator decisions, the latest disposition, Debt Friction, and material evidence anchors must remain recoverable.
 
 ## Output format
 

@@ -3,7 +3,7 @@ name: epic-squash
 description: Squash non-archived DONE stories of an epic into its merged CONTRACT.md, verifying every claim against the codebase, detecting/fixing discrepancies, and archiving the stories. Use when an epic accumulates completed stories that should be folded into the authoritative contract.
 disable-model-invocation: true
 argument-hint: "<epic-path-or-name>"
-allowed-tools: Read Edit Write Grep Glob Bash
+allowed-tools: Read Edit Write Grep Glob Task Bash
 ---
 
 # Epic Squash
@@ -20,7 +20,7 @@ Argument: `$ARGUMENTS` — the epic path (e.g. `agent_coordination/epics/<epic-n
 4. **Never auto-fix product code.** Code-level fixes require explicit per-fix approval at the Phase 6 checkpoint. Contract edits and code edits live on different blast-radius tiers.
 5. **Never archive on failing tests.** If Phase 6 runs tests and they fail, stop before Phase 7.
 6. **Preserve appendix history.** Add new Appendix A / B / C entries; never renumber or delete existing ones.
-7. **Use the minimum number of subagents.** One well-structured Explore agent beats three ad-hoc ones.
+7. **Use bounded evidence fan-out only when it reduces context load.** Split read-only verification by repo, domain, or story batch for large squashes; otherwise use one focused pass. The parent owns discrepancy classification, contract edits, code-fix approval questions, archive decisions, and final summary.
 8. **Checkpoint before irreversible or high-blast-radius actions.** The phases below mark each explicit checkpoint — do not skip them.
 
 ## Phase 0 — Sanity check and bootstrap
@@ -53,13 +53,13 @@ Also flag (but still include) stories where the story file header status disagre
 
 Print the in-scope list (story number, title, spec path, status-drift flag if any) and **CHECKPOINT 1**: confirm the list with the user before proceeding.
 
-## Phase 2 — Parallel reads + single codebase-verification pass
+## Phase 2 — Parallel reads + bounded codebase-verification passes
 
 In one message, batch:
 1. `Read` on current `CONTRACT.md` (**skip in bootstrap mode — the file does not exist**)
 2. `Read` on every in-scope story file
 
-Then launch **exactly one** Explore subagent to verify every concrete claim in the in-scope stories against the codebase. The prompt must include a structured checklist:
+Then run one or more bounded read-only verification passes to check every concrete claim in the in-scope stories against the codebase. Use a child agent only when the current runtime provides one and fan-out by repo, domain, or story batch reduces context load; otherwise perform one focused pass directly. Each pass must use this structured checklist:
 - Function / class / method names the stories mention
 - Constants, env vars, config keys
 - Default values (especially when a story says "changed X from A to B")
@@ -67,7 +67,7 @@ Then launch **exactly one** Explore subagent to verify every concrete claim in t
 - Test fixture paths
 - Stale-compat path checks: for each changed default, grep for the OLD value anywhere in the code and report hits
 
-The agent must return a match / no-match report with `file:line` evidence for each item.
+Each pass must return a match / no-match report with `file:line` evidence for each item. Treat child outputs as evidence only; the parent classifies discrepancies and decides edits.
 
 ## Phase 3 — Classify changes and detect discrepancies
 
@@ -182,7 +182,7 @@ If any test fails, stop before Phase 7 and report. Do not archive.
 ## Optimization notes (apply where it helps)
 
 - **Parallel story reads**: always batch the initial reads into one message with multiple `Read` calls.
-- **Single verification agent**: do not launch multiple Explore agents for this task. One structured pass is enough.
+- **Bounded verification fan-out**: use one structured verification pass by default; split into multiple read-only passes only by repo, domain, or story batch when the squash is too large for one focused pass.
 - **Pre-classify no-ops early**: pure refactor / cleanup stories skip Phase 4 edit planning entirely.
 - **Targeted grep for each changed default**: when a story changes a default (e.g. "xhigh → high"), explicitly grep for the OLD value across the codebase in Phase 2. Legacy compat paths are the usual culprits.
 - **Batch trailing-appendix edits**: when adding many A / B / C entries at once, consider one larger Edit over many tiny ones for the trailing sections (never for middle-of-document section rewrites — those need focused diffs).

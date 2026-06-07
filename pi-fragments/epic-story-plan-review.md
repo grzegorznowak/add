@@ -11,10 +11,14 @@ When the story, MASTER row, branch/history, dependency stories, or PR text expos
 Retrieve: `notebook_read({name: "plan-review-intent-<epic>-<step>"})`.
 
 ### Codebase probing → spawn
-When verifying Critical Files, searching domain keywords, checking Locked Decisions against AGENTS.md, or looking for omitted owners, delegate to parallel children:
-`spawn({prompt: "Probe <files/keywords> for story <epic>/<step>. Verify Critical Files resolve; search beyond them for domain owners, existing tests, public APIs, callsites/routes, duplicate/deprecated implementations, reusable code, hidden gotchas, and Locked Decision conflicts with AGENTS.md or established patterns. Be read-only. Write findings to notebook page 'plan-review-probe-<epic>-<step>' with path:line anchors.", thinking: "medium"})`.
+For non-trivial reviews, split evidence children by boundary instead of launching one broad probe. Use only the probes needed for the verdict:
+- owner/callsite discovery beyond `## Critical Files`
+- test/TAP feasibility: layout, fixtures, CI lanes, behavior-facing assertions, fallback seams
+- contract/sibling/AGENTS drift and locked-decision conflicts
 
-Retrieve: `notebook_read({name: "plan-review-probe-<epic>-<step>"})`.
+`spawn({prompt: "Plan-review evidence probe for <epic>/<step>: <owner/callsite | test/TAP | contract/sibling>. Be read-only. Use the checklist for that probe, cite path:line anchors, and write findings to notebook page 'plan-review-probe-<epic>-<step>-<probe>'. Do not decide the verdict or edit files.", thinking: "medium"})`.
+
+Retrieve each probe with `notebook_read`. The parent remains reviewer-of-record and owns findings, verdict, Plan Review Log, and Plan lane.
 
 ### Traceability / adversarial review → notebook
 Before verdict, write a compact trace map to `notebook_write({name: "plan-review-trace-<epic>-<step>", content: "..."})` covering:

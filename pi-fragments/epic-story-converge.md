@@ -5,7 +5,7 @@ description: Run fresh claim, resume, and review children against one story unti
 
 # Epic Story Converge
 
-Coordinate implementation-side ping-pong for one story. Spawn children for `/epic-story-claim`, `/epic-story-resume`, and `/epic-story-review` in cycles. Use notebook pages for the Research Board and babysitting notes. Stop on local approval, blocker, no-progress, or cycle-budget exhaustion.
+Coordinate implementation-side iteration loop for one story. Spawn children for `/epic-story-claim`, `/epic-story-resume`, and `/epic-story-review` in cycles. Use notebook pages for the Research Board and operational notes. Stop on local approval, blocker, no-progress, or cycle-budget exhaustion.
 
 Argument: `<epic> <story> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"]...`. `MAX_CYCLES` defaults to 5. `WORKTREE=` values pass through to children unchanged.
 
@@ -32,7 +32,7 @@ Run up to `MAX_CYCLES` cycles. Before each child launch, re-read `MASTER.md` and
 ### Notebook pages
 
 Maintain two notebook pages:
-- `babysit-<epic>-<step>` — neutral operational notes (command failures, hotspots, repeated findings)
+- `ops-<epic>-<step>` — neutral operational notes, including command failures, worktree/test blockers, hotspots, repeated findings, and files, symbols, TAP rows, proof rows, or acceptance ids repeatedly implicated across passes
 - `research-<epic>-<step>` — sourced Research Board entries (path:line anchors required)
 
 ### Launching children
@@ -42,7 +42,7 @@ For each cycle, spawn one child. Build the prompt with:
 - The task description and resolved story (`<epic>/<step>`, with `<spec>` if useful)
 - Reference notebook page names so the child can `notebook_read` them
 - `WORKTREE=` values if provided
-- Operational context from `babysit-<epic>-<step>` (summarize, don't inline full content)
+- Operational context from `ops-<epic>-<step>` (summarize, don't inline full content)
 
 Use one of these exact opening lines, based on the selected pass:
 - Claim child: `You are executing the epic-story-claim workflow for story <epic>/<step>. Treat this as the pi-native equivalent of /epic-story-claim <epic> <step>.`
@@ -52,8 +52,8 @@ Use one of these exact opening lines, based on the selected pass:
 ```
 spawn({
   prompt: "<exact opening line for claim/resume/review>
-  Retrieve notebook pages: 'research-<epic>-<step>' (cached research, verify with direct reads), 'babysit-<epic>-<step>' (operational notes).
-  Write new sourced research to notebook page 'research-<epic>-<step>'. Report blockers or repeated failures so the converger can update notebook page 'babysit-<epic>-<step>'.
+  Retrieve notebook pages: 'research-<epic>-<step>' (cached research, verify with direct reads), 'ops-<epic>-<step>' (operational notes).
+  Write new sourced research to notebook page 'research-<epic>-<step>'. Report blockers, repeated failures, or recurring TAP/proof/acceptance hotspots so the converger can update notebook page 'ops-<epic>-<step>'.
   WORKTREE=\"<basename>=<path>\" ...",
   thinking: "high"
 })
@@ -62,7 +62,7 @@ spawn({
 After the child completes:
 1. Re-read `MASTER.md` and story file. Derive decisions from file state, not chat output.
 2. Read `notebook_read({name: "research-<epic>-<step>"})`. Curate: keep verified entries, replace invalidated entries, retire stale ones. Every entry must have a source anchor.
-3. Update notebook page `babysit-<epic>-<step>` with new operational facts (neutral, no verdicts).
+3. Update notebook page `ops-<epic>-<step>` with new operational facts (neutral, no verdicts). Preserve recurring files, symbols, TAP rows, proof rows, acceptance ids, command failures, worktree/test blockers, and hotspots across passes.
 4. If child asks an operator question, pause, ask, then resume with same child for that pass only.
 5. If a claim or resume leaves story at `🟣 IN REVIEW`, same cycle may launch a fresh review child.
 6. If review returns `approve`, confirm the latest story `## Review Log` records risk-lens review and finding closure (or explicit `none material`) before stopping successfully. If approval lacks that evidence, launch one fresh review child focused on risk-lens closure instead of accepting chat output alone.
@@ -99,7 +99,7 @@ For each worktree in story's `## Active Claim`, run `git -C <path> status --porc
 - Hotspots: <paths/symbols>
 - Persistence: notebook page `research-<epic>-<step>`
 
-## Babysitter Notes
+## Operational Notes
 - <neutral operational fact>
 - None.
 
@@ -107,7 +107,7 @@ For each worktree in story's `## Active Claim`, run `git -C <path> status --porc
 - <final commit, WIP checkpoint, or none>
 - Suggested command: `git -C <path> status && git -C <path> add -A && git -C <path> commit -m "<epic>/<story-slug>: <summary>"`
 
-## Operator Nice-To-Haves
+## Optional Operator Follow-Ups
 - <proposed improvement, including recurring risk/miss category worth automating or adding to future planning>
 - None.
 

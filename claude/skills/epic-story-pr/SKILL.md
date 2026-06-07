@@ -286,7 +286,7 @@ If the epic's `MASTER.md` Legend section does not list `🔵 IN PR`, add it imme
 
 ## Rules
 
-1. **The PR body is product-focused, not implementation-focused.** If a reviewer could accept an entirely different implementation that still meets the Acceptance criteria and Contract changes, the suppressed content was correct to suppress.
+1. **Use the PR description inclusion boundary above.** The PR body is a product contract for reviewers, not an implementation diary.
 2. **Never mark a story `✅ DONE` from this flow unless the PR is actually merged.** Merged means `gh pr view --json state` returns `MERGED`, or the user explicitly states so with a merge commit.
 3. **Never touch product code in this flow.** It is a coordination-only transition (except for the optional `gh pr create` call in open mode).
 4. **Never archive a `🔵 IN PR` story.** `/epic-squash` skips them by design.
