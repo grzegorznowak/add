@@ -209,7 +209,7 @@ After constructing story spec/proof edits and before writing, run these phases i
 2. `## Verification` contains `### Verification Commands`, `### Test Architecture Plan`, and `### Acceptance Proof Matrix` subsections.
 3. The Test Architecture Plan uses stable `TAP-*` row ids and required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale`.
 4. The Test Architecture Plan covers every added/changed test or proof surface introduced or affected by the feedback and satisfies the TAP quality gate: stable `TAP-*` ids, cheapest reliable real boundary, exact seam, behavior-facing assertion/observable signal, fixture/data isolation and live-dependency policy, focused command/CI lane, fallback plan, and split/merge rationale.
-5. The proof matrix uses the required columns and references relevant `TAP-*` row ids when tests change.
+5. The proof matrix uses the required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`, and references relevant `TAP-*` row ids when tests change.
 6. Every `A<n>` appears in at least one proof row.
 7. `Proof Maturity` is `final` or `provisional` only.
 8. Every `provisional` row has non-blank `Open Detail`.
