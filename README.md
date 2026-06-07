@@ -28,8 +28,8 @@ transition is a fresh session**:
 - **TDD is a planning constraint, not an implementation afterthought.**
    `/epic-story-plan` requires a verification proof matrix and a Test
    Architecture Plan — mapping every acceptance criterion to a concrete proof
-   seam, owning test layer/file, fixture strategy, and CI lane — before the
-   story can leave `⚪ TODO`. By the time `/epic-story-claim` starts writing
+   seam, owning test layer/file, assertion/observable signal, fixture strategy,
+   fallback plan, and CI lane — before the story can leave `⚪ TODO`. By the time `/epic-story-claim` starts writing
    code, the question is not "should we test this?" but "which planned failing
    seam do we turn green first, and where does that proof belong in the suite?"
 

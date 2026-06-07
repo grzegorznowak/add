@@ -14,7 +14,7 @@ Retrieve: `notebook_read({name: "review-intent-<epic>-<step>"})`.
 
 ### Codebase probing / owner discovery → spawn
 When checking changed surfaces, Test Architecture Plan alignment, omitted owners, callsites/routes, duplicate implementations, generated/config/runtime surfaces, or reusable existing code, delegate parallel read-only children:
-`spawn({prompt: "Probe implementation surfaces for review <epic>/<step>. Search beyond changed files for domain owners, existing tests, test layout/fixtures/CI lanes, public APIs, callsites/routes, duplicate/deprecated implementations, generated/config/runtime surfaces, fixtures, CLI/API entrypoints, TAP row alignment, and sibling contract obligations. Be read-only. Write findings to notebook page 'review-probe-<epic>-<step>' with path:line anchors and searches performed.", thinking: "medium"})`.
+`spawn({prompt: "Probe implementation surfaces for review <epic>/<step>. Search beyond changed files for domain owners, existing tests, test layout/fixtures/CI lanes, public APIs, callsites/routes, duplicate/deprecated implementations, generated/config/runtime surfaces, fixtures, CLI/API entrypoints, TAP row alignment including assertions/observable signals and fallback decisions, and sibling contract obligations. Be read-only. Write findings to notebook page 'review-probe-<epic>-<step>' with path:line anchors and searches performed.", thinking: "medium"})`.
 
 Retrieve: `notebook_read({name: "review-probe-<epic>-<step>"})`.
 

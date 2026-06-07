@@ -25,8 +25,9 @@ Planning is proof-first and test-architecture-aware: the proof surfaces and
 suite placement must be concrete enough that an implementer can inspect the
 repo and choose a smallest focused red seam without re-planning the story. The
 `Test Architecture Plan` records the layer/scope, owning suite/file, exercised
-boundary, fixture/data strategy, CI lane/command, and split/merge rationale for
-every added or changed test/proof surface. If the story spans multiple product
+boundary, assertions/observability, fixture/data strategy, CI lane/command,
+fallback plan, and split/merge rationale for every added or changed test/proof
+surface. If the story spans multiple product
 surfaces, variants, modes, or orchestration branches, the story must expand
 that risk surface into a `Surface / Branch Proof Matrix`. If shared helpers or
 multiple callsites are involved, the story must distinguish helper, routing,
@@ -234,7 +235,7 @@ files, never changes implementation `Status`, and never sets `Plan` to
    implementation `⛔ BLOCKED`.
 7. **Proof contracts and test architecture must be final before local implementation review passes.**
    Planning may use `provisional` Acceptance Proof Matrix rows, but `/epic-story-review` cannot approve
-   while any proof row remains provisional or while the Test Architecture Plan no longer matches actual test placement, fixture strategy, and verification commands.
+   while any proof row remains provisional or while the Test Architecture Plan no longer matches actual test placement, assertions/observability, fixture strategy, fallback decisions, and verification commands.
 8. **Broad acceptance scope requires focused multipass review.** When
    `## Acceptance` has 6 or more concrete items, `/epic-story-review` cannot
    approve until every acceptance item is covered by a focused pass and the

@@ -14,7 +14,7 @@ If none exist, rebuild from the story file as usual.
 
 ### Research before continuing
 Spawn a read-only child to refresh codebase understanding before the first change:
-`spawn({prompt: "Re-inspect the codebase for <epic>/<step>. Focus on areas flagged by latest Review Log / Progress Log and the story's Test Architecture Plan. Verify Critical Files still resolve, TAP rows still match test layout/fixtures/CI lanes, and check for drift. Write findings to notebook page 'research-<epic>-<step>' with path:line anchors.", thinking: "high"})`.
+`spawn({prompt: "Re-inspect the codebase for <epic>/<step>. Focus on areas flagged by latest Review Log / Progress Log and the story's Test Architecture Plan. Verify Critical Files still resolve, TAP rows still match test layout, assertions/observable signals, fixtures, CI lanes, and fallback plans; check for drift. Write findings to notebook page 'research-<epic>-<step>' with path:line anchors.", thinking: "high"})`.
 
 ### Review feedback re-inspection
 When resuming after `request_changes`, spawn a child to re-inspect flagged files:

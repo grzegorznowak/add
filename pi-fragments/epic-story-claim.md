@@ -6,7 +6,7 @@ After Step selection, use the canonical resolved `Step` value as `<step>` in eve
 
 ### Research before first change
 Spawn a read-only child to probe the codebase before choosing the focused red seam:
-`spawn({prompt: "Research <domain-keywords> from the story's Purpose/Scope and Test Architecture Plan for <epic>/<step>. Verify Critical Files paths, find reusable code, trace call paths, identify TAP rows, test seams, existing test layout, fixtures, and CI lanes. Write findings to notebook page 'research-<epic>-<step>' with path:line anchors. Return summary.", thinking: "high"})`.
+`spawn({prompt: "Research <domain-keywords> from the story's Purpose/Scope and Test Architecture Plan for <epic>/<step>. Verify Critical Files paths, find reusable code, trace call paths, identify TAP rows, test seams, intended assertions/observable signals, fallback plans, existing test layout, fixtures, and CI lanes. Write findings to notebook page 'research-<epic>-<step>' with path:line anchors. Return summary.", thinking: "high"})`.
 Retrieve: `notebook_read({name: "research-<epic>-<step>"})`.
 
 ### Debt Friction check

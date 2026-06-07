@@ -190,11 +190,13 @@ Before locking proof rows, classify activated risk lenses. Use story-specific ev
    - Anchor the real owning test/proof surfaces and the focused area the implementer should inspect first.
    - When tests must be added or changed, require planned test seams at acceptance-variant granularity: file path, test function/class name when knowable, and the specific failing assertion or observed RED signal. If the exact test name cannot be known before source inspection, mark it provisional and state what naming decision must be resolved before implementation proceeds.
 2. `### Test Architecture Plan`
-   - Required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Fixture / Test Data Strategy | CI Lane / Command | Split / Merge Rationale`.
+   - Required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale`.
    - Discover and follow the repository's existing test layout, markers, fixtures, and CI lanes first.
    - If no local taxonomy exists, use fallback layers: `unit/domain`, `functional/component/API`, `integration/routing/filesystem/network`, `contract`, `acceptance/E2E/manual/golden`, and `static/packaging`.
    - Prefer the cheapest reliable layer for each behavior. Do not prove all behavior through broad E2E/manual checks when lower-layer deterministic seams can prove it.
    - Every test file to add or change must appear in the table with why it belongs there. If no automated tests change, include the static/file-read/manual proof rows that explain why.
+   - Each row's `Assertions / Observability` must name the expected failing assertion, RED signal, reviewer-visible output, manual/file-read signal, or equivalent observable proof signal. Keep assertions behavior-centered unless the story explicitly makes an implementation mechanic contractual.
+   - Each row's `Fallback Plan` must say what to do if source inspection disproves the seam or the preferred layer, file, fixture, or CI lane is unavailable or impractical. Material drift must route back through planning instead of silent test relocation.
    - If multiple layers or unrelated behaviors are intentionally kept in one file, record a concrete split/merge rationale tied to existing repo convention. Convenience is not sufficient.
    - Fixture/data strategy must name isolation, cleanup, live network/db/filesystem policy, and ordering/flakiness risks when material.
    - `Acceptance Proof Matrix` rows should cite the relevant `TAP-*` row ids in `Proof Method`, `Expected Evidence`, or `Relevant Surfaces`.
@@ -334,7 +336,7 @@ Before the checkpoint:
    - every linked scenario is covered by its acceptance id and by that id's proof row(s)
    - every acceptance bullet begins with `A<n>:`
    - `## Verification` contains `### Verification Commands`, `### Test Architecture Plan`, and `### Acceptance Proof Matrix`
-   - the Test Architecture Plan uses the required columns and covers every added/changed test or proof surface with layer/scope, owning suite/file, boundary, fixture/data strategy, CI lane/command, and split/merge rationale
+   - the Test Architecture Plan uses the required columns and covers every added/changed test or proof surface with layer/scope, owning suite/file, boundary, assertions/observability, fixture/data strategy, CI lane/command, fallback plan, and split/merge rationale
    - unexplained aggregation of unrelated layers/behaviors into one test file is invalid
    - the proof matrix uses the required columns and references relevant `TAP-*` row ids when tests change
    - every acceptance id appears in at least one proof row

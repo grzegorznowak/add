@@ -11,8 +11,8 @@ When the story, MASTER row, branch/history, dependency stories, or PR text expos
 Retrieve: `notebook_read({name: "plan-review-intent-<epic>-<step>"})`.
 
 ### Codebase probing → spawn
-When verifying Critical Files, searching domain keywords, checking Locked Decisions against AGENTS.md, or looking for omitted owners, delegate to parallel children:
-`spawn({prompt: "Probe <files/keywords> for story <epic>/<step>. Verify Critical Files resolve; search beyond them for domain owners, existing tests, test layout/markers/fixtures/CI lanes, public APIs, callsites/routes, duplicate/deprecated implementations, reusable code, hidden gotchas, and Locked Decision conflicts with AGENTS.md or established patterns. Be read-only. Write findings to notebook page 'plan-review-probe-<epic>-<step>' with path:line anchors.", thinking: "medium"})`.
+When verifying Critical Files, searching domain keywords, checking TAP feasibility, checking Locked Decisions against AGENTS.md, or looking for omitted owners, delegate to parallel children:
+`spawn({prompt: "Probe <files/keywords> for story <epic>/<step>. Verify Critical Files resolve; search beyond them for domain owners, existing tests, test layout/markers/fixtures/CI lanes, plausible TAP assertions/observable signals and fallback plans, public APIs, callsites/routes, duplicate/deprecated implementations, reusable code, hidden gotchas, and Locked Decision conflicts with AGENTS.md or established patterns. Be read-only. Write findings to notebook page 'plan-review-probe-<epic>-<step>' with path:line anchors.", thinking: "medium"})`.
 
 Retrieve: `notebook_read({name: "plan-review-probe-<epic>-<step>"})`.
 

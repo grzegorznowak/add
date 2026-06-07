@@ -159,7 +159,7 @@ time by `/epic-story-plan`, and they are read by every other command.
 | `## Out of Scope` | What is deliberately not in scope. |
 | `## Scenarios / Behavior Examples` | Concrete examples that funnel into acceptance. Normative scenarios use exactly one `Covers: A<n>` link; orientation-only scenarios must say `Orientation only`. |
 | `## Acceptance` | Observable criteria a reviewer can verify. Every bullet uses a stable `A<n>` id and covers exactly one independently provable behavior. |
-| `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands`, `### Test Architecture Plan`, and `### Acceptance Proof Matrix`, and must add conditional subsections such as `### Surface / Branch Proof Matrix`, `### Design Sources`, `### Design Element Trace`, `### Input Boundary Shape Risk`, `### Fail-open Checks`, and/or `### Risk Lens Inventory` when the story's risk surface requires them. Rows reference acceptance IDs instead of restating full acceptance prose; TAP rows explain where and why proof belongs in the test suite. |
+| `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands`, `### Test Architecture Plan`, and `### Acceptance Proof Matrix`, and must add conditional subsections such as `### Surface / Branch Proof Matrix`, `### Design Sources`, `### Design Element Trace`, `### Input Boundary Shape Risk`, `### Fail-open Checks`, and/or `### Risk Lens Inventory` when the story's risk surface requires them. Rows reference acceptance IDs instead of restating full acceptance prose; TAP rows explain where proof belongs, what assertion or observable signal proves it, and what fallback plan applies if the preferred proof seam is impractical. |
 | `## Discovery Notes` | Source-derived facts that prevent rediscovery: reusable code, gotchas, hidden coupling, test seams, operational constraints, or Debt Friction. Not a transcript. |
 | `## Critical Files` | File paths and each path's role. |
 | `## Implementation Notes` | Execution brief: source-inspection focus, red-first seam guidance, phases, constraints, and known exceptions. |
@@ -240,10 +240,10 @@ subsections:
 - <exact command or exact manual/file-read action>
 
 ### Test Architecture Plan
-| Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Fixture / Test Data Strategy | CI Lane / Command | Split / Merge Rationale |
-|---|---|---|---|---|---|---|---|
-| TAP-U1 | unit/domain | A1 focused rule | <test file / test name> | <pure domain boundary> | <fixture/data/isolation policy> | <focused command> | <why this file/layer owns it> |
-| TAP-F1 | functional/component | A2 behavior path | <test file / test name> | <component/API boundary> | <fixture/data/isolation policy> | <focused command> | <why this is separate or intentionally merged> |
+| Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale |
+|---|---|---|---|---|---|---|---|---|---|
+| TAP-U1 | unit/domain | A1 focused rule | <test file / test name> | <pure domain boundary> | <expected assertion / observable signal> | <fixture/data/isolation policy> | <focused command> | <alternate seam or replan trigger if unavailable> | <why this file/layer owns it> |
+| TAP-F1 | functional/component | A2 behavior path | <test file / test name> | <component/API boundary> | <expected assertion / observable signal> | <fixture/data/isolation policy> | <focused command> | <fallback if this layer/file/fixture is impractical> | <why this is separate or intentionally merged> |
 
 ### Acceptance Proof Matrix
 | Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail |
@@ -265,8 +265,16 @@ Rules:
   is not a substitute for lower-layer deterministic proof unless the story
   records why lower-level proof is insufficient.
 - Every added or changed test/proof surface must appear in TAP with its owning
-  suite/file, boundary exercised, fixture/data strategy, CI lane/command, and
-  split/merge rationale.
+  suite/file, boundary exercised, assertions/observability, fixture/data
+  strategy, CI lane/command, fallback plan, and split/merge rationale.
+- `Assertions / Observability` must state the expected failing assertion,
+  reviewer-visible output, manual/file-read signal, or equivalent observable
+  proof signal. Private mechanics are acceptable only when the story explicitly
+  makes them contractual.
+- `Fallback Plan` must state what to do if source inspection disproves the seam
+  or the preferred layer, file, fixture, or CI lane is unavailable or
+  impractical. Material drift routes back to planning rather than silent test
+  relocation.
 - If unrelated layers or behaviors are intentionally kept in one file, the TAP
   must tie that choice to an existing repo convention. Convenience alone is not
   a valid rationale.

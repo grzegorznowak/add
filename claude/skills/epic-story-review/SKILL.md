@@ -380,10 +380,10 @@ Before approving, verify:
 - Does the step file record the focused red seam that was used, or an explicit written exception with the alternative proof path?
 - If red-first was bypassed, was the exception recorded before proceeding and was the alternative proof path concrete?
 - Are there adequate tests for the change, including each named acceptance variant, mode, fallback path, and failure case?
-- Does the implementation follow `### Test Architecture Plan`, or does `## Progress Log` / `## Session Handoff` justify each material drift?
+- Does the implementation follow `### Test Architecture Plan`, including the planned assertion/observable proof signals and fallback decisions, or does `## Progress Log` / `## Session Handoff` justify each material drift?
 - Are tests placed in the planned owning suites/files, with unrelated layers split unless an explicit repo-convention rationale exists?
 - Do fixtures/data setup remain explicit, isolated, cleanup-safe, deterministic, and free of hidden live network/db/filesystem dependencies unless explicitly accepted?
-- Do final verification commands cover the planned TAP CI lanes and focused/broad gates?
+- Do final verification commands cover the planned TAP CI lanes, assertion/observable signals, and focused/broad gates?
 - If `## Scenarios / Behavior Examples` is present, does every normative scenario flow through a linked acceptance id and final proof row, and does implementation satisfy the scenario's concrete behavior?
 - Are there hidden packaging / runtime / ops implications not captured in the step?
 - Is every acceptance id still covered by the final Acceptance Proof Matrix?
@@ -484,7 +484,7 @@ Approval is not allowed if the proof contract is still unresolved. A story is on
 - every named variant, mode, branch, fallback path, and failure case inside an acceptance id is covered or explicitly excluded
 - every normative scenario linked with exactly one `Covers: A<n>` is satisfied through its linked acceptance id and final proof row
 - every Acceptance Proof Matrix proof row is `final`
-- the Test Architecture Plan rows match actual test placement, fixture/data strategy, and CI lanes, or every deviation is logged and justified
+- the Test Architecture Plan rows match actual test placement, assertions/observability, fixture/data strategy, CI lanes, and fallback decisions, or every deviation is logged and justified
 - the Acceptance Proof Matrix matches the actual implementation and verification surfaces
 - final tests and commands satisfy `### Test Architecture Plan`, or every deviation is logged, justified, and still preserves acceptance proof quality
 - every named end-to-end proof starts at the claimed entry boundary, or the story explicitly narrows the proof row

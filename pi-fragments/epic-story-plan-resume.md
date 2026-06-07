@@ -9,7 +9,7 @@ Retrieve: `notebook_read({name: "plan-research-<epic>-<step>"})`. Verify entries
 
 ### Parallel codebase probing → spawn
 When Critical Files probing, Discovery Notes probing, or Test Architecture Plan repair requires searching multiple keywords:
-`spawn({prompt: "Search the codebase for <keywords> for story <epic>/<step>. Report paths, roles, reusable code, gotchas, existing test layout, fixtures, markers, CI lanes, and candidate TAP rows when tests/proof surfaces change. Write findings to notebook page 'plan-probe-<epic>-<step>' with path:line anchors.", thinking: "medium"})`.
+`spawn({prompt: "Search the codebase for <keywords> for story <epic>/<step>. Report paths, roles, reusable code, gotchas, existing test layout, fixtures, markers, CI lanes, and candidate TAP rows with assertions/observable signals and fallback plans when tests/proof surfaces change. Write findings to notebook page 'plan-probe-<epic>-<step>' with path:line anchors.", thinking: "medium"})`.
 
 Retrieve findings: `notebook_read({name: "plan-probe-<epic>-<step>"})`. Integrate into spec sections.
 

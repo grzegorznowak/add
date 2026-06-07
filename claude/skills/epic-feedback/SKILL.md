@@ -207,8 +207,8 @@ After constructing story spec/proof edits and before writing, run these phases i
 **Phase A — Structural checks.** Verify:
 1. Every acceptance bullet starts with `A<n>:`.
 2. `## Verification` contains `### Verification Commands`, `### Test Architecture Plan`, and `### Acceptance Proof Matrix` subsections.
-3. The Test Architecture Plan uses stable `TAP-*` row ids and required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Fixture / Test Data Strategy | CI Lane / Command | Split / Merge Rationale`.
-4. The Test Architecture Plan covers every added/changed test or proof surface introduced or affected by the feedback, including layer choice, owning suite/file, fixture/data isolation, CI lane/command, and split/merge rationale.
+3. The Test Architecture Plan uses stable `TAP-*` row ids and required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale`.
+4. The Test Architecture Plan covers every added/changed test or proof surface introduced or affected by the feedback, including layer choice, owning suite/file, assertions/observability, fixture/data isolation, CI lane/command, fallback plan, and split/merge rationale.
 5. The proof matrix uses the required columns and references relevant `TAP-*` row ids when tests change.
 6. Every `A<n>` appears in at least one proof row.
 7. `Proof Maturity` is `final` or `provisional` only.
@@ -347,7 +347,7 @@ If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, te
 - update `## Actors` when feedback changes who initiates, participates in, reviews, or is affected by the behavior
 - update `## Scenarios / Behavior Examples` when feedback changes concrete flows or examples; every normative scenario must use exactly one `Covers: A<n>` and funnel into Acceptance and Verification
 - update `## Acceptance` and `## Verification` together
-- update `### Test Architecture Plan` when feedback changes test layers, proof surfaces, owning suites/files, fixture/data strategy, CI lanes, or split/merge rationale
+- update `### Test Architecture Plan` when feedback changes test layers, proof surfaces, owning suites/files, assertions/observability, fixture/data strategy, CI lanes, fallback plans, or split/merge rationale
 - update `### Acceptance Proof Matrix` for every acceptance id and named variant/failure mode, referencing relevant `TAP-*` rows when tests change
 - update `### Surface / Branch Proof Matrix` when surfaces, variants, modes, or orchestration branches are introduced or changed
 - update `### Design Sources` when feedback introduces, changes, supersedes, or reclassifies a design artifact; anchors must be durable/reviewable and every source must be marked `normative` or `orientation only`
