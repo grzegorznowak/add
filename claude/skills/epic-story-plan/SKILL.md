@@ -301,7 +301,10 @@ Before the checkpoint:
    - `## Scenarios / Behavior Examples` exists, every normative `S<n>` scenario has exactly one `Covers: A<n>`, and every orientation-only scenario says `Orientation only`
    - every linked scenario is covered by its acceptance id and by that id's proof row(s)
    - every acceptance bullet begins with `A<n>:`
-   - `## Verification` contains `### Verification Commands` and `### Acceptance Proof Matrix`
+   - `## Verification` contains `### Verification Commands`, `### Test Architecture Plan`, and `### Acceptance Proof Matrix`
+   - the Test Architecture Plan uses the required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale`
+   - every TAP row has a stable `TAP-*` row id and satisfies the TAP quality gate from `docs/epic-conventions.md`
+   - every added or changed test/proof surface appears in the TAP, and proof matrix rows reference relevant `TAP-*` rows when tests or proof surfaces change
    - the proof matrix uses the required columns
    - every acceptance id appears in at least one proof row
    - every `Proof Maturity` value is `final` or `provisional`

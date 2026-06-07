@@ -159,7 +159,7 @@ time by `/epic-story-plan`, and they are read by every other command.
 | `## Out of Scope` | What is deliberately not in scope. |
 | `## Scenarios / Behavior Examples` | Concrete examples that funnel into acceptance. Normative scenarios use exactly one `Covers: A<n>` link; orientation-only scenarios must say `Orientation only`. |
 | `## Acceptance` | Observable criteria a reviewer can verify. Every bullet uses a stable `A<n>` id and covers exactly one independently provable behavior. |
-| `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands` and `### Acceptance Proof Matrix`, and must add conditional subsections such as `### Surface / Branch Proof Matrix`, `### Design Sources`, `### Design Element Trace`, `### Input Boundary Shape Risk`, `### Fail-open Checks`, and/or `### Risk Lens Inventory` when the story's risk surface requires them. Rows reference acceptance IDs instead of restating full acceptance prose. |
+| `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands`, `### Test Architecture Plan`, and `### Acceptance Proof Matrix`, and must add conditional subsections such as `### Surface / Branch Proof Matrix`, `### Design Sources`, `### Design Element Trace`, `### Input Boundary Shape Risk`, `### Fail-open Checks`, and/or `### Risk Lens Inventory` when the story's risk surface requires them. TAP rows describe planned proof ownership; proof rows reference acceptance IDs instead of restating full acceptance prose. |
 | `## Discovery Notes` | Source-derived facts that prevent rediscovery: reusable code, gotchas, hidden coupling, test seams, operational constraints, or Debt Friction. Not a transcript. |
 | `## Critical Files` | File paths and each path's role. |
 | `## Implementation Notes` | Execution brief: source-inspection focus, red-first seam guidance, phases, constraints, and known exceptions. |
@@ -239,15 +239,40 @@ subsections:
 ### Verification Commands
 - <exact command or exact manual/file-read action>
 
+### Test Architecture Plan
+| Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale |
+|---|---|---|---|---|---|---|---|---|---|
+| TAP-1 | <repo-supported layer> | A1 | <planned test/proof owner> | <real boundary/seam> | <behavior-facing assertion or reviewer-visible signal> | <fixtures/data/live-dependency policy> | <focused command or CI lane> | <fallback if preferred seam is wrong> | <why this row is split/merged> |
+
 ### Acceptance Proof Matrix
 | Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail |
 |---|---|---|---|---|---|---|
-| A1 | final | file-read | <exact reviewer action> | <exact expected evidence> | <paths / commands / surfaces> | |
+| A1 | final | file-read | <exact reviewer action referencing TAP-1 when tests/proof surfaces change> | <exact expected evidence> | <paths / commands / surfaces> | |
 | A2 | provisional | automated | <exact reviewer action> | <red/green or equivalent evidence> | <paths / commands / surfaces> | <what is still undecided> |
 ```
 
 Rules:
 
+- The Test Architecture Plan uses stable `TAP-*` row ids and required columns:
+  `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale`.
+- TAP rows discover and follow the repository's existing test layout, markers,
+  fixtures, and CI lanes before falling back to generic layers such as
+  `unit/domain`, `functional/component/API`, `integration/routing/filesystem/network`,
+  `contract`, `acceptance/E2E/manual/golden`, or `static/packaging`.
+- The TAP quality gate requires: stable `TAP-*` ids; cheapest reliable real
+  boundary; exact seam; behavior-facing assertion or reviewer-visible signal;
+  fixture/data isolation and live-dependency policy; focused command or CI lane;
+  fallback plan when the preferred seam/layer/file/fixture/CI lane is wrong or
+  impractical; and split/merge rationale tied to repo convention when unrelated
+  behavior shares a file.
+- Broad E2E/manual proof is valid only when the row explains why lower-layer
+  deterministic seams cannot provide equivalent confidence. Hidden live
+  dependencies, private choreography assertions unless explicitly contractual,
+  named variants without proof or explicit exclusion, and convenience-only
+  grab-bag test placement are invalid.
+- Every added or changed test/proof surface must appear in the TAP, and proof
+  matrix rows should reference relevant `TAP-*` rows when tests or proof
+  surfaces change.
 - Every acceptance id must appear in the matrix at least once. Missing rows are
   invalid.
 - A matrix row may reference multiple acceptance ids only as an exception, and
