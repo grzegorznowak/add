@@ -32,7 +32,7 @@ Run up to `MAX_CYCLES` cycles. Before each child launch, re-read `MASTER.md` and
 ### Notebook pages
 
 Maintain two notebook pages:
-- `babysit-<epic>-<step>` — neutral operational notes (command failures, hotspots, repeated findings)
+- `babysit-<epic>-<step>` — neutral operational notes, including command failures, worktree/test blockers, hotspots, repeated findings, and files, symbols, TAP rows, proof rows, or acceptance ids repeatedly implicated across passes
 - `research-<epic>-<step>` — sourced Research Board entries (path:line anchors required)
 
 ### Launching children
@@ -53,7 +53,7 @@ Use one of these exact opening lines, based on the selected pass:
 spawn({
   prompt: "<exact opening line for claim/resume/review>
   Retrieve notebook pages: 'research-<epic>-<step>' (cached research, verify with direct reads), 'babysit-<epic>-<step>' (operational notes).
-  Write new sourced research to notebook page 'research-<epic>-<step>'. Report blockers or repeated failures so the converger can update notebook page 'babysit-<epic>-<step>'.
+  Write new sourced research to notebook page 'research-<epic>-<step>'. Report blockers, repeated failures, or recurring TAP/proof/acceptance hotspots so the converger can update notebook page 'babysit-<epic>-<step>'.
   WORKTREE=\"<basename>=<path>\" ...",
   thinking: "high"
 })
@@ -62,7 +62,7 @@ spawn({
 After the child completes:
 1. Re-read `MASTER.md` and story file. Derive decisions from file state, not chat output.
 2. Read `notebook_read({name: "research-<epic>-<step>"})`. Curate: keep verified entries, replace invalidated entries, retire stale ones. Every entry must have a source anchor.
-3. Update notebook page `babysit-<epic>-<step>` with new operational facts (neutral, no verdicts).
+3. Update notebook page `babysit-<epic>-<step>` with new operational facts (neutral, no verdicts). Preserve recurring files, symbols, TAP rows, proof rows, acceptance ids, command failures, worktree/test blockers, and hotspots across passes.
 4. If child asks an operator question, pause, ask, then resume with same child for that pass only.
 5. If a claim or resume leaves story at `🟣 IN REVIEW`, same cycle may launch a fresh review child.
 6. If review returns `approve`, confirm the latest story `## Review Log` records Test Architecture Plan alignment, risk-lens review, and finding closure (or explicit `none material`) before stopping successfully. If approval lacks that evidence, launch one fresh review child focused on TAP/risk-lens closure instead of accepting chat output alone.

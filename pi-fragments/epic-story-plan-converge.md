@@ -27,7 +27,7 @@ Run up to `MAX_CYCLES` cycles. Before each child launch, re-read `MASTER.md` and
 ### Notebook pages
 
 Maintain two notebook pages:
-- `plan-babysit-<epic>-<step>` — neutral operational notes
+- `plan-babysit-<epic>-<step>` — neutral operational notes, including command failures, repeated blockers, and story sections, TAP rows, or proof rows that repeatedly block progress
 - `plan-research-<epic>-<step>` — sourced Research Board entries (path:line anchors required)
 
 ### Launching children
@@ -47,7 +47,7 @@ Use one of these exact opening lines, based on the selected pass:
 spawn({
   prompt: "<exact opening line for plan-review/plan-resume>
   Retrieve notebook pages: 'plan-research-<epic>-<step>' (verify with direct reads), 'plan-babysit-<epic>-<step>' (operational notes).
-  Write new sourced research to notebook page 'plan-research-<epic>-<step>'. Report blockers or repeated failures so the converger can update notebook page 'plan-babysit-<epic>-<step>'.",
+  Write new sourced research to notebook page 'plan-research-<epic>-<step>'. Report blockers, repeated failures, or recurring TAP/proof-row gaps so the converger can update notebook page 'plan-babysit-<epic>-<step>'.",
   thinking: "high"
 })
 ```
@@ -55,7 +55,7 @@ spawn({
 After each child:
 1. Re-read `MASTER.md` and story file. Derive decisions from file state.
 2. Read `notebook_read({name: "plan-research-<epic>-<step>"})`. Curate entries.
-3. Update notebook page `plan-babysit-<epic>-<step>` with neutral operational facts.
+3. Update notebook page `plan-babysit-<epic>-<step>` with neutral operational facts. Preserve recurring story sections, TAP rows, proof rows, command failures, prerequisites, and hotspots; do not record persuasive verdict framing.
 4. If child asks operator question: pause, ask, resume same child for that pass only.
 5. If review decision is `approve` or `Plan` reaches `🟢 PLAN APPROVED`, confirm the latest story `## Plan Review Log` records Test Architecture Plan coverage/alignment plus activated risk lenses or explicit `none material` before stopping. If approval lacks that evidence, launch one fresh plan-review child focused on TAP and risk-lens coverage rather than accepting chat output alone. Then recommend `/epic-story-claim` or `/epic-story-resume`.
 6. If `blocked` → stop.
