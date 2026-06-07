@@ -186,10 +186,17 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 
 - Treat `MASTER.md` plus the claimed step file as the source of truth
 - Read dependency step files for context; do not widen scope unless required to finish the claimed step correctly
-- Inspect the relevant code and tests before the first change. Use the story's `## Actors`, normative `## Scenarios / Behavior Examples` linked with exactly one `Covers: A<n>`, `## Verification`, `## Critical Files`, and `## Discovery Notes` to choose the smallest focused seam that covers the next behavior. Treat `Orientation only` scenarios as context only; they must not create implementation or proof obligations unless the same behavior is also present in `## Acceptance`.
-- Before choosing the first red seam, build a compact acceptance proof map from the story: list every `A<n>` id and, for any acceptance item that names variants, modes, branches, fallback paths, error cases, or examples, list each named case separately. If `## Scenarios / Behavior Examples` contains `S<n> Covers: A<n>`, include the linked scenario case under that acceptance id. Use this proof map to decide tests and implementation order; do not treat one variant, linked scenario, or orientation-only example as covering siblings unless the story explicitly excludes them.
-- Build a compact activated-risk map from the story and source inspection before the first patch. Note material lenses such as async/event-loop behavior, concurrency, process/resource lifecycle, platform/OS APIs, filesystem/network/subprocess I/O, permissions/security, persistence, retries/timeouts, generated artifacts, prompt/template fail-open behavior, external services, and naming-sensitive invariants. Use this map to choose proof and self-review checks; if no extra lens is material, record that briefly in your working notes or handoff.
-- Run a Debt Friction check before the first patch: ask whether implementation is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only write a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
+### Implementation proof preflight
+
+Before the first patch:
+
+1. Inspect relevant code/tests and the story proof sections: `## Actors`, normative `## Scenarios / Behavior Examples` linked with exactly one `Covers: A<n>`, `## Verification`, especially `### Test Architecture Plan`, `## Critical Files`, and `## Discovery Notes`.
+2. Build an acceptance proof map: every `A<n>` id, every named variant/mode/branch/fallback/error/example, and every normative `S<n> Covers: A<n>` case. Orientation-only scenarios are context only and must not create implementation or proof obligations unless the same behavior is also in `## Acceptance`.
+3. Build a TAP map: each `TAP-*` row's acceptance slice, layer/scope, owning suite/file, boundary, assertions/observability, fixture/data strategy, CI lane/command, fallback plan, and split/merge rationale. Use it to choose the smallest credible red seam while preserving planned test organization.
+4. Build an activated-risk map from story + source inspection. Note material lenses such as async/event-loop behavior, concurrency, process/resource lifecycle, platform/OS APIs, filesystem/network/subprocess I/O, permissions/security, persistence, retries/timeouts, generated artifacts, prompt/template fail-open behavior, external services, and naming-sensitive invariants; record `none material` when appropriate.
+5. Run a Debt Friction check: record it only when there is a story-local causal link from current story action to concrete evidence, delivery impact, and explicit decision.
+6. If source inspection proves the TAP or contract materially wrong, follow the row's fallback plan only when it stays within scope; otherwise record the blocker and route to `/epic-story-plan-converge` or `/epic-feedback`. Do not silently replan inside claim.
+
 - Default to red-first: make that focused seam fail, implement until it passes, then broaden verification.
 - Do not jump straight to broad suites or code-first implementation if a smaller focused seam is available.
 - Implement the claimed step end-to-end when feasible

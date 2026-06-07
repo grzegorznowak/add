@@ -124,7 +124,7 @@ Continue after the highest existing `FB-###` in the epic `Feedback Absorption Lo
 - Actionability: actionable | non_actionable | ambiguous
 ```
 
-When a feedback item is ambiguous, ask one focused question before classification. Do not guess a target story just because it is the most recent story in the epic. When feedback exposes an escaped miss, classify the recurring miss category so the epic log can feed future planning, review, tests, lint/static checks, and skill updates without making the target story carry a retrospective essay.
+When a feedback item is ambiguous, ask one focused question before classification. Do not guess a target story just because it is the most recent story in the epic. When feedback exposes an escaped miss, classify the recurring miss category so the epic log can feed future planning, review, tests, lint/static checks, and skill updates without bloating the target story with process-retrospective detail.
 
 ## Phase 3 — Classify targets and draft absorption plan
 
@@ -202,28 +202,30 @@ Apply the acknowledged plan with minimal edits. Construct all edits in memory fi
 
 ### Validation gate (story spec/proof edits only)
 
-After constructing story spec/proof edits and before writing, run these phases in order. Read the story's original sections so the before/after diff is available.
+After constructing story spec/proof edits and before writing, run these phases in order. Read the story's original sections so the before/after diff is available. Phase A is the same story-plan validation gate used by `/epic-story-plan-resume` for Acceptance, Verification, TAP, scenarios, actors, design trace, input-boundary, fail-open, and risk-lens edits; Phases B and C add feedback-specific preservation and red-first checks.
 
 **Phase A — Structural checks.** Verify:
 1. Every acceptance bullet starts with `A<n>:`.
-2. `## Verification` contains `### Verification Commands` and `### Acceptance Proof Matrix` subsections.
-3. The proof matrix uses the required columns.
-4. Every `A<n>` appears in at least one proof row.
-5. `Proof Maturity` is `final` or `provisional` only.
-6. Every `provisional` row has non-blank `Open Detail`.
-7. No `<TODO: ...>` placeholders in `## Acceptance` or `## Verification`.
-8. If `## Actors` is present, it uses role bullets with at least one `Primary:` actor and stays consistent with Purpose, Scope, Scenarios, Acceptance, and Verification.
-9. If feedback changes who initiates, participates in, reviews, or is affected by the behavior, the edit updates `## Actors` or records an explicit non-change rationale before writing.
-10. If feedback changes concrete flows or examples, the edit updates `## Scenarios / Behavior Examples` or records an explicit non-change rationale before writing.
-11. If `## Scenarios / Behavior Examples` is present, every normative `S<n>` scenario has exactly one `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
-12. Every normative scenario funnels through Acceptance and Verification: the covered `A<n>` wording includes the scenario behavior, and that acceptance id has proof row(s) covering the scenario, including named variants, modes, branches, fallback paths, and failure cases or explicit exclusions.
-13. If the story spans surfaces, supported variants, modes, or internal orchestration branches, `### Surface / Branch Proof Matrix` exists and covers every in-scope combination or records an explicit exclusion.
-14. If feedback introduces, changes, or exposes a design source, `### Design Sources` exists with durable/reviewable anchors and every source is marked `normative` or `orientation only`.
-15. If any design source is `normative`, `### Design Element Trace` exists; every feedback-mentioned or obvious visible element/state from the normative source is mapped as `required` or bounded `flexible`; every trace row maps through Scenario -> Acceptance -> Verification/proof row; and visibility, placement, navigation, copy, responsive, or interaction-state obligations name rendered-surface proof or an explicit exception.
-16. If raw persisted, external, framework, or generated input crosses stricter application assumptions, `### Input Boundary Shape Risk` exists when needed and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
-17. If prompt placeholders, template variables, or string substitution can fail open, `### Fail-open Checks` exists and covers enabled and disabled/default paths.
-18. If feedback introduces or exposes an activated risk lens, the amended contract covers it through existing matrices or `### Risk Lens Inventory` with proof obligations or explicit exclusions.
-19. Planned proof remains behavior-centered: private retry counts, sleeps, helper call order, timing, or implementation choreography are contractual only when explicitly locked.
+2. `## Verification` contains `### Verification Commands`, `### Test Architecture Plan`, and `### Acceptance Proof Matrix` subsections.
+3. The Test Architecture Plan uses stable `TAP-*` row ids and required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale`.
+4. The Test Architecture Plan covers every added/changed test or proof surface introduced or affected by the feedback and satisfies the TAP quality gate: stable `TAP-*` ids, cheapest reliable real boundary, exact seam, behavior-facing assertion/observable signal, fixture/data isolation and live-dependency policy, focused command/CI lane, fallback plan, and split/merge rationale.
+5. The proof matrix uses the required columns and references relevant `TAP-*` row ids when tests change.
+6. Every `A<n>` appears in at least one proof row.
+7. `Proof Maturity` is `final` or `provisional` only.
+8. Every `provisional` row has non-blank `Open Detail`.
+9. No `<TODO: ...>` placeholders in `## Acceptance` or `## Verification`.
+10. If `## Actors` is present, it uses role bullets with at least one `Primary:` actor and stays consistent with Purpose, Scope, Scenarios, Acceptance, and Verification.
+11. If feedback changes who initiates, participates in, reviews, or is affected by the behavior, the edit updates `## Actors` or records an explicit non-change rationale before writing.
+12. If feedback changes concrete flows or examples, the edit updates `## Scenarios / Behavior Examples` or records an explicit non-change rationale before writing.
+13. If `## Scenarios / Behavior Examples` is present, every normative `S<n>` scenario has exactly one `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
+14. Every normative scenario funnels through Acceptance and Verification: the covered `A<n>` wording includes the scenario behavior, and that acceptance id has proof row(s) covering the scenario, including named variants, modes, branches, fallback paths, and failure cases or explicit exclusions.
+15. If the story spans surfaces, supported variants, modes, or internal orchestration branches, `### Surface / Branch Proof Matrix` exists and covers every in-scope combination or records an explicit exclusion.
+16. If feedback introduces, changes, or exposes a design source, `### Design Sources` exists with durable/reviewable anchors and every source is marked `normative` or `orientation only`.
+17. If any design source is `normative`, `### Design Element Trace` exists; every feedback-mentioned or obvious visible element/state from the normative source is mapped as `required` or bounded `flexible`; every trace row maps through Scenario -> Acceptance -> Verification/proof row; and visibility, placement, navigation, copy, responsive, or interaction-state obligations name rendered-surface proof or an explicit exception.
+18. If raw persisted, external, framework, or generated input crosses stricter application assumptions, `### Input Boundary Shape Risk` exists when needed and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
+19. If prompt placeholders, template variables, or string substitution can fail open, `### Fail-open Checks` exists and covers enabled and disabled/default paths.
+20. If feedback introduces or exposes an activated risk lens, the amended contract covers it through existing matrices or `### Risk Lens Inventory` with proof obligations or explicit exclusions.
+21. Planned proof remains behavior-centered: private retry counts, sleeps, helper call order, timing, or implementation choreography are contractual only when explicitly locked.
 
 **Phase B — Contract-preservation diff.** Compare the edited sections against the originals:
 - Every pre-existing `A<n>` still appears in at least one proof row in the edited version (coverage match — row shape may change).

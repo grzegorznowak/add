@@ -22,7 +22,7 @@ Argument: `$ARGUMENTS` — `REPO=<path> FROM=<incoming-ref> INTO=<target-ref> [T
 6. **Protect the working tree.** Never leave the target repo changed. Abort any temporary merge before finishing and restore the original checked-out ref if operating in place.
 7. **Use temporary space safely.** Never create throwaway checkouts or worktrees inside `$REPO`, inside `$REPO/.git`, or as a sibling under `$REPO`'s parent directory. Use `$TEMP_ROOT`, defaulting to `/tmp`, and remove the temp checkout before finishing.
 8. **Read before claiming.** Never speculate about commits, PRs, tickets, tests, or business requirements you have not actually inspected.
-9. **Use parallel research when useful.** Use code research tools and subagents for independent files, tickets, PRs, or code paths when that improves confidence.
+9. **Use parallel research when useful.** Split independent files, tickets, PRs, or code paths into focused evidence passes when that improves confidence. Use only tools available in the current runtime, keep any child-agent work read-only, and require inspected anchors before evidence informs the recommendation.
 
 ## Phase 0 — Parse arguments and validate repo
 

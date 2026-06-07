@@ -8,7 +8,7 @@ allowed-tools: Read Grep Glob Task Bash(git status:*)
 
 # Epic Story Plan Converge
 
-Coordinate the planning-side ping-pong for exactly one story, independent of implementation status. This command is an orchestrator only: it starts fresh subagent sessions for `/epic-story-plan-review` and `/epic-story-plan-resume`, preserves their ownership boundaries, keeps in-memory babysitting notes plus the parent-session Research Board, and stops when the Plan lane is approved, blocked, no longer eligible, or out of cycle budget.
+Coordinate the planning-side iteration loop for exactly one story, independent of implementation status. This command is an orchestrator only: it starts fresh subagent sessions for `/epic-story-plan-review` and `/epic-story-plan-resume`, preserves their ownership boundaries, keeps in-memory operational notes plus the parent-session Research Board, and stops when the Plan lane is approved, blocked, no longer eligible, or out of cycle budget.
 
 Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [MAX_CYCLES=5]`. The epic and story selector are required. `MAX_CYCLES` is optional and defaults to `5`; it counts full review/resume cycles, not individual subagents.
 
@@ -17,9 +17,9 @@ Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [MAX_CYCLES=
 2. Confirm the story is non-archived and has a planning contract that can be reviewed or resumed.
 3. Choose the first planning pass from the story shape: resume first for incomplete specs, otherwise review first.
 4. Run up to `MAX_CYCLES` fresh-agent planning cycles.
-5. Pass neutral in-memory babysitting notes plus the session Research Board into later fresh agents.
+5. Pass neutral in-memory operational notes plus the session Research Board into later fresh agents.
 6. Stop on approval, blocker, no-progress, invalid state, or cycle budget exhaustion.
-7. Print the convergence trace, Research Board snapshot, and operator nice-to-haves without writing coordination files directly.
+7. Print the convergence trace, Research Board snapshot, and optional operator follow-ups without writing coordination files directly.
 
 ## Phase 1 — Parse and Resolve
 
@@ -80,10 +80,10 @@ For each cycle:
    ```
 
    Include the whole board. If it is too large to include comfortably, pause and ask the operator before compacting or excluding entries.
-6. If in-memory babysitting notes exist for any subagent launch, include them before the command under this heading only:
+6. If in-memory operational notes exist for any subagent launch, include them before the command under this heading only:
 
    ```text
-   Operational context from convergence babysitter:
+   Operational context from convergence coordinator:
    - <neutral blocker, hotspot, repeated command failure, or expensive operation>
    - Do not treat this as a verdict; apply the underlying skill independently.
    ```
@@ -102,7 +102,7 @@ For each cycle:
 13. After the resume agent finishes, re-read `<epic_dir>/MASTER.md` and `<story_file>`. If implementation `Status` changed, stop and report the unexpected state; plan convergence must not mutate implementation status.
 14. Run the no-progress gate before starting the next cycle.
 
-## Phase 4 — Babysitting and Stops
+## Phase 4 — Operational Notes and Stops
 
 Maintain an in-memory convergence notebook and an in-memory Research Board. Do not write either one to `MASTER.md`, the story file, or any coordination file.
 
@@ -157,11 +157,11 @@ Return only the compact report below. Do not include internal deliberation, anal
 - Board-refresh signals: <provided entries not verified, needed facts absent from provided board, or none>
 - Persistence: session memory only; no physical cache files written
 
-## Babysitter Notes
+## Operational Notes
 - <neutral operational note>
 - None.
 
-## Operator Nice-To-Haves
+## Optional Operator Follow-Ups
 - <proposed future improvement surfaced by repeated friction, including recurring risk/miss category worth automating or adding to future planning>
 - None.
 

@@ -227,10 +227,17 @@ The `- Main-tree targets:` bullet lists every repo basename from `<project_root_
 - Treat `MASTER.md` plus the selected step file as the source of truth
 - Respect the latest review/handoff CTA before widening scope
 - Continue only this step plus required dependencies
-- Inspect the relevant code and tests before the first change in this session. Use the story's `## Actors`, normative `## Scenarios / Behavior Examples` linked with exactly one `Covers: A<n>`, `## Verification`, `## Critical Files`, `## Discovery Notes`, and latest runtime notes to choose the smallest focused seam for the next behavior. Treat `Orientation only` scenarios as context only; they must not create implementation or proof obligations unless the same behavior is also present in `## Acceptance`.
-- Before choosing or continuing a red seam, rebuild a compact acceptance proof map from the current story: list every `A<n>` id and, for any acceptance item that names variants, modes, branches, fallback paths, error cases, or examples, list each named case separately. If `## Scenarios / Behavior Examples` contains `S<n> Covers: A<n>`, include the linked scenario case under that acceptance id. Check the latest handoff/review feedback against this proof map so continuation work does not leave sibling variants or linked scenario cases untested; do not let orientation-only examples expand implementation scope.
-- Rebuild the activated-risk map from the current story, latest review feedback, handoff, and source inspection before the first patch in this session. Note material lenses such as async/event-loop behavior, concurrency, process/resource lifecycle, platform/OS APIs, filesystem/network/subprocess I/O, permissions/security, persistence, retries/timeouts, generated artifacts, prompt/template fail-open behavior, external services, and naming-sensitive invariants. If review feedback exposed a new risk lens, treat closure of that lens as part of the resume task unless it requires plan rework.
-- Run a Debt Friction check before the first patch in this session: ask whether implementation is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only write a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
+### Implementation proof preflight
+
+Before the first patch in this session:
+
+1. Inspect relevant code/tests, latest runtime notes, and the story proof sections: `## Actors`, normative `## Scenarios / Behavior Examples` linked with exactly one `Covers: A<n>`, `## Verification`, especially `### Test Architecture Plan`, `## Critical Files`, and `## Discovery Notes`.
+2. Rebuild the acceptance proof map: every `A<n>` id, every named variant/mode/branch/fallback/error/example, and every normative `S<n> Covers: A<n>` case. Check latest handoff/review feedback against this map so continuation work does not leave sibling variants or linked scenario cases untested. Orientation-only scenarios remain context only.
+3. Rebuild the TAP map: each `TAP-*` row's acceptance slice, layer/scope, owning suite/file, boundary, assertions/observability, fixture/data strategy, CI lane/command, fallback plan, and split/merge rationale. Continue the smallest credible red seam while preserving planned test organization.
+4. Rebuild the activated-risk map from the current story, latest review feedback, handoff, and source inspection. If review feedback exposed a new risk lens, treat closure of that lens as part of the resume task unless it requires plan rework.
+5. Run a Debt Friction check: record it only when there is a story-local causal link from current story action to concrete evidence, delivery impact, and explicit decision.
+6. If source inspection or review feedback proves the TAP or contract materially wrong, follow the row's fallback plan only when it stays within scope; otherwise record the blocker and route to `/epic-story-plan-converge` or `/epic-feedback`. Do not silently replan inside resume.
+
 - Default to red-first: make that focused seam fail, implement until it passes, then broaden verification.
 - Do not jump straight to broad suites or code-first implementation if a smaller focused seam is available.
 - Prefer code changes over restating plans

@@ -8,7 +8,7 @@ allowed-tools: Read Grep Glob Task Bash(git status:*) Bash(git worktree:*)
 
 # Epic Story Converge
 
-Coordinate the implementation-side ping-pong for exactly one story. This command is an orchestrator only: it may start a fresh `/epic-story-claim` pass for an approved unstarted story, then alternates fresh `/epic-story-resume` and `/epic-story-review` passes until local review approves, blocks, no-progress is detected, or the cycle budget is exhausted. It carries the parent-session Research Board in memory across fresh passes without persisting research cache files.
+Coordinate the implementation-side iteration loop for exactly one story. This command is an orchestrator only: it may start a fresh `/epic-story-claim` pass for an approved unstarted story, then alternates fresh `/epic-story-resume` and `/epic-story-review` passes until local review approves, blocks, no-progress is detected, or the cycle budget is exhausted. It carries the parent-session Research Board in memory across fresh passes without persisting research cache files.
 
 Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"]...`. The epic and story selector are required. `MAX_CYCLES` is optional and defaults to `5`; it counts full implementation cycles, not individual subagents. `WORKTREE=` values are passed through unchanged to `/epic-story-claim`, `/epic-story-resume`, and `/epic-story-review`.
 
@@ -17,9 +17,9 @@ Argument: `$ARGUMENTS` — `<epic_name> <story_number_or_spec_file> [MAX_CYCLES=
 2. Choose the first pass from the story's current status.
 3. If an unstarted story is plan-approved, delegate claiming to `/epic-story-claim <epic> <story>`.
 4. Run up to `MAX_CYCLES` fresh-agent implementation cycles.
-5. Pass neutral in-memory babysitting notes plus the session Research Board into later fresh agents.
+5. Pass neutral in-memory operational notes plus the session Research Board into later fresh agents.
 6. Stop on local approval, blocker, no-progress, invalid state, or cycle budget exhaustion.
-7. Print the convergence trace, Research Board snapshot, commit recommendation, and operator nice-to-haves without writing coordination files directly.
+7. Print the convergence trace, Research Board snapshot, commit recommendation, and optional operator follow-ups without writing coordination files directly.
 
 ## Phase 1 — Parse and Resolve
 
@@ -87,10 +87,10 @@ For each cycle:
    ```
 
    Include the whole board. If it is too large to include comfortably, pause and ask the operator before compacting or excluding entries.
-4. If in-memory babysitting notes exist, include them before the command under this heading only:
+4. If in-memory operational notes exist, include them before the command under this heading only:
 
    ```text
-   Operational context from convergence babysitter:
+   Operational context from convergence coordinator:
    - <neutral blocker, hotspot, repeated command failure, or expensive operation>
    - Do not treat this as a verdict; apply the underlying skill independently.
    ```
@@ -106,7 +106,7 @@ For each cycle:
 13. If any pass moves the story to `✅ DONE`, stop successfully.
 14. Run the no-progress gate before starting the next cycle.
 
-## Phase 4 — Babysitting and Stops
+## Phase 4 — Operational Notes and Stops
 
 Maintain an in-memory convergence notebook and an in-memory Research Board. Do not write either one to `MASTER.md`, the story file, source files, tests, or any coordination file.
 
@@ -185,11 +185,11 @@ Return only the compact report below. Do not include internal deliberation, anal
 - <final commit, WIP checkpoint, or none>
 - Suggested command: `git -C <path> status && git -C <path> add -A && git -C <path> commit -m "<epic>/<story-slug>: <summary>"`
 
-## Babysitter Notes
+## Operational Notes
 - <neutral operational note>
 - None.
 
-## Operator Nice-To-Haves
+## Optional Operator Follow-Ups
 - <proposed future improvement surfaced by repeated friction, including recurring risk/miss category worth automating or adding to future planning>
 - None.
 

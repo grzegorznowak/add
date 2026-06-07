@@ -111,7 +111,12 @@ For every chronologically-ordered pending entry:
 
 1. **Present** the entry's verdict and full key findings to the operator. Show the exact text as it appears in the log, including the `Sections reviewed` list.
 2. **Map** each finding to the spec section it targets. If the finding does not name a section explicitly, ask the operator which section it relates to. Findings about function signatures, data flow between components, or parameter wiring contracts map to `## Locked Decisions`, not `## Implementation Notes` — propose a `D-XX` entry with the exact signature or contract.
-3. **Propose** a concrete edit to address each finding. Use the story's existing conventions and phrasing style. Show a before/after of the proposed change. Findings about who is affected map to `## Actors`. Findings about concrete flows or examples map to `## Scenarios / Behavior Examples` and then through the funnel into `## Acceptance` and `## Verification` when they are normative. Findings about design sources, mockups, screenshots, Figma frames, or rendered UI must repair `## Scenarios / Behavior Examples`, `## Acceptance`, `## Verification`, `### Design Sources`, and `### Design Element Trace` together; do not hide design contract fixes only in `## Implementation Notes`. For acceptance or verification changes, re-check atomicity and proof coverage. If an acceptance item names variants, modes, fallback paths, or failure cases, ensure each named case has its own proof row or explicit exclusion. If the finding introduces or changes surfaces, orchestration branches, design obligations, raw input shape assumptions, fail-open prompt/template risks, or activated risk lenses, update the corresponding `### Surface / Branch Proof Matrix`, `### Design Sources`, `### Design Element Trace`, `### Input Boundary Shape Risk`, `### Fail-open Checks`, or `### Risk Lens Inventory` section in the same pass. Preserve behavior-first proof: internal retry counts, sleeps, helper call order, timing, or implementation choreography should be contractual only when the story explicitly locks them.
+3. **Propose** a concrete edit for each finding.
+   - Map the finding to its owning section first. Findings about who is affected map to `## Actors`; concrete flows/examples map to `## Scenarios / Behavior Examples` and then through the funnel into `## Acceptance` and `## Verification` when normative; function signatures, data flow, or parameter-wiring contracts map to `## Locked Decisions`.
+   - Use the story's existing conventions and phrasing style. Show before/after text for the proposed change.
+   - If the edit changes actors, flows, acceptance, verification, TAP, design, input-boundary, fail-open, or risk-lens obligations, update every affected section in the same proposal instead of hiding contract repair in `## Implementation Notes`.
+   - Re-check acceptance atomicity, variant/failure-mode proof coverage, and the `### Test Architecture Plan` whenever test layers, owning files, assertions/observability, fixtures, proof surfaces, fallback plans, split/merge rationale, or CI commands change.
+   - Preserve behavior-first proof: internal retry counts, sleeps, helper call order, timing, or implementation choreography are contractual only when the story explicitly locks them.
 4. **Confirm**: "Apply this change? (y/n/edit)". On `y`, apply the edit. On `n`, ask the operator for an alternative. On `edit`, ask the operator to state the replacement and apply it.
 5. **Record** after all findings in the entry are addressed. Append a new timestamped bullet under `## Plan Review Log`:
 
@@ -139,11 +144,13 @@ After all pending entries have been absorbed, run a Debt Friction check. Evaluat
 
 ### Log cleanup
 
-After absorption and Debt Friction check, auto-compress the log:
+After absorption and Debt Friction check, squash stale plan-review history into the current actionable state:
 
-- Scan for stale entries (both stale `request_changes`/`not_reviewable` entries with addressed follow-ups, and `approve` entries). Count them.
+- Scan for stale entries: addressed `request_changes`/`not_reviewable` entries, superseded `approve` entries, and old addressed receipts whose details no longer change the next action.
 - If zero or one stale entries exist: skip compression, leave the log as-is.
-- If two or more stale entries exist: auto-compress without asking. Read the full `## Plan Review Log` section into memory, remove each stale entry (the original `request_changes`/`not_reviewable`/`approve` entry) while keeping the "addressed" entries that reference them. Preserve chronological order of remaining entries. Atomically replace the entire `## Plan Review Log` section with the compressed version. If this leaves the section empty, write a single placeholder: `<UTC ISO timestamp> All plan review feedback addressed and log compressed.`
+- If two or more stale entries exist: auto-compress without asking. Read the full `## Plan Review Log` section into memory and replace stale detail with a compact summary that preserves unresolved blockers, operator decisions, the latest disposition/lane transition, Debt Friction, material evidence anchors, and addressed-entry references needed to understand what changed.
+- Do not erase unresolved findings or evidence anchors. If full historical detail is required, create or preserve an explicit archive note instead of leaving verbose addressed history in the active log.
+- If compression leaves no actionable history, write a single placeholder: `<UTC ISO timestamp> All plan review feedback addressed and log compressed; no unresolved blockers remain.`
 
 ### Mode A stop
 
@@ -222,17 +229,18 @@ After all mode work completes, validate the full story:
 3. If `## Scenarios / Behavior Examples` is present, every normative `S<n>` scenario has exactly one `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
 4. Every linked scenario is covered by its acceptance id and by that id's proof row(s); drift at either hop is invalid.
 5. Every acceptance bullet begins with `A<n>:`, covers exactly one behavior, and has at least one proof matrix row. Any named variants, modes, fallback paths, or failure cases inside the bullet are split into separate acceptance ids or represented as separate proof obligations.
-6. Proof matrix has the required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`, and covers every named variant/failure mode or records an explicit exclusion.
-7. Every `Proof Maturity` value is `final` or `provisional`. Every `provisional` row has non-blank `Open Detail`.
-8. When the story spans multiple surfaces, variants, or orchestration branches: `### Surface / Branch Proof Matrix` is present.
-9. When the story references design sources: `### Design Sources` is present with durable anchors and `normative` or `orientation only` status.
-10. When any design source is normative: `### Design Element Trace` is present, every visible element/state is mapped as `required` or bounded `flexible`, and every traced row maps through Scenario -> Acceptance -> Verification with rendered-surface proof where required.
-11. When raw persisted, external, framework, or generated input crosses stricter application assumptions: `### Input Boundary Shape Risk` is present and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
-12. When the feature depends on prompt placeholders or template variables: `### Fail-open Checks` is present.
-13. When the story activates material risk lenses not fully covered elsewhere: `### Risk Lens Inventory` is present and lists proof obligations or explicit exclusions.
-14. Planned assertions separate caller-observable behavior from implementation mechanics unless the mechanics are explicitly locked as contract.
-15. No `<TODO: ...>` placeholders exist in any spec section.
-16. Dependency refs in `## Expected Prerequisites` resolve to `MASTER.md` rows (cross-epic deps flagged but not failed).
+6. Test Architecture Plan has the required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale`, uses stable `TAP-*` row ids, covers every added/changed test or proof surface, and satisfies the TAP quality gate: cheapest reliable real boundary, exact seam, behavior-facing assertion/observable signal, fixture/data isolation and live-dependency policy, focused command/CI lane, fallback plan, and split/merge rationale.
+7. Proof matrix has the required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`, covers every named variant/failure mode or records an explicit exclusion, and references relevant `TAP-*` row ids when tests change.
+8. Every `Proof Maturity` value is `final` or `provisional`. Every `provisional` row has non-blank `Open Detail`.
+9. When the story spans multiple surfaces, variants, or orchestration branches: `### Surface / Branch Proof Matrix` is present.
+10. When the story references design sources: `### Design Sources` is present with durable anchors and `normative` or `orientation only` status.
+11. When any design source is normative: `### Design Element Trace` is present, every visible element/state is mapped as `required` or bounded `flexible`, and every traced row maps through Scenario -> Acceptance -> Verification with rendered-surface proof where required.
+12. When raw persisted, external, framework, or generated input crosses stricter application assumptions: `### Input Boundary Shape Risk` is present and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
+13. When the feature depends on prompt placeholders or template variables: `### Fail-open Checks` is present.
+14. When the story activates material risk lenses not fully covered elsewhere: `### Risk Lens Inventory` is present and lists proof obligations or explicit exclusions.
+15. Planned assertions separate caller-observable behavior from implementation mechanics unless the mechanics are explicitly locked as contract.
+16. No `<TODO: ...>` placeholders exist in any spec section.
+17. Dependency refs in `## Expected Prerequisites` resolve to `MASTER.md` rows (cross-epic deps flagged but not failed).
 
 If validation fails, report the specific issue and propose a fix. Keep iterating — the operator decides when to stop. Do not write invalid state.
 

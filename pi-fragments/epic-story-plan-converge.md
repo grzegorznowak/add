@@ -5,7 +5,7 @@ description: Run fresh plan-review and plan-resume children against one story un
 
 # Epic Story Plan Converge
 
-Coordinate planning-side ping-pong for one story. Spawn children for `/epic-story-plan-review` and `/epic-story-plan-resume` in cycles. Use notebook pages for the Research Board and babysitting notes. Stop on approval, blocker, no-progress, or cycle-budget exhaustion.
+Coordinate planning-side iteration loop for one story. Spawn children for `/epic-story-plan-review` and `/epic-story-plan-resume` in cycles. Use notebook pages for the Research Board and operational notes. Stop on approval, blocker, no-progress, or cycle-budget exhaustion.
 
 Argument: `<epic> <story> [MAX_CYCLES=5]`. No `WORKTREE=` — planning may read source code for evidence but never writes source code.
 
@@ -27,7 +27,7 @@ Run up to `MAX_CYCLES` cycles. Before each child launch, re-read `MASTER.md` and
 ### Notebook pages
 
 Maintain two notebook pages:
-- `plan-babysit-<epic>-<step>` — neutral operational notes
+- `plan-ops-<epic>-<step>` — neutral operational notes, including command failures, repeated blockers, and story sections, TAP rows, or proof rows that repeatedly block progress
 - `plan-research-<epic>-<step>` — sourced Research Board entries (path:line anchors required)
 
 ### Launching children
@@ -46,8 +46,8 @@ Use one of these exact opening lines, based on the selected pass:
 ```
 spawn({
   prompt: "<exact opening line for plan-review/plan-resume>
-  Retrieve notebook pages: 'plan-research-<epic>-<step>' (verify with direct reads), 'plan-babysit-<epic>-<step>' (operational notes).
-  Write new sourced research to notebook page 'plan-research-<epic>-<step>'. Report blockers or repeated failures so the converger can update notebook page 'plan-babysit-<epic>-<step>'.",
+  Retrieve notebook pages: 'plan-research-<epic>-<step>' (verify with direct reads), 'plan-ops-<epic>-<step>' (operational notes).
+  Write new sourced research to notebook page 'plan-research-<epic>-<step>'. Report blockers, repeated failures, or recurring TAP/proof-row gaps so the converger can update notebook page 'plan-ops-<epic>-<step>'.",
   thinking: "high"
 })
 ```
@@ -55,7 +55,7 @@ spawn({
 After each child:
 1. Re-read `MASTER.md` and story file. Derive decisions from file state.
 2. Read `notebook_read({name: "plan-research-<epic>-<step>"})`. Curate entries.
-3. Update notebook page `plan-babysit-<epic>-<step>` with neutral operational facts.
+3. Update notebook page `plan-ops-<epic>-<step>` with neutral operational facts. Preserve recurring story sections, TAP rows, proof rows, command failures, prerequisites, and hotspots; do not record persuasive verdict framing.
 4. If child asks operator question: pause, ask, resume same child for that pass only.
 5. If review decision is `approve` or `Plan` reaches `🟢 PLAN APPROVED`, confirm the latest story `## Plan Review Log` records activated risk lenses or explicit `none material` before stopping. If approval lacks that evidence, launch one fresh plan-review child focused on risk-lens coverage rather than accepting chat output alone. Then recommend `/epic-story-claim` or `/epic-story-resume`.
 6. If `blocked` → stop.
@@ -86,11 +86,11 @@ Other stops: `MAX_CYCLES`, `blocked`, implementation status change, subagent fai
 - Hotspots: <paths/symbols>
 - Persistence: notebook page `plan-research-<epic>-<step>`
 
-## Babysitter Notes
+## Operational Notes
 - <neutral operational fact>
 - None.
 
-## Operator Nice-To-Haves
+## Optional Operator Follow-Ups
 - <proposed improvement, including recurring risk/miss category worth automating or adding to future planning>
 - None.
 

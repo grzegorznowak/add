@@ -3,7 +3,7 @@ name: epic-story-review
 description: Review one implemented story against its spec, current repo state, and recorded handoff context. Read-only for code; updates only the story's coordination file.
 disable-model-invocation: true
 argument-hint: "<epic-name> <story-number-or-spec-file>"
-allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git diff:*) Bash(git log:*) Bash(git show:*) Bash(git rev-parse:*) Bash(git worktree:*) Bash(basename:*) Bash(gh issue view:*) Bash(gh pr view:*) Bash(jira issue view:*)
+allowed-tools: Read Edit Grep Glob Task Bash(git status:*) Bash(git diff:*) Bash(git log:*) Bash(git show:*) Bash(git rev-parse:*) Bash(git worktree:*) Bash(basename:*) Bash(gh issue view:*) Bash(gh pr view:*) Bash(jira issue view:*)
 ---
 
 # Epic Story Review
@@ -163,6 +163,8 @@ When launched by a converger, you may receive `Shared Research Board from parent
 
 ## Proof-boundary discipline
 
+Use the approval gate below as the canonical pass/fail contract; this section defines what evidence must be inspected before applying that gate.
+
 - Read the latest `## Review Log` entry before source inspection and carry every prior concern into the review as `resolved`, `still_open`, `superseded`, or `not_assessable`.
 - Treat every relevant story-spec section as a review claim. Purpose, Triggering Need, Scope, Out of Scope, Discovery Notes, Critical Files, Implementation Notes, and Locked Decisions can all create implementation obligations or exclusions; do not validate only Acceptance and Verification.
 - Build an implementation trace map before approval:
@@ -221,30 +223,26 @@ Multipass planning:
    expected evidence surface.
 
 Focused pass execution:
-- Use subagents in normal operation. Each subagent is read-only for code and
-  coordination files.
-- A documented manual focused-pass substitute is allowed only when subagent
-  spawning fails or a subagent times out. The substitute must record the pass
-  title, substitution reason, files/symbols inspected, search/research used,
-  findings, and explicit clean or inconclusive result.
-- Subagents may use direct file reads, `git`, and search for straightforward
-  questions.
-- Use `code_research` for complex cross-file behavior, architecture, routing,
-  lifecycle, orchestration, shared-helper, or unclear-ownership investigations
-  only when the provided Research Board does not already contain a sourced entry
-  covering the question. If it does, verify the entry with direct reads/search
-  against the cited anchors first.
-- Subagents may use SERP/web research only when specialized external knowledge
-  is needed. Web-derived claims must be source-linked, separated from
-  repo-grounded findings, and never substitute for reading changed code.
+- Use focused child agents in normal operation when the runtime provides them.
+  Each child is read-only for code and coordination files; runtime-specific
+  invocation details belong in runtime-specific fragments.
+- A documented manual focused-pass substitute is allowed only when child-agent
+  spawning fails, times out, or is unavailable. The substitute must record the
+  pass title, substitution reason, files/symbols inspected, searches/direct
+  reads used, findings, and explicit clean or inconclusive result.
+- Child agents may use only their allowed read-only evidence tools such as
+  direct file reads, `git`, and search. Treat any provided Research Board entry
+  as orientation only and verify it with direct reads/search against cited
+  anchors before relying on it.
+- External documentation may inform hypotheses only when specialized external
+  knowledge is needed; repo code/tests/story artifacts still govern approval.
 
 Focused pass return contract:
 - Pass title and acceptance items covered.
 - Scope reviewed: repos, files, symbols, callsites, and tests.
-- Search/direct-read evidence used.
-- `code_research` question used, or `not needed` with a short reason such as
-  `verified board entry <id> via <anchors>`.
-- SERP/web sources used, or `none`.
+- Search/direct-read evidence used, including Research Board entries verified
+  through direct anchors or `not needed` with a short reason.
+- External sources used, or `none`.
 - Hypothesis Triage: compact bullets using
   `suspicious surface: <file/API/flow>; tentative issue: <possible failure>; next proof target: <source/test/proof to check>`.
   Include only candidate issue threads the pass actually inspected; prune weak
@@ -368,47 +366,49 @@ precision when evidence is insufficient.
 
 ## Critical checks
 
-Before approving, verify:
-- Does the implementation actually satisfy the step spec and requested outcome?
-- Were any explicit epic-wide contract or architectural decisions violated?
-- Can existing code be extended instead of creating new? Search the codebase for similar patterns before concluding new code is needed.
-- Do the changes respect module boundaries and current patterns?
-- Are there security implications in the implementation or operational model?
-- Are there performance or scalability regressions in the changed path?
-- Are follow-on status transitions accurate in `MASTER.md` and the step file?
-- Does the step file record the focused red seam that was used, or an explicit written exception with the alternative proof path?
-- If red-first was bypassed, was the exception recorded before proceeding and was the alternative proof path concrete?
-- Are there adequate tests for the change, including each named acceptance variant, mode, fallback path, and failure case?
-- If `## Scenarios / Behavior Examples` is present, does every normative scenario flow through a linked acceptance id and final proof row, and does implementation satisfy the scenario's concrete behavior?
-- Are there hidden packaging / runtime / ops implications not captured in the step?
-- Is every acceptance id still covered by the final proof matrix?
-- Is every named variant/failure mode inside each acceptance id covered by actual tests, source inspection, or command output, rather than only by broad proof-matrix claims?
-- Are any matrix rows still `provisional`?
-- Does every proof row start at the boundary it claims to prove, rather than bypassing it with hand-built intermediate state?
-- Are route/model/auth/metadata claims grounded in repo behavior or tests, not only in external or local documentation?
-- If the story includes `### Design Element Trace`, does the implementation satisfy every mapped `required` row and every bounded `flexible` row within its stated bounds?
-- If the story names normative design sources, did review inspect those durable sources enough to catch obvious unmapped visible elements/states and route any extraction gap as a planning-contract issue rather than a direct implementation failure?
-- For design obligations involving visibility, placement, navigation, copy, responsive behavior, or interaction state, is there rendered-surface evidence (browser/manual UI observation, screenshot, rendered DOM/output, or equivalent) unless the story records an explicit exception or narrower proof boundary?
-- If the story spans multiple surfaces / variants / branches, does the final proof contract still cover every in-scope row from the `Surface / Branch Proof Matrix`, or log an explicit intentional exclusion?
-- If an acceptance item defines fallback, default, degraded, malformed, missing-data, or error behavior, is that path directly proven? Success-path tests do not cover fallback behavior.
-- If shared helpers or multiple callsites were in scope, is there explicit routing proof showing that each supported callsite actually reaches the intended helper or branch logic rather than only proving helper correctness?
-- If the story is prompt/template/placeholder-driven, do the final tests or reviewer actions prove there are no unresolved placeholders on supported paths, that enabled paths actually activate the feature, and that an appropriate disabled/default path stays unchanged?
-- If the story has `Input Boundary Shape Risk`, does final evidence start at each named raw input boundary and cover every in-scope shape case, or record an explicit exclusion / unknown with mitigation?
-- If proof paths changed, was the story updated and the drift logged?
-- If sibling stories or the epic contract declare shared interfaces or obligations this story touches, does the implementation still match them, or is any intentional drift explicitly recorded?
-- Do all relevant story-spec sections still hold as claims against the implementation, including Purpose, Triggering Need, Scope, Out of Scope, Critical Files, Implementation Notes, Locked Decisions, and Discovery Notes when present?
-- If an original issue, PR, Jira ticket, parent epic, or stable card id is available, does each Purpose/Scope/Acceptance claim map to that source, to `CONTRACT.md` when the contract superseded it, or to an explicit scoped deviation?
-- If grounded ticket intent, `CONTRACT.md`, story text, and current code shape point in different directions, is the conflict named with a routed decision rather than silently letting one source erase another?
-- Does every changed helper, API, test, command, config/runtime surface, generated artifact, and proof row map backward to an acceptance id and in-scope rationale? Orphan implementation work blocks approval unless explicitly justified.
-- Was owner discovery broad enough beyond listed Critical Files: domain owners, similar implementations, tests, routes/callsites, fixtures, CLI/API entrypoints, generated artifacts, config/runtime owners, and deprecation paths?
-- Are activated risk lenses identified and reviewed at the owning boundary? Check material domains such as async/event-loop behavior, concurrency, platform/OS APIs, external I/O, permissions/security, persistence, resource lifecycle, retries/timeouts, generated artifacts, and naming-sensitive invariants.
-- For async or event-loop paths, are blocking sync calls avoided, offloaded, or justified with a safe rationale consistent with existing project idioms?
-- For platform/API/external-reality operations, are common sibling failure modes handled or explicitly excluded, including not-found/stale, permission/access denied, already complete, timeout/cancellation, unsupported platform, and partial failure?
-- Do tests prove caller-observable behavior and contract signals rather than only private helper calls, retry counts, sleeps, ordering, or implementation choreography? Treat internal-mechanics assertions as supplementary unless the story makes them contractual.
-- Do names, comments, and tests state sensitive invariants truthfully, without implying stronger identity, ownership, lifecycle, durability, permission, locking, or safety guarantees than the code provides?
-- Were review findings and feedback fixes closed with disposition, fix proof, and regression/side-effect verification rather than only prose acknowledgement?
-- Are evidence-quality categories explicit, and do any `unknown` or `provisional` items affect acceptance, route ownership, ticket intent, contract drift, or proof credibility? If yes, approval is blocked unless the story safely scopes them out.
-- If any `Debt Friction` entry used `fix-now`, did the cleanup stay within its `Scope Justification`, remain enabling for this story, and have verification? If not, request changes or split the debt into a follow-up recommendation.
+Before approving, run these grouped checks. Use the canonical approval gate in `## Review log write-back` for the exact pass/fail contract; this section organizes the investigation that feeds that gate.
+
+### 1. Product and story contract
+
+- Does the implementation satisfy the requested outcome, every acceptance id, every named variant/failure mode, and every normative `S<n> Covers: A<n>` scenario through its linked acceptance id?
+- Do Purpose, Triggering Need, Scope, Out of Scope, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes, and dependency/sibling-story obligations still hold as claims against the implementation?
+- Are original issue/PR/Jira/card sources, `CONTRACT.md`, and story text reconciled? If ticket, contract, story, and code point in different directions, the conflict must be named and routed instead of silently approved.
+- Are normative design sources satisfied for every mapped `required` and bounded `flexible` row, with rendered-surface evidence for visibility, placement, navigation, copy, responsive behavior, and interaction state unless the story records a narrower proof boundary?
+- Are obvious unmapped visible elements/states from normative design sources routed as planning-contract extraction gaps rather than silently ignored?
+
+### 2. Implementation traceability and repo fit
+
+- Can every changed file, helper, API, test, command, config/runtime surface, generated artifact, TAP row, and proof row be traced backward to an acceptance id and in-scope rationale? Orphan work blocks approval unless explicitly justified.
+- Was owner discovery broad enough beyond changed files and listed Critical Files: domain owners, similar implementations, tests, routes/callsites, fixtures, CLI/API entrypoints, generated artifacts, config/runtime owners, deprecation paths, and reusable existing code?
+- Do the changes respect module boundaries, existing idioms, sibling contracts, and epic-wide architectural decisions?
+- Are status/progress transitions accurate, and is any dirty target worktree either the implementation under review or an explicit blocker?
+
+### 3. TAP and final proof alignment
+
+- Does the step file record the focused red seam used, or an explicit written exception with the alternative proof path?
+- Do actual tests and reviewer actions match `### Test Architecture Plan`: owning files/suites, boundaries, assertions/observability, fixture/data strategy, CI lanes, fallback decisions, and split/merge rationale? Any material drift must be logged and justified.
+- Does the final Acceptance Proof Matrix match actual implementation and verification surfaces, with every row `final` before approval?
+- Do proof rows start at the boundary they claim to prove, rather than bypassing orchestration/end-to-end paths with hand-built intermediate data unless explicitly narrowed?
+- Are tests behavior-centered and caller-observable rather than only private helper calls, retry counts, sleeps, ordering, or implementation choreography unless those mechanics are contractual?
+- Do final verification commands cover focused and broad TAP lanes sufficiently, or explain why commands were not rerun.
+
+### 4. Branch, input, fail-open, and risk coverage
+
+- For multiple supported surfaces, variants, modes, or orchestration branches, is every in-scope row from `Surface / Branch Proof Matrix` covered or explicitly excluded, including routing proof when multiple callsites are supported?
+- For fallback/default/degraded/malformed/missing-data/error behavior, is that path directly proven? Success-path proof does not cover fallback behavior.
+- For prompt/template/placeholder stories, do tests or reviewer actions prove no unresolved placeholders/raw tokens, enabled-path activation, and disabled/default baseline behavior?
+- For `Input Boundary Shape Risk`, does final evidence start at each named raw input boundary and cover every in-scope shape case, or record an explicit exclusion/unknown with mitigation?
+- Are activated risk lenses reviewed at their owning boundary: async/event-loop, concurrency, platform/OS APIs, external I/O, permissions/security, persistence, resource lifecycle, retries/timeouts, generated artifacts, prompt/template fail-open behavior, naming-sensitive invariants, and similar domains?
+- For platform/process/filesystem/network/subprocess/resource-lifecycle work, are sibling failure modes handled or explicitly excluded: stale/not-found, permission/access denied, already complete, timeout/cancellation, unsupported platform, and partial failure?
+- Do names, comments, tests, and locked terminology avoid overstating identity, ownership, lifecycle, durability, permission, locking, or safety guarantees?
+
+### 5. Evidence quality, finding closure, and debt
+
+- Were prior review findings and feedback fixes closed with disposition, fix proof, and regression/side-effect verification rather than prose acknowledgement only?
+- Are evidence-quality categories explicit, with no unknown or provisional evidence affecting acceptance, route ownership, ticket intent, contract drift, or proof credibility?
+- Was multipass review completed when triggered, with every acceptance item and named variant mapped to a focused-pass result or explicit exclusion?
+- If any `Debt Friction` entry used `fix-now`, did cleanup stay within its `Scope Justification`, remain enabling for this story, and have verification? If not, request changes or split the debt into follow-up work.
+- Are security, performance, scalability, packaging, runtime, rollout, and operational implications reviewed where material?
 
 ## Status transitions
 

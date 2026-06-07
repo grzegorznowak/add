@@ -83,10 +83,10 @@ Walk the operator through each question below in order. For every question:
 - Propose a recommended answer with a brief plain-language explanation of the trade-off.
 - Include a concrete example, short snippet, or small ASCII diagram when it clarifies the choice.
 - Probe the codebase before asking if the answer can be derived from it.
-- Every question offers two escape hatches except for `Actors`, `Scenarios / Behavior Examples`, `Acceptance`, and `Verification`:
-  - `skip` — perform a bounded scan from the known Purpose/Scope terms, then either use a terse inferred answer or omit the optional section. If skipping would weaken Actors, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, or Debt Friction, do deeper inference before moving on.
-  - `draft now` — stop asking and jump to story drafting. Never draft while `Actors`, `Scenarios / Behavior Examples`, `Acceptance`, or `Verification` is incomplete.
-- `## Actors`, `## Scenarios / Behavior Examples`, `## Acceptance`, and `## Verification` are load-bearing contract sections for new drafts. Keep interviewing until they are structurally complete.
+- Every question offers two escape hatches except for load-bearing contract sections (`Actors`, `Scenarios / Behavior Examples`, `Acceptance`, and `Verification`):
+  - `skip` — for optional sections only, perform a bounded scan from the known Purpose/Scope terms, then either use a terse inferred answer or omit the section. If skipping would weaken Critical Files or Debt Friction, do deeper inference before moving on.
+  - `draft now` — stop asking optional questions and jump to story drafting only after all load-bearing contract sections are structurally complete.
+- `## Actors`, `## Scenarios / Behavior Examples`, `## Acceptance`, and `## Verification` are load-bearing for new drafts. Keep interviewing, probing, or proposing inferred text until they are structurally complete; do not bypass them with an escape hatch.
 
 ### Question 1 — Story slug and one-line title
 
@@ -177,60 +177,38 @@ Reconcile `## Scenarios / Behavior Examples` before leaving this question: every
 
 ### Question 9 — Verification contract
 
-Build `## Verification` around two required parts and any conditional proof sections the story needs.
-
-Before locking proof rows, ask explicitly whether the story relies on any design source: mockup, wireframe, screenshot, Figma frame, presentation blueprint, prior `/grillme` discussion, or operator-provided design summary. Require durable/reviewable anchors (repo file, Figma/frame URL, stored screenshot/evidence artifact, copied blueprint, or self-contained operator-approved summary). Mark each source as `normative` or `orientation only` before deciding what becomes proof scope.
-
-Before locking proof rows, classify activated risk lenses. Use story-specific evidence, not a generic checklist. Common lenses include async/event-loop behavior, concurrency, process or resource lifecycle, retries/timeouts, platform/OS APIs, filesystem/network/subprocess I/O, permissions/security, persistence/migrations, generated artifacts, prompt/template fail-open behavior, external services, and naming-sensitive invariants. If a lens is activated, add proof obligations or an explicit exclusion; if none are material, record that no additional risk lens was identified.
+Build `## Verification` as a reviewer-runnable proof contract, not a vague test note. It must contain three required subsections and any conditional proof sections the story's surfaces require:
 
 1. `### Verification Commands`
    - Ask for exact commands or exact manual/file-read actions a reviewer can run.
-   - Confirm existing test files or named surfaces actually exist when claimed as current seams.
-   - Anchor the real owning test/proof surfaces and the focused area the implementer should inspect first.
-   - When tests must be added or changed, require planned test seams at acceptance-variant granularity: file path, test function/class name when knowable, and the specific failing assertion or observed RED signal. If the exact test name cannot be known before source inspection, mark it provisional and state what naming decision must be resolved before implementation proceeds.
-2. `### Acceptance Proof Matrix`
-   - Every acceptance id must have at least one row before the story can be created.
-   - Required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`
-   - `Proof Maturity` must be `final` or `provisional`.
-   - `Open Detail` may be blank for `final` rows and is required for `provisional` rows.
-   - A row may cover multiple acceptance ids only when the same proof action and failure signal genuinely cover all of them.
-   - Proof rows should reference acceptance IDs and expected evidence without restating the full acceptance text.
-   - If an acceptance id contains named variants or failure modes, the matrix must decompose them into separate proof obligations, for example `A6/missing`, `A6/empty`, `A6/malformed`, `A6/all-failed`, or split them into separate acceptance ids. Every named variant needs evidence or an explicit exclusion.
-3. `### Surface / Branch Proof Matrix` when the story spans multiple user-visible surfaces, supported variants/profiles/modes, or internal orchestration branches.
-   - Required columns: `Surface | Supported Variant | Internal Execution Branch | Proof Class | Owning Proof Seam | Why This Seam Is Sufficient | Out of Scope Notes`
-   - Every in-scope surface / variant / branch combination must appear.
-   - `Proof Class` must be one of `helper`, `routing`, or `behavior`.
-   - Helper proof alone is insufficient when multiple supported callsites or orchestration paths exist; require at least one routing proof.
-4. `Input Boundary Shape Risk` proof when raw persisted, external, framework, or generated input crosses into stricter application assumptions such as parsing, validation, classification, normalization, migration, aggregation, routing, import/export, or schema construction.
-   - Keep approval evidence in the `Acceptance Proof Matrix` and make it start at the named raw input boundary.
-   - Add a `### Input Boundary Shape Risk` mini-matrix only when multiple boundaries, variants, or mitigations would be hard to audit from acceptance rows alone.
-   - Required mini-matrix columns: `Boundary | Raw Input Source | Strict Assumption | Variant / Case | Evidence | Mitigation / Exclusion`.
-   - Every in-scope boundary and shape case must appear once, or be explicitly excluded with a reason.
-   - `unknown` evidence is allowed only with a recorded reason, mitigation, and follow-up path; unknown evidence without mitigation is not approval-ready.
-5. `### Fail-open Checks` when the feature depends on prompt placeholders, template variables, string substitution, or other fail-open prompt assembly.
-   - Require a negative proof that supported renders leave no unresolved placeholders or raw feature tokens.
-   - Require a proof that enabled supported paths activate the feature.
-   - Require at least one disabled/default path proof showing baseline behavior is unchanged.
-6. `### Design Sources` whenever the story references a mockup, wireframe, screenshot, Figma frame, presentation blueprint, prior `/grillme` discussion, or other design artifact.
-   - Required columns: `Source Anchor | Status | Notes / Supersession`.
-   - `Status` must be `normative` or `orientation only`.
-   - Chat-only references are insufficient; use a durable/reviewable anchor or a self-contained operator-approved summary.
-   - Orientation-only sources create no implementation or proof obligation unless the same behavior appears in `## Acceptance`.
-7. `### Design Element Trace` when any design source is `normative`.
-   - Required columns: `Source Anchor | Visible Element / State | Obligation | Bounds / Required Behavior | Scenario | Acceptance ID | Proof Row / Reviewer Action`.
-   - `Obligation` must be `required` or `flexible`; every `flexible` row needs explicit allowed-variance bounds.
-   - Every visible element/state in a normative source must map to a required or bounded flexible row, then through `Scenario -> Acceptance -> Verification`.
-   - Do not use an `omitted` class for accepted normative designs. If a visible element should not ship, revise/supersede the design, mark the source orientation-only, re-scope/split with operator approval, or record an explicit operator-approved story-scope narrowing.
-   - For visibility, placement, navigation, copy, responsive behavior, and interaction-state obligations, require rendered-surface proof (browser/manual UI observation, screenshot, rendered DOM/output, or equivalent). Code-only proof is insufficient unless the story records an explicit exception or narrower proof boundary.
-8. `### Risk Lens Inventory` when any activated risk lens is not already fully covered by the matrices above.
-   - Required columns: `Risk Lens | Activated By | Planning / Proof Obligation | Owner Surface | Exclusion / Rationale`.
-   - For async/event-loop work, identify synchronous API crossings and the approved nonblocking/offload pattern or explicit exception.
-   - For platform, process, filesystem, network, permissions, cleanup, retries, or resource-lifecycle work, list common sibling failure modes such as stale/not-found, permission/access denied, already completed, timeout/cancellation, unsupported platform, and partial failure.
-   - For sensitive lifecycle, ownership, security, persistence, or concurrency invariants, record terminology that must remain truthful in names/comments/tests.
+   - Group commands by lanes the repository actually supports: focused unit/domain, functional/component/API, integration/routing/filesystem/network, contract, acceptance/E2E/manual/golden, static/packaging, broad regression, or the repo's own names. Do not invent CI lanes; mark unknown lanes provisional and state what source inspection must confirm.
+   - When tests must be added or changed, name the planned file and test function/class when knowable, plus the expected failing assertion, RED signal, or reviewer-visible output. If the exact name is unknowable before source inspection, mark it provisional and state the naming decision to resolve.
+2. `### Test Architecture Plan`
+   - Required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale`.
+   - Discover and follow the repository's existing test layout, markers, fixtures, and CI lanes before using fallback layers such as `unit/domain`, `functional/component/API`, `integration/routing/filesystem/network`, `contract`, `acceptance/E2E/manual/golden`, or `static/packaging`.
+   - Apply the TAP quality gate from `docs/epic-conventions.md`: stable `TAP-*` row ids; cheapest reliable real boundary; exact seam; behavior-facing assertion or reviewer-visible signal in `Assertions / Observability`; fixture/data isolation and live-dependency policy; focused command/CI lane; fallback plan when the preferred seam/layer/file/fixture/CI lane is wrong or impractical; and split/merge rationale tied to repo convention when unrelated behavior shares a file.
+   - Broad E2E/manual proof is valid only when the row explains why lower-layer deterministic seams cannot provide equivalent confidence. Hidden live dependencies, private choreography assertions unless explicitly contractual, named variants without proof or explicit exclusion, and convenience-only grab-bag test placement are invalid.
+   - Every added or changed test/proof surface must appear in the TAP, and `Acceptance Proof Matrix` rows should reference relevant `TAP-*` rows when tests or proof surfaces change.
+3. `### Acceptance Proof Matrix`
+   - Required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`.
+   - Every `A<n>` id must have at least one row. `Proof Maturity` is only `final` or `provisional`; provisional rows require non-blank `Open Detail`.
+   - If an acceptance id names variants, modes, branches, fallback paths, failure cases, or examples, split them into separate acceptance ids or decompose them into separate proof obligations such as `A6/missing`, `A6/empty`, or `A6/malformed`. Each named case needs evidence or an explicit exclusion.
+   - A proof row may cover multiple ids only when the same proof action and failure signal genuinely cover all listed ids and named variants.
 
-Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers. Do not accept compressed design proof such as "compare to the mockup" unless the normative visible elements are enumerated in `### Design Element Trace` and mapped to acceptance/proof rows. Planned assertions should prefer caller-observable behavior and contract outcomes; private retry counts, sleeps, helper call order, temporary names, or implementation choreography are contractual only when the story explicitly locks them. Provisional rows are allowed, but every acceptance id and every named variant/failure mode inside that id still needs a row and every provisional row must state what remains undecided. For input-boundary shape risks, helper-level proof with already-normalized intermediate data is insufficient unless the story explicitly narrows the proof row and records why that is safe.
+Before locking rows, ask whether the story relies on any design source (mockup, wireframe, screenshot, Figma frame, presentation blueprint, prior `/grillme` discussion, or operator-approved design summary). Require durable/reviewable anchors and classify each source as `normative` or `orientation only`. Orientation-only sources create no implementation or proof obligation unless the same behavior appears in `## Acceptance`.
 
-Validate the scenario funnel before leaving this question: every normative scenario with `Covers: A<n>` must be covered by the linked acceptance item's proof row(s). Do not add a separate scenario proof matrix; strengthen `## Acceptance` or `## Verification` instead.
+Before locking rows, classify activated risk lenses using story-specific evidence, not a generic checklist. Common lenses include async/event-loop behavior, concurrency, process/resource lifecycle, retries/timeouts, platform/OS APIs, filesystem/network/subprocess I/O, permissions/security, persistence/migrations, generated artifacts, prompt/template fail-open behavior, external services, and naming-sensitive invariants. Add proof obligations, a `### Risk Lens Inventory`, or explicit exclusions; if none are material, record that.
+
+Add conditional subsections when relevant:
+
+- `### Surface / Branch Proof Matrix` for multiple user-visible surfaces, supported variants/profiles/modes, or internal orchestration branches. Include rows for every in-scope combination or an explicit exclusion; distinguish `helper`, `routing`, and `behavior` proof classes, and require routing proof when multiple supported callsites exist.
+- `### Design Sources` whenever design artifacts are referenced; `Status` must be `normative` or `orientation only`.
+- `### Design Element Trace` when any design source is normative. Map every visible element/state as `required` or bounded `flexible` through `Scenario -> Acceptance -> Verification`, and require rendered-surface proof for visibility, placement, navigation, copy, responsive behavior, and interaction-state obligations unless an explicit narrower proof boundary is recorded.
+- `### Input Boundary Shape Risk` when raw persisted, external, framework, or generated input crosses into stricter assumptions. Proof starts at the named raw input boundary, or the story records an exclusion/unknown with mitigation.
+- `### Fail-open Checks` for prompt/template/placeholder/string-substitution features. Prove supported renders leave no unresolved placeholders/raw tokens, enabled paths activate the feature, and disabled/default paths remain unchanged.
+- `### Risk Lens Inventory` when activated risks are not fully covered by the other matrices.
+
+Do not accept vague proof like "run the relevant tests" or fake seams that only validate heavily mocked helpers. Planned assertions should prefer caller-observable behavior and contract outcomes; private retry counts, sleeps, helper call order, temporary names, or implementation choreography are contractual only when the story explicitly locks them. Validate the scenario funnel before leaving this question: every normative scenario with `Covers: A<n>` must be covered by the linked acceptance item's proof row(s).
 
 Debt Friction check: actively ask whether proof planning is being made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` entry when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
 

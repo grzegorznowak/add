@@ -629,12 +629,15 @@ inferred, unknown, or provisional.
 
 #### `## Plan Review Log`
 
-Append-only entries written by `/epic-story-plan-review`, and by
-`/epic-feedback` only when routing planning feedback into the established
-plan-resume cycle. Parallel in shape to `## Review Log` but records
-plan-quality verdicts at any implementation lifecycle point. Never seeded by
-`/epic-story-plan`. Each re-run of `/epic-story-plan-review` after operator
-edits appends a new entry — the log is the story's plan revision history.
+Entries written by `/epic-story-plan-review`, and by `/epic-feedback` only when
+routing planning feedback into the established plan-resume cycle. Parallel in
+shape to `## Review Log` but records plan-quality verdicts at any implementation
+lifecycle point. Never seeded by `/epic-story-plan`.
+
+The default lifecycle policy is **squashable review history**, not append-only
+history. Keep the log focused on current actionable state: unresolved blockers,
+latest disposition, material decisions, Debt Friction, and evidence anchors must
+survive, while stale addressed entries may be compressed by `/epic-story-plan-resume` (or by an explicitly documented archive mechanism when full history is needed).
 
 ```md
 ## Plan Review Log
@@ -872,13 +875,16 @@ epic/story arguments. Three strategies exist:
 5. **Final reports are not thinking logs**: loopers must return only their
    required report sections. They must not include `Thinking:` blocks, private
    deliberation, or comments about tentative next actions outside the structured
-   `Next Action` and `Operator Nice-To-Haves` sections.
+   `Next Action` and `Optional Operator Follow-Ups` sections.
 
 ## What the commands will NOT do
 
 - Rename or renumber existing stories
-- Delete `Progress Log`, `Active Claim`, `Session Handoff`, `Review Log`,
-  `Plan Review Log`, or `Feedback Absorption Log` entries
+- Delete `Progress Log`, `Active Claim`, `Session Handoff`, `Review Log`, or
+  `Feedback Absorption Log` entries. `Plan Review Log` is the exception: stale
+  addressed plan-review history may be squashed only by the documented
+  plan-resume cleanup policy, while unresolved blockers, latest disposition,
+  material decisions, Debt Friction, and evidence anchors must be preserved.
 - Touch product code from `/epic-story-pr` or `/epic-squash` (except optional
   per-fix approval in `/epic-squash` Phase 6, and the optional `gh pr
   create` call in `/epic-story-pr` or `/epic-pr` open mode)
@@ -892,7 +898,7 @@ epic/story arguments. Three strategies exist:
   `🟢 PLAN APPROVED` from `/epic-feedback`
 - Directly write coordination files, source files, tests, or commits from
   `/epic-story-plan-converge` or `/epic-story-converge`; loopers keep only
-  in-memory babysitting notes and session Research Board entries, then delegate
+  in-memory operational notes and session Research Board entries, then delegate
   writes to underlying lifecycle skills
 - Create full story files from `/epic-feedback`; feedback-derived future work
   must remain a candidate until `/epic-story-plan` turns it into a story
