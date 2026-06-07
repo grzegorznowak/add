@@ -21,7 +21,7 @@ You can only change the coordination files in the epic, **never** the source cod
 - Do not modify source code — review is read-only.
 - Do not run destructive git operations (push, `reset --hard`, force commands, branch deletion).
 - Never write outside the story's coordination directory or `/tmp`; do not edit target worktrees.
-- Test execution is permitted only to verify the story's proof matrix (not for broad exploration), even when normal test tooling writes caches or artifacts.
+- Test execution is permitted only to verify the story's Acceptance Proof Matrix and TAP-owned verification commands (not for broad exploration), even when normal test tooling writes caches or artifacts.
 - GitHub/Jira access is read-only for intent mining. Use view-only commands such as `gh issue view`, `gh pr view`, and `jira issue view`; do not use generic API commands that can issue mutating requests.
 
 ## Why operator-explicit (arg or menu) selection
@@ -166,8 +166,8 @@ When launched by a converger, you may receive `Shared Research Board from parent
 - Read the latest `## Review Log` entry before source inspection and carry every prior concern into the review as `resolved`, `still_open`, `superseded`, or `not_assessable`.
 - Treat every relevant story-spec section as a review claim. Purpose, Triggering Need, Scope, Out of Scope, Discovery Notes, Critical Files, Implementation Notes, and Locked Decisions can all create implementation obligations or exclusions; do not validate only Acceptance and Verification.
 - Build an implementation trace map before approval:
-  - forward trace: `CONTRACT.md`/original issue/ticket/epic intent -> story Purpose/Scope/Scenarios/Acceptance -> final Verification proof rows -> changed code/tests/config/runtime surfaces
-  - backward trace: every changed file, symbol, helper, command, test, config, generated/runtime surface, and proof row -> Acceptance id -> in-scope story rationale or explicit exclusion
+  - forward trace: `CONTRACT.md`/original issue/ticket/epic intent -> story Purpose/Scope/Scenarios/Acceptance -> final Test Architecture Plan -> final Verification proof rows -> changed code/tests/config/runtime surfaces
+  - backward trace: every changed file, symbol, helper, command, test, TAP row, config, generated/runtime surface, and proof row -> Acceptance id -> in-scope story rationale or explicit exclusion
   - design trace when applicable: normative design source anchor -> visible element/state -> `required` or bounded `flexible` trace row -> Scenario -> Acceptance -> final proof row -> rendered artifact or reviewer observation
   Orphan changed surfaces, gold-plated behavior, or proof rows for unrequested behavior block approval unless the story records a safe justification.
 - When an acceptance or proof row names an end-to-end boundary, verify the proof starts at that named boundary. A lower-level test with hand-built intermediate data does not satisfy a resolver/orchestration acceptance item unless the row explicitly permits that narrower proof.
@@ -335,15 +335,15 @@ precision when evidence is insufficient.
 
 1. Use code search and direct reading to understand the story's implementation and impacted surfaces. Record the owner-discovery searches you performed (`Code surfaces searched`) including domain terms, callsites/routes, existing tests, duplicate owners, generated/config/runtime surfaces, and any areas intentionally not searched.
 2. Use `git -C <project_root_map>[<basename>] status`, `git -C <project_root_map>[<basename>] diff`, and targeted file reads to inspect what was actually changed. When the story spans multiple repos, run status/diff per repo (iterating over `<project_root_map>` in sorted basename order) and group findings per-repo in the review write-back. Each `<basename>` resolves to either an implementer's worktree (most common) or the main tree at `<workspace_root>/projects/<basename>` (clean main-tree fallback case from the preflight).
-3. Read all relevant story-spec sections and treat each section as a claim: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, and Discovery Notes when present.
+3. Read all relevant story-spec sections and treat each section as a claim: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification (including `### Test Architecture Plan`), Critical Files, Implementation Notes, Locked Decisions, and Discovery Notes when present.
 4. Read any existing `## Review Log` entries in the story before deciding. If prior review runs requested changes or recorded blockers, explicitly verify whether each concern is resolved, still open, superseded by later story changes, or not assessable from current evidence.
 5. Before approving implementation, verify the matched `MASTER.md` row's `Plan` lane is `🟢 PLAN APPROVED` when the column exists. If `Plan` is `🟡 PLAN DRAFT`, `🟣 PLAN IN REVIEW`, `🟠 PLAN CHANGES REQUESTED`, or `⛔ PLAN BLOCKED`, the implementation cannot be approved; record a `request_changes` verdict with next action `/epic-story-plan-converge <epic> <story>`.
 6. Mine original intent only from explicit anchors: ticket/PR URLs, Jira keys, issue numbers, branch names, commit messages, `MASTER.md`, dependency stories, PR bodies, or story prose. Use read-only commands such as `gh issue view`, `gh pr view`, `jira issue view`, `git log`, and `git show` when available and relevant. If an external source cannot be accessed, record the missing source and do not invent its content.
-7. Build the implementation trace map and record whether forward/backward traceability is complete or has gaps. Every changed source/test/config/runtime surface and every proof row must map back to an acceptance id plus story scope, `CONTRACT.md`/original intent, or an explicit exclusion.
+7. Build the implementation trace map and record whether forward/backward traceability is complete or has gaps. Every changed source/test/config/runtime surface, Test Architecture Plan row, and proof row must map back to an acceptance id plus story scope, `CONTRACT.md`/original intent, or an explicit exclusion.
 8. Classify material evidence as `confirmed`, `inferred`, `unknown`, or `provisional`. Unknown or provisional evidence that affects acceptance, route ownership, ticket intent, contract drift, or proof credibility blocks approval unless safely scoped out with a follow-up path.
 9. Never speculate about code you haven't read
 10. When `<epic>/CONTRACT.md` exists, inspect the sections relevant to the resolved story's owned surfaces and invariants
-11. If the final implementation or final proof matrix clearly differs from the earlier planned proof path, consult `## Progress Log` and `## Session Handoff` to confirm the change was recorded and justified
+11. If the final implementation, final Test Architecture Plan, or final proof matrix clearly differs from the earlier planned test/proof path, consult `## Progress Log` and `## Session Handoff` to confirm the change was recorded and justified
 12. If sibling stories define shared interfaces, invariants, or proof surfaces this story touches, inspect those targeted stories rather than assuming the resolved step file is complete
 13. If ticket intent, `CONTRACT.md`, story text, and live code point in different directions, name the conflict and route it: contract-changing findings go to `/epic-story-plan-converge` or `/epic-feedback`, stale merged contracts go to `/epic-squash`/contract repair, and unimplemented in-scope story obligations go to `/epic-story-resume`.
 14. Run a Debt Friction check: ask whether implementation or review was made harder by unclear ownership, duplicated behavior, weak or mocked tests, missing seams, hidden behavior, or unsafe structure. Only record a `Debt Friction` finding when there is a story-local causal link: current story action -> concrete evidence -> delivery impact -> explicit decision.
@@ -360,6 +360,7 @@ precision when evidence is insufficient.
    - duplication / missed reuse
    - status / progress drift from the step spec
    - branch-coverage drift from the planned proof surface
+   - test architecture drift: wrong layer/file, unexplained single-file aggregation, hidden fixture coupling, or CI lane gaps
    - missing routing completeness across supported callsites
    - fail-open prompt regressions where relevant
    - red-first workflow drift or undocumented exceptions
@@ -379,11 +380,15 @@ Before approving, verify:
 - Does the step file record the focused red seam that was used, or an explicit written exception with the alternative proof path?
 - If red-first was bypassed, was the exception recorded before proceeding and was the alternative proof path concrete?
 - Are there adequate tests for the change, including each named acceptance variant, mode, fallback path, and failure case?
+- Does the implementation follow `### Test Architecture Plan`, including the planned assertion/observable proof signals and fallback decisions, or does `## Progress Log` / `## Session Handoff` justify each material drift?
+- Are tests placed in the planned owning suites/files, with unrelated layers split unless an explicit repo-convention rationale exists?
+- Do fixtures/data setup remain explicit, isolated, cleanup-safe, deterministic, and free of hidden live network/db/filesystem dependencies unless explicitly accepted?
+- Do final verification commands cover the planned TAP CI lanes, assertion/observable signals, and focused/broad gates?
 - If `## Scenarios / Behavior Examples` is present, does every normative scenario flow through a linked acceptance id and final proof row, and does implementation satisfy the scenario's concrete behavior?
 - Are there hidden packaging / runtime / ops implications not captured in the step?
-- Is every acceptance id still covered by the final proof matrix?
+- Is every acceptance id still covered by the final Acceptance Proof Matrix?
 - Is every named variant/failure mode inside each acceptance id covered by actual tests, source inspection, or command output, rather than only by broad proof-matrix claims?
-- Are any matrix rows still `provisional`?
+- Are any Acceptance Proof Matrix rows still `provisional`?
 - Does every proof row start at the boundary it claims to prove, rather than bypassing it with hand-built intermediate state?
 - Are route/model/auth/metadata claims grounded in repo behavior or tests, not only in external or local documentation?
 - If the story includes `### Design Element Trace`, does the implementation satisfy every mapped `required` row and every bounded `flexible` row within its stated bounds?
@@ -399,7 +404,7 @@ Before approving, verify:
 - Do all relevant story-spec sections still hold as claims against the implementation, including Purpose, Triggering Need, Scope, Out of Scope, Critical Files, Implementation Notes, Locked Decisions, and Discovery Notes when present?
 - If an original issue, PR, Jira ticket, parent epic, or stable card id is available, does each Purpose/Scope/Acceptance claim map to that source, to `CONTRACT.md` when the contract superseded it, or to an explicit scoped deviation?
 - If grounded ticket intent, `CONTRACT.md`, story text, and current code shape point in different directions, is the conflict named with a routed decision rather than silently letting one source erase another?
-- Does every changed helper, API, test, command, config/runtime surface, generated artifact, and proof row map backward to an acceptance id and in-scope rationale? Orphan implementation work blocks approval unless explicitly justified.
+- Does every changed helper, API, test, command, config/runtime surface, generated artifact, TAP row, and proof row map backward to an acceptance id and in-scope rationale? Orphan implementation work blocks approval unless explicitly justified.
 - Was owner discovery broad enough beyond listed Critical Files: domain owners, similar implementations, tests, routes/callsites, fixtures, CLI/API entrypoints, generated artifacts, config/runtime owners, and deprecation paths?
 - Are activated risk lenses identified and reviewed at the owning boundary? Check material domains such as async/event-loop behavior, concurrency, platform/OS APIs, external I/O, permissions/security, persistence, resource lifecycle, retries/timeouts, generated artifacts, and naming-sensitive invariants.
 - For async or event-loop paths, are blocking sync calls avoided, offloaded, or justified with a safe rationale consistent with existing project idioms?
@@ -442,6 +447,7 @@ Append or update a `## Review Log` section in the step file with a new entry:
   - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
   - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
   - Traceability: forward <complete|gaps>; backward <complete|gaps>
+  - Test architecture: complete|gaps|not applicable; TAP rows <aligned|missing|misplaced|drift logged>
   - Design trace: complete|gaps|not applicable; rendered evidence: complete|gaps|not applicable
   - Code surfaces searched: <paths/patterns/entrypoints or none beyond changed files>
   - Risk lenses reviewed: <activated lenses and exclusions, or none material>
@@ -477,8 +483,10 @@ Approval is not allowed if the proof contract is still unresolved. A story is on
 - every acceptance id remains covered
 - every named variant, mode, branch, fallback path, and failure case inside an acceptance id is covered or explicitly excluded
 - every normative scenario linked with exactly one `Covers: A<n>` is satisfied through its linked acceptance id and final proof row
-- every proof row is `final`
-- the matrix matches the actual implementation and verification surfaces
+- every Acceptance Proof Matrix proof row is `final`
+- the Test Architecture Plan rows match actual test placement, assertions/observability, fixture/data strategy, CI lanes, and fallback decisions, or every deviation is logged and justified
+- the Acceptance Proof Matrix matches the actual implementation and verification surfaces
+- final tests and commands satisfy `### Test Architecture Plan`, or every deviation is logged, justified, and still preserves acceptance proof quality
 - every named end-to-end proof starts at the claimed entry boundary, or the story explicitly narrows the proof row
 - every required surface / variant / branch row is covered or explicitly excluded
 - routing completeness is proven when multiple supported callsites or orchestration paths exist
@@ -532,6 +540,7 @@ Start with gate findings and issue lists, ordered by severity, with file referen
 **Original Intent Used**: [issues/PRs/Jira/tickets/epic sources inspected, none found, or inaccessible]
 **Prior Review Log Check**: [none, or prior concerns checked with resolved/still open/superseded/not assessable status]
 **Traceability**: [forward complete/gaps; backward complete/gaps]
+**Test Architecture**: [complete | gaps | not applicable; TAP rows aligned/missing/misplaced/drift logged]
 **Design Trace**: [complete | gaps | not applicable; rendered evidence complete | gaps | not applicable]
 **Code Surfaces Searched**: [paths/patterns/entrypoints/domain terms searched]
 **Risk Lenses**: [activated lenses reviewed, proof/exclusion gaps, or none material]

@@ -159,7 +159,7 @@ time by `/epic-story-plan`, and they are read by every other command.
 | `## Out of Scope` | What is deliberately not in scope. |
 | `## Scenarios / Behavior Examples` | Concrete examples that funnel into acceptance. Normative scenarios use exactly one `Covers: A<n>` link; orientation-only scenarios must say `Orientation only`. |
 | `## Acceptance` | Observable criteria a reviewer can verify. Every bullet uses a stable `A<n>` id and covers exactly one independently provable behavior. |
-| `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands` and `### Acceptance Proof Matrix`, and must add conditional subsections such as `### Surface / Branch Proof Matrix`, `### Design Sources`, `### Design Element Trace`, `### Input Boundary Shape Risk`, `### Fail-open Checks`, and/or `### Risk Lens Inventory` when the story's risk surface requires them. Rows reference acceptance IDs instead of restating full acceptance prose. |
+| `## Verification` | Reviewer-facing proof contract. Must always contain `### Verification Commands`, `### Test Architecture Plan`, and `### Acceptance Proof Matrix`, and must add conditional subsections such as `### Surface / Branch Proof Matrix`, `### Design Sources`, `### Design Element Trace`, `### Input Boundary Shape Risk`, `### Fail-open Checks`, and/or `### Risk Lens Inventory` when the story's risk surface requires them. Rows reference acceptance IDs instead of restating full acceptance prose; TAP rows explain where proof belongs, what assertion or observable signal proves it, and what fallback plan applies if the preferred proof seam is impractical. |
 | `## Discovery Notes` | Source-derived facts that prevent rediscovery: reusable code, gotchas, hidden coupling, test seams, operational constraints, or Debt Friction. Not a transcript. |
 | `## Critical Files` | File paths and each path's role. |
 | `## Implementation Notes` | Execution brief: source-inspection focus, red-first seam guidance, phases, constraints, and known exceptions. |
@@ -197,8 +197,8 @@ Scenario -> Acceptance -> Verification
 - If one example appears to span multiple acceptance ids, split it into multiple scenarios or reshape the acceptance items before review.
 - Every orientation-only scenario must explicitly say `Orientation only` and must not create implementation or proof obligations unless the same behavior is also present in `## Acceptance`.
 - A scenario that describes required behavior but does not map to acceptance is invalid.
-- A linked scenario is review-blocking when its linked acceptance item or verification row does not cover the scenario's concrete behavior.
-- Scenarios do not get their own proof matrix. Proof still flows through `## Acceptance` and `## Verification`.
+- A linked scenario is review-blocking when its linked acceptance item or TAP-backed verification path does not cover the scenario's concrete behavior.
+- Scenarios do not get their own proof matrix. Proof still flows through `## Acceptance`, `### Test Architecture Plan`, and `## Verification`.
 
 Example:
 
@@ -239,15 +239,55 @@ subsections:
 ### Verification Commands
 - <exact command or exact manual/file-read action>
 
+### Test Architecture Plan
+| Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale |
+|---|---|---|---|---|---|---|---|---|---|
+| TAP-U1 | unit/domain | A1 focused rule | <test file / test name> | <pure domain boundary> | <expected assertion / observable signal> | <fixture/data/isolation policy> | <focused command> | <alternate seam or replan trigger if unavailable> | <why this file/layer owns it> |
+| TAP-F1 | functional/component | A2 behavior path | <test file / test name> | <component/API boundary> | <expected assertion / observable signal> | <fixture/data/isolation policy> | <focused command> | <fallback if this layer/file/fixture is impractical> | <why this is separate or intentionally merged> |
+
 ### Acceptance Proof Matrix
 | Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail |
 |---|---|---|---|---|---|---|
-| A1 | final | file-read | <exact reviewer action> | <exact expected evidence> | <paths / commands / surfaces> | |
-| A2 | provisional | automated | <exact reviewer action> | <red/green or equivalent evidence> | <paths / commands / surfaces> | <what is still undecided> |
+| A1 | final | file-read / TAP-U1 | <exact reviewer action> | <exact expected evidence> | <paths / commands / surfaces> | |
+| A2 | provisional | automated / TAP-F1 | <exact reviewer action> | <red/green or equivalent evidence> | <paths / commands / surfaces> | <what is still undecided> |
 ```
 
 Rules:
 
+- `### Test Architecture Plan` row ids use stable `TAP-*` names.
+- The TAP must discover and follow the repository's existing test layout,
+  markers, fixture conventions, and CI lanes before using fallback labels.
+- If the repository has no local taxonomy, use fallback layers such as
+  `unit/domain`, `functional/component/API`,
+  `integration/routing/filesystem/network`, `contract`,
+  `acceptance/E2E/manual/golden`, and `static/packaging`.
+- TAP quality lens: every row proves behavior at the cheapest reliable real
+  boundary by naming the seam, behavior-facing assertion or observable reviewer
+  signal, fixture/data isolation, focused command/CI lane, and fallback. Broad
+  E2E/manual proof is valid only when the row explains why lower-layer
+  deterministic seams cannot provide equivalent confidence; hidden live
+  dependencies, implementation-choreography assertions unless explicitly
+  contractual, named variants left without proof or explicit exclusion, and
+  unrelated behaviors collapsed into one file without repo-convention rationale
+  are invalid.
+- Every added or changed test/proof surface must appear in TAP with its owning
+  suite/file, boundary exercised, assertions/observability, fixture/data
+  strategy, CI lane/command, fallback plan, and split/merge rationale.
+- `Assertions / Observability` must state the expected failing assertion,
+  reviewer-visible output, manual/file-read signal, or equivalent observable
+  proof signal. Private mechanics are acceptable only when the story explicitly
+  makes them contractual.
+- `Fallback Plan` must state what to do if source inspection disproves the seam
+  or the preferred layer, file, fixture, or CI lane is unavailable or
+  impractical. Material drift routes back to planning rather than silent test
+  relocation.
+- If unrelated layers or behaviors are intentionally kept in one file, the TAP
+  must tie that choice to an existing repo convention. Convenience alone is not
+  a valid rationale.
+- Fixture/data strategy must state isolation, cleanup, live dependency policy,
+  and ordering/flakiness risks when material.
+- `Acceptance Proof Matrix` rows should reference relevant `TAP-*` row ids when
+  tests or proof surfaces change.
 - Every acceptance id must appear in the matrix at least once. Missing rows are
   invalid.
 - A matrix row may reference multiple acceptance ids only as an exception, and
@@ -261,12 +301,14 @@ Rules:
   the real owning surface and concrete enough to guide implementation.
 - By `/epic-story-review`, every row must be `final`.
 - Planning is proof-first, not guess-first. The plan must anchor the real
-  owning surfaces and the focused test/proof area the implementer should
-  inspect first, but it must not invent a fake exact first failing command when
-  the repo facts do not support that level of precision.
+  owning surfaces, the focused test/proof area the implementer should inspect
+  first, and the test architecture row that owns that proof. It must not invent
+  a fake exact first failing command when the repo facts do not support that
+  level of precision.
 - Implementation is red-first by default. After source inspection, the
-  implementer chooses the smallest focused seam they can make fail, turns it
-  green, and only then broadens verification.
+  implementer chooses the smallest focused seam they can make fail from the TAP
+  when the TAP is credible, turns it green, and only then broadens
+  verification.
 
 Add this subsection whenever the story spans multiple user-visible surfaces,
 supported variants/profiles/modes, or internal orchestration branches:
@@ -525,7 +567,7 @@ implementation. Written by `/epic-story-claim`, `/epic-story-resume`, and `/epic
 - 2026-04-12T11:14:00Z Focused red seam turned green; broadening verification to the surrounding auth suite.
 - 2026-04-12T11:48:00Z Patched core module and added tests.
 - 2026-04-12T12:01:00Z Moved step to `🔵 IN PR` — https://github.com/.../pull/42
-- 2026-04-12T12:09:00Z Refined proof matrix for `A2` after implementation moved the real assertion seam.
+- 2026-04-12T12:09:00Z Refined TAP row and proof matrix for `A2` after implementation moved the real assertion seam.
 - 2026-04-12T12:16:00Z Recorded replanning checkpoint: original acceptance contract for `A3` bundled two independently failing behaviors and was split before implementation continued.
 - 2026-04-12T12:21:00Z Recorded explicit red-first exception: fixture bootstrap cannot go red-first safely; using smoke command `uv run pytest tests/bootstrap/test_install.py` as the alternative proof path.
 - 2026-04-12T12:27:00Z Recorded Debt Friction: duplicated branch predicate would make `A2` inconsistent without enabling cleanup; decision `fix-now` with scope justification.
@@ -586,6 +628,7 @@ review logs.
   - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
   - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
   - Traceability: forward <complete|gaps>; backward <complete|gaps>
+  - Test architecture: complete|gaps|not applicable; TAP rows <aligned|missing|misplaced|drift logged>
   - Design trace: complete|gaps|not applicable; rendered evidence: complete|gaps|not applicable
   - Code surfaces searched: <paths/patterns/entrypoints or none beyond changed files>
   - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
@@ -645,6 +688,7 @@ edits appends a new entry — the log is the story's plan revision history.
   - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
   - Original intent checked: <issues/PRs/Jira/tickets/epic sources or none found/inaccessible>
   - Traceability: forward <complete|gaps>; backward <complete|gaps>
+  - Test architecture: complete|gaps|not applicable; TAP rows <covered|missing|misplaced>
   - Design trace: complete|gaps|not applicable
   - Code surfaces searched: <paths/patterns/entrypoints or none beyond Critical Files>
   - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
@@ -657,9 +701,10 @@ edits appends a new entry — the log is the story's plan revision history.
 
 The traceability fields above are part of the `/epic-story-plan-review` entry
 schema. They make review evidence durable: which original intent sources were
-checked, whether forward/backward traceability is complete, whether design trace
-is complete when normative design sources apply, which code surfaces were
-searched, and what evidence remains inferred, unknown, or provisional.
+checked, whether forward/backward traceability is complete, whether test
+architecture is complete and mapped to TAP rows, whether design trace is
+complete when normative design sources apply, which code surfaces were searched,
+and what evidence remains inferred, unknown, or provisional.
 Planning feedback entries routed by `/epic-feedback` may use their feedback
 receipt shape, but independent plan-review verdicts should include the full
 traceability shape.

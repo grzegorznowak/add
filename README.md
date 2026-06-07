@@ -26,11 +26,12 @@ transition is a fresh session**:
   step. The next fresh session reads that instead of inheriting a stale
   context window.
 - **TDD is a planning constraint, not an implementation afterthought.**
-   `/epic-story-plan` requires a verification proof matrix — mapping every
-   acceptance criterion to a concrete test seam — before the story can leave
-   `⚪ TODO`. By the time `/epic-story-claim` starts writing code, the
-   question is not "should we test this?" but "which failing seam do we turn
-   green first?"
+   `/epic-story-plan` requires a verification proof matrix and a Test
+   Architecture Plan — mapping every acceptance criterion to a concrete proof
+   seam, owning test layer/file, assertion/observable signal, fixture strategy,
+   fallback plan, and CI lane — before the story can leave `⚪ TODO`. By the time `/epic-story-claim` starts writing
+   code, the question is not "should we test this?" but "which planned failing
+   seam do we turn green first, and where does that proof belong in the suite?"
 
 - **Scenarios funnel into acceptance.** Modern stories capture lightweight
   actor roles and concrete behavior examples. Scenarios are not a parallel
@@ -65,7 +66,7 @@ Twelve coordinated workflow commands plus two small utilities:
 | Command | What it does |
 |---|---|
 | `/epic-plan` | Bootstrap a new epic via guided interview. Produces `MASTER.md`. |
-| `/epic-story-plan` | Plan and publish a new `⚪ TODO` story with actors, scenario examples, acceptance criteria, and proof matrix. |
+| `/epic-story-plan` | Plan and publish a new `⚪ TODO` story with actors, scenario examples, acceptance criteria, proof matrix, and Test Architecture Plan. |
 | `/epic-story-plan-review` | Review a `⚪ TODO` story's plan against the live repo before claiming. |
 | `/epic-story-plan-converge` | Loop fresh plan-review and plan-resume sessions for one `⚪ TODO` story until approved, blocked, or stopped; carries session-only sourced research forward. |
 | `/epic-story-claim` | Claim an unclaimed story, find the smallest failing seam, and execute red-first. |
@@ -369,8 +370,9 @@ Full transition rules: [`docs/epic-lifecycle.md`](docs/epic-lifecycle.md).
 
 Three principles govern the workflow:
 
-- **Planning is proof-first** — every story needs an acceptance contract and
-  proof matrix before it can reach `⚪ TODO`.
+- **Planning is proof-first and test-architecture-aware** — every story needs
+  an acceptance contract, Test Architecture Plan, and proof matrix before it can
+  reach `⚪ TODO`.
 - **Implementation is red-first** — start from the smallest failing seam, turn
   it green, then broaden. If red-first is infeasible, record an explicit
   written exception before proceeding differently.

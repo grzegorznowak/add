@@ -85,17 +85,17 @@ Ask about epic-level locked-in decisions that every story will inherit:
 - Timeline / deadline constraints
 - Stakeholders whose sign-off is required
 
-Also ask what is **explicitly not** part of this epic — the "non-goals" list. Captured as a short prose section under Goal/Context.
+Also ask what is **explicitly not** part of this epic — the "non-goals" list. When the epic will add or reorganize tests across multiple stories, ask for inherited test-architecture constraints too: expected test layers/suites, fixture or golden-data locations, slow/live-dependency policy, and CI lanes. Captured as a short prose section under Goal/Context.
 
 ### Question 5 — Risks and unknowns
 
-Ask what could invalidate the epic's direction or scope. What you do not yet know that could change everything. What assumptions the operator is making.
+Ask what could invalidate the epic's direction or scope. What you do not yet know that could change everything. What assumptions the operator is making. Include test-system risks when material, such as unclear suite ownership, missing fixture strategy, expensive/flaky integration dependencies, or cross-story disagreement about unit/functional/integration/acceptance layout.
 
 Record as a short bullet list under Goal/Context. No need to resolve them here — the point is visibility, not a decision tree.
 
 ### Question 6 — Story roadmap sketch
 
-Ask the operator for a rough list of the stories they expect to create under this epic. Informal. Three to ten bullets is typical. One-line per bullet.
+Ask the operator for a rough list of the stories they expect to create under this epic. Informal. Three to ten bullets is typical. One-line per bullet. If related stories will share test fixtures, golden files, contract tests, or CI lanes, call that out in the roadmap sketch so later story-level Test Architecture Plans do not invent incompatible layouts.
 
 Captured as a **prose list** in Goal/Context, clearly labeled as a roadmap sketch and **not** as tracker rows. Remind the operator: "these become `/epic-story-plan` invocations one at a time; the tracker table stays empty until then."
 
