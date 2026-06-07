@@ -166,7 +166,7 @@ Blockers:
 - Broad E2E/manual proof is used when an obvious lower-layer deterministic seam would provide equivalent confidence without an explicit rationale.
 - Hidden live dependencies, slow/flaky/order-coupled fixtures, private-choreography assertions unless contractual, fake mocked-helper seams, or grab-bag test placement would make proof unreliable.
 - `Acceptance Proof Matrix` omits any `A<n>` id, uses proof maturity outside `final|provisional`, leaves `Open Detail` blank for a provisional row, or combines ids/variants whose failure signal is not genuinely shared.
-- Rows for changed tests/proof surfaces do not reference relevant `TAP-*` ownership when tests change.
+- Rows for changed tests/proof surfaces do not reference relevant `TAP-*` ownership when tests or proof surfaces change.
 
 ### 4. Conditional proof sections and risk lenses
 
