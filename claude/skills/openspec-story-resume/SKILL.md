@@ -75,13 +75,16 @@ Report the resolved resume intent to the operator before proceeding.
 ### 1.1 Resolve Worktrees
 
 1. Parse `WORKTREE` arguments into a map of `basename → path`.
-2. Read `progress.md → ## Current Claim` and extract the `Worktrees:` list.
-3. Merge:
+2. Read `progress.md → ## Current Claim` and extract both:
+   - the `- Worktrees:` child list (`- <repo-basename>: <absolute path>`), and
+   - the `- Main-tree targets:` bullet, splitting comma-separated repo basenames and trimming whitespace.
+3. Merge worktrees:
    - Operator-provided WORKTREE arguments take precedence.
    - If the operator provides none, use the worktrees from the current claim.
    - If the operator provides a subset, use operator values for those basenames and retain the rest from the claim.
-4. Validate each worktree path exists and is a git repository.
-5. Validate each worktree basename matches the repository's actual directory name or a known alias.
+4. Preserve main-tree targets from the current claim unless that basename now has an operator-provided or retained worktree. Do not drop the `Main-tree targets:` shape during claim refresh; `/openspec-story-review` uses it to scope dirty main-tree work.
+5. Validate each worktree path exists and is a git repository.
+6. Validate each worktree basename matches the repository's actual directory name or a known alias.
 
 ### 1.2 Dirty Detection
 
@@ -100,39 +103,48 @@ For each resolved worktree:
 If the current claim has no `Worktrees:` field (older format), fall back to:
 - Searching `progress.md → ## Progress Timeline` for worktree references.
 - Using operator-provided WORKTREE arguments.
-- If neither is available, ask the operator to specify worktrees.
+- If neither is available, continue without worktrees only when the target repo is known to be an intentional main-tree target or ask the operator to specify worktrees.
+
+If the current claim has no `Main-tree targets:` field, treat it as legacy unknown rather than an empty intentional set. Do not invent targets, but preserve any existing `Main-tree targets:` value exactly when present.
 
 ## Phase 2 — Claim Refresh
 
 ### 2.1 Refresh the Current Claim
 
 1. Update `progress.md → ## Current Claim` with:
-   - **Timestamp**: Current ISO 8601 timestamp.
-   - **Worktrees**: The resolved worktree map from Phase 1.
-   - **Claim**: A concise statement of what this session will do, based on the resume intent from Phase 0.
-   - **Status**: Current status (matches `story.md Status:` header).
+   - Claimed/refreshed timestamp: Current ISO 8601 timestamp.
+   - Worktrees: The resolved worktree map from Phase 1, using the canonical `- Worktrees:` parent bullet only when at least one worktree exists.
+   - Main-tree targets: The preserved/resolved main-tree target basenames from Phase 1, using the canonical `- Main-tree targets:` bullet only when at least one main-tree target exists.
+   - Claim: A concise statement of what this session will do, based on the resume intent from Phase 0.
+   - Status: Current status (matches `story.md Status:` header).
 
 2. Append to `progress.md → ## Progress Timeline`:
    ```
    [<ISO 8601 timestamp>] **Resume**: <session resume summary>
      Worktrees: <basename>=<path>, ...
+     Main-tree targets: <basename>, ...
      Claim: <claim statement>
    ```
 
 ### 2.2 Format
 
-The `## Current Claim` section in `progress.md`:
+The `## Current Claim` section in `progress.md` uses the canonical claim shape consumed by review/converge:
 
 ```markdown
 ## Current Claim
-
-- **Timestamp**: 2026-06-08T12:00:00Z
-- **Worktrees**:
+- Claimed at: 2026-06-08T12:00:00Z
+- Claimed by: pi fresh session (resume)
+- Model: $MODEL
+- Scope: Implement the remaining tasks from tasks.md, starting with Task 3: ...
+- Worktrees:
   - <repo-basename>: /absolute/path/to/worktree
-  - (additional worktrees as needed)
-- **Claim**: Implement the remaining tasks from tasks.md, starting with Task 3: ...
-- **Status**: 🔄 IN PROGRESS
+  - <repo-basename>: /absolute/path/to/worktree
+- Main-tree targets: <repo-basename>, <repo-basename>
+- Primary write surfaces: <paths>
+- Status: 🔄 IN PROGRESS
 ```
+
+Omit `- Worktrees:` when no worktrees are resolved. Omit `- Main-tree targets:` only when there are no preserved/resolved main-tree targets.
 
 ## Phase 3 — Implementation
 

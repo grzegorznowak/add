@@ -99,10 +99,11 @@ If `gh` is unavailable or the PR cannot be queried, stop and ask the operator to
 
 In payload mode:
 
-1. If the remaining argument is a readable file path, read that file.
-2. Otherwise treat the remaining argument or pasted text as the feedback payload.
+1. If the remaining argument is a readable file path, read that file and record its path as `Source path`.
+2. Otherwise treat the remaining argument or pasted text as the feedback payload and set `Source path` to `manual-paste`.
 3. Split the payload into feedback items by explicit IDs, headings, bullets, review comments, or clear topic boundaries.
-4. Use a synthetic source id of `manual:<timestamp>:<ordinal>` unless the payload already includes a stable source URL or ID.
+4. For each item, compute a stable `Content hash` as `sha256:<hex>` over the item's normalized text (trim surrounding whitespace, normalize CRLF to LF, preserve internal wording). Use a synthetic source id of `manual:<hash-prefix>:<ordinal>` (for example `manual:sha256-1a2b3c4d5e6f:1`) unless the payload already includes a stable source URL or ID. Do not use timestamps as the only manual/file source identity.
+5. Preserve a short, safe excerpt from the item as `Evidence` and in the initiative absorption log so dedupe/audit can reconstruct what was absorbed without pasting the full payload.
 
 ## Phase 2 — Normalize feedback items
 
@@ -119,6 +120,8 @@ Continue after the highest existing `FB-###` in the initiative `Feedback Absorpt
 - Source type: github_issue_comment | github_pr_review | github_pr_review_comment | manual
 - Source ID: <stable source id>
 - Source URL: <url or n/a>
+- Source path: <file path | manual-paste | n/a>
+- Content hash: <sha256:... for manual/file payloads, or n/a for GitHub items unless useful>
 - Created: <timestamp or n/a>
 - Updated: <timestamp or n/a>
 - Summary: <one sentence>
@@ -400,12 +403,13 @@ For every disposition, append one canonical row to `<initiative>/initiative.md` 
 ```md
 ## Feedback Absorption Log
 
-| ID | Source Type | Source ID | Source URL | Created | Updated | Disposition | Target | Changed | Status |
-|---|---|---|---|---|---|---|---|---|---|
-| FB-001 | github_pr_review_comment | PRRC_... | https://... | 2026-04-28T10:40:00Z | 2026-04-28T11:05:00Z | resume-current-story | <story-slug> | reviews.md; miss-category=platform/API failure | absorbed |
+| ID | Source Type | Source ID | Source URL | Source Path | Content Hash | Created | Updated | Excerpt | Disposition | Target | Changed | Status |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| FB-001 | github_pr_review_comment | PRRC_... | https://... | n/a | n/a | 2026-04-28T10:40:00Z | 2026-04-28T11:05:00Z | "short excerpt" | resume-current-story | <story-slug> | reviews.md; miss-category=platform/API failure | absorbed |
+| FB-002 | manual | manual:sha256-1a2b3c4d5e6f:1 | n/a | docs/review-notes.md | sha256:1a2b3c4d5e6f... | n/a | n/a | "short excerpt" | queue-planning-feedback | <story-slug> | Plan Review Log | absorbed |
 ```
 
-Preserve existing rows. If the section does not exist, add it after `## External Resources` unless a local initiative convention clearly places operational logs elsewhere.
+Preserve existing rows, including older 10-column rows. When the section already has the older column shape, either extend the header once before adding new rows or append a clearly marked v2 table below the existing rows. If the section does not exist, add it after `## External Resources` unless a local initiative convention clearly places operational logs elsewhere.
 
 ## Phase 6 — Final response
 

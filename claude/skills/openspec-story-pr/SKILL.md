@@ -231,7 +231,7 @@ Do not paste sections verbatim if they contain internal terminology. Rephrase in
 **Attach mode (default)** — a PR URL is provided:
 - The user has already opened the PR
 - Verify the URL is well-formed (`https://github.com/<org>/<repo>/pull/<n>`)
-- Call `gh pr view <PR_URL> --json number,title,headRefName,state,url,body` to enrich metadata and read the current body
+- Call `gh pr view <PR_URL> --json number,title,headRefName,state,url,body,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` to enrich metadata and read the current body, review decision, merged state, and merge commit.
 - **Update the PR body to the generated product description** via `gh pr edit <PR_URL> --body-file <tmpfile>`
   - If the existing body already contains substantial content authored by the user, show a diff and ask confirmation before overwriting. Offer to prepend/append instead of replacing.
   - If the existing body is empty or auto-generated (e.g. commit messages), replace silently.
@@ -243,6 +243,7 @@ Do not paste sections verbatim if they contain internal terminology. Rephrase in
 - Generate the PR body (see template above) and write it to a tempfile
 - Call `gh pr create --title "<story title>" --body-file <tmpfile>`
 - Capture the returned URL
+- Immediately call `gh pr view <returned-url> --json number,title,headRefName,state,url,body,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` to populate the same durable metadata fields used by attach/refresh mode.
 - If the current branch is the default branch, abort. For a `✅ DONE` story, leave `story.md`, `progress.md`, and `## PR State` untouched.
 - If `gh` fails or is unavailable, abort fast and ask the user to open the PR manually and rerun in attach mode. For a `✅ DONE` story, leave `story.md`, `progress.md`, and `## PR State` untouched.
 
@@ -262,11 +263,25 @@ Add or refresh a `## PR State` section in `<progress_file>`:
 - Branch: <head ref>
 - Opened at: <UTC ISO timestamp>
 - PR status: open | changes_requested | approved | merged | closed
+- Review decision: <APPROVED | CHANGES_REQUESTED | REVIEW_REQUIRED | blank | unavailable>
 - Merge commit: <sha or "—">
+- Merged at: <UTC ISO timestamp or "—">
 - Last synced: <UTC ISO timestamp>
 ```
 
-Do **not** create a duplicate `## PR State` section. If one already exists, update its fields in place.
+Do **not** create a duplicate `## PR State` section. If one already exists, update its fields in place. When refreshing an older section, add the `Review decision:` and `Merged at:` fields rather than dropping them.
+
+### PR status derivation
+
+When `gh pr view` is available, derive the progress `PR status` from the enriched JSON fields, not from the URL alone:
+
+1. If `state` is `MERGED` or `mergedAt` is non-empty, set `PR status: merged`, set `Merged at:` to `mergedAt` when available, and set `Merge commit:` to `mergeCommit.oid` (or the user-provided merge commit if `gh` lacks it).
+2. Else if `state` is `CLOSED`, set `PR status: closed`.
+3. Else if `reviewDecision` is `CHANGES_REQUESTED`, or the latest effective review state in `latestReviews` is `CHANGES_REQUESTED`, set `PR status: changes_requested`.
+4. Else if `reviewDecision` is `APPROVED`, set `PR status: approved`.
+5. Else set `PR status: open`.
+
+If `gh` is unavailable in attach mode, record the supplied URL and any user-provided fields, set unavailable fields to `unavailable` or `—`, and do not transition to `✅ DONE` unless the operator explicitly supplies merged-state evidence and a merge commit.
 
 ### Progress Timeline entry
 
@@ -296,7 +311,7 @@ If the `Status:` header field is missing or ambiguous, abort with: `story.md has
 ## Refresh existing PR metadata
 
 If the story is already `🔵 IN PR` and the user reinvokes this flow, treat it as a refresh:
-- Re-query `gh pr view` if available and update `## PR State → PR status`, `Merge commit`, and `Last synced`
+- Re-query `gh pr view --json number,title,headRefName,state,url,body,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` if available and update `## PR State → PR status`, `Review decision`, `Merge commit`, `Merged at`, and `Last synced`
 - If `PR status` is now `merged`, transition the story to `✅ DONE`
 - If `PR status` is `changes_requested` or the reviewer requested code changes, transition the story back to `🔄 IN PROGRESS` and record the reason in `## Progress Timeline`. Tell the user to rerun `/openspec-story-resume` to address the feedback.
 - Otherwise leave the story at `🔵 IN PR` and update `Last synced`
@@ -314,7 +329,7 @@ There is no `MASTER.md` and no tracker table in this flow. All status updates go
 ## Rules
 
 1. **Use the PR description inclusion boundary above.** The PR body is a product contract for reviewers, not an implementation diary.
-2. **Never mark a story `✅ DONE` from this flow unless the PR is actually merged.** Merged means `gh pr view --json state` returns `MERGED`, or the user explicitly states so with a merge commit.
+2. **Never mark a story `✅ DONE` from this flow unless the PR is actually merged.** Merged means enriched `gh pr view` data has `state: MERGED` or a non-empty `mergedAt`, or the user explicitly states so with a merge commit.
 3. **Never touch product code in this flow.** It is a coordination-only transition (except for the optional `gh pr create` call in open mode).
 4. **Never archive a `🔵 IN PR` story.** `/openspec-archive` requires DONE.
 5. **Never skip the progress.md write-back.** The PR URL is the only durable link between the change workspace and the GitHub review.

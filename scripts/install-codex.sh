@@ -154,6 +154,54 @@ codex_args() {
       arg_line='s/^Argument:.*/Argument: EPIC=<name-or-path> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]/'
       body_repl='s/\$ARGUMENTS/EPIC/g'
       ;;
+    openspec-archive)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug>/'
+      body_repl='s/\$ARGUMENTS/INITIATIVE and STORY/g'
+      ;;
+    openspec-epic-plan)
+      arg_line='s/^Argument:.*/Argument: [SLUG=<slug>]/'
+      body_repl='s/\$ARGUMENTS/SLUG/g'
+      ;;
+    openspec-feedback)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]/'
+      body_repl='s/\$ARGUMENTS/INITIATIVE/g'
+      ;;
+    openspec-story-claim)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"].../'
+      body_repl='s/\$ARGUMENTS/INITIATIVE and STORY/g'
+      ;;
+    openspec-story-resume)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"].../'
+      body_repl='s/\$ARGUMENTS/INITIATIVE and STORY/g'
+      ;;
+    openspec-story-review)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug> [WORKTREE="<basename>=<path>"].../'
+      body_repl='s/\$ARGUMENTS/INITIATIVE and STORY/g'
+      ;;
+    openspec-story-converge)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"].../'
+      body_repl='s/\$ARGUMENTS/INITIATIVE and STORY/g'
+      ;;
+    openspec-story-plan)
+      arg_line='s/^Argument:.*/Argument: [INITIATIVE=<slug>]/'
+      body_repl='s/\$ARGUMENTS/INITIATIVE/g'
+      ;;
+    openspec-story-plan-resume)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug>/'
+      body_repl='s/\$ARGUMENTS/INITIATIVE and STORY/g'
+      ;;
+    openspec-story-plan-review)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug>/'
+      body_repl='s/\$ARGUMENTS/INITIATIVE and STORY/g'
+      ;;
+    openspec-story-plan-converge)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5]/'
+      body_repl='s/\$ARGUMENTS/INITIATIVE and STORY/g'
+      ;;
+    openspec-story-pr)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug> [<pr_url_or_OPEN=true>]/'
+      body_repl='s/\$ARGUMENTS/INITIATIVE and STORY/g'
+      ;;
     merge-conflict-analysis)
       # Already key-value pairs — keep the original line structure, just drop
       # the Claude-specific \$ARGUMENTS wrapper token.

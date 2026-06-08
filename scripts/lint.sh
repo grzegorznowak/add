@@ -273,15 +273,15 @@ for cn in "${CLAUDE_NAMES[@]:-}"; do
   claude_md="$CLAUDE_SKILLS/$cn/SKILL.md"
   codex_md="$CODEX_SKILLS/$expected_codex/SKILL.md"
   [[ -f "$codex_md" ]] || continue
-  if grep -q '^## Shared Research Board Input$' "$claude_md"; then
-    if grep -q '^## Shared Research Board Input$' "$codex_md"; then
+  if grep -qE '^###+ Shared Research Board Input$' "$claude_md"; then
+    if grep -qE '^###+ Shared Research Board Input$' "$codex_md"; then
       ok "codex: $expected_codex preserves Shared Research Board Input"
     else
       fail "$expected_codex: missing generated Codex Shared Research Board Input section"
     fi
   fi
 done
-if grep -Rl '^## Shared Research Board Input$' "$PI_SKILLS" 2>/dev/null; then
+if grep -RlE '^###+ Shared Research Board Input$' "$PI_SKILLS" 2>/dev/null; then
   fail "generated pi skills still contain Shared Research Board Input section"
 else
   ok "pi: no Shared Research Board Input"

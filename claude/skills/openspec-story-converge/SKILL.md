@@ -63,16 +63,17 @@ Use the `Status:` and `Plan:` header fields in `<story_file>` as the authoritati
 
 Allowed starting states:
 
-- `Status:` is absent, unset, or `⬜ TODO` only when the story is plan-approved and the `## Current Claim` section in `<progress_file>` does not exist or is empty.
+- `Status:` is absent, unset, `⬜ TODO`, or `⚪ TODO` only when the story is plan-approved and the `## Current Claim` section in `<progress_file>` does not exist or is empty.
 - `Status: 🔄 IN PROGRESS` only when `Plan:` is `🟢 PLAN APPROVED`.
 - `Status: 🟣 IN REVIEW` only when `Plan:` is `🟢 PLAN APPROVED`.
 - `Status: 🔵 IN PR` only when `<progress_file> → ## PR State` shows PR review is requesting changes and `Plan:` is `🟢 PLAN APPROVED`.
-- `Status: ✅ DONE`, which stops immediately as already converged.
+- `Status: ✅ DONE` only when durable evidence shows independent completion authority: either the latest relevant `<reviews_file>` entry approves with risk-lens/finding-closure evidence, or `<progress_file> → ## PR State` shows `PR status: merged` with a merge commit or explicit merged timestamp.
 
 Reject with a precise next action:
 
 - Any non-DONE story whose `Plan:` header field exists and is not `🟢 PLAN APPROVED`: use `/openspec-story-plan-converge <initiative> <story-slug>`.
-- `Status:` absent or `⬜ TODO` with `## Current Claim` already present in `<progress_file>`: status drift; ask the operator to resolve before converging.
+- `Status:` absent, `⬜ TODO`, or `⚪ TODO` with `## Current Claim` already present in `<progress_file>`: status drift; ask the operator to resolve before converging.
+- `Status: ✅ DONE` without durable review approval or merged-PR evidence: status drift; ask the operator to restore `Status: 🟣 IN REVIEW` and run `/openspec-story-review <initiative> <story-slug>`, or refresh merged PR metadata with `/openspec-story-pr <initiative> <story-slug>`.
 - `Status: 🔵 IN PR` without requested changes in `<progress_file> → ## PR State`: use `/openspec-story-pr <initiative> <story-slug>` for PR refresh or merge-state handling.
 - `Status: ⛔ BLOCKED`: blocked stories need operator unblocking before convergence.
 - `<blocked_file>` exists at `<change_dir>/blocked.md`: convergence is refused while an explicit gate file exists. The operator must remove or annotate `blocked.md` to unblock.
@@ -85,7 +86,7 @@ Run at most `MAX_CYCLES` cycles. An implementation cycle is one opportunity to g
 
 Before each subagent launch, build the command line from the current status:
 
-- `Status:` absent/unset or `⬜ TODO` and plan-approved: `/openspec-story-claim <initiative> <story-slug> [WORKTREE=...]`.
+- `Status:` absent/unset, `⬜ TODO`, or `⚪ TODO` and plan-approved: `/openspec-story-claim <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🔄 IN PROGRESS`: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🟣 IN REVIEW`: `/openspec-story-review <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🔵 IN PR` with requested changes: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`.
@@ -122,7 +123,7 @@ For each cycle:
 10. If a review pass returns `approve`, confirm the latest entry in `<reviews_file>` records risk-lens review and finding closure (or explicit `none material`) before stopping successfully. If approval lacks that evidence, launch one fresh review child focused on risk-lens closure instead of accepting chat output alone. Local approval is convergence even when the story remains `Status: 🟣 IN REVIEW` because the optional PR stage is next. Report this as `APPROVED`, not `DONE`, unless the authoritative final status is already `✅ DONE`.
 11. If a review pass returns `request_changes` or `not_reviewable`, the same cycle may launch one fresh `/openspec-story-resume` corrective pass, then the next cycle starts with a fresh review when ready. If the finding exposes a new risk lens, ensure the resume child treats that lens as part of the acceptance/proof closure or routes back to planning.
 12. If any pass moves the story to `Status: ⛔ BLOCKED`, stop.
-13. If any pass moves the story to `Status: ✅ DONE`, stop successfully.
+13. If any pass moves the story to `Status: ✅ DONE`, stop successfully only after re-checking durable authority in `<reviews_file>` or merged `<progress_file> → ## PR State` as described in the eligibility gate. If DONE lacks that evidence, treat it as status drift, stop, and route to `/openspec-story-review` or `/openspec-story-pr` refresh instead of accepting subagent chat output.
 14. If `<blocked_file>` appears in `<change_dir>` at any point during the convergence run, stop immediately.
 15. Run the no-progress gate before starting the next cycle.
 
