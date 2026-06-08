@@ -51,7 +51,7 @@ Walk the operator through each section below in order. For every question:
 (Skip if `SLUG` was passed as an argument — use it as the slug and confirm the human title in the drafting step.)
 
 Ask for:
-- A short hyphenated slug (directory name) — e.g. `auth-service`, `telemetry-v2`.
+- A short hyphenated slug (directory name) — e.g. `auth-service`, `telemetry-v2`. Must match `[a-z0-9][a-z0-9-]+` — reject slugs with path separators (`/`, `..`), spaces, or non-slug characters.
 - A human-readable title — e.g. "Auth service refactor", "Telemetry v2 pipeline".
 
 Probe existing initiatives for collisions. If the proposed slug matches an existing one, push back.

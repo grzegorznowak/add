@@ -203,6 +203,10 @@ Show the operator:
 
 **CHECKPOINT**: explicit y/n before writing.
 
+## Collision check
+
+Re-verify that `<workspace_root>/openspec/changes/<story-slug>/` does not exist. If it does, abort with recovery hints.
+
 ## Write
 
 1. Create `<workspace_root>/openspec/changes/<story-slug>/`.
