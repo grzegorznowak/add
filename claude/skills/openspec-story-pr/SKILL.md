@@ -281,7 +281,7 @@ When `gh pr view` is available, derive the progress `PR status` from the enriche
 4. Else if `reviewDecision` is `APPROVED`, set `PR status: approved`.
 5. Else set `PR status: open`.
 
-If `gh` is unavailable in attach mode, record the supplied URL and any user-provided fields, set unavailable fields to `unavailable` or `—`, and do not transition to `✅ DONE` unless the operator explicitly supplies merged-state evidence and a merge commit.
+If `gh` is unavailable in attach mode, record the supplied URL and any user-provided fields, set unavailable fields to `unavailable` or `—`, and do not transition to `✅ DONE` unless the operator explicitly supplies merged-state evidence, a merge commit, **and** a merged-at timestamp. When any of these three is missing, leave the story at its current status and tell the operator to provide the missing evidence or rerun with `gh` available.
 
 ### Progress Timeline entry
 
@@ -329,7 +329,7 @@ There is no `MASTER.md` and no tracker table in this flow. All status updates go
 ## Rules
 
 1. **Use the PR description inclusion boundary above.** The PR body is a product contract for reviewers, not an implementation diary.
-2. **Never mark a story `✅ DONE` from this flow unless the PR is actually merged.** Merged means enriched `gh pr view` data has `state: MERGED` or a non-empty `mergedAt`, or the user explicitly states so with a merge commit.
+2. **Never mark a story `✅ DONE` from this flow unless the PR is actually merged and durable evidence is complete.** Merged means enriched `gh pr view` data has `state: MERGED` or a non-empty `mergedAt`, **plus** a populated merge commit and merged-at timestamp. When `gh` is unavailable, the operator must supply merged-state evidence, a merge commit, and a merged-at timestamp — all three.
 3. **Never touch product code in this flow.** It is a coordination-only transition (except for the optional `gh pr create` call in open mode).
 4. **Never archive a `🔵 IN PR` story.** `/openspec-archive` requires DONE.
 5. **Never skip the progress.md write-back.** The PR URL is the only durable link between the change workspace and the GitHub review.

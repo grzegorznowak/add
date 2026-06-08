@@ -53,7 +53,8 @@ There is no `MASTER.md`, no tracker table, no step/number row, and no implementa
 
 Before starting the loop, abort with a clear next action if any condition is true:
 
-- The `Plan:` header field is `🟢 PLAN APPROVED` and there are no unresolved `## Plan Review Log` findings: stop successfully; planning is already complete.
+- The `Plan:` header field is `🟢 PLAN APPROVED` and there are no unresolved `## Plan Review Log` findings **and** the `## Plan Review Log` contains at least one entry with `Verdict: approve` (or a legacy equivalent) from an independent `/openspec-story-plan-review` pass: stop successfully; planning is already complete.
+- The `Plan:` header field is `🟢 PLAN APPROVED` but `## Plan Review Log` is empty or lacks an approve entry: treat as orphaned approval. Set `Plan:` to `🟠 PLAN CHANGES REQUESTED` and route through the normal review cycle.
 - The `Plan:` header field is `⛔ PLAN BLOCKED`: stop with blocked status. The operator must resolve the blocker before convergence can proceed.
 - A `blocked.md` file exists at `<change_dir>/blocked.md`: stop immediately. Convergence is refused while an explicit gate file exists. The operator must remove or annotate `blocked.md` to unblock.
 - The story is missing the `/openspec-story-plan` scaffold shape expected by `/openspec-story-plan-review` (no `proposal.md`, no `story.md` with required spec sections, or no `design.md` / `tasks.md`).

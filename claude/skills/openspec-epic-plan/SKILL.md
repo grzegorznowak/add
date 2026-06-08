@@ -48,7 +48,7 @@ Walk the operator through each section below in order. For every question:
 
 ### Question 1 — Initiative slug and human title
 
-(Skip if `SLUG` was passed as an argument — use it as the slug and confirm the human title in the drafting step.)
+(Skip if `SLUG` was passed as an argument — validate it against the slug rule below, then use it as the slug and confirm the human title in the drafting step.)
 
 Ask for:
 - A short hyphenated slug (directory name) — e.g. `auth-service`, `telemetry-v2`. Must match `[a-z0-9][a-z0-9-]+` — reject slugs with path separators (`/`, `..`), spaces, or non-slug characters.

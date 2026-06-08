@@ -62,6 +62,7 @@ Feedback often spans several stories. Selecting a story before classification re
 4. Determine intake mode:
    - **PR pointer mode** when a PR URL is present.
    - **Payload mode** when pasted feedback or a feedback file is present.
+     If the remaining argument resolves to a readable file path, ask the operator: `Read <path> as feedback source? [y/N]` before reading. If declined, treat the path as literal feedback text instead.
    - If neither is present, ask the operator to paste feedback or pass `--pr <pr-url>`.
 
 ## Phase 1 — Gather feedback sources
