@@ -3,7 +3,7 @@ name: epic-story-plan-review
 description: Review a story's planning contract at any lifecycle point — validate Purpose / Actors / Scenarios / Acceptance / Verification / Critical Files / Locked Decisions against original intent, the live repo, and traceability gaps, then record a Plan Review verdict in the Plan lane.
 disable-model-invocation: true
 argument-hint: "<epic-name> <story-number-or-spec-file>"
-allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git log:*) Bash(git show:*) Bash(gh issue view:*) Bash(gh pr view:*) Bash(gh api:*) Bash(jira issue view:*)
+allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git log:*) Bash(git show:*) Bash(gh issue view:*) Bash(gh pr view:*) Bash(jira issue view:*)
 ---
 
 # Epic Story Plan Review
@@ -227,6 +227,7 @@ Append or create a `## Plan Review Log` section on the story file with a new ent
   - Code surfaces searched: <paths/patterns/entrypoints or none beyond Critical Files>
   - Risk lenses reviewed: <activated lenses and exclusions, or none material>
   - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
+  - Finding closure: <disposition + fix proof + regression/side-effect check, or none>
   - Key findings:
     - <short bullet>
     - <short bullet>
