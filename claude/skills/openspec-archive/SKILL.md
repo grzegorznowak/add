@@ -51,16 +51,14 @@ If `<blocked_file>` exists at `<change_dir>/blocked.md`, abort with: `Story has 
 
 ### Check B — PR State (PR must be merged)
 
-Read `<progress_file>` and look for the `## PR State` section. If it is absent or has no `- PR URL:` line, this means the story never went through a PR stage. Ask the operator: `No PR State found for <story-slug>. Archive without PR stage? [y/N]`. If the operator declines, abort with: `Archive deferred. Run /openspec-story-pr to create a PR, or re-run /openspec-archive and confirm no-PR-archive.`
+Read `<progress_file>` and look for the `## PR State` section. Extract the `- PR URL:` value, trimming whitespace. If the section is absent, the `- PR URL:` line is absent, or the value is blank/placeholder (`<empty>`, `—`, `none`, or a template `<...>` value), this means there is no durable PR binding. Ask the operator: `No PR State found for <story-slug>. Archive without PR stage? [y/N]`. If the operator declines, abort with: `Archive deferred. Run /openspec-story-pr to create a PR, or re-run /openspec-archive and confirm no-PR-archive.`
 
-**If `## PR State` is present and has a `- PR URL:` line:**
+**If `## PR State` has a non-empty `- PR URL:` value:**
 
-- Read the `- PR status:` field.
-- If `PR status: merged` with a populated `- Merge commit:` (SHA, not `—`) and a populated `- Merged at:` (ISO timestamp, not `—`), the PR check passes. Continue to Check C. If either field is missing or placeholder, abort with: `PR status claims merged but merge commit or merged timestamp is missing. Run /openspec-story-pr <initiative-slug> <story-slug> <pr_url> to resync, then re-archive.`
-- If `PR status:` is `open`, `changes_requested`, or `approved` (not yet merged), abort with: `PR is not merged (status: <status>). Wait for the PR to be merged and re-run /openspec-story-pr to sync state, then re-archive.`
-- If `PR status: closed` (unmerged), abort with: `PR was closed without merging. Reopen or create a new PR, merge it, sync with /openspec-story-pr, then re-archive.`
-- If `- PR status:` is missing but `- PR URL:` is present, try to enrich with `gh pr view <url> --json state,mergedAt,mergeCommit` if available. If `gh` is unavailable or the PR is not merged, abort and ask the operator to confirm the PR state manually.
-- If `gh` enrichment confirms merged, populate `- PR status: merged`, `- Merge commit:` from `mergeCommit.oid` (or operator input), and `- Merged at:` from `mergedAt`. If merge commit remains unavailable after enrichment, abort with the same resync hint as the normal merged path.
+- Do not trust cached local `PR status`, `Merge commit`, or `Merged at` fields as merge evidence by themselves. Before passing the PR gate, run `gh pr view <url> --json state,mergedAt,mergeCommit` and use the live GitHub response as the authority.
+- If `gh` is unavailable, the command fails, the PR cannot be read, or GitHub reports any non-merged state, abort with: `PR is not confirmed merged from GitHub. Run /openspec-story-pr <initiative-slug> <story-slug> <pr_url> to resync, then re-archive.` Include the observed state/error in the report.
+- If GitHub confirms the PR is merged but `mergeCommit.oid` or `mergedAt` is missing, abort with the same resync hint; archive requires both a non-placeholder merge commit and a non-placeholder merged timestamp.
+- If GitHub confirms merged with complete evidence, refresh/populate `## PR State` in `<progress_file>` so `- PR status: merged`, `- Merge commit:` (from `mergeCommit.oid`), `- Merged at:` (from `mergedAt`), and `- Last synced:` reflect the live response before continuing.
 
 ### Check C — Review approval
 

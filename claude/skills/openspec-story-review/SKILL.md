@@ -125,16 +125,19 @@ After reading `progress.md`'s `## Current Claim`, build `<project_root_map>` fro
 
    Validation:
    - Mixing both forms (some `WORKTREE=` with `=`, some without) is an error: abort with "mix of `WORKTREE=\"path\"` and `WORKTREE=\"basename=path\"` forms is not allowed; use one or the other".
-   - If `<legacy_worktree>` is set, defer its application until `<target_repos>` is computed in step 4; it is only valid when exactly one `<target_repo>` is discovered.
+   - If `<legacy_worktree>` is set, defer its application until `<target_repos>` is computed in step 5; it is only valid when exactly one `<target_repo>` is discovered.
 
-4. **Compute `<story-slug>` and `<target_repos>`**:
+4. **Read `Main-tree targets:` from `## Current Claim` in `progress.md`**. Parse `progress.md` for a `- Main-tree targets:` bullet under `## Current Claim`. Split its value on commas and trim whitespace to produce `<main_tree_targets>` — a set of repo basenames that the implementer explicitly wrote to on the main tree (no worktree). If the bullet is absent, `<main_tree_targets>` is empty.
+
+5. **Compute `<story-slug>` and `<target_repos>`**:
    - `<story-slug>` is the second positional argument, already resolved.
-   - If `<recorded_worktree_map>` is non-empty, build `<target_repos>` from its basenames: for each `<basename>`, resolve to `<workspace_root>/projects/<basename>` if `<workspace_root>/projects/<basename>/.git` exists, or to `<workspace_root>` if `<basename>` matches `basename(<workspace_root>)` AND `<workspace_root>` is itself a git repo.
-   - Else fall back to parsing `story.md`'s `## Scope` section: parse for `projects/[A-Za-z0-9_-]+/` tokens, intersect with real `<workspace_root>/projects/<name>/.git` repos, additionally include `<workspace_root>` if it is itself a git repo.
+   - Initialize `<target_repos>` as empty.
+   - For every basename in the union of `<recorded_worktree_map>` keys, `<explicit_worktree_map>` keys, and `<main_tree_targets>`, resolve the repo to `<workspace_root>/projects/<basename>` if `<workspace_root>/projects/<basename>/.git` exists, or to `<workspace_root>` if `<basename>` matches `basename(<workspace_root>)` AND `<workspace_root>` is itself a git repo. Add each resolved repo to `<target_repos>`. If any recorded/explicit/main-tree basename cannot be resolved, abort with "claimed target `<basename>` cannot be matched to any repo on disk".
+   - If `<target_repos>` is still empty, fall back to parsing `story.md`'s `## Scope` section: parse for `projects/[A-Za-z0-9_-]+/` tokens, intersect with real `<workspace_root>/projects/<name>/.git` repos, additionally include `<workspace_root>` if it is itself a git repo.
 
    If `<legacy_worktree>` is set (from step 3), it is now applied: `<explicit_worktree_map>[basename(<sole_target_repo>)]` = `<legacy_worktree>` if `<target_repos>` has exactly one element, otherwise abort with "`WORKTREE=\"<path>\"` requires exactly one target repo; found N (basenames: ...). Pass `WORKTREE=\"<basename>=<path>\"` form to specify which repo".
 
-5. **Build `<project_root_map>` from recorded + explicit entries**. Initialize empty. For each `<basename>` in the union of `<recorded_worktree_map>` keys and `<explicit_worktree_map>` keys:
+6. **Build `<project_root_map>` from recorded + explicit entries**. Initialize empty. For each `<basename>` in the union of `<recorded_worktree_map>` keys and `<explicit_worktree_map>` keys:
    - Effective path = `<explicit_worktree_map>[<basename>]` if present (explicit wins for the overridden basename only), else `<recorded_worktree_map>[<basename>]`.
    - Resolve `<target_repo>` for `<basename>`: `<workspace_root>/projects/<basename>` if `<basename>` resolves to a sub-repo, else `<workspace_root>` if it matches `basename(<workspace_root>)`. If neither, abort with "claimed worktree for `<basename>` cannot be matched to any repo on disk".
    - Verify the effective path exists on disk AND appears in `git -C <target_repo> worktree list --porcelain`.
@@ -142,9 +145,7 @@ After reading `progress.md`'s `## Current Claim`, build `<project_root_map>` fro
    - On any verification failure: abort with "worktree for `<basename>` is missing, unregistered, or on the wrong branch: <verbatim detail>. Clean the main tree and retry, ask the implementer to `/openspec-story-resume` (which recreates stale worktrees), or pass `WORKTREE=\"<basename>=<path>\"` explicitly". **Never create a worktree in review.**
    - On success: `<project_root_map>[<basename>]` = effective path.
 
-6. **Read `Main-tree targets:` from `## Current Claim` in `progress.md`**. Parse `progress.md` for a `- Main-tree targets:` bullet under `## Current Claim`. Split its value on commas and trim whitespace to produce `<main_tree_targets>` — a set of repo basenames that the implementer explicitly wrote to on the main tree (no worktree). If the bullet is absent, `<main_tree_targets>` is empty.
-
-7. **Handle scope-scan repos not in any map**. For each `<target_repo>` from step 4 whose basename is NOT yet in `<project_root_map>`:
+7. **Handle target repos not in any worktree map**. For each `<target_repo>` from step 5 whose basename is NOT yet in `<project_root_map>`:
    - `<project_root_map>[<basename>]` = `<target_repo>` (main tree).
    - If `<basename>` is in `<main_tree_targets>`: the implementer recorded that this repo was written to directly on main. If the main tree is dirty, emit a note: "reviewing `<basename>` on main tree (recorded as a main-tree target by the implementer)". If clean, no note needed. Either way, review proceeds.
    - Else if `<main_tree_targets>` is empty (legacy claim predating this bullet): fall back to accepting the main tree regardless of dirtiness. If dirty, emit a note: "reviewing `<basename>` on dirty main tree (no `Main-tree targets:` bullet in claim — assuming implementation was done directly on main)". Review proceeds.

@@ -67,7 +67,7 @@ Allowed starting states:
 - `Status: 🔄 IN PROGRESS` only when `Plan:` is `🟢 PLAN APPROVED`.
 - `Status: 🟣 IN REVIEW` only when `Plan:` is `🟢 PLAN APPROVED`.
 - `Status: 🔵 IN PR` only when `<progress_file> → ## PR State` shows PR review is requesting changes and `Plan:` is `🟢 PLAN APPROVED`.
-- `Status: ✅ DONE` only when durable evidence shows independent completion authority: either the latest relevant `<reviews_file>` entry approves with risk-lens/finding-closure evidence, or `<progress_file> → ## PR State` shows `PR status: merged` with a merge commit or explicit merged timestamp.
+- `Status: ✅ DONE` only when durable evidence shows independent completion authority: either the latest relevant `<reviews_file>` entry approves with risk-lens/finding-closure evidence, or `<progress_file> → ## PR State` shows `PR status: merged` with both a populated merge commit and a populated merged-at timestamp.
 
 Reject with a precise next action:
 

@@ -301,10 +301,10 @@ Update the `Status:` header field in `<story_file>` with the same status being w
 |------|--------|
 | `🟣 IN REVIEW` | set `Status:` to `🔵 IN PR` |
 | `🔵 IN PR` (refresh, PR still open) | leave `Status:` at `🔵 IN PR` |
-| `🔵 IN PR` (PR merged) | set `Status:` to `✅ DONE` |
+| `🔵 IN PR` (PR merged with complete durable evidence) | set `Status:` to `✅ DONE` |
 | `🔵 IN PR` (PR requests code changes) | set `Status:` to `🔄 IN PROGRESS` |
 | `✅ DONE` (explicit, non-archived, PR still open) | set `Status:` to `🔵 IN PR` |
-| `✅ DONE` (explicit, non-archived, PR merged) | leave `Status:` at `✅ DONE` |
+| `✅ DONE` (explicit, non-archived, PR merged with complete durable evidence) | leave `Status:` at `✅ DONE` |
 
 If the `Status:` header field is missing or ambiguous, abort with: `story.md has no parseable Status: header. Cannot update status.`
 
@@ -312,7 +312,8 @@ If the `Status:` header field is missing or ambiguous, abort with: `story.md has
 
 If the story is already `🔵 IN PR` and the user reinvokes this flow, treat it as a refresh:
 - Re-query `gh pr view --json number,title,headRefName,state,url,body,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` if available and update `## PR State → PR status`, `Review decision`, `Merge commit`, `Merged at`, and `Last synced`
-- If `PR status` is now `merged`, transition the story to `✅ DONE`
+- If `PR status` is now `merged` and the refreshed state has both a populated `Merge commit:` and a populated `Merged at:`, transition the story to `✅ DONE`
+- If `PR status` is now `merged` but merge commit or merged-at evidence is missing, leave the story at `🔵 IN PR`, report the missing durable evidence, and tell the user to rerun `/openspec-story-pr` with `gh` available or provide the missing evidence explicitly
 - If `PR status` is `changes_requested` or the reviewer requested code changes, transition the story back to `🔄 IN PROGRESS` and record the reason in `## Progress Timeline`. Tell the user to rerun `/openspec-story-resume` to address the feedback.
 - Otherwise leave the story at `🔵 IN PR` and update `Last synced`
 

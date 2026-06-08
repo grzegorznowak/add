@@ -28,6 +28,7 @@ This command writes planning artifacts under `openspec/changes/<story-slug>/` af
 
 1. Parse `$ARGUMENTS` — extract `INITIATIVE` if present.
 2. If `INITIATIVE` was provided:
+   - Validate `<slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$`; if not, abort with: `invalid initiative slug; use lowercase hyphenated slug characters only`.
    - Resolve `<workspace_root>/openspec/initiatives/<slug>/initiative.md`.
    - If missing, abort with: `initiative not found; run /openspec-epic-plan first`.
 3. If `INITIATIVE` was not provided:
@@ -35,6 +36,7 @@ This command writes planning artifacts under `openspec/changes/<story-slug>/` af
    - Show: `<slug> — <title>`. If none, abort with: `no initiatives found; run /openspec-epic-plan first`.
    - Ask: `Pick an initiative (number or slug):`.
    - Set `INITIATIVE` accordingly.
+   - Validate the selected `<slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$`; if not, abort with: `invalid initiative slug; run /openspec-epic-plan with a path-safe slug`.
 
 ## Read first
 
@@ -66,7 +68,7 @@ Walk the operator through each question in order. For every question:
 
 ### Question 1 — Story slug
 
-Ask for the change workspace's short hyphenated slug, e.g. `refresh-token-issuance`. Check for collisions under `openspec/changes/` and `openspec/changes/archive/`. If the slug collides, push back.
+Ask for the change workspace's short hyphenated slug, e.g. `refresh-token-issuance`. Require the slug to match `^[a-z0-9]+(?:-[a-z0-9]+)*$`; reject empty values, uppercase letters, underscores, dots, path separators (`/` or `..`), whitespace, leading/trailing hyphens, and repeated hyphens. Check for collisions under `openspec/changes/` and `openspec/changes/archive/`. If the slug collides, push back.
 
 ### Question 2 — Proposal / Purpose
 
@@ -176,7 +178,7 @@ Delta specs for each capability domain when provided.
 
 Before the checkpoint:
 
-1. Verify the change slug does not collide with any existing workspace under `openspec/changes/` or `openspec/changes/archive/`.
+1. Verify the change slug matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` and does not collide with any existing workspace under `openspec/changes/` or `openspec/changes/archive/`.
 2. Validate the proof contract:
    - `## Actors` has role bullets with at least one `Primary:` actor
    - Every normative `S<n>` scenario has exactly one `Covers: A<n>`, every orientation-only scenario says `Orientation only`
@@ -205,7 +207,7 @@ Show the operator:
 
 ## Collision check
 
-Re-verify that `<workspace_root>/openspec/changes/<story-slug>/` does not exist. If it does, abort with recovery hints.
+Re-verify that `<story-slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` and that `<workspace_root>/openspec/changes/<story-slug>/` does not exist. If the slug is invalid or the workspace exists, abort with recovery hints.
 
 ## Write
 

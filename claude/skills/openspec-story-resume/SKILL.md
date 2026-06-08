@@ -70,6 +70,23 @@ Prioritize the resume intent from these sources (in order):
 
 Report the resolved resume intent to the operator before proceeding.
 
+### 0.4 Pre-write Eligibility Gates
+
+These gates must pass before Phase 1 worktree checks, Phase 2 claim refresh, any `progress.md` write, or implementation work. If any gate fails, halt without updating `progress.md → ## Current Claim` or appending to `## Progress Timeline`.
+
+#### Plan Approval Check
+
+1. Read `story.md → Plan:` header.
+2. If `Plan: 🟢 PLAN APPROVED`, proceed.
+3. If the `Plan:` header is missing or any other value (`🟡 PLAN DRAFT`, `🟣 PLAN IN REVIEW`, `🟠 PLAN CHANGES REQUESTED`, `⛔ PLAN BLOCKED`, or an unknown legacy value), halt. Report that implementation cannot proceed without plan approval and recommend `/openspec-story-plan-converge <initiative-slug> <story-slug>`.
+
+#### Blocker Check
+
+1. If `blocked.md` exists in the change workspace, read it and halt with the blocker message.
+2. If `story.md → Status:` contains `⛔ BLOCKED`, halt with the status message.
+3. If `progress.md → ## Session Handoff → Status:` contains `⛔ BLOCKED`, halt.
+4. If any of these conditions are true, report the blocker and halt.
+
 ## Phase 1 — Worktree Preflight
 
 ### 1.1 Resolve Worktrees
@@ -148,24 +165,11 @@ Omit `- Worktrees:` when no worktrees are resolved. Omit `- Main-tree targets:` 
 
 ## Phase 3 — Implementation
 
-### 3.1 Plan Approval Check
+### 3.1 Gate Reconfirmation
 
-Before implementing, verify the plan is approved:
+Before implementing, confirm the pre-write eligibility gates from Phase 0.4 already passed in this run. If `story.md`, `progress.md`, or `blocked.md` changed after Phase 0.4, repeat the Plan Approval and Blocker checks before reading or writing implementation surfaces. Do not refresh `progress.md`, continue implementation, or mutate code when the plan is unapproved or a blocker signal is present.
 
-1. Read `story.md → Plan:` header.
-2. If `Plan: 🟢 PLAN APPROVED`, proceed.
-3. If the `Plan:` header is missing or any other value (`🟡 PLAN DRAFT`, `🟣 PLAN IN REVIEW`, `🟠 PLAN CHANGES REQUESTED`, `⛔ PLAN BLOCKED`, or an unknown legacy value), halt. Report that implementation cannot proceed without plan approval and recommend `/openspec-story-plan-converge <initiative-slug> <story-slug>`.
-
-### 3.2 Blocker Check
-
-Check for blocker signals:
-
-1. If `blocked.md` exists in the change workspace, read it and halt with the blocker message.
-2. If `story.md → Status:` contains `⛔ BLOCKED`, halt with the status message.
-3. If `progress.md → ## Session Handoff → Status:` contains `⛔ BLOCKED`, halt.
-4. If any of these conditions are true, report the blocker and halt.
-
-### 3.3 Implementation Proof Preflight (READ BEFORE CODE)
+### 3.2 Implementation Proof Preflight (READ BEFORE CODE)
 
 Before writing any code, establish the implementation proof baseline:
 
@@ -176,7 +180,7 @@ Before writing any code, establish the implementation proof baseline:
 
 This proof must be stated explicitly to the operator before any code change.
 
-### 3.4 Execution Rules
+### 3.3 Execution Rules
 
 #### RED FIRST
 
@@ -214,7 +218,7 @@ As tasks from `tasks.md` are completed, mark them as checked:
 
 **Only one implementation session per change workspace at a time.** Before beginning Phase 3, confirm there is no other active session for this change. If `progress.md → ## Current Claim` was updated very recently (within the last 2 minutes) by a different agent, halt and report potential parallelism conflict.
 
-### 3.5 Status Transitions
+### 3.4 Status Transitions
 
 The agent may transition the change status through these states:
 
@@ -232,7 +236,7 @@ Status transitions update both:
 1. `story.md → Status:` header
 2. `progress.md → ## Session Handoff → Status:`
 
-### 3.6 Default Behavior Rule
+### 3.5 Default Behavior Rule
 
 The agent's default behavior on resume is:
 1. **Resume at `IN PROGRESS`** — Continue implementing remaining tasks.
