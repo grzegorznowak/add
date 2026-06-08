@@ -63,19 +63,28 @@ Read `<progress_file>` and look for the `## PR State` section. Extract the `- PR
 
 ### Check C — Review approval
 
-Read `<reviews_file>`. Find the latest review entry (the last entry in the file, since reviews are append-only). For the latest entry, read the `Decision:` field:
+Read `<reviews_file>`. If it does not exist, abort with: `No completed review found. Run /openspec-story-review <initiative-slug> <story-slug> to get a final review before archiving.` Find the latest review entry (the last entry in the file, since reviews are append-only). For the latest entry, read both the `Decision:` field and the `Approval gate:` field. The review check passes only when the latest entry records both `Decision: approve` and `Approval gate: pass`.
 
-- If `Decision: approve`, the review check passes. Continue to Check D.
+- If `Decision: approve` and `Approval gate: pass`, the review check passes. Continue to Check D.
+- If `Decision: approve` but `Approval gate:` is missing or any value other than `pass`, abort with: `Latest review approves but its approval gate is not pass. Rerun /openspec-story-review <initiative-slug> <story-slug> so approval evidence is complete before archiving.`
 - If `Decision: request_changes`, abort with: `Latest review requests changes. Run /openspec-story-resume to address findings, then /openspec-story-review before re-archiving.`
 - If `Decision: blocked`, abort with: `Story is blocked by review. Resolve blocker and re-review before archiving.`
 - If `Decision: not_reviewable`, abort with: `Latest review found the story not reviewable. Fix reviewability issues and re-review before archiving.`
-- If `Decision:` is missing or `<reviews_file>` does not exist, abort with: `No completed review found. Run /openspec-story-review <initiative-slug> <story-slug> to get a final review before archiving.`
+- If `Decision:` is missing, abort with: `No completed review found. Run /openspec-story-review <initiative-slug> <story-slug> to get a final review before archiving.`
 
 ### Check D — Tasks completeness
 
 If `<tasks_file>` does not exist, abort with: `tasks.md is required implementation evidence for archiving. Restore or create openspec/changes/<story-slug>/tasks.md and ensure every task is checked or explicitly skipped/deferred with a note.`
 
-Read `<tasks_file>`. Collect all checkbox lines (lines matching `- [ ]`). If any unchecked tasks remain:
+Read `<tasks_file>`. If it is empty or whitespace-only, abort with: `tasks.md is empty. Add the implementation task checklist and complete or explicitly skip/defer each task before archiving.`
+
+Validate the task checklist shape before checking completion:
+
+- Collect valid checkbox task lines matching `- [ ] <task description>` or `- [x] <task description>` / `- [X] <task description>` with a non-empty description.
+- Treat malformed checkbox-like task lines as a hard error, including `- []`, `- [x]` with no description, or any `- [<marker>]` marker other than space, `x`, or `X`. Abort with: `tasks.md contains malformed task checkbox lines:<list>. Use '- [ ] <task>' for incomplete tasks or '- [x] <task>' for completed/skipped/deferred tasks with a note.`
+- If no valid checkbox task lines exist, abort with: `tasks.md contains no valid task checkbox evidence. Add implementation tasks and complete or explicitly skip/defer each one before archiving.`
+
+If any valid unchecked tasks remain:
 
 - List each unchecked task as `- [ ] <task description>`.
 - Abort with: `<n> unchecked task(s) remain in tasks.md:<list>. Complete all tasks before archiving, or mark them as explicitly skipped/deferred with a note.`
@@ -88,8 +97,8 @@ If all four checks pass, print a summary gate report:
 Pre-flight checks passed for <story-slug>:
 - [x] blocked.md: not present
 - [x] PR State: merged (or confirmed no-PR)
-- [x] Review: approved
-- [x] Tasks: tasks.md present and all tasks checked or explicitly skipped/deferred
+- [x] Review: approved and approval gate passed
+- [x] Tasks: tasks.md present with valid checked/skipped/deferred task evidence
 Proceeding to archive...
 ```
 

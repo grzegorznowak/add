@@ -87,13 +87,16 @@ After the story is resolved, decide whether this is an attach (existing PR) or o
 3. **Branch-based PR lookup.**
    - Inside the detected project repo, run `git rev-parse --abbrev-ref HEAD` to get the current branch.
    - If the branch is the repo's default branch, skip to step 4 (operating directly on `main`/`master` is not how PRs are opened).
-   - Otherwise run `gh pr list --head <branch> --state open --json url,number,headRefName,title` from inside the project repo.
-   - If exactly one open PR is returned, print `inferred PR (from current branch <branch>): <url>` and **ask the user to confirm** before attaching. The branch may legitimately host work unrelated to this story.
-   - If multiple are returned, list each as `<number> | <title> | <url>` and ask which to attach.
+   - Otherwise run `gh pr list --head <branch> --state all --json url,number,headRefName,title,state,mergedAt,mergeCommit,closedAt,reviewDecision,latestReviews` from inside the project repo. Use all states so late PR injection can discover already merged or closed PRs instead of opening duplicates.
+   - If exactly one PR is returned, print `inferred PR (from current branch <branch>): <url> (state: <state>)` and **ask the user to confirm** before attaching. The branch may legitimately host work unrelated to this story.
+     - If the inferred PR is merged, attach/refresh it with the live merged metadata. For an explicitly selected local `✅ DONE` story, keep `Status: ✅ DONE` when merge commit and merged-at evidence are complete; do not open a duplicate PR.
+     - If the inferred PR is closed but not merged, report that closed-unmerged PR and do not silently open a duplicate. Ask whether to attach the closed PR for audit metadata or explicitly proceed with replacement OPEN mode; if the user does not choose replacement OPEN mode, abort without write-back.
+     - If the inferred PR is open, attach it normally after confirmation.
+   - If multiple PRs are returned, list each as `<number> | <state> | <title> | <url>` and ask which to attach. Highlight merged and closed-unmerged candidates; do not fall through to implicit OPEN mode until the operator explicitly rejects/ignores the existing candidates.
    - If zero are returned, fall through to step 4.
 
-4. **Fall through to OPEN mode.** If no existing PR was found by any previous step:
-   - For an explicitly selected `✅ DONE` story, treat `OPEN=true` as implicit and proceed to open mode without an extra confirmation.
+4. **Fall through to OPEN mode.** If no existing PR was found by any previous step, or the operator explicitly chose replacement OPEN mode after reviewing branch PR candidates:
+   - For an explicitly selected `✅ DONE` story, treat `OPEN=true` as implicit and proceed to open mode without an extra confirmation only when the all-state branch lookup found no existing PR, or when the operator explicitly chose replacement OPEN mode after reviewing existing branch PR candidates.
    - For all other stories, ask the user: `no existing PR found for branch <branch>. Open a new one via gh? [Y/n]`
    - If yes, proceed exactly as the existing `OPEN=true` path in "PR creation mode".
    - If no, abort with: `pass <pr_url> explicitly when one exists, or rerun with OPEN=true to open a fresh PR.`

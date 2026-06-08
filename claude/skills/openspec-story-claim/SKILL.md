@@ -170,7 +170,7 @@ Before deep implementation work:
 ```md
 ## Current Claim
 - Claimed at: <UTC ISO timestamp>
-- Claimed by: pi fresh session
+- Claimed by: $RUNTIME_NAME fresh session
 - Model: $MODEL (the exact model name used for this claim)
 - Scope: <one sentence>
 - Worktrees:

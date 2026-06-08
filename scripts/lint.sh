@@ -408,6 +408,9 @@ expect_codex_contains openspec_story_converge "the INITIATIVE, STORY, MAX_CYCLES
 expect_codex_contains openspec_story_plan_converge "the INITIATIVE, STORY, and MAX_CYCLES named variables"
 expect_codex_contains openspec_story_pr "the INITIATIVE, STORY, and PR selector named variables"
 
+expect_codex_contains openspec_story_claim "Claimed by: Codex fresh session"
+expect_codex_contains openspec_story_resume "Claimed by: Codex fresh session (resume)"
+
 echo
 if [[ $FAIL -ne 0 ]]; then
   echo "lint: FAILED"

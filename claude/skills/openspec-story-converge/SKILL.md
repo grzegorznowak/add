@@ -67,13 +67,13 @@ Allowed starting states:
 - `Status: 🔄 IN PROGRESS` only when `Plan:` is `🟢 PLAN APPROVED`.
 - `Status: 🟣 IN REVIEW` only when `Plan:` is `🟢 PLAN APPROVED`.
 - `Status: 🔵 IN PR` only when `<progress_file> → ## PR State` shows PR review is requesting changes and `Plan:` is `🟢 PLAN APPROVED`.
-- `Status: ✅ DONE` only when durable evidence shows independent completion authority: either the latest relevant `<reviews_file>` entry approves with risk-lens/finding-closure evidence, or `<progress_file> → ## PR State` shows `PR status: merged` with both a populated merge commit and a populated merged-at timestamp.
+- `Status: ✅ DONE` only when durable evidence shows independent completion authority: either the latest relevant `<reviews_file>` entry records `Decision: approve`, `Approval gate: pass`, and risk-lens/finding-closure evidence, or `<progress_file> → ## PR State` shows `PR status: merged` with both a populated merge commit and a populated merged-at timestamp.
 
 Reject with a precise next action:
 
 - Any non-DONE story whose `Plan:` header field exists and is not `🟢 PLAN APPROVED`: use `/openspec-story-plan-converge <initiative> <story-slug>`.
 - `Status:` absent, `⬜ TODO`, or `⚪ TODO` with `## Current Claim` already present in `<progress_file>`: status drift; ask the operator to resolve before converging.
-- `Status: ✅ DONE` without durable review approval or merged-PR evidence: status drift; ask the operator to restore `Status: 🟣 IN REVIEW` and run `/openspec-story-review <initiative> <story-slug>`, or refresh merged PR metadata with `/openspec-story-pr <initiative> <story-slug>`.
+- `Status: ✅ DONE` without either durable review approval with `Approval gate: pass` or merged-PR evidence: status drift; ask the operator to restore `Status: 🟣 IN REVIEW` and run `/openspec-story-review <initiative> <story-slug>`, or refresh merged PR metadata with `/openspec-story-pr <initiative> <story-slug>`.
 - `Status: 🔵 IN PR` without requested changes in `<progress_file> → ## PR State`: use `/openspec-story-pr <initiative> <story-slug>` for PR refresh or merge-state handling.
 - `Status: ⛔ BLOCKED`: blocked stories need operator unblocking before convergence.
 - `<blocked_file>` exists at `<change_dir>/blocked.md`: convergence is refused while an explicit gate file exists. The operator may edit it to record resolution notes, but must remove `blocked.md` to unblock.
@@ -90,11 +90,12 @@ Before each subagent launch, build the command line from the current status:
 - `Status: 🔄 IN PROGRESS`: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🟣 IN REVIEW`: `/openspec-story-review <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🔵 IN PR` with requested changes: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`.
+- `Status: ✅ DONE`: do not launch claim, resume, or review. Re-check the durable completion authority from the eligibility gate; if present, stop successfully with result `DONE`. If the evidence is absent or incomplete, stop as status drift and route to `/openspec-story-review <initiative> <story-slug>` or `/openspec-story-pr <initiative> <story-slug>` refresh instead of continuing the loop.
 
 For each cycle:
 
 1. Re-read `<story_file>` and `<progress_file>` before choosing the next pass.
-2. Build the exact slash command line for the chosen claim, resume, or review pass.
+2. If the current status is `✅ DONE`, execute the DONE early-return branch above before building a slash command. Otherwise build the exact slash command line for the chosen claim, resume, or review pass.
 3. If the parent session has Research Board entries, include the complete board before the command under this heading:
 
    ```text
@@ -120,7 +121,7 @@ For each cycle:
 7. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that pass only. The next lifecycle pass still starts in a new fresh subagent.
 8. After the pass finishes, re-read `<story_file>`, `<progress_file>`, and `<reviews_file>` (if it exists). Derive decisions from the newest authoritative sections and status, not from chat output alone.
 9. If a claim or resume pass leaves the story at `Status: 🟣 IN REVIEW`, the same cycle may launch a fresh review pass.
-10. If a review pass returns `approve`, confirm the latest entry in `<reviews_file>` records risk-lens review and finding closure (or explicit `none material`) before stopping successfully. If approval lacks that evidence, launch one fresh review child focused on risk-lens closure instead of accepting chat output alone. Local approval is convergence even when the story remains `Status: 🟣 IN REVIEW` because the optional PR stage is next. Report this as `APPROVED`, not `DONE`, unless the authoritative final status is already `✅ DONE`.
+10. If a review pass returns `approve`, confirm the latest entry in `<reviews_file>` records `Approval gate: pass` plus risk-lens review and finding closure (or explicit `none material`) before stopping successfully. If approval lacks that gate or evidence, launch one fresh review child focused on approval-gate and risk-lens closure instead of accepting chat output alone. Local approval is convergence even when the story remains `Status: 🟣 IN REVIEW` because the optional PR stage is next. Report this as `APPROVED`, not `DONE`, unless the authoritative final status is already `✅ DONE`.
 11. If a review pass returns `request_changes` or `not_reviewable`, the same cycle may launch one fresh `/openspec-story-resume` corrective pass, then the next cycle starts with a fresh review when ready. If the finding exposes a new risk lens, ensure the resume child treats that lens as part of the acceptance/proof closure or routes back to planning.
 12. If any pass moves the story to `Status: ⛔ BLOCKED`, stop.
 13. If any pass moves the story to `Status: ✅ DONE`, stop successfully only after re-checking durable authority in `<reviews_file>` or merged `<progress_file> → ## PR State` as described in the eligibility gate. If DONE lacks that evidence, treat it as status drift, stop, and route to `/openspec-story-review` or `/openspec-story-pr` refresh instead of accepting subagent chat output.

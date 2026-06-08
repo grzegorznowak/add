@@ -87,6 +87,12 @@ These gates must pass before Phase 1 worktree checks, Phase 2 claim refresh, any
 3. If `progress.md → ## Session Handoff → Status:` contains `⛔ BLOCKED`, halt.
 4. If any of these conditions are true, report the blocker and halt.
 
+#### Parallelism Guard
+
+1. Before refreshing `progress.md → ## Current Claim`, read the existing claim's `- Claimed at:` and `- Claimed by:` fields.
+2. If the existing claim was updated within the last 2 minutes by a different runtime/agent, halt without editing `progress.md`, `story.md`, or implementation files. Report a potential parallelism conflict and include the observed claimant and timestamp.
+3. If the claim is older than 2 minutes, absent, or clearly belongs to the current continuation session, proceed to Phase 1.
+
 ## Phase 1 — Worktree Preflight
 
 ### 1.1 Resolve Worktrees
@@ -150,7 +156,7 @@ The `## Current Claim` section in `progress.md` uses the canonical claim shape c
 ```markdown
 ## Current Claim
 - Claimed at: 2026-06-08T12:00:00Z
-- Claimed by: pi fresh session (resume)
+- Claimed by: $RUNTIME_NAME fresh session (resume)
 - Model: $MODEL
 - Scope: Implement the remaining tasks from tasks.md, starting with Task 3: ...
 - Worktrees:
@@ -167,7 +173,7 @@ Omit `- Worktrees:` when no worktrees are resolved. Omit `- Main-tree targets:` 
 
 ### 3.1 Gate Reconfirmation
 
-Before implementing, confirm the pre-write eligibility gates from Phase 0.4 already passed in this run. If `story.md`, `progress.md`, or `blocked.md` changed after Phase 0.4, repeat the Plan Approval and Blocker checks before reading or writing implementation surfaces. Do not refresh `progress.md`, continue implementation, or mutate code when the plan is unapproved or a blocker signal is present.
+Before implementing, confirm the pre-write eligibility gates from Phase 0.4 already passed in this run. If `story.md`, `progress.md`, or `blocked.md` changed after Phase 0.4, repeat the Plan Approval, Blocker, and Parallelism Guard checks before reading or writing implementation surfaces. Do not refresh `progress.md`, continue implementation, or mutate code when the plan is unapproved, a blocker signal is present, or a parallel session is detected.
 
 ### 3.2 Implementation Proof Preflight (READ BEFORE CODE)
 
@@ -214,9 +220,9 @@ As tasks from `tasks.md` are completed, mark them as checked:
 - [x] Task 3: Description  ← mark completed tasks
 ```
 
-#### Parallelism Guard
+#### Parallelism Guard Reconfirmation
 
-**Only one implementation session per change workspace at a time.** Before beginning Phase 3, confirm there is no other active session for this change. If `progress.md → ## Current Claim` was updated very recently (within the last 2 minutes) by a different agent, halt and report potential parallelism conflict.
+**Only one implementation session per change workspace at a time.** The active-claim collision check must pass in Phase 0.4 before Phase 2 refreshes `progress.md → ## Current Claim`. Before beginning Phase 3, reconfirm only if `story.md`, `progress.md`, or `blocked.md` changed after Phase 0.4. If the current claim was updated within the last 2 minutes by a different runtime/agent after the pre-write guard passed, halt and report a potential parallelism conflict.
 
 ### 3.4 Status Transitions
 
