@@ -1,0 +1,380 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="2400" height="5300" viewBox="0 0 2400 5300" role="img" aria-labelledby="title desc">
+  <title id="title">OpenSpec Feature Workflow Design Book</title>
+  <desc id="desc">A spacious two-page SVG design book showing the operator-facing OpenSpec workflow and the architecture overview with all locked design decisions.</desc>
+
+  <defs>
+    <marker id="arrow-green" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth"><path d="M2,2 L12,7 L2,12 Z" fill="#15803d" /></marker>
+    <marker id="arrow-blue" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth"><path d="M2,2 L12,7 L2,12 Z" fill="#2563eb" /></marker>
+    <marker id="arrow-orange" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth"><path d="M2,2 L12,7 L2,12 Z" fill="#ea580c" /></marker>
+    <marker id="arrow-purple" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth"><path d="M2,2 L12,7 L2,12 Z" fill="#7e22ce" /></marker>
+    <marker id="arrow-red" markerWidth="14" markerHeight="14" refX="12" refY="7" orient="auto" markerUnits="strokeWidth"><path d="M2,2 L12,7 L2,12 Z" fill="#b91c1c" /></marker>
+    <filter id="shadow" x="-10%" y="-10%" width="130%" height="130%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0f172a" flood-opacity="0.12" /></filter>
+    <style>
+      .bg { fill: #f8fafc; }
+      .page { fill: #ffffff; stroke: #cbd5e1; stroke-width: 2; rx: 30; filter: url(#shadow); }
+      .panel { fill: #ffffff; stroke: #dbe3ef; stroke-width: 1.5; rx: 22; }
+      .panel-blue { fill: #eff6ff; stroke: #93c5fd; stroke-width: 1.5; rx: 22; }
+      .panel-green { fill: #f0fdf4; stroke: #86efac; stroke-width: 1.5; rx: 22; }
+      .panel-orange { fill: #fff7ed; stroke: #fdba74; stroke-width: 1.5; rx: 22; }
+      .panel-purple { fill: #faf5ff; stroke: #d8b4fe; stroke-width: 1.5; rx: 22; }
+      .panel-red { fill: #fef2f2; stroke: #fca5a5; stroke-width: 1.5; rx: 22; }
+      .title { font: 850 44px Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; fill: #0f172a; }
+      .subtitle { font: 500 20px Inter, ui-sans-serif, system-ui, sans-serif; fill: #475569; }
+      .page-label { font: 850 15px Inter, ui-sans-serif, system-ui, sans-serif; fill: #2563eb; letter-spacing: .18em; }
+      .chapter { font: 850 26px Inter, ui-sans-serif, system-ui, sans-serif; fill: #0f172a; }
+      .section-title { font: 850 22px Inter, ui-sans-serif, system-ui, sans-serif; fill: #0f172a; }
+      .lane-label { font: 850 15px Inter, ui-sans-serif, system-ui, sans-serif; fill: #334155; letter-spacing: .1em; }
+      .body { font: 500 17px Inter, ui-sans-serif, system-ui, sans-serif; fill: #334155; }
+      .body-strong { font: 850 17px Inter, ui-sans-serif, system-ui, sans-serif; fill: #1e293b; }
+      .small { font: 500 15px Inter, ui-sans-serif, system-ui, sans-serif; fill: #334155; }
+      .tiny { font: 500 13px Inter, ui-sans-serif, system-ui, sans-serif; fill: #475569; }
+      .comment { font: 500 14px Inter, ui-sans-serif, system-ui, sans-serif; fill: #475569; }
+      .mono { font: 750 16px "SFMono-Regular", Consolas, "Liberation Mono", monospace; fill: #1e293b; }
+      .mono-small { font: 750 14px "SFMono-Regular", Consolas, "Liberation Mono", monospace; fill: #1e293b; }
+      .bubble { fill: #ffffff; stroke: #94a3b8; stroke-width: 1.6; rx: 20; }
+      .command { fill: #dcfce7; stroke: #16a34a; stroke-width: 1.8; rx: 18; }
+      .command-text { font: 850 16px "SFMono-Regular", Consolas, monospace; fill: #14532d; }
+      .artifact { fill: #dbeafe; stroke: #2563eb; stroke-width: 1.5; rx: 15; }
+      .artifact-text { font: 850 16px "SFMono-Regular", Consolas, monospace; fill: #1e3a8a; }
+      .custom-artifact { fill: #e0f2fe; stroke: #0284c7; stroke-width: 1.5; rx: 15; }
+      .gate { fill: #ffedd5; stroke: #ea580c; stroke-width: 2; }
+      .gate-text { font: 850 15px Inter, ui-sans-serif, system-ui, sans-serif; fill: #7c2d12; text-anchor: middle; }
+      .durable { fill: #f3e8ff; stroke: #7e22ce; stroke-width: 1.6; rx: 15; }
+      .durable-text { font: 850 16px "SFMono-Regular", Consolas, monospace; fill: #581c87; }
+      .decision { fill: #fefce8; stroke: #eab308; stroke-width: 1.5; rx: 13; }
+      .decision-text { font: 750 14px Inter, ui-sans-serif, system-ui, sans-serif; fill: #854d0e; }
+      .status { font: 850 14px Inter, ui-sans-serif, system-ui, sans-serif; fill: #0f172a; }
+      .chip-green { fill: #bbf7d0; stroke: #16a34a; stroke-width: 1; rx: 13; }
+      .chip-orange { fill: #fed7aa; stroke: #f97316; stroke-width: 1; rx: 13; }
+      .chip-blue { fill: #bfdbfe; stroke: #2563eb; stroke-width: 1; rx: 13; }
+      .chip-red { fill: #fecaca; stroke: #ef4444; stroke-width: 1; rx: 13; }
+      .arrow-green { stroke: #15803d; stroke-width: 3; fill: none; marker-end: url(#arrow-green); }
+      .arrow-blue { stroke: #2563eb; stroke-width: 2.8; fill: none; marker-end: url(#arrow-blue); }
+      .arrow-orange { stroke: #ea580c; stroke-width: 2.8; fill: none; marker-end: url(#arrow-orange); }
+      .arrow-purple { stroke: #7e22ce; stroke-width: 2.8; fill: none; marker-end: url(#arrow-purple); }
+      .arrow-red { stroke: #b91c1c; stroke-width: 2.8; fill: none; marker-end: url(#arrow-red); }
+      .dashed { stroke-dasharray: 8 6; }
+      .thin { stroke-width: 1.8; }
+      .loop { stroke-width: 3.6; stroke-linecap: round; }
+    </style>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="2400" height="5300" />
+
+  <!-- ===== PAGE 1 ===== -->
+  <rect class="page" x="55" y="55" width="2290" height="1920" />
+  <text class="page-label" x="105" y="115">PAGE 1 — OPERATOR POV</text>
+  <text class="title" x="105" y="172">From epic idea to archived behavior</text>
+  <text class="subtitle" x="108" y="206">The operator creates an epic context, plans one focused story change, converges plan quality, converges implementation quality, absorbs external feedback, publishes a PR, and archives accepted behavior.</text>
+
+  <!-- Step 0: Epic -->
+  <rect class="panel-green" x="105" y="270" width="2190" height="220" />
+  <text class="section-title" x="145" y="318">0. Create or choose the epic context</text>
+  <text class="comment" x="145" y="350">The epic gives a related set of changes a shared goal, scope, sequencing, and decision history.</text>
+  <rect class="bubble" x="145" y="378" width="620" height="68" />
+  <text class="small" x="172" y="405">"This epic hardens checkout reliability across payment retries,</text>
+  <text class="small" x="172" y="430">duplicate events, and customer-facing failure states."</text>
+  <rect class="command" x="860" y="382" width="250" height="55" />
+  <text class="command-text" x="888" y="416">/openspec-epic-plan</text>
+  <path class="arrow-green" d="M765 416 H860" />
+  <path class="arrow-blue" d="M1110 409 H1210" />
+  <rect class="artifact" x="1210" y="365" width="420" height="95" />
+  <text class="artifact-text" x="1245" y="402">openspec/initiatives/</text>
+  <text class="artifact-text" x="1245" y="426">checkout-hardening/initiative.md</text>
+  <text class="comment" x="1680" y="405">Operator sees: "I can now plan stories inside this epic."</text>
+
+  <!-- Step 1: Story plan -->
+  <rect class="panel-blue" x="105" y="540" width="2190" height="275" />
+  <text class="section-title" x="145" y="588">1. Plan a story-sized OpenSpec change</text>
+  <text class="comment" x="145" y="620">The story plan turns one outcome inside the epic into a concrete OpenSpec change workspace.</text>
+  <rect class="bubble" x="145" y="655" width="575" height="68" />
+  <text class="small" x="172" y="682">"For the first story, retry failed payment webhooks with</text>
+  <text class="small" x="172" y="707">bounded backoff and audit visibility."</text>
+  <rect class="command" x="800" y="660" width="260" height="55" />
+  <text class="command-text" x="825" y="694">/openspec-story-plan</text>
+  <path class="arrow-green" d="M720 694 H800" />
+  <path class="arrow-blue" d="M1060 694 H1160" />
+  <rect class="artifact" x="1160" y="630" width="475" height="120" />
+  <text class="artifact-text" x="1195" y="672">openspec/changes/</text>
+  <text class="artifact-text" x="1195" y="698">retry-failed-payment-webhooks/</text>
+  <text class="comment" x="1195" y="726">A focused change workspace for one user-visible behavior.</text>
+  <rect class="panel" x="1700" y="630" width="520" height="120" />
+  <text class="body-strong" x="1740" y="668">Operator sees</text>
+  <text class="mono-small" x="1740" y="696">Current state: plan draft</text>
+  <text class="mono-small" x="1740" y="722">Next: /openspec-story-plan-converge</text>
+
+  <!-- Step 2: Planning artifacts -->
+  <rect class="panel-blue" x="105" y="865" width="2190" height="275" />
+  <text class="section-title" x="145" y="913">2. Review the planning artifacts before code exists</text>
+  <text class="comment" x="145" y="945">The plan records why the change exists, what behavior changes, how it will be proven, and the red-first task order.</text>
+  <rect class="artifact" x="145" y="990" width="200" height="64" /><text class="artifact-text" x="175" y="1028">proposal.md</text><text class="tiny" x="170" y="1075">why</text>
+  <rect class="custom-artifact" x="400" y="990" width="175" height="64" /><text class="artifact-text" x="442" y="1028">story.md</text><text class="tiny" x="420" y="1075">ACs · proof · plan reviews</text>
+  <rect class="artifact" x="630" y="990" width="175" height="64" /><text class="artifact-text" x="670" y="1028">design.md</text><text class="tiny" x="653" y="1075">approach · tradeoffs</text>
+  <rect class="artifact" x="860" y="990" width="175" height="64" /><text class="artifact-text" x="899" y="1028">tasks.md</text><text class="tiny" x="885" y="1075">red-first checklist</text>
+  <rect class="artifact" x="1090" y="990" width="355" height="64" /><text class="artifact-text" x="1135" y="1028">specs/payments/*.md</text><text class="tiny" x="1140" y="1075">behavior delta</text>
+  <rect class="panel" x="1555" y="975" width="660" height="115" />
+  <text class="body-strong" x="1595" y="1012">Planning checkpoint</text>
+  <text class="small" x="1595" y="1040">No implementation starts until required artifacts and proof seams are ready.</text>
+  <text class="small" x="1595" y="1066">The operator can approve, edit, or ask for convergence.</text>
+
+  <!-- Steps 3+4: Converge row -->
+  <rect class="panel-orange" x="105" y="1190" width="1085" height="435" />
+  <text class="section-title" x="145" y="1238">3. Converge the plan</text>
+  <text class="comment" x="145" y="1270">A fresh review reads persisted OpenSpec artifacts. Findings are repaired, then review restarts from the files.</text>
+  <rect class="command" x="145" y="1320" width="330" height="55" /><text class="command-text" x="172" y="1355">/openspec-story-plan-converge</text>
+  <path class="arrow-green" d="M475 1347 H585" />
+  <rect class="command" x="585" y="1320" width="170" height="55" /><text class="command-text" x="607" y="1355">plan-review</text>
+  <rect class="gate" x="810" y="1295" width="160" height="160" transform="rotate(45 890 1375)" />
+  <text class="gate-text" x="890" y="1366">plan</text>
+  <text class="gate-text" x="890" y="1388">approved?</text>
+  <rect class="command" x="585" y="1495" width="170" height="55" /><text class="command-text" x="606" y="1530">plan-resume</text>
+  <path class="arrow-orange" d="M838 1435 C795 1495, 765 1522, 755 1522" />
+  <path class="arrow-orange loop" d="M585 1522 C470 1500, 470 1347, 585 1347" />
+  <path class="arrow-green" d="M950 1375 H1040" />
+  <rect class="chip-green" x="1030" y="1360" width="155" height="32" /><text class="status" x="1054" y="1382">plan-approved</text>
+  <rect class="chip-orange" x="145" y="1440" width="185" height="34" /><text class="status" x="167" y="1463">needs-plan-fixes</text>
+  <rect class="chip-red" x="355" y="1440" width="105" height="34" /><text class="status" x="376" y="1463">blocked</text>
+  <text class="comment" x="145" y="1590">Plan reviews write to story.md → ## Plan Review Log.</text>
+
+  <rect class="panel-orange" x="1230" y="1190" width="1065" height="435" />
+  <text class="section-title" x="1270" y="1238">4. Converge implementation and review</text>
+  <text class="comment" x="1270" y="1270">Implementation advances checkbox tasks and records evidence. Review approves locally or sends back for fixes.</text>
+  <rect class="command" x="1270" y="1320" width="305" height="55" /><text class="command-text" x="1295" y="1355">/openspec-story-converge</text>
+  <path class="arrow-green" d="M1575 1347 H1645" />
+  <rect class="command" x="1645" y="1320" width="180" height="55" /><text class="command-text" x="1663" y="1355">claim/resume</text>
+  <rect class="gate" x="1905" y="1295" width="165" height="165" transform="rotate(45 1987 1377)" />
+  <text class="gate-text" x="1987" y="1368">implementation</text>
+  <text class="gate-text" x="1987" y="1390">approved?</text>
+  <rect class="command" x="1645" y="1495" width="180" height="55" /><text class="command-text" x="1674" y="1530">story-review</text>
+  <path class="arrow-orange" d="M1940 1440 C1895 1498, 1840 1522, 1825 1522" />
+  <path class="arrow-orange loop" d="M1645 1522 C1525 1500, 1525 1347, 1645 1347" />
+  <path class="arrow-green" d="M2058 1377 H2125" />
+  <rect class="chip-green" x="2115" y="1362" width="155" height="32" /><text class="status" x="2136" y="1384">local-approved</text>
+  <rect class="custom-artifact" x="1270" y="1440" width="145" height="55" /><text class="artifact-text" x="1293" y="1474">tasks.md</text>
+  <rect class="custom-artifact" x="1440" y="1440" width="155" height="55" /><text class="artifact-text" x="1462" y="1474">reviews.md</text>
+  <rect class="custom-artifact" x="1270" y="1515" width="155" height="55" /><text class="artifact-text" x="1292" y="1549">progress.md</text>
+  <rect class="custom-artifact" x="1440" y="1515" width="125" height="55" /><text class="artifact-text" x="1455" y="1549">blocked.md</text>
+  <text class="comment" x="1270" y="1600">Implementation reviews go to reviews.md. blocked.md halts converge.</text>
+
+  <!-- Steps 5+6: Feedback + PR/archive -->
+  <rect class="panel-purple" x="105" y="1675" width="795" height="225" />
+  <text class="section-title" x="145" y="1723">5. Absorb external feedback</text>
+  <text class="comment" x="145" y="1755">PR review comments, CURe findings, and manual reviewer notes are classified and routed to the right artifact.</text>
+  <rect class="command" x="145" y="1790" width="260" height="55" /><text class="command-text" x="173" y="1824">/openspec-feedback</text>
+  <text class="small" x="145" y="1877">Six dispositions route to reviews.md, story.md, or initiative.md.</text>
+
+  <rect class="panel-purple" x="940" y="1675" width="1355" height="225" />
+  <text class="section-title" x="980" y="1723">6. Publish and archive</text>
+  <text class="comment" x="980" y="1755">After local approval, the operator publishes a focused PR, then archives the change when behavior is accepted.</text>
+  <rect class="command" x="980" y="1790" width="245" height="55" /><text class="command-text" x="1008" y="1824">/openspec-story-pr</text>
+  <path class="arrow-green" d="M1225 1817 H1320" />
+  <rect class="panel" x="1320" y="1773" width="270" height="90" />
+  <text class="body-strong" x="1355" y="1805">Focused PR body</text>
+  <text class="tiny" x="1355" y="1830">summary · acceptance · contract</text>
+  <path class="arrow-purple" d="M1590 1817 H1670" />
+  <rect class="command" x="1670" y="1790" width="235" height="55" /><text class="command-text" x="1688" y="1824">/openspec-archive</text>
+  <rect class="durable" x="1960" y="1770" width="270" height="95" />
+  <text class="durable-text" x="1995" y="1810">openspec/specs/</text>
+  <text class="durable-text" x="1995" y="1840">changes/archive/</text>
+
+  <!-- Lifecycle strip -->
+  <rect class="panel" x="105" y="1940" width="2190" height="120" />
+  <text class="lane-label" x="145" y="1982">LIFECYCLE STATES</text>
+  <g transform="translate(330,1962)">
+    <rect class="chip-orange" x="0" y="0" width="85" height="34" /><text class="status" x="22" y="23">draft</text>
+    <path class="arrow-green thin" d="M95 17 H142" />
+    <rect class="chip-orange" x="152" y="0" width="132" height="34" /><text class="status" x="170" y="23">plan-review</text>
+    <path class="arrow-green thin" d="M294 17 H340" />
+    <rect class="chip-green" x="350" y="0" width="155" height="34" /><text class="status" x="370" y="23">plan-approved</text>
+    <path class="arrow-green thin" d="M516 17 H562" />
+    <rect class="chip-blue" x="572" y="0" width="88" height="34" /><text class="status" x="594" y="23">ready</text>
+    <path class="arrow-green thin" d="M672 17 H718" />
+    <rect class="chip-blue" x="728" y="0" width="128" height="34" /><text class="status" x="748" y="23">in-progress</text>
+    <path class="arrow-green thin" d="M868 17 H914" />
+    <rect class="chip-orange" x="924" y="0" width="108" height="34" /><text class="status" x="942" y="23">reviewed</text>
+    <path class="arrow-green thin" d="M1044 17 H1090" />
+    <rect class="chip-orange" x="1100" y="0" width="118" height="34" /><text class="status" x="1118" y="23">needs-fix</text>
+    <path class="arrow-green thin" d="M1230 17 H1276" />
+    <rect class="chip-green" x="1286" y="0" width="160" height="34" /><text class="status" x="1308" y="23">local-approved</text>
+    <path class="arrow-purple thin" d="M1458 17 H1504" />
+    <rect class="chip-green" x="1514" y="0" width="108" height="34" /><text class="status" x="1538" y="23">archived</text>
+    <rect class="chip-red" x="1660" y="0" width="100" height="34" /><text class="status" x="1680" y="23">blocked</text>
+  </g>
+  <text class="comment" x="145" y="2038">Blocked means the operator must clarify intent, make a product/technical decision, or accept a documented exception.</text>
+
+  <text class="tiny" x="1140" y="2150">— page break —</text>
+
+  <!-- ===== PAGE 2 ===== -->
+  <rect class="page" x="55" y="2190" width="2290" height="3030" />
+  <text class="page-label" x="105" y="2250">PAGE 2 — ARCHITECTURE OVERVIEW</text>
+  <text class="title" x="105" y="2307">OpenSpec as the workflow backbone</text>
+  <text class="subtitle" x="108" y="2341">Commands, schemas, artifacts, gates, and fresh-session loops all converge on repo-local OpenSpec files.</text>
+
+  <!-- Row 1: Command surface -->
+  <rect class="panel-green" x="105" y="2400" width="2190" height="195" />
+  <text class="section-title" x="145" y="2448">Command surface</text>
+  <text class="comment" x="145" y="2480">Commands are operator-explicit. When arguments are missing, the operator chooses from eligible epics or OpenSpec changes.</text>
+  <rect class="command" x="145" y="2515" width="235" height="55" /><text class="command-text" x="173" y="2550">/openspec-epic-plan</text>
+  <rect class="command" x="430" y="2515" width="250" height="55" /><text class="command-text" x="457" y="2550">/openspec-story-plan</text>
+  <rect class="command" x="730" y="2515" width="340" height="55" /><text class="command-text" x="757" y="2550">/openspec-story-plan-converge</text>
+  <rect class="command" x="1120" y="2515" width="310" height="55" /><text class="command-text" x="1148" y="2550">/openspec-story-converge</text>
+  <rect class="command" x="1480" y="2515" width="230" height="55" /><text class="command-text" x="1508" y="2550">/openspec-feedback</text>
+  <rect class="command" x="1760" y="2515" width="230" height="55" /><text class="command-text" x="1788" y="2550">/openspec-story-pr</text>
+  <rect class="command" x="2040" y="2515" width="220" height="55" /><text class="command-text" x="2067" y="2550">/openspec-archive</text>
+  <path class="arrow-green" d="M380 2542 H430" /><path class="arrow-green" d="M680 2542 H730" /><path class="arrow-green" d="M1070 2542 H1120" />
+  <path class="arrow-green" d="M1430 2542 H1480" /><path class="arrow-green" d="M1710 2542 H1760" /><path class="arrow-green" d="M1990 2542 H2040" />
+
+  <!-- Row 2: Epic context -->
+  <rect class="panel-purple" x="105" y="2640" width="2190" height="430" />
+  <text class="section-title" x="145" y="2688">Epic context — initiative.md</text>
+  <text class="comment" x="145" y="2718">A durable initiative groups related story-sized changes and holds epic-level metadata, decisions, and feedback routing.</text>
+
+  <rect class="artifact" x="145" y="2765" width="500" height="130" />
+  <text class="artifact-text" x="180" y="2812">openspec/initiatives/</text>
+  <text class="artifact-text" x="180" y="2840">checkout-hardening/initiative.md</text>
+
+  <text class="body-strong" x="700" y="2795">Sections</text>
+  <rect class="decision" x="700" y="2815" width="520" height="32" /><text class="decision-text" x="718" y="2837">## Goal / Context — narrative injected into child sessions</text>
+  <rect class="decision" x="700" y="2860" width="520" height="32" /><text class="decision-text" x="718" y="2882">## Story Candidates — ordered list, planning aid, not a tracker</text>
+  <rect class="decision" x="700" y="2905" width="520" height="32" /><text class="decision-text" x="718" y="2927">## Decisions &amp; Constraints — cross-cutting architectural rules</text>
+  <rect class="decision" x="700" y="2950" width="520" height="32" /><text class="decision-text" x="718" y="2972">## External Resources — links to design docs, RFCs, Jira tickets</text>
+
+  <rect class="panel" x="1300" y="2765" width="465" height="130" />
+  <text class="body-strong" x="1340" y="2807">Feedback routing sections</text>
+  <text class="small" x="1340" y="2837">## Feedback Absorption Log</text>
+  <text class="tiny" x="1360" y="2859">Idempotency table; prevents duplicate absorption</text>
+  <text class="small" x="1340" y="2885">## Feedback-Derived Story Candidates</text>
+  <text class="small" x="1340" y="2909">## Feedback-Derived Decisions</text>
+
+  <rect class="panel" x="1820" y="2765" width="425" height="130" />
+  <text class="body-strong" x="1860" y="2807">Two-phase lifecycle</text>
+  <text class="small" x="1860" y="2837">Today: fills gap Jira doesn't cover.</text>
+  <text class="small" x="1860" y="2863">Later: thins to pointer when tickets mature.</text>
+  <text class="mono-small" x="1860" y="2890">source_of_truth: internal → external</text>
+
+  <!-- Row 3: Canonical workspace -->
+  <rect class="panel-blue" x="105" y="3115" width="2190" height="550" />
+  <text class="section-title" x="145" y="3163">Canonical story change workspace</text>
+  <text class="comment" x="145" y="3193">One focused behavior change owns its artifacts. Files are the recovery point for fresh sessions and converge loops.</text>
+
+  <rect class="artifact" x="145" y="3250" width="550" height="345" />
+  <text class="artifact-text" x="180" y="3292">openspec/changes/&lt;story-slug&gt;/</text>
+  <rect class="artifact" x="180" y="3335" width="190" height="58" /><text class="artifact-text" x="205" y="3371">proposal.md</text>
+  <rect class="custom-artifact" x="395" y="3335" width="165" height="58" /><text class="artifact-text" x="425" y="3371">story.md</text>
+  <rect class="artifact" x="180" y="3415" width="190" height="58" /><text class="artifact-text" x="210" y="3451">design.md</text>
+  <rect class="artifact" x="395" y="3415" width="165" height="58" /><text class="artifact-text" x="423" y="3451">tasks.md</text>
+  <rect class="artifact" x="180" y="3495" width="385" height="58" /><text class="artifact-text" x="222" y="3531">specs/**/*.md</text>
+
+  <rect class="custom-artifact" x="740" y="3250" width="400" height="345" />
+  <text class="artifact-text" x="770" y="3292">Runtime artifacts</text>
+  <rect class="custom-artifact" x="770" y="3335" width="180" height="58" /><text class="artifact-text" x="795" y="3371">progress.md</text>
+  <rect class="custom-artifact" x="970" y="3335" width="140" height="58" /><text class="artifact-text" x="987" y="3371">blocked.md</text>
+  <rect class="custom-artifact" x="770" y="3415" width="340" height="58" /><text class="artifact-text" x="818" y="3451">reviews.md</text>
+  <text class="comment" x="770" y="3530">progress.md: claim + timeline + handoff + PR state</text>
+  <text class="comment" x="770" y="3557">blocked.md: gate file — converge halts if present</text>
+  <text class="comment" x="770" y="3584">reviews.md: append-only review evidence</text>
+
+  <rect class="panel" x="1190" y="3250" width="500" height="345" />
+  <text class="body-strong" x="1230" y="3292">Review location split</text>
+  <rect class="chip-blue" x="1230" y="3325" width="390" height="34" /><text class="status" x="1255" y="3348">Plan reviews → story.md ## Plan Review Log</text>
+  <rect class="chip-orange" x="1230" y="3380" width="390" height="34" /><text class="status" x="1255" y="3403">Implementation reviews → reviews.md</text>
+  <text class="comment" x="1230" y="3455">Each converge loop reads its own verdict source:</text>
+  <text class="comment" x="1230" y="3480">• Plan converge → story.md ## Plan Review Log</text>
+  <text class="comment" x="1230" y="3505">• Implementation converge → reviews.md</text>
+  <text class="comment" x="1230" y="3530">Each resume session finds its repair targets in the right file.</text>
+
+  <rect class="artifact" x="1740" y="3250" width="500" height="150" />
+  <text class="artifact-text" x="1775" y="3292">openspec/schemas/story-change/</text>
+  <text class="mono-small" x="1775" y="3328">schema.yaml + templates/</text>
+  <text class="comment" x="1775" y="3364">Defines required artifacts, templates,</text>
+  <text class="comment" x="1775" y="3390">readiness gates (apply.requires),</text>
+  <text class="comment" x="1775" y="3416">and tracking (apply.tracks = tasks.md).</text>
+
+  <!-- Row 4: Locked decisions -->
+  <rect class="panel" x="105" y="3710" width="2190" height="200" />
+  <text class="section-title" x="145" y="3758">Locked design decisions</text>
+  <rect class="decision" x="145" y="3790" width="470" height="30" /><text class="decision-text" x="162" y="3811">1. initiative.md: structured + source_of_truth flag</text>
+  <rect class="decision" x="640" y="3790" width="470" height="30" /><text class="decision-text" x="657" y="3811">5. plan reviews in story.md; impl. in reviews.md</text>
+  <rect class="decision" x="145" y="3835" width="470" height="30" /><text class="decision-text" x="162" y="3856">2. blocked.md as explicit gate file</text>
+  <rect class="decision" x="640" y="3835" width="470" height="30" /><text class="decision-text" x="657" y="3856">6. PR = multi-artifact product-contract body</text>
+  <rect class="decision" x="145" y="3880" width="470" height="30" /><text class="decision-text" x="162" y="3901">3. progress.md = claim + timeline + handoff + PR</text>
+  <rect class="decision" x="640" y="3880" width="470" height="30" /><text class="decision-text" x="657" y="3901">7. archive = thin wrapper over /opsx:archive</text>
+  <rect class="decision" x="1135" y="3790" width="470" height="30" /><text class="decision-text" x="1152" y="3811">4. reviews.md standalone, same field schema</text>
+  <rect class="decision" x="1135" y="3835" width="470" height="30" /><text class="decision-text" x="1152" y="3856">8. feedback maps 6 dispositions to OS artifacts</text>
+  <text class="comment" x="1630" y="3861">See notebook: openspec-add-flow-assessment</text>
+
+  <!-- Row 5: Plan convergence loop (full width) -->
+  <rect class="panel-orange" x="105" y="3955" width="2190" height="370" />
+  <text class="section-title" x="145" y="4003">Fresh-session convergence — plan loop</text>
+  <text class="comment" x="145" y="4035">A fresh plan-review session reads story.md → ## Plan Review Log. Findings are repaired by plan-resume, then review restarts fresh.</text>
+
+  <rect class="command" x="160" y="4080" width="200" height="55" /><text class="command-text" x="183" y="4115">plan-review</text>
+  <path class="arrow-green" d="M360 4107 H445" />
+  <rect class="gate" x="445" y="4085" width="150" height="150" transform="rotate(45 520 4160)" />
+  <text class="gate-text" x="520" y="4152">plan</text><text class="gate-text" x="520" y="4174">approved?</text>
+  <path class="arrow-green" d="M592 4160 H685" />
+  <rect class="chip-green" x="685" y="4145" width="170" height="32" /><text class="status" x="710" y="4167">plan-approved</text>
+  <rect class="command" x="160" y="4230" width="200" height="55" /><text class="command-text" x="182" y="4265">plan-resume</text>
+  <path class="arrow-orange" d="M473 4235 C435 4275, 405 4280, 360 4257" />
+  <path class="arrow-orange loop" d="M160 4257 C45 4235, 45 4107, 160 4107" />
+
+  <rect class="chip-orange" x="940" y="4090" width="195" height="34" /><text class="status" x="962" y="4113">needs-plan-fixes</text>
+  <rect class="chip-red" x="1160" y="4090" width="110" height="34" /><text class="status" x="1183" y="4113">blocked</text>
+  <text class="comment" x="940" y="4155">Review verdicts write to story.md ## Plan Review Log.</text>
+  <text class="comment" x="940" y="4180">Resume reads findings from there and repairs the plan artifacts.</text>
+
+  <rect class="panel" x="1350" y="4070" width="880" height="70" />
+  <text class="body-strong" x="1390" y="4105">Iteration example:</text>
+  <text class="small" x="1390" y="4128">Review finds acceptance covers retries but proof matrix misses duplicate delivery → resume adds idempotency scenario → review reruns → approved.</text>
+
+  <!-- Row 6: Implementation convergence loop (full width) -->
+  <rect class="panel-orange" x="105" y="4370" width="2190" height="370" />
+  <text class="section-title" x="145" y="4418">Fresh-session convergence — implementation loop</text>
+  <text class="comment" x="145" y="4450">Claim/resume advances checkbox tasks and records evidence. story-review reads reviews.md and checks code against spec.</text>
+
+  <rect class="command" x="160" y="4500" width="210" height="55" /><text class="command-text" x="180" y="4535">claim/resume</text>
+  <path class="arrow-green" d="M370 4527 H455" />
+  <rect class="gate" x="455" y="4505" width="150" height="150" transform="rotate(45 530 4580)" />
+  <text class="gate-text" x="530" y="4572">impl</text><text class="gate-text" x="530" y="4594">approved?</text>
+  <path class="arrow-green" d="M602 4580 H695" />
+  <rect class="chip-green" x="695" y="4565" width="180" height="32" /><text class="status" x="722" y="4587">local-approved</text>
+  <rect class="command" x="160" y="4650" width="210" height="55" /><text class="command-text" x="192" y="4685">story-review</text>
+  <path class="arrow-orange" d="M485 4658 C445 4695, 415 4700, 370 4677" />
+  <path class="arrow-orange loop" d="M160 4677 C45 4655, 45 4527, 160 4527" />
+
+  <rect class="custom-artifact" x="920" y="4500" width="155" height="55" /><text class="artifact-text" x="943" y="4534">tasks.md</text>
+  <rect class="custom-artifact" x="1095" y="4500" width="165" height="55" /><text class="artifact-text" x="1118" y="4534">reviews.md</text>
+  <rect class="custom-artifact" x="920" y="4575" width="165" height="55" /><text class="artifact-text" x="942" y="4609">progress.md</text>
+  <rect class="custom-artifact" x="1095" y="4575" width="135" height="55" /><text class="artifact-text" x="1110" y="4609">blocked.md</text>
+  <text class="comment" x="920" y="4675">Implementation evidence in progress.md; review evidence in reviews.md; blocked.md halts the loop.</text>
+
+  <rect class="panel" x="1350" y="4490" width="880" height="70" />
+  <text class="body-strong" x="1390" y="4525">Iteration example:</text>
+  <text class="small" x="1390" y="4548">Claim implements retries and adds test → review finds terminal failures not covered → resume adds terminal no-retry test → review reruns → local-approved.</text>
+
+  <!-- Row 7: blocked.md gate + Durable outcomes -->
+  <rect class="panel-red" x="105" y="4785" width="1060" height="120" />
+  <text class="section-title" x="145" y="4828">blocked.md gate</text>
+  <text class="comment" x="355" y="4830">Explicit file in the change folder. Converge loop refuses to continue while it exists.</text>
+  <text class="comment" x="355" y="4855">Contains: reason, decision needed from operator, affected artifacts. Operator removes or annotates to unblock.</text>
+
+  <rect class="panel-purple" x="1205" y="4785" width="1090" height="120" />
+  <text class="section-title" x="1245" y="4828">Durable outcomes</text>
+  <text class="comment" x="1245" y="4855">/openspec-archive delegates to /opsx:archive for spec sync + archive move.</text>
+  <text class="comment" x="1245" y="4878">Pre-flight: PR merged? review approved? tasks done? Post-archive: update initiative.md.</text>
+
+  <!-- Feedback dispositions -->
+  <rect class="panel" x="105" y="4945" width="2190" height="100" />
+  <text class="section-title" x="145" y="4985">Feedback dispositions (via /openspec-feedback)</text>
+  <rect class="chip-blue" x="145" y="5010" width="210" height="26" /><text class="status" x="164" y="5028">resume-current-story</text>
+  <rect class="chip-orange" x="375" y="5010" width="210" height="26" /><text class="status" x="394" y="5028">amend-existing-story</text>
+  <rect class="chip-orange" x="605" y="5010" width="210" height="26" /><text class="status" x="624" y="5028">queue-planning-feedback</text>
+  <rect class="chip-green" x="835" y="5010" width="210" height="26" /><text class="status" x="854" y="5028">new-story-candidate</text>
+  <rect class="chip-green" x="1065" y="5010" width="210" height="26" /><text class="status" x="1084" y="5028">epic-level-decision</text>
+  <rect class="chip-red" x="1295" y="5010" width="170" height="26" /><text class="status" x="1315" y="5028">defer-or-reject</text>
+
+  <!-- Legend -->
+  <rect class="panel" x="105" y="5085" width="2190" height="80" />
+  <text class="comment" x="145" y="5120">Legend: green = operator command · blue = OpenSpec artifact · cyan = custom workflow artifact · orange = readiness/review gate · yellow = locked design decision · purple = durable spec/archive · red = block gate.</text>
+  <text class="comment" x="145" y="5148">See notebook page openspec-add-flow-assessment for the full locked-decisions record and source provenance.</text>
+</svg>
