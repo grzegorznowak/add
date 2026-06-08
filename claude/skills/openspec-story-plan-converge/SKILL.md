@@ -40,13 +40,14 @@ There is no `MASTER.md`, no tracker table, no step/number row, and no implementa
    - `<story-slug>`: required second positional token.
    - `MAX_CYCLES=<n>`: optional positive integer; default `5`.
 2. Reject unknown flags. This command does not accept `WORKTREE=` because planning may read source code for evidence but never writes source code.
-3. Resolve `<initiative_file>` = `<workspace_root>/openspec/initiatives/<initiative>/initiative.md`.
+3. Validate `<initiative>` and `<story-slug>` before resolving paths. Each must match `^[a-z0-9]+(?:-[a-z0-9]+)*$`; if either fails, abort with: `invalid slug; use lowercase hyphenated slug characters only`.
+4. Resolve `<initiative_file>` = `<workspace_root>/openspec/initiatives/<initiative>/initiative.md`.
    - If missing, abort with: `initiative not found — run /openspec-epic-plan first`.
-4. Resolve `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>/`.
+5. Resolve `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>/`.
    - If missing, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
    - If archived, abort with: `story is archived; move it back to openspec/changes/ first`.
    - If missing in both, abort with: `change workspace not found — run /openspec-story-plan first`.
-5. Read `<story_file>` and confirm the `Plan:` header field and `## Plan Review Log` section are present (they may be empty or default-valued).
+6. Read `<story_file>` and confirm the `Plan:` header field and `## Plan Review Log` section are present (they may be empty or default-valued).
    - If `story.md` is missing or unreadable, abort with: `story.md is missing from change workspace`.
 
 ## Phase 2 — Eligibility Gate
@@ -56,7 +57,7 @@ Before starting the loop, abort with a clear next action if any condition is tru
 - The `Plan:` header field is `🟢 PLAN APPROVED` and there are no unresolved `## Plan Review Log` findings **and** the `## Plan Review Log` contains at least one entry with `Verdict: approve` (or a legacy equivalent) from an independent `/openspec-story-plan-review` pass: stop successfully; planning is already complete.
 - The `Plan:` header field is `🟢 PLAN APPROVED` but `## Plan Review Log` is empty or lacks an approve entry: treat as orphaned approval. Set `Plan:` to `🟠 PLAN CHANGES REQUESTED` and route through the normal review cycle.
 - The `Plan:` header field is `⛔ PLAN BLOCKED`: stop with blocked status. The operator must resolve the blocker before convergence can proceed.
-- A `blocked.md` file exists at `<change_dir>/blocked.md`: stop immediately. Convergence is refused while an explicit gate file exists. The operator must remove or annotate `blocked.md` to unblock.
+- A `blocked.md` file exists at `<change_dir>/blocked.md`: stop immediately. Convergence is refused while an explicit gate file exists. The operator may edit it to record resolution notes, but must remove `blocked.md` to unblock.
 - The story is missing the `/openspec-story-plan` scaffold shape expected by `/openspec-story-plan-review` (no `proposal.md`, no `story.md` with required spec sections, or no `design.md` / `tasks.md`).
 - The story is so malformed that `/openspec-story-plan-resume` cannot identify spec sections to continue.
 

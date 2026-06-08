@@ -33,13 +33,14 @@ This command is a coordination-only transition. It never touches source code, te
    - `<initiative-slug>`: required first positional token.
    - `<story-slug>`: required second positional token.
    - Reject any additional tokens or unknown flags.
-2. Resolve `<initiative_dir>`. If `<initiative_dir>/initiative.md` is missing, abort with: `initiative not found: openspec/initiatives/<initiative-slug>/initiative.md`.
-3. Resolve `<change_dir>`:
+2. Validate both slugs before resolving paths. Each must match `^[a-z0-9]+(?:-[a-z0-9]+)*$`; if either fails, abort with: `invalid slug; use lowercase hyphenated slug characters only`.
+3. Resolve `<initiative_dir>`. If `<initiative_dir>/initiative.md` is missing, abort with: `initiative not found: openspec/initiatives/<initiative-slug>/initiative.md`.
+4. Resolve `<change_dir>`:
    - If `<change_dir>` is missing, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
    - If already archived, abort with: `story <story-slug> is already archived at openspec/changes/archive/<story-slug>/`.
    - If missing in both locations, abort with: `change workspace not found: openspec/changes/<story-slug>/`.
-4. Read `<change_dir>/story.md`. Confirm that the `Status:` header field exists and is `✅ DONE`. If not `✅ DONE`, abort with the current status and: `Only DONE stories can be archived. Current status: <status>. Run /openspec-story-converge and /openspec-story-pr first if needed.`
-5. Read `<initiative_file>` for the post-archive update context.
+5. Read `<change_dir>/story.md`. Confirm that the `Status:` header field exists and is `✅ DONE`. If not `✅ DONE`, abort with the current status and: `Only DONE stories can be archived. Current status: <status>. Run /openspec-story-converge and /openspec-story-pr first if needed.`
+6. Read `<initiative_file>` for the post-archive update context.
 
 ## Phase 2 — Pre-flight checks
 
@@ -72,12 +73,12 @@ Read `<reviews_file>`. Find the latest review entry (the last entry in the file,
 
 ### Check D — Tasks completeness
 
+If `<tasks_file>` does not exist, abort with: `tasks.md is required implementation evidence for archiving. Restore or create openspec/changes/<story-slug>/tasks.md and ensure every task is checked or explicitly skipped/deferred with a note.`
+
 Read `<tasks_file>`. Collect all checkbox lines (lines matching `- [ ]`). If any unchecked tasks remain:
 
 - List each unchecked task as `- [ ] <task description>`.
 - Abort with: `<n> unchecked task(s) remain in tasks.md:<list>. Complete all tasks before archiving, or mark them as explicitly skipped/deferred with a note.`
-
-If `<tasks_file>` does not exist, treat this as an empty task file and pass the check (no tasks to complete; this is not a hard error).
 
 ### All pre-flights pass
 
@@ -88,7 +89,7 @@ Pre-flight checks passed for <story-slug>:
 - [x] blocked.md: not present
 - [x] PR State: merged (or confirmed no-PR)
 - [x] Review: approved
-- [x] Tasks: all checked (or no tasks.md)
+- [x] Tasks: tasks.md present and all tasks checked or explicitly skipped/deferred
 Proceeding to archive...
 ```
 

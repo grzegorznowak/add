@@ -24,7 +24,7 @@ This skill defers to the following artifacts, in priority order:
 3. **progress.md `## Current Claim`** — The most recent claim details, including assigned worktrees.
 4. **progress.md `## Progress Timeline`** — Sequential implementation log (newest first).
 5. **progress.md `## Session Handoff`** — Exit state from the most recent session.
-6. **reviews.md** — Review feedback (ordered newest-first).
+6. **reviews.md** — Implementation review history (append-only; the latest review is the last entry in the file).
 7. **story.md content** — Purpose, acceptance criteria, verification sections, Plan header.
 8. **proposal.md** — The original proposal rationale and scope.
 9. **design.md** — Technical design decisions.
@@ -63,7 +63,7 @@ Before any implementation begins, read these files from the resolved change work
 
 Prioritize the resume intent from these sources (in order):
 
-1. **Newest `reviews.md` entry** — If there is unresolved review feedback, that is the primary resume intent.
+1. **Latest `reviews.md` entry** — Use the last append-only review entry. If there is unresolved review feedback, that is the primary resume intent.
 2. **`progress.md → ## Session Handoff`** — The handoff from the most recent session.
 3. **`progress.md → ## Progress Timeline`** (newest entry) — What was last done.
 4. **`story.md → ## Purpose / ## Acceptance Criteria`** — The original intent, used as fallback.

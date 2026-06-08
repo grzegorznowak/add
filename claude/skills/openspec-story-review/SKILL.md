@@ -179,7 +179,7 @@ When launched by a converger, you may receive `Shared Research Board from parent
 
 Use the approval gate below as the canonical pass/fail contract; this section defines what evidence must be inspected before applying that gate.
 
-- Read the latest entry in `<change_dir>/reviews.md` before source inspection and carry every prior concern into the review as `resolved`, `still_open`, `superseded`, or `not_assessable`.
+- Read the latest entry in `<change_dir>/reviews.md` before source inspection (the last entry in the append-only file) and carry every prior concern into the review as `resolved`, `still_open`, `superseded`, or `not_assessable`.
 - Treat every relevant story-spec section as a review claim. Purpose, Triggering Need, Scope, Out of Scope, Discovery Notes, Critical Files, Implementation Notes, and Locked Decisions can all create implementation obligations or exclusions; do not validate only Acceptance and Verification.
 - Build an implementation trace map before approval:
   - forward trace: initiative context/original issue/ticket/intent -> story Purpose/Scope/Scenarios/Acceptance -> final Verification proof rows -> changed code/tests/config/runtime surfaces

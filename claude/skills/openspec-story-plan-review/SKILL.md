@@ -39,11 +39,11 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
 
 1. Parse `$ARGUMENTS` as `<initiative-slug> <story-slug>` (both optional).
 2. **INITIATIVE resolution (menu fallback):**
-   - If `<initiative-slug>` was passed, resolve `<workspace_root>/openspec/initiatives/<initiative-slug>/initiative.md`.
-   - If `<initiative-slug>` was not passed, list every directory under `<workspace_root>/openspec/initiatives/` whose `initiative.md` exists and whose `## Story Candidates` section references at least one change workspace with a `story.md` that has a non-approved Plan lane or no Plan lane. For each candidate, print: `<slug> — <N stories needing plan review, last-touched YYYY-MM-DD>`. If the filtered list is empty, abort with: `no initiatives have stories needing plan review; pass an explicit initiative and story to re-review an approved plan`. Otherwise ask the operator to pick (number or slug).
+   - If `<initiative-slug>` was passed, validate it matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` before resolving any path. If not, abort with: `invalid initiative slug; use lowercase hyphenated slug characters only`.
+   - If `<initiative-slug>` was not passed, list every directory under `<workspace_root>/openspec/initiatives/` whose `initiative.md` exists and whose `## Story Candidates` section references at least one change workspace with a `story.md` that has a non-approved Plan lane or no Plan lane. For each candidate, print: `<slug> — <N stories needing plan review, last-touched YYYY-MM-DD>`. If the filtered list is empty, abort with: `no initiatives have stories needing plan review; pass an explicit initiative and story to re-review an approved plan`. Otherwise ask the operator to pick (number or slug), set `<initiative-slug>` to that selection, and validate it against the same canonical slug rule before resolving any path.
 3. **STORY resolution (menu fallback):**
-   - If `<story-slug>` was passed, continue to resolution step 4.
-   - If `<story-slug>` was not passed, list every story referenced in the resolved initiative's `## Story Candidates` section whose `story.md` Plan lane is not `🟢 PLAN APPROVED`, plus any story with no Plan lane. For each, print: `<story-slug> — <Plan> — <Status> — <Deliverable summary>`. If the filtered list is empty, abort with: `no stories needing plan review in initiative <slug>; pass a story explicitly to re-review an approved plan`. Otherwise ask the operator to pick (number or slug).
+   - If `<story-slug>` was passed, validate it matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` before resolving any path, then continue to resolution step 4. If not, abort with: `invalid story slug; use lowercase hyphenated slug characters only`.
+   - If `<story-slug>` was not passed, list every story referenced in the resolved initiative's `## Story Candidates` section whose `story.md` Plan lane is not `🟢 PLAN APPROVED`, plus any story with no Plan lane. For each, print: `<story-slug> — <Plan> — <Status> — <Deliverable summary>`. If the filtered list is empty, abort with: `no stories needing plan review in initiative <slug>; pass a story explicitly to re-review an approved plan`. Otherwise ask the operator to pick (number or slug), set `<story-slug>` to that selection, and validate it against the same canonical slug rule before resolving any path.
 4. Set `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative-slug>`.
    - If `<initiative_dir>` does not exist, abort with: `initiative not found: openspec/initiatives/<initiative-slug>/ — run /openspec-epic-plan first`.
 5. Set `<initiative_file>` = `<initiative_dir>/initiative.md`.
@@ -54,7 +54,7 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
    - If missing in both locations, abort with: `change workspace not found: openspec/changes/<story-slug>/ — run /openspec-story-plan first`.
 7. Set `<story_file>` = `<change_dir>/story.md`.
    - If `<story_file>` does not exist, abort with the exact missing path.
-8. If `<change_dir>/blocked.md` exists, abort with: `blocked.md gate file exists; the operator must remove or annotate it before plan review can continue.`
+8. If `<change_dir>/blocked.md` exists, abort with: `blocked.md gate file exists; the operator may edit it to record resolution notes, but must remove it before plan review can continue.`
 9. Use `<story_file>` as the only plan review target. There is no `MASTER.md` in this flow; the `Plan:` header field in `story.md` is the authoritative planning lane and the `## Plan Review Log` section is the review history.
 
 ## Read first
@@ -84,7 +84,7 @@ Legacy compatibility: if `## Actors` and/or `## Scenarios / Behavior Examples` a
 Resolve the planning lane before review:
 
 - If the `Plan:` header field exists in `story.md`, use that value as the planning-lane authority.
-- If the `Plan:` header field is missing, infer legacy planning state from the newest effective `## Plan Review Log` entry: `approve` -> `🟢 PLAN APPROVED`; unresolved `request_changes` or `not_reviewable` -> `🟠 PLAN CHANGES REQUESTED`; `blocked` -> `⛔ PLAN BLOCKED`; no entry -> `🟡 PLAN DRAFT`.
+- If the `Plan:` header field is missing, infer legacy planning state from the latest effective `## Plan Review Log` entry: the last appended review entry after applying any later addressed-entry references. Map `approve` -> `🟢 PLAN APPROVED`; unresolved `request_changes` or `not_reviewable` -> `🟠 PLAN CHANGES REQUESTED`; `blocked` -> `⛔ PLAN BLOCKED`; no entry -> `🟡 PLAN DRAFT`.
 - If runtime artifacts exist (`progress.md`, `reviews.md`), enter **contract-review mode**. In this mode, validate only the story contract and proof plan; do not assess implementation completeness, do not read `progress.md` as proof that the contract is correct, and do not change implementation `Status:`.
 - If runtime artifacts do not exist, enter normal pre-implementation plan-review mode.
 

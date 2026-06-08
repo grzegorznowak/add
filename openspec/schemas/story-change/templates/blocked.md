@@ -1,10 +1,12 @@
 # Blocked: <change-slug>
 
-<!-- This file is the explicit blocker gate. Its presence prevents the
-     implementation converge loop from continuing. Remove or annotate
-     this file to unblock.
+<!-- This file is the explicit blocker gate. Its presence prevents
+     lifecycle gates from continuing. Remove this file to unblock; editing
+     or annotating it may document resolution, but the gate remains closed
+     while this file exists.
 
-     Created by any command that detects a blocking condition. -->
+     Created only by commands that own explicit blocker files; a plan review
+     blocked verdict uses the Plan lane instead. -->
 
 ## Blocker
 <!-- Concrete description of what is blocked and why. -->

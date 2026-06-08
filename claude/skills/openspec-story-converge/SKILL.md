@@ -76,7 +76,7 @@ Reject with a precise next action:
 - `Status: ✅ DONE` without durable review approval or merged-PR evidence: status drift; ask the operator to restore `Status: 🟣 IN REVIEW` and run `/openspec-story-review <initiative> <story-slug>`, or refresh merged PR metadata with `/openspec-story-pr <initiative> <story-slug>`.
 - `Status: 🔵 IN PR` without requested changes in `<progress_file> → ## PR State`: use `/openspec-story-pr <initiative> <story-slug>` for PR refresh or merge-state handling.
 - `Status: ⛔ BLOCKED`: blocked stories need operator unblocking before convergence.
-- `<blocked_file>` exists at `<change_dir>/blocked.md`: convergence is refused while an explicit gate file exists. The operator must remove or annotate `blocked.md` to unblock.
+- `<blocked_file>` exists at `<change_dir>/blocked.md`: convergence is refused while an explicit gate file exists. The operator may edit it to record resolution notes, but must remove `blocked.md` to unblock.
 
 Plan-approved means `Plan:` is `🟢 PLAN APPROVED`. No other source is consulted for the plan state.
 

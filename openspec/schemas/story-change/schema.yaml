@@ -74,10 +74,12 @@ artifacts:
   - id: blocked
     generates: blocked.md
     description: >
-      Explicit blocker gate file. When present, the implementation converge
-      loop (/openspec-story-converge) refuses to continue. The operator removes
-      or annotates this file to unblock. Created by any command that detects a
-      blocking condition; never auto-created during normal planning.
+      Explicit blocker gate file. When present, lifecycle gates refuse to
+      continue. The operator removes this file to unblock; editing or annotating
+      it may document resolution, but the gate remains closed while the file
+      exists. Created only by commands that own explicit blocker files; a plan
+      review `blocked` verdict uses the Plan lane instead. Never auto-created
+      during normal planning.
     template: blocked.md
 
 apply:

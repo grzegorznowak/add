@@ -29,21 +29,22 @@ Plan resume must come from an explicit operator choice. Auto-inferring resumes p
 ## Resolution
 
 1. Parse `$ARGUMENTS` into `<initiative-slug>` and `<story-slug>` (both positional, in that order).
-2. Set `<workspace_root>` = `<cwd>`.
-3. Resolve `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative-slug>`.
+2. Validate both slugs before resolving paths. Each must match `^[a-z0-9]+(?:-[a-z0-9]+)*$`; if either fails, abort with: `invalid slug; use lowercase hyphenated slug characters only`.
+3. Set `<workspace_root>` = `<cwd>`.
+4. Resolve `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative-slug>`.
    - If `<initiative_dir>` does not exist, abort with: `initiative not found: openspec/initiatives/<initiative-slug>/ — run /openspec-epic-plan first`.
-4. Read `<initiative_dir>/initiative.md` for context.
-5. Resolve `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>/`.
+5. Read `<initiative_dir>/initiative.md` for context.
+6. Resolve `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>/`.
    - If `<change_dir>` does not exist, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
    - If archived, abort with: `story is archived under openspec/changes/archive/; move it back to openspec/changes/ first`.
    - If missing in both locations, abort with: `change workspace not found: openspec/changes/<story-slug>/ — run /openspec-story-plan first`.
-6. Resolve `<story_file>` = `<change_dir>/story.md`.
+7. Resolve `<story_file>` = `<change_dir>/story.md`.
    - If the file does not exist, abort with the exact missing path.
-7. Derive the planning lane from the `Plan:` header field in `<story_file>`.
-   - If the `Plan:` header field is missing, infer legacy planning state from the newest effective `## Plan Review Log` entry: `approve` → `🟢 PLAN APPROVED`; unresolved `request_changes` or `not_reviewable` → `🟠 PLAN CHANGES REQUESTED`; `blocked` → `⛔ PLAN BLOCKED`; no entry → `🟡 PLAN DRAFT`. If no `## Plan Review Log` exists, default to `🟡 PLAN DRAFT`.
-8. If the planning lane is `🟢 PLAN APPROVED` and every required spec section is structurally complete, abort: "this story's plan is already approved; no plan-resume work is needed."
-9. If the planning lane is `⛔ PLAN BLOCKED`, abort: "this story's plan is blocked; the operator must decide how to unblock before plan-resume can continue."
-10. If `blocked.md` exists at `<change_dir>/blocked.md`, abort: "blocked.md gate file exists; the operator must remove or annotate it before plan-resume can continue."
+8. Derive the planning lane from the `Plan:` header field in `<story_file>`.
+   - If the `Plan:` header field is missing, infer legacy planning state from the latest effective `## Plan Review Log` entry: the last appended review entry after applying any later addressed-entry references. Map `approve` → `🟢 PLAN APPROVED`; unresolved `request_changes` or `not_reviewable` → `🟠 PLAN CHANGES REQUESTED`; `blocked` → `⛔ PLAN BLOCKED`; no entry → `🟡 PLAN DRAFT`. If no `## Plan Review Log` exists, default to `🟡 PLAN DRAFT`.
+9. If the planning lane is `🟢 PLAN APPROVED` and every required spec section is structurally complete, abort: "this story's plan is already approved; no plan-resume work is needed."
+10. If the planning lane is `⛔ PLAN BLOCKED`, abort: "this story's plan is blocked; the operator must decide how to unblock before plan-resume can continue."
+11. If `blocked.md` exists at `<change_dir>/blocked.md`, abort: "blocked.md gate file exists; the operator may edit it to record resolution notes, but must remove it before plan-resume can continue."
 
 ## Plan readiness check
 

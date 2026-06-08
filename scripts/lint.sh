@@ -389,6 +389,26 @@ else
 fi
 
 echo
+
+echo "lint: codex argument contracts"
+expect_codex_contains() {
+  local skill="$1" expected="$2" file
+  file="$CODEX_SKILLS/$skill/SKILL.md"
+  if [[ ! -f "$file" ]]; then
+    fail "$skill: missing generated Codex skill for argument-contract check"
+  elif grep -Fq "$expected" "$file"; then
+    ok "$skill: preserves $expected"
+  else
+    fail "$skill: generated Codex body missing '$expected'"
+  fi
+}
+expect_codex_contains openspec_story_claim "the INITIATIVE, STORY, and WORKTREE named variables"
+expect_codex_contains openspec_story_review "the INITIATIVE, STORY, and WORKTREE named variables"
+expect_codex_contains openspec_story_converge "the INITIATIVE, STORY, MAX_CYCLES, and WORKTREE named variables"
+expect_codex_contains openspec_story_plan_converge "the INITIATIVE, STORY, and MAX_CYCLES named variables"
+expect_codex_contains openspec_story_pr "the INITIATIVE, STORY, and PR selector named variables"
+
+echo
 if [[ $FAIL -ne 0 ]]; then
   echo "lint: FAILED"
   exit 1

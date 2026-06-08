@@ -26,7 +26,7 @@ This command writes planning artifacts under `openspec/changes/<story-slug>/` af
 
 ## Resolution
 
-1. Parse `$ARGUMENTS` — extract `INITIATIVE` if present.
+1. Parse `$ARGUMENTS` — accept only optional `INITIATIVE=<slug>` and reject unknown flags or extra tokens. If present, validate the slug before resolving any path.
 2. If `INITIATIVE` was provided:
    - Validate `<slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$`; if not, abort with: `invalid initiative slug; use lowercase hyphenated slug characters only`.
    - Resolve `<workspace_root>/openspec/initiatives/<slug>/initiative.md`.
@@ -36,7 +36,7 @@ This command writes planning artifacts under `openspec/changes/<story-slug>/` af
    - Show: `<slug> — <title>`. If none, abort with: `no initiatives found; run /openspec-epic-plan first`.
    - Ask: `Pick an initiative (number or slug):`.
    - Set `INITIATIVE` accordingly.
-   - Validate the selected `<slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$`; if not, abort with: `invalid initiative slug; run /openspec-epic-plan with a path-safe slug`.
+   - Validate the selected `<slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` before resolving any path from it; if not, abort with: `invalid initiative slug; run /openspec-epic-plan with a path-safe slug`.
 
 ## Read first
 
