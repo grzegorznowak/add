@@ -84,6 +84,7 @@ apply:
   requires:
     - proposal
     - story
+    - design
     - tasks
   tracks: tasks.md
   instruction: >

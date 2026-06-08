@@ -160,7 +160,7 @@ Read only the change workspace artifacts needed to classify plausible targets. P
 
 - source links or story slugs in the feedback
 - initiative.md story candidates and external resources
-- `## PR Tracking` URLs in `progress.md` (when present)
+- `## PR State` URLs in `progress.md` (when present)
 - matching acceptance IDs, paths, or scope language in `story.md`
 - existing `reviews.md` or `## Plan Review Log` entries when they directly mention the same issue
 
@@ -369,7 +369,7 @@ If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, de
 
 When contract/proof edits are fully blended, `/openspec-story-plan-review <initiative> <story-slug>` is mandatory before `/openspec-story-resume`. If plan review requests changes, the story re-enters the plan-converge loop through `/openspec-story-plan-resume` until `Plan:` returns to `🟢 PLAN APPROVED`.
 
-Do not delete or rewrite older `reviews.md` entries. If the story is `🔵 IN PR`, do not update `## PR Tracking` in `progress.md` here; recommend `/openspec-story-pr` refresh when the PR status itself must move the story back to `🔄 IN PROGRESS`.
+Do not delete or rewrite older `reviews.md` entries. If the story is `🔵 IN PR`, do not update `## PR State` in `progress.md` here; recommend `/openspec-story-pr` refresh when the PR status itself must move the story back to `🔄 IN PROGRESS`.
 
 For `new-story-candidate`, append or create this initiative-level section in `initiative.md`:
 

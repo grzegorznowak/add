@@ -69,14 +69,15 @@ For each cycle:
 
 1. Re-read `<initiative_file>` and `<story_file>` before choosing the next pass.
 2. Before any fresh subagent launch in this phase, build the task prompt in this order: complete Research Board when present, operational context when present, then the exact slash command as the final line.
-3. If required spec sections are missing or structurally incomplete and there is no newer unaddressed plan-review finding that must be reviewed first, prepare and launch a fresh subagent whose task prompt ends with:
+3. If a newer unaddressed plan-review finding exists (a `request_changes` or `not_reviewable` entry in `## Plan Review Log` without a matching addressed entry), prepare and launch a fresh subagent whose task prompt ends with:
 
    ```text
    /openspec-story-plan-resume <initiative> <story-slug>
    ```
 
-   If this resume pass asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that pass only.
-4. When the story is ready for review, prepare and launch a fresh subagent whose task prompt ends with the exact slash command:
+   The resume child routes to Mode A (unresolved-review-entry absorption) automatically. If this resume pass asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that pass only.
+4. Else if required spec sections are missing or structurally incomplete and there is no newer unaddressed plan-review finding, prepare and launch a fresh resume subagent the same way (Mode B — missing-section completion).
+5. When no unaddressed findings remain and the story is ready for review, prepare and launch a fresh subagent whose task prompt ends with the exact slash command:
 
    ```text
    /openspec-story-plan-review <initiative> <story-slug>

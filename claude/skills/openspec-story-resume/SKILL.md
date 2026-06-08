@@ -306,7 +306,7 @@ If a blocker was encountered:
 
 ### Status Inconsistencies
 
-If `story.md → Status:` and `progress.md → ## Session Handoff → Status:` disagree, prefer `progress.md` (more granular) but note the inconsistency in the session handoff.
+If `story.md → Status:` and `progress.md → ## Session Handoff → Status:` disagree, prefer `story.md → Status:` (the durable status header) and note the inconsistency in the session handoff.
 
 ### Worktree Mismatch
 

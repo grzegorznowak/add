@@ -20,7 +20,6 @@ Status: ⚪ TODO
 
 ## Expected Prerequisites
 <!-- Bulleted list of dependency story references. -->
-- None.
 
 ## Scope
 <!-- What is in scope. -->

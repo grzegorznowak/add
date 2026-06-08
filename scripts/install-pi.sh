@@ -36,7 +36,7 @@ done
 
 strip_transport() {
   awk '
-    /^###+ Shared Research Board Input$/ { skip=1; next }
+    /^##+ Shared Research Board Input$/ { skip=1; next }
     /^## /                              { skip=0 }
     !skip
   '
