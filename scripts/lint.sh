@@ -299,6 +299,15 @@ else
 fi
 
 echo
+echo "lint: OpenSpec notebook prompt boundaries"
+bad_notebook_prompt_pattern='complete inline note''book snap''shot|whole relevant note''book con''text|inline the note''book|f''ull note''book|note''book con''text becomes too large to pass in f''ull'
+if grep -RInE "$bad_notebook_prompt_pattern" "$CLAUDE_SKILLS"/openspec-* "$PI_FRAGMENTS"/openspec-*.md "$CODEX_SKILLS"/openspec_* "$PI_SKILLS"/openspec-* 2>/dev/null; then
+  fail "OpenSpec source, fragments, or generated skills ask for oversized notebook prompt context (matches above)"
+else
+  ok "OpenSpec notebook prompts use references or compact excerpts"
+fi
+
+echo
 echo "lint: pairing (claude ↔ codex)"
 for cn in "${CLAUDE_NAMES[@]:-}"; do
   [[ -z "$cn" ]] && continue

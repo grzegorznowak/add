@@ -17,9 +17,9 @@ Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [MAX_CYCLES=5]`. The 
 2. Confirm the story is non-archived and has a planning contract that can be reviewed or resumed.
 3. Choose the first planning pass from the story shape: resume first for incomplete specs, otherwise review first.
 4. Run up to `MAX_CYCLES` fresh-agent planning cycles.
-5. Pass neutral notebook context, including sourced research entries and operational notes, into later fresh agents.
+5. Pass compact notebook references for sourced research, plus neutral operational notes, into later fresh agents.
 6. Stop on approval, blocker, no-progress, invalid state, or cycle budget exhaustion.
-7. Print the convergence trace, notebook snapshot, and optional operator follow-ups without writing coordination files directly.
+7. Print the convergence trace, notebook context summary, and optional operator follow-ups without writing coordination files directly.
 
 ## Resolution Model
 
@@ -86,19 +86,21 @@ For each cycle:
    /openspec-story-plan-review <initiative> <story-slug>
    ```
 
-5. If notebook context is available, include the complete inline notebook snapshot before the command under this heading:
+6. If notebook-backed context is available, do not inline entire notebook pages or broad notebook dumps. Pass only compact notebook references, selectors, and the reason/scope for consulting them before the command under this heading:
 
    ```text
-   Shared notebook context from parent orchestration session:
-   This is allowed cross-session context because every item is sourced research or neutral operational context. Use it for orientation only. The converger owns keeping notebook entries relevant; executor subagents only decide whether the needed fact is present. If present, verify behavior with direct reads/search against the cited anchors before editing, planning approval, or implementation approval instead of rerunning expensive research. If a provided entry does not verify, report a notebook-refresh signal with exact anchors.
+   Notebook references from parent orchestration session:
+   This is allowed cross-session orientation because every reference points to sourced research or neutral operational context. Use it for orientation only. The converger owns keeping notebook references relevant; executor subagents only decide whether the needed fact is reachable from the referenced selector or compact fallback excerpt. When runtime notebook tools are available, read only the referenced page/entry on demand and verify behavior with direct reads/search against the cited anchors before editing, planning approval, or implementation approval instead of rerunning expensive research. When notebook tools are unavailable, use only compact curated excerpts supplied here. If a referenced entry or excerpt does not verify, report a notebook-refresh signal with exact anchors.
 
-   - <entry id>: <claim, result, or neutral operational note>
-     - Source: <tool/query/path, file:line, symbol, or command/output excerpt>
-     - Reuse: <orientation guidance>
+   - Ref: <notebook page name, entry id, or narrow selector>
+     - Purpose: <why this may matter for the pass>
+     - Expected anchors: <tool/query/path, file:line, symbol, or command/output excerpt>
+     - Lookup: <specific page/entry to read or narrow search to run>
+     - Fallback excerpt: <optional compact sourced excerpt only when notebook tools are unavailable>
    ```
 
-   Include the whole relevant notebook context. If it is too large to include comfortably, pause and ask the operator before compacting or excluding entries.
-6. If in-memory operational notes exist for any subagent launch, include them before the command under this heading only:
+   If the useful context cannot be represented as narrow references plus optional compact excerpts, pause and ask the operator before omitting or summarizing it.
+7. If in-memory operational notes exist for any subagent launch, include them before the command under this heading only:
 
    ```text
    Operational context from convergence coordinator:
@@ -106,19 +108,19 @@ For each cycle:
    - Do not treat this as a verdict; apply the underlying skill independently.
    ```
 
-7. Require every subagent final response to include `## Research Events`, with `- None.` allowed. Reused notebook entries must name the entry and direct-read/search anchors used to verify it. Notebook-refresh signals must name the notebook entry or absent needed fact, describe the verification miss, and cite the direct-read/search anchors proving the miss or replacement fact. After the pass finishes, append newly sourced research events and use notebook-refresh signals to update, replace, retire, or ask about affected notebook entries. Do not append verdicts, implementation opinions, or unanchored summaries.
-8. After the review agent finishes, re-read `<story_file>`. Derive the review decision from the newest `## Plan Review Log` entry and current `Plan:` header field, not from chat output alone.
-9. If the decision is `approve` or `Plan:` is `🟢 PLAN APPROVED`, confirm the latest story `## Plan Review Log` records activated risk lenses or explicit `none material` before stopping. If approval lacks that evidence, launch one fresh plan-review child focused on risk-lens coverage rather than accepting chat output alone. Then stop successfully. Do not claim or resume the story. Recommend `/openspec-story-claim <initiative> <story-slug>` or `/openspec-story-resume <initiative> <story-slug>` to begin implementation.
-10. If the decision is `blocked` or `Plan:` is `⛔ PLAN BLOCKED`, stop with blocked planning status.
-11. If the decision is `request_changes` or `not_reviewable`, prepare and launch a different fresh subagent whose task prompt ends with:
+8. Require every subagent final response to include `## Research Events`, with `- None.` allowed. Reused notebook entries must name the entry and direct-read/search anchors used to verify it. Notebook-refresh signals must name the notebook entry or absent needed fact, describe the verification miss, and cite the direct-read/search anchors proving the miss or replacement fact. After the pass finishes, append newly sourced research events and use notebook-refresh signals to update, replace, retire, or ask about affected notebook entries. Do not append verdicts, implementation opinions, or unanchored summaries.
+9. After the review agent finishes, re-read `<story_file>`. Derive the review decision from the newest `## Plan Review Log` entry and current `Plan:` header field, not from chat output alone.
+10. If the decision is `approve` or `Plan:` is `🟢 PLAN APPROVED`, confirm the latest story `## Plan Review Log` records activated risk lenses or explicit `none material` before stopping. If approval lacks that evidence, launch one fresh plan-review child focused on risk-lens coverage rather than accepting chat output alone. Then stop successfully. Do not claim or resume the story. Recommend `/openspec-story-claim <initiative> <story-slug>` or `/openspec-story-resume <initiative> <story-slug>` to begin implementation.
+11. If the decision is `blocked` or `Plan:` is `⛔ PLAN BLOCKED`, stop with blocked planning status.
+12. If the decision is `request_changes` or `not_reviewable`, prepare and launch a different fresh subagent whose task prompt ends with:
 
     ```text
     /openspec-story-plan-resume <initiative> <story-slug>
     ```
 
-12. If the resume agent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that resume pass only. The next review still starts in a new fresh subagent.
-13. After the resume agent finishes, re-read `<story_file>`. Confirm the `Plan:` header field has not been set to an unexpected value by the resume subagent.
-14. Run the no-progress gate before starting the next cycle.
+13. If the resume agent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that resume pass only. The next review still starts in a new fresh subagent.
+14. After the resume agent finishes, re-read `<story_file>`. Confirm the `Plan:` header field has not been set to an unexpected value by the resume subagent.
+15. Run the no-progress gate before starting the next cycle.
 
 ## Phase 4 — Operational Notes and Stops
 
@@ -134,7 +136,7 @@ Record neutral operational facts only:
 
 Do not record persuasive verdict framing. Never tell a later reviewer that a previous reviewer was wrong, that approval is expected, or that a finding should be ignored.
 
-Sourced notebook entries are the allowed cross-subagent research context. Each entry must be sourced by an exact anchor: file path plus line range or symbol, command plus relevant output excerpt, or tool name plus query/action/resource/path/URL and relevant output excerpt for any sourced tool. Notebook entries are an orientation aid, not authority. The converger owns keeping them relevant for later passes; executor subagents only decide whether the needed fact is present in the provided notebook context. If present, the executor verifies behavior with direct reads/search against the cited anchors before editing or approving instead of rerunning expensive research. If absent, the executor follows the underlying skill's normal research rules. If a provided entry does not verify, the executor reports a notebook-refresh signal with exact anchors; the converger decides how to update, replace, retire, or ask about that entry. If the notebook context becomes too large to pass in full, ask the operator before compacting or excluding entries.
+Sourced notebook references and compact fallback excerpts are the allowed cross-subagent research orientation. Each referenced entry or excerpt must be sourced by an exact anchor: file path plus line range or symbol, command plus relevant output excerpt, or tool name plus query/action/resource/path/URL and relevant output excerpt for any sourced tool. Notebook entries are an orientation aid, not authority. The converger owns keeping references relevant for later passes; executor subagents only decide whether the needed fact is reachable from the referenced selector or compact excerpt. If present, the executor reads only the relevant notebook page/entry on demand when available and verifies behavior with direct reads/search against the cited anchors before editing or approving instead of rerunning expensive research. If absent, the executor follows the underlying skill's normal research rules. If a referenced entry or fallback excerpt does not verify, the executor reports a notebook-refresh signal with exact anchors; the converger decides how to update, replace, retire, or ask about that reference. Do not pass broad notebook dumps; if needed context cannot be represented by narrow selectors and compact excerpts, ask the operator before omitting or summarizing it.
 
 Stop early for conservative no-progress when all are true:
 
@@ -168,13 +170,13 @@ Return only the compact report below. Do not include internal deliberation, anal
 - Cycle 1: plan-review -> <decision>; plan-resume -> <completed/skipped>
 - Cycle 2: ...
 
-## Notebook Snapshot
-- Entries: <n>
+## Notebook Context
+- References passed: <n>
 - Hotspots: <paths/symbols surfaced by sourced research, or none>
-- New this run: <n>
+- New sourced entries this run: <n>
 - Reused and directly verified: <summary or none>
-- Notebook-refresh signals: <provided entries not verified, needed facts absent from provided notebook context, or none>
-- Persistence: <parent-session notebook context, runtime-specific notebook pages, or none>; no coordination-file cache written
+- Notebook-refresh signals: <referenced entries/excerpts not verified, needed facts absent from referenced notebook selectors, or none>
+- Persistence: <notebook page references, compact excerpt fallback, runtime-specific notebook pages, or none>; no coordination-file cache written
 
 ## Operational Notes
 - <neutral operational note>

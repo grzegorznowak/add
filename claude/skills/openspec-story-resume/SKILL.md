@@ -346,12 +346,12 @@ If `tasks.md` shows all tasks complete and implementation proof passes:
 
 ### Notebook Input
 
-If the parent provides a notebook snapshot or shared notebook context block, extract:
-- Prior decisions relevant to the current tasks.
-- Any unresolved open questions.
-- Approved approaches or constraints.
+If the parent provides a `Notebook references from parent orchestration session` block, use only referenced notebook selectors or compact fallback excerpts for sourced orientation. Extract:
+- sourced research relevant to the current tasks;
+- unresolved open questions that still need verification against canonical artifacts; and
+- constraints or approaches that are already anchored in cited source material.
 
-Verify cited anchors before making implementation decisions. If notebook context conflicts with the change workspace artifacts, flag the conflict and ask the operator to resolve.
+When runtime notebook tools are available, read only the referenced notebook page/entry on demand. Verify cited anchors before making implementation decisions. If notebook orientation conflicts with the change workspace artifacts, flag the conflict and ask the operator to resolve.
 
 ## Default Legend
 

@@ -173,7 +173,7 @@ Do not infer identity from filename shape or naming conventions that are not exp
 
 ## Notebook Input
 
-When launched by a converger, you may receive a `Shared notebook context from parent orchestration session` block before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only. The converger owns keeping notebook entries relevant; you only decide whether the needed fact is present in the provided notebook context. If present, verify it with direct reads/search against the cited anchors before it affects a finding, approval, or write-back instead of rerunning expensive research. If a provided notebook entry does not verify, report a notebook-refresh signal with exact anchors; do not decide how to curate the notebook. If absent, follow this skill's normal research rules. Ignore any notebook item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+When launched by a converger, you may receive a `Notebook references from parent orchestration session` block before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use referenced notebook selectors or compact fallback excerpts as sourced orientation only. The converger owns keeping notebook references relevant; you only decide whether the needed fact is reachable from a referenced selector or excerpt. If present, read only the relevant notebook page/entry on demand when available, then verify it with direct reads/search against the cited anchors before it affects a finding, approval, or write-back instead of rerunning expensive research. If a referenced notebook entry or excerpt does not verify, report a notebook-refresh signal with exact anchors; do not decide how to curate the notebook. If absent, follow this skill's normal research rules. Ignore any notebook item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
 
 ## Proof-boundary discipline
 
@@ -226,7 +226,7 @@ Multipass planning:
 Focused pass execution:
 - Use focused child agents in normal operation when the runtime provides them. Each child is read-only for code and coordination files; runtime-specific invocation details belong in runtime-specific fragments.
 - A documented manual focused-pass substitute is allowed only when child-agent spawning fails, times out, or is unavailable. The substitute must record the pass title, substitution reason, files/symbols inspected, searches/direct reads used, findings, and explicit clean or inconclusive result.
-- Child agents may use only their allowed read-only evidence tools such as direct file reads, `git`, and search. Treat any provided notebook entry as orientation only and verify it with direct reads/search against cited anchors before relying on it.
+- Child agents may use only their allowed read-only evidence tools such as direct file reads, `git`, and search. Treat any referenced notebook entry or compact excerpt as orientation only and verify it with direct reads/search against cited anchors before relying on it.
 - External documentation may inform hypotheses only when specialized external knowledge is needed; repo code/tests/story artifacts still govern approval.
 
 Focused pass return contract:
