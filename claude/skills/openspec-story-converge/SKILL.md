@@ -102,7 +102,7 @@ For each cycle:
 
    ```text
    Notebook references from parent orchestration session:
-   This is allowed cross-session orientation because every reference points to sourced research or neutral operational context. Use it for orientation only. The converger owns keeping notebook references relevant; executor subagents only decide whether the needed fact is reachable from the referenced selector or compact fallback excerpt. When runtime notebook tools are available, read only the referenced page/entry on demand and verify behavior with direct reads/search against the cited anchors before editing, planning approval, or implementation approval instead of rerunning expensive research. When notebook tools are unavailable, use only compact curated excerpts supplied here. If a referenced entry or excerpt does not verify, report a notebook-refresh signal with exact anchors.
+   This is allowed cross-session orientation because every reference points to sourced research or neutral operational context. Use it for orientation only. The converger owns keeping notebook references relevant; executor subagents only decide whether the needed fact is reachable from the referenced selector or compact fallback excerpt. When runtime notebook tools are available, read only the referenced page/entry on demand and verify behavior with direct reads/search against the cited anchors before editing, planning approval, or implementation approval instead of rerunning expensive research. When notebook tools are unavailable, use only compact curated excerpts supplied here. If a referenced entry or excerpt does not verify, mention the mismatch with exact anchors in the relevant final-response section.
 
    - Ref: <notebook page name, entry id, or narrow selector>
      - Purpose: <why this may matter for the pass>
@@ -121,7 +121,7 @@ For each cycle:
    ```
 
 5. End the task prompt with the exact slash command line, then launch exactly one fresh subagent.
-6. Require every subagent final response to include `## Research Events`, with `- None.` allowed. Reused notebook entries must name the entry and direct-read/search anchors used to verify it. Notebook-refresh signals must name the notebook entry or absent needed fact, describe the verification miss, and cite the direct-read/search anchors proving the miss or replacement fact. After the pass finishes, append newly sourced research events and use notebook-refresh signals to update, replace, retire, or ask about affected notebook entries. Do not append verdicts, implementation opinions, or unanchored summaries.
+6. Require subagents to write new sourced research directly to the named research notebook page when runtime notebook tools are available. If notebook tools are unavailable, allow compact sourced fallback notes in normal final reporting instead. Require subagents to mention any referenced notebook entry or fallback excerpt that failed verification with exact anchors in their relevant blocker, finding, or notes section. After the pass finishes, re-read the research notebook and use those mismatch notes to update, replace, retire, or ask about affected entries. Do not append verdicts, implementation opinions, or unanchored summaries.
 7. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that pass only. The next lifecycle pass still starts in a new fresh subagent.
 8. After the pass finishes, re-read `<story_file>`, `<progress_file>`, and `<reviews_file>` (if it exists). Derive decisions from the newest authoritative sections and status, not from chat output alone.
 9. If a claim or resume pass leaves the story at `Status: 🟣 IN REVIEW`, the same cycle may launch a fresh review pass.
@@ -151,7 +151,7 @@ Record neutral operational facts only:
 
 Do not record persuasive verdict framing. Never tell a later reviewer that a previous reviewer was wrong, that approval is expected, or that a finding should be ignored.
 
-Sourced notebook references and compact fallback excerpts are the allowed cross-subagent research orientation. Each referenced entry or excerpt must be sourced by an exact anchor: file path plus line range or symbol, command plus relevant output excerpt, or tool name plus query/action/resource/path/URL and relevant output excerpt for any sourced tool. Notebook entries are an orientation aid, not authority. The converger owns keeping references relevant for later passes; executor subagents only decide whether the needed fact is reachable from the referenced selector or compact excerpt. If present, the executor reads only the relevant notebook page/entry on demand when available and verifies behavior with direct reads/search against the cited anchors before editing or approving instead of rerunning expensive research. If absent, the executor follows the underlying skill's normal research rules. If a referenced entry or fallback excerpt does not verify, the executor reports a notebook-refresh signal with exact anchors; the converger decides how to update, replace, retire, or ask about that reference. Do not pass broad notebook dumps; if needed context cannot be represented by narrow selectors and compact excerpts, ask the operator before omitting or summarizing it.
+Sourced notebook references and compact fallback excerpts are the allowed cross-subagent research orientation. Each referenced entry or excerpt must be sourced by an exact anchor: file path plus line range or symbol, command plus relevant output excerpt, or tool name plus query/action/resource/path/URL and relevant output excerpt for any sourced tool. Notebook entries are an orientation aid, not authority. The converger owns keeping references relevant for later passes; executor subagents only decide whether the needed fact is reachable from the referenced selector or compact excerpt. If present, the executor reads only the relevant notebook page/entry on demand when available and verifies behavior with direct reads/search against the cited anchors before editing or approving instead of rerunning expensive research. If absent, the executor follows the underlying skill's normal research rules. If a referenced entry or fallback excerpt does not verify, the executor mentions the mismatch with exact anchors in the relevant final-response section; the converger decides how to update, replace, retire, or ask about that reference. Do not pass broad notebook dumps; if needed context cannot be represented by narrow selectors and compact excerpts, ask the operator before omitting or summarizing it.
 
 Stop early for conservative no-progress when all are true:
 
@@ -209,9 +209,9 @@ Return only the compact report below. Do not include internal deliberation, anal
 ## Notebook Context
 - References passed: <n>
 - Hotspots: <paths/symbols surfaced by sourced research, or none>
-- New sourced entries this run: <n>
-- Reused and directly verified: <summary or none>
-- Notebook-refresh signals: <referenced entries/excerpts not verified, needed facts absent from referenced notebook selectors, or none>
+- Research notebook updates: <entries added/updated/retired this run, or none>
+- Referenced entries verified: <summary or none>
+- Stale reference handling: <referenced entries/excerpts not verified, needed facts absent from referenced notebook selectors, or none>
 - Persistence: <notebook page references, compact excerpt fallback, runtime-specific notebook pages, or none>; no coordination-file cache written
 
 ## Commit Recommendation

@@ -29,4 +29,4 @@ spawn({
 })
 ```
 
-After the subagent returns, re-read coordination files (`story.md`, `progress.md`, `reviews.md`) directly to derive state; never trust subagent prose alone. Then read `notebook_read({name: "openspec-research-<initiative_slug>-<story_slug>"})`, curate entries, and update `openspec-ops-<initiative_slug>-<story_slug>` with neutral operational facts only. If a notebook entry does not verify, refine or retire it and record a `notebook-refresh` signal in the final report.
+After the subagent returns, re-read coordination files (`story.md`, `progress.md`, `reviews.md`) directly to derive state; never trust subagent prose alone. Then read `notebook_read({name: "openspec-research-<initiative_slug>-<story_slug>"})`, curate entries, and update `openspec-ops-<initiative_slug>-<story_slug>` with neutral operational facts only. If a notebook entry does not verify, refine or retire it and summarize stale-reference handling in the final report.

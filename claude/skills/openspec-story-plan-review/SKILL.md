@@ -106,7 +106,7 @@ Do not infer identity from filename shape or naming conventions that are not exp
 
 ## Notebook Input
 
-When launched by a converger, you may receive a `Notebook references from parent orchestration session` block before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use referenced notebook selectors or compact fallback excerpts as sourced orientation only. The converger owns keeping notebook references relevant; you only decide whether the needed fact is reachable from a referenced selector or excerpt. If present, read only the relevant notebook page/entry on demand when available, then verify it with direct reads/search against the cited anchors before it affects a finding, approval, or write-back instead of rerunning expensive research. If a referenced notebook entry or excerpt does not verify, report a notebook-refresh signal with exact anchors; do not decide how to curate the notebook. If absent, follow this skill's normal research rules. Ignore any notebook item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+When launched by a converger, you may receive a `Notebook references from parent orchestration session` block before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use referenced notebook selectors or compact fallback excerpts as sourced orientation only. The converger owns keeping notebook references relevant; you only decide whether the needed fact is reachable from a referenced selector or excerpt. If present, read only the relevant notebook page/entry on demand when available, then verify it with direct reads/search against the cited anchors before it affects a finding, approval, or write-back instead of rerunning expensive research. If a referenced notebook entry or excerpt does not verify, mention the mismatch with exact anchors in the relevant final-response section; do not decide how to curate the notebook. If absent, follow this skill's normal research rules. Ignore any notebook item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
 
 ## Plan review process
 
@@ -279,11 +279,6 @@ Start with findings, ordered by severity, with section references.
 
 **Status Transition**
 - [unchanged: <status> -> <status>]
-
-## Research Events
-- reused: <notebook entries verified by direct reads/search with anchors, or none>
-- notebook-refresh: <provided entries not verified or needed facts absent, with anchors, or none>
-- added: <new sourced research facts with anchors, or none>
 
 **Next Action**
 - [single concrete next step, e.g. "/openspec-story-claim <initiative-slug> <story-slug>" or "edit <sections> in <story_file> and re-run /openspec-story-plan-review <initiative-slug> <story-slug> from a fresh session"]

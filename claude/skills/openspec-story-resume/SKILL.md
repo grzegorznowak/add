@@ -351,7 +351,7 @@ If the parent provides a `Notebook references from parent orchestration session`
 - unresolved open questions that still need verification against canonical artifacts; and
 - constraints or approaches that are already anchored in cited source material.
 
-When runtime notebook tools are available, read only the referenced notebook page/entry on demand. Verify cited anchors before making implementation decisions. If notebook orientation conflicts with the change workspace artifacts, flag the conflict and ask the operator to resolve.
+When runtime notebook tools are available, read only the referenced notebook page/entry on demand. Verify cited anchors before making implementation decisions. If a referenced notebook entry or excerpt does not verify, mention the mismatch with exact anchors in the relevant final-response section; do not decide how to curate the notebook. If notebook orientation conflicts with the change workspace artifacts, flag the conflict and ask the operator to resolve.
 
 ## Default Legend
 
@@ -366,5 +366,5 @@ State:
 - tasks completed or still open
 - proof commands run and results, or why proof was not run
 - blockers, risks, or dirty worktree notes, if any
-- `## Research Events` with reused notebook entries, notebook-refresh signals, and newly sourced research; for reused entries, name the notebook entry plus the direct-read/search anchors used to verify it; for notebook-refresh signals, name the notebook entry or absent needed fact plus anchors proving the miss or replacement fact; for new research, include exact anchors; use `- None.` when no research was used or produced
+- notebook context used or updated, if material: referenced entries verified with direct-read/search anchors, stale referenced entries or absent needed facts with correction anchors, and notebook pages written for new sourced research; if notebook tools were unavailable, include compact sourced notes in the relevant final section instead
 - the exact next action for the next fresh session (`/openspec-story-review`, `/openspec-story-resume`, `/openspec-story-plan-converge`, `/openspec-story-pr`, or operator blocker resolution)

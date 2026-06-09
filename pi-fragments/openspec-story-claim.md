@@ -23,4 +23,4 @@ spawn({prompt: "Debt Friction check for openspec/<initiative_slug>/<story_slug>.
 Record accepted Debt Friction only in the canonical places named by the base skill (`progress.md` during implementation and review evidence when relevant).
 
 ### Notebook from converger
-Retrieve `notebook_read({name: "openspec-research-<initiative_slug>-<story_slug>"})` when a converger names that page. Verify each entry with direct reads/search against cited anchors before acting. If an entry does not verify, report a `## Research Events` notebook-refresh signal with correction anchors in the final response; do not curate converger-provided notebook entries directly.
+Retrieve `notebook_read({name: "openspec-research-<initiative_slug>-<story_slug>"})` when a converger names that page. Verify each entry with direct reads/search against cited anchors before acting. If an entry does not verify, mention the mismatch with correction anchors in the relevant final-response section; do not curate converger-provided notebook entries directly. Write new sourced research to that notebook page when runtime notebook tools are available.

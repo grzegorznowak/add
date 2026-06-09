@@ -230,8 +230,8 @@ for skill_dir in "$CLAUDE_SKILLS"/*/; do
   skill_file="$skill_dir/SKILL.md"
   [[ -f "$skill_file" ]] || continue
 
-  # Codex convergers inherit the Claude Research Board handoff protocol, so keep
-  # executor-side board input and Research Events sections intact.
+  # Codex skills inherit the Claude notebook-reference protocol, so keep
+  # executor-side notebook input contracts intact.
   stripped="$(cat "$skill_file" | codex_args "$skill_name")"
   codex_name="${skill_name//-/_}"
 

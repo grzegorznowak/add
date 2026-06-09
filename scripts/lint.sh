@@ -21,6 +21,7 @@
 #   16. No `cure_workspace` absolute paths anywhere.
 #   17. Generated Codex OpenSpec skills preserve every auxiliary argument contract.
 #   18. Pi OpenSpec fragments do not persist review/proof/lifecycle authority to notebooks.
+#   19. OpenSpec skills do not require the removed research-event response section.
 #
 # Exit codes:
 #   0 — clean
@@ -305,6 +306,15 @@ if grep -RInE "$bad_notebook_prompt_pattern" "$CLAUDE_SKILLS"/openspec-* "$PI_FR
   fail "OpenSpec source, fragments, or generated skills ask for oversized notebook prompt context (matches above)"
 else
   ok "OpenSpec notebook prompts use references or compact excerpts"
+fi
+
+echo
+echo "lint: OpenSpec removed research-event response contract"
+bad_research_event_pattern='Research Ev''ents|research ev''ents'
+if grep -RInE "$bad_research_event_pattern" "$CLAUDE_SKILLS"/openspec-* "$PI_FRAGMENTS"/openspec-*.md "$CODEX_SKILLS"/openspec_* "$PI_SKILLS"/openspec-* 2>/dev/null; then
+  fail "OpenSpec source, fragments, or generated skills still require removed research-event response contract (matches above)"
+else
+  ok "OpenSpec skills avoid the removed research-event response contract"
 fi
 
 echo

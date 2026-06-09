@@ -22,4 +22,4 @@ spawn({
 })
 ```
 
-After the subagent returns, re-read `story.md` directly to derive Plan lane and review state; never trust subagent prose alone. Then read `notebook_read({name: "openspec-plan-research-<initiative_slug>-<story_slug>"})`, curate entries, and update `openspec-plan-ops-<initiative_slug>-<story_slug>` with neutral operational facts only. If a notebook entry does not verify, refine or retire it and record a `notebook-refresh` signal in the final report.
+After the subagent returns, re-read `story.md` directly to derive Plan lane and review state; never trust subagent prose alone. Then read `notebook_read({name: "openspec-plan-research-<initiative_slug>-<story_slug>"})`, curate entries, and update `openspec-plan-ops-<initiative_slug>-<story_slug>` with neutral operational facts only. If a notebook entry does not verify, refine or retire it and summarize stale-reference handling in the final report.

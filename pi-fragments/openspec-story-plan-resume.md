@@ -14,4 +14,4 @@ spawn({prompt: "For openspec/<initiative_slug>/<story_slug>, research planning g
 Retrieve findings with `notebook_read({name: "openspec-plan-research-<initiative_slug>-<story_slug>"})`. Verify material claims with direct reads/search before story edits.
 
 ### Notebook from converger
-Retrieve `notebook_read({name: "openspec-plan-research-<initiative_slug>-<story_slug>"})` when a converger names that page. If an entry does not verify, report a `## Research Events` notebook-refresh signal with correction anchors in the final response; do not curate converger-provided notebook entries directly.
+Retrieve `notebook_read({name: "openspec-plan-research-<initiative_slug>-<story_slug>"})` when a converger names that page. If an entry does not verify, mention the mismatch with correction anchors in the relevant final-response section; do not curate converger-provided notebook entries directly. Write new sourced research to that notebook page when runtime notebook tools are available.
