@@ -11,15 +11,16 @@
 #   6. Generated Codex skills have valid agents/openai.yaml.
 #   7. Generated Codex skills preserve Shared Research Board Input contracts.
 #   8. Generated Pi skills have no Shared Research Board Input sections.
-#   9. Pairing — every Claude skill has a Codex and Pi counterpart.
-#   10. Phase-heading parity between Claude and generated Codex skills.
-#   11. Main installer Codex dry-run uses the generated compiler path.
-#   12. Non-TTY installer mutation requires explicit --yes.
-#   13. Generated installers protect modified existing files unless forced.
-#   14. Codex skills do not carry prompt-era compatibility scaffolding.
-#   15. No `cure_workspace` absolute paths anywhere.
-#   16. Generated Codex OpenSpec skills preserve every auxiliary argument contract.
-#   17. Pi OpenSpec fragments do not persist lifecycle/review/board authority to notebooks.
+#   9. OpenSpec skills use notebook terminology instead of Research Board terminology.
+#   10. Pairing — every Claude skill has a Codex and Pi counterpart.
+#   11. Phase-heading parity between Claude and generated Codex skills.
+#   12. Main installer Codex dry-run uses the generated compiler path.
+#   13. Non-TTY installer mutation requires explicit --yes.
+#   14. Generated installers protect modified existing files unless forced.
+#   15. Codex skills do not carry prompt-era compatibility scaffolding.
+#   16. No `cure_workspace` absolute paths anywhere.
+#   17. Generated Codex OpenSpec skills preserve every auxiliary argument contract.
+#   18. Pi OpenSpec fragments do not persist review/proof/lifecycle authority to notebooks.
 #
 # Exit codes:
 #   0 — clean
@@ -290,6 +291,14 @@ else
 fi
 
 echo
+echo "lint: OpenSpec notebook terminology"
+if grep -RInE 'Shared Research Board|Research Board|board-refresh|board entries|board entry|provided board' "$CLAUDE_SKILLS"/openspec-* "$PI_FRAGMENTS"/openspec-*.md "$CODEX_SKILLS"/openspec_* "$PI_SKILLS"/openspec-* 2>/dev/null; then
+  fail "OpenSpec source, fragments, or generated skills still use Research Board terminology (matches above)"
+else
+  ok "OpenSpec skills use notebook terminology"
+fi
+
+echo
 echo "lint: pairing (claude ↔ codex)"
 for cn in "${CLAUDE_NAMES[@]:-}"; do
   [[ -z "$cn" ]] && continue
@@ -453,11 +462,11 @@ fi
 
 echo
 
-echo "lint: openspec pi fragment boundary"
-if grep -RInE 'notebook_(write|read|index)|Persist review verdict|Review findings → notebook|Proof tracking → notebook|Operational notes → notebook|Research Board from converger → notebook' "$PI_FRAGMENTS"/openspec-*.md 2>/dev/null; then
-  fail "OpenSpec Pi fragments persist lifecycle/review/proof/board state to notebooks (matches above)"
+echo "lint: openspec pi fragment authority boundary"
+if grep -RInE 'Persist review verdict|Review findings → notebook|Proof tracking → notebook|approval evidence.*notebook_write|lifecycle.*notebook_write' "$PI_FRAGMENTS"/openspec-*.md 2>/dev/null; then
+  fail "OpenSpec Pi fragments persist review/proof/lifecycle authority to notebooks (matches above)"
 else
-  ok "OpenSpec Pi fragments keep lifecycle/review/proof/board authority out of notebooks"
+  ok "OpenSpec Pi fragments keep review/proof/lifecycle authority in canonical artifacts"
 fi
 
 echo

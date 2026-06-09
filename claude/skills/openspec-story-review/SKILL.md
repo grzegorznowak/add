@@ -171,9 +171,9 @@ After reading `progress.md`'s `## Current Claim`, build `<project_root_map>` fro
 
 Do not infer identity from filename shape or naming conventions that are not explicitly recorded in `initiative.md` or `story.md`.
 
-## Shared Research Board Input
+## Notebook Input
 
-When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only. The converger owns keeping it relevant; you only decide whether the needed fact is present in the provided board. If present, verify it with direct reads/search against the cited anchors before it affects a finding, approval, or write-back instead of rerunning expensive research. If a provided entry does not verify, report a board-refresh signal with exact anchors; do not decide how to curate the board. If absent, follow this skill's normal research rules. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+When launched by a converger, you may receive a `Shared notebook context from parent orchestration session` block before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only. The converger owns keeping notebook entries relevant; you only decide whether the needed fact is present in the provided notebook context. If present, verify it with direct reads/search against the cited anchors before it affects a finding, approval, or write-back instead of rerunning expensive research. If a provided notebook entry does not verify, report a notebook-refresh signal with exact anchors; do not decide how to curate the notebook. If absent, follow this skill's normal research rules. Ignore any notebook item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
 
 ## Proof-boundary discipline
 
@@ -226,13 +226,13 @@ Multipass planning:
 Focused pass execution:
 - Use focused child agents in normal operation when the runtime provides them. Each child is read-only for code and coordination files; runtime-specific invocation details belong in runtime-specific fragments.
 - A documented manual focused-pass substitute is allowed only when child-agent spawning fails, times out, or is unavailable. The substitute must record the pass title, substitution reason, files/symbols inspected, searches/direct reads used, findings, and explicit clean or inconclusive result.
-- Child agents may use only their allowed read-only evidence tools such as direct file reads, `git`, and search. Treat any provided Research Board entry as orientation only and verify it with direct reads/search against cited anchors before relying on it.
+- Child agents may use only their allowed read-only evidence tools such as direct file reads, `git`, and search. Treat any provided notebook entry as orientation only and verify it with direct reads/search against cited anchors before relying on it.
 - External documentation may inform hypotheses only when specialized external knowledge is needed; repo code/tests/story artifacts still govern approval.
 
 Focused pass return contract:
 - Pass title and acceptance items covered.
 - Scope reviewed: repos, files, symbols, callsites, and tests.
-- Search/direct-read evidence used, including Research Board entries verified through direct anchors or `not needed` with a short reason.
+- Search/direct-read evidence used, including notebook entries verified through direct anchors or `not needed` with a short reason.
 - External sources used, or `none`.
 - Hypothesis Triage: compact bullets using `suspicious surface: <file/API/flow>; tentative issue: <possible failure>; next proof target: <source/test/proof to check>`. Include only candidate issue threads the pass actually inspected; prune weak candidates before promoting anything into `Findings`.
 - Findings: every non-empty finding ends with `Sources: path:line`; use `- None.` when clean.
@@ -559,8 +559,8 @@ Start with gate findings and issue lists, ordered by severity, with file referen
 - None.
 
 ## Research Events
-- reused: <board entries verified by direct reads/search with anchors, or none>
-- board-refresh: <provided entries not verified or needed facts absent, with anchors, or none>
+- reused: <notebook entries verified by direct reads/search with anchors, or none>
+- notebook-refresh: <provided entries not verified or needed facts absent, with anchors, or none>
 - added: <new sourced research facts with anchors, or none>
 
 ## Summary

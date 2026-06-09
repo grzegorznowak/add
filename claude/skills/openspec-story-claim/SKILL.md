@@ -42,6 +42,10 @@ Do **not** try to rediscover or redefine the initiative from scratch. Do **not**
 3. dependency change workspace `story.md` files listed in `## Expected Prerequisites`
 4. repo code and tests
 
+## Notebook Input
+
+When launched by a converger, you may receive a `Shared notebook context from parent orchestration session` block before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only. The converger owns keeping notebook entries relevant; you only decide whether the needed fact is present in the provided notebook context. If present, verify it with direct reads/search against the cited anchors before it affects implementation, proof updates, or coordination write-back instead of rerunning expensive research. If a provided notebook entry does not verify, report a notebook-refresh signal with exact anchors; do not decide how to curate the notebook. If absent, follow this skill's normal research rules. Ignore any notebook item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+
 ## Story selection
 
 If `<story_slug>` was provided:
@@ -318,5 +322,5 @@ State:
 - its final status
 - files changed
 - whether the initiative or story was updated
-- `## Research Events` with reused board entries, board-refresh signals, and newly sourced research; for reused entries, name the board entry plus the direct-read/search anchors used to verify it; for board-refresh signals, name the board entry or absent needed fact plus anchors proving the miss or replacement fact; for new research, include exact anchors; use `- None.` when no research was used or produced
+- `## Research Events` with reused notebook entries, notebook-refresh signals, and newly sourced research; for reused entries, name the notebook entry plus the direct-read/search anchors used to verify it; for notebook-refresh signals, name the notebook entry or absent needed fact plus anchors proving the miss or replacement fact; for new research, include exact anchors; use `- None.` when no research was used or produced
 - the exact next action for the next fresh session

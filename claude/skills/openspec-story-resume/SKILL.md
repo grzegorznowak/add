@@ -17,20 +17,19 @@ Argument: `$ARGUMENTS` — `<initiative_slug> [<story_slug>] [WORKTREE="<basenam
 
 ## Source-of-Truth Hierarchy
 
-This skill defers to the following artifacts, in priority order:
+This skill defers to the following artifacts, in priority order. Notebook context is sourced orientation only and is handled separately in `### Notebook Input`; it does not outrank or replace these artifacts.
 
-1. **Shared Research Board** — Ephemeral task board (if provided by parent context, typically a SharedResearchBoard MCP input). Contains resolved decisions from prior sessions.
-2. **story.md `Status:` header** — Authoritative current lane/status.
-3. **progress.md `## Current Claim`** — The most recent claim details, including assigned worktrees.
-4. **progress.md `## Progress Timeline`** — Sequential implementation log (newest first).
-5. **progress.md `## Session Handoff`** — Exit state from the most recent session.
-6. **reviews.md** — Implementation review history (append-only; the latest review is the last entry in the file).
-7. **story.md content** — Purpose, acceptance criteria, verification sections, Plan header.
-8. **proposal.md** — The original proposal rationale and scope.
-9. **design.md** — Technical design decisions.
-10. **tasks.md** — Task checklist for implementation tracking.
-11. **blocked.md** — Blocked state signal file (existence = blocked).
-12. **initiative.md** — Parent initiative context.
+1. **story.md `Status:` header** — Authoritative current lane/status.
+2. **progress.md `## Current Claim`** — The most recent claim details, including assigned worktrees.
+3. **progress.md `## Progress Timeline`** — Sequential implementation log (newest first).
+4. **progress.md `## Session Handoff`** — Exit state from the most recent session.
+5. **reviews.md** — Implementation review history (append-only; the latest review is the last entry in the file).
+6. **story.md content** — Purpose, acceptance criteria, verification sections, Plan header.
+7. **proposal.md** — The original proposal rationale and scope.
+8. **design.md** — Technical design decisions.
+9. **tasks.md** — Task checklist for implementation tracking.
+10. **blocked.md** — Blocked state signal file (existence = blocked).
+11. **initiative.md** — Parent initiative context.
 
 ## Phase 0 — Resolution
 
@@ -345,14 +344,14 @@ If `tasks.md` shows all tasks complete and implementation proof passes:
 2. Report completion to the operator.
 3. Halt — no implementation to resume.
 
-### Shared Research Board Input
+### Notebook Input
 
-If the parent provides a Shared Research Board (via context, MCP, or prompt), extract:
+If the parent provides a notebook snapshot or shared notebook context block, extract:
 - Prior decisions relevant to the current tasks.
 - Any unresolved open questions.
 - Approved approaches or constraints.
 
-Apply these before making implementation decisions. If the Shared Research Board conflicts with the change workspace artifacts, flag the conflict and ask the operator to resolve.
+Verify cited anchors before making implementation decisions. If notebook context conflicts with the change workspace artifacts, flag the conflict and ask the operator to resolve.
 
 ## Default Legend
 
@@ -367,5 +366,5 @@ State:
 - tasks completed or still open
 - proof commands run and results, or why proof was not run
 - blockers, risks, or dirty worktree notes, if any
-- `## Research Events` with reused board entries, board-refresh signals, and newly sourced research; for reused entries, name the board entry plus the direct-read/search anchors used to verify it; for board-refresh signals, name the board entry or absent needed fact plus anchors proving the miss or replacement fact; for new research, include exact anchors; use `- None.` when no research was used or produced
+- `## Research Events` with reused notebook entries, notebook-refresh signals, and newly sourced research; for reused entries, name the notebook entry plus the direct-read/search anchors used to verify it; for notebook-refresh signals, name the notebook entry or absent needed fact plus anchors proving the miss or replacement fact; for new research, include exact anchors; use `- None.` when no research was used or produced
 - the exact next action for the next fresh session (`/openspec-story-review`, `/openspec-story-resume`, `/openspec-story-plan-converge`, `/openspec-story-pr`, or operator blocker resolution)

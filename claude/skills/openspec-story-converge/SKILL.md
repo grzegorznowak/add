@@ -8,7 +8,7 @@ allowed-tools: Read Grep Glob Task Bash(git status:*) Bash(git worktree:*)
 
 # OpenSpec Story Converge
 
-Coordinate the implementation-side iteration loop for exactly one OpenSpec change workspace. This command is an orchestrator only: it may start a fresh `/openspec-story-claim` pass for an approved unstarted story, then alternates fresh `/openspec-story-resume` and `/openspec-story-review` passes until local review approves, blocks, no-progress is detected, or the cycle budget is exhausted. It carries the parent-session Research Board in memory across fresh passes without persisting research cache files.
+Coordinate the implementation-side iteration loop for exactly one OpenSpec change workspace. This command is an orchestrator only: it may start a fresh `/openspec-story-claim` pass for an approved unstarted story, then alternates fresh `/openspec-story-resume` and `/openspec-story-review` passes until local review approves, blocks, no-progress is detected, or the cycle budget is exhausted. It carries parent-session notebook context across fresh passes so sourced research and neutral operational notes can be reused without rerunning expensive discovery.
 
 Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"]...`. The initiative slug and story slug are required. `MAX_CYCLES` is optional and defaults to `5`; it counts full implementation cycles, not individual subagents. `WORKTREE=` values are passed through unchanged to `/openspec-story-claim`, `/openspec-story-resume`, and `/openspec-story-review`.
 
@@ -35,9 +35,9 @@ There is no `MASTER.md` and no tracker table. All status is self-contained in th
 2. Choose the first pass from the story's current status.
 3. If an unstarted story is plan-approved, delegate claiming to `/openspec-story-claim <initiative> <story-slug>`.
 4. Run up to `MAX_CYCLES` fresh-agent implementation cycles.
-5. Pass neutral in-memory operational notes plus the session Research Board into later fresh agents.
+5. Pass neutral notebook context, including sourced research entries and operational notes, into later fresh agents.
 6. Stop on local approval, blocker, no-progress, invalid state, or cycle budget exhaustion.
-7. Print the convergence trace, Research Board snapshot, commit recommendation, and optional operator follow-ups without writing coordination files directly.
+7. Print the convergence trace, notebook snapshot, commit recommendation, and optional operator follow-ups without writing coordination files directly.
 
 ## Phase 1 — Parse and Resolve
 
@@ -98,18 +98,18 @@ For each cycle:
 
 1. Re-read `<story_file>` and `<progress_file>` before choosing the next pass.
 2. If the current status is `✅ DONE`, execute the DONE early-return branch above before building a slash command. Otherwise build the exact slash command line for the chosen claim, resume, or review pass.
-3. If the parent session has Research Board entries, include the complete board before the command under this heading:
+3. If notebook context is available, include the complete inline notebook snapshot before the command under this heading:
 
    ```text
-   Shared Research Board from parent orchestration session:
-   This is allowed cross-session context because every item is sourced research. Use it for orientation only. The converger owns keeping it relevant; executor subagents only decide whether the needed fact is present. If present, verify behavior with direct reads/search against the cited anchors before editing, planning approval, or implementation approval instead of rerunning expensive research. If a provided entry does not verify, report a board-refresh signal with exact anchors.
+   Shared notebook context from parent orchestration session:
+   This is allowed cross-session context because every item is sourced research or neutral operational context. Use it for orientation only. The converger owns keeping notebook entries relevant; executor subagents only decide whether the needed fact is present. If present, verify behavior with direct reads/search against the cited anchors before editing, planning approval, or implementation approval instead of rerunning expensive research. If a provided entry does not verify, report a notebook-refresh signal with exact anchors.
 
-   - <entry id>: <claim or result>
+   - <entry id>: <claim, result, or neutral operational note>
      - Source: <tool/query/path, file:line, symbol, or command/output excerpt>
      - Reuse: <orientation guidance>
    ```
 
-   Include the whole board. If it is too large to include comfortably, pause and ask the operator before compacting or excluding entries.
+   Include the whole relevant notebook context. If it is too large to include comfortably, pause and ask the operator before compacting or excluding entries.
 4. If in-memory operational notes exist, include them before the command under this heading only:
 
    ```text
@@ -119,7 +119,7 @@ For each cycle:
    ```
 
 5. End the task prompt with the exact slash command line, then launch exactly one fresh subagent.
-6. Require every subagent final response to include `## Research Events`, with `- None.` allowed. Reused board entries must name the entry and direct-read/search anchors used to verify it. Board-refresh signals must name the board entry or absent needed fact, describe the verification miss, and cite the direct-read/search anchors proving the miss or replacement fact. After the pass finishes, append newly sourced research events and use board-refresh signals to update, replace, retire, or ask about affected board entries. Do not append verdicts, implementation opinions, or unanchored summaries.
+6. Require every subagent final response to include `## Research Events`, with `- None.` allowed. Reused notebook entries must name the entry and direct-read/search anchors used to verify it. Notebook-refresh signals must name the notebook entry or absent needed fact, describe the verification miss, and cite the direct-read/search anchors proving the miss or replacement fact. After the pass finishes, append newly sourced research events and use notebook-refresh signals to update, replace, retire, or ask about affected notebook entries. Do not append verdicts, implementation opinions, or unanchored summaries.
 7. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that pass only. The next lifecycle pass still starts in a new fresh subagent.
 8. After the pass finishes, re-read `<story_file>`, `<progress_file>`, and `<reviews_file>` (if it exists). Derive decisions from the newest authoritative sections and status, not from chat output alone.
 9. If a claim or resume pass leaves the story at `Status: 🟣 IN REVIEW`, the same cycle may launch a fresh review pass.
@@ -136,7 +136,7 @@ When preparing a subagent command line, discover worktrees from `<progress_file>
 
 ## Phase 4 — Operational Notes and Stops
 
-Maintain an in-memory convergence notebook and an in-memory Research Board. Do not write either one to `initiative.md`, `story.md`, `progress.md`, `reviews.md`, `blocked.md`, or any coordination file.
+Maintain a convergence notebook containing neutral operational notes and sourced research entries. Do not write notebook content to `initiative.md`, `story.md`, `progress.md`, `reviews.md`, `blocked.md`, or any coordination file as a duplicate source of lifecycle, proof, or review authority.
 
 Record neutral operational facts only:
 
@@ -149,7 +149,7 @@ Record neutral operational facts only:
 
 Do not record persuasive verdict framing. Never tell a later reviewer that a previous reviewer was wrong, that approval is expected, or that a finding should be ignored.
 
-Research Board entries are the only allowed cross-subagent context beyond neutral operational notes. Each entry must be sourced by an exact anchor: file path plus line range or symbol, command plus relevant output excerpt, or tool name plus query/action/resource/path/URL and relevant output excerpt for any sourced tool. The board is an orientation aid, not authority. The converger owns keeping it relevant for later passes; executor subagents only decide whether the needed fact is present in the provided board. If present, the executor verifies behavior with direct reads/search against the cited anchors before editing or approving instead of rerunning expensive research. If absent, the executor follows the underlying skill's normal research rules. If a provided entry does not verify, the executor reports a board-refresh signal with exact anchors; the converger decides how to update, replace, retire, or ask about that entry. If the board becomes too large to pass in full, ask the operator before compacting or excluding entries. Never persist the board to disk.
+Sourced notebook entries are the allowed cross-subagent research context. Each entry must be sourced by an exact anchor: file path plus line range or symbol, command plus relevant output excerpt, or tool name plus query/action/resource/path/URL and relevant output excerpt for any sourced tool. Notebook entries are an orientation aid, not authority. The converger owns keeping them relevant for later passes; executor subagents only decide whether the needed fact is present in the provided notebook context. If present, the executor verifies behavior with direct reads/search against the cited anchors before editing or approving instead of rerunning expensive research. If absent, the executor follows the underlying skill's normal research rules. If a provided entry does not verify, the executor reports a notebook-refresh signal with exact anchors; the converger decides how to update, replace, retire, or ask about that entry. If the notebook context becomes too large to pass in full, ask the operator before compacting or excluding entries.
 
 Stop early for conservative no-progress when all are true:
 
@@ -204,13 +204,13 @@ Return only the compact report below. Do not include internal deliberation, anal
 - Cycle 1: claim/resume/review -> <result>
 - Cycle 2: ...
 
-## Research Board Snapshot
+## Notebook Snapshot
 - Entries: <n>
 - Hotspots: <paths/symbols surfaced by sourced research, or none>
 - New this run: <n>
 - Reused and directly verified: <summary or none>
-- Board-refresh signals: <provided entries not verified, needed facts absent from provided board, or none>
-- Persistence: session memory only; no physical cache files written
+- Notebook-refresh signals: <provided entries not verified, needed facts absent from provided notebook context, or none>
+- Persistence: <parent-session notebook context, runtime-specific notebook pages, or none>; no coordination-file cache written
 
 ## Commit Recommendation
 - <final commit, WIP checkpoint, or none>

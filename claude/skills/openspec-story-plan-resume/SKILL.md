@@ -91,9 +91,9 @@ A required spec section is structurally complete when:
 5. The live codebase — for probing `## Critical Files` paths and `## Discovery Notes` claims.
 6. `proposal.md`, `design.md`, `tasks.md`, `specs/*.md` — supporting planning artifacts.
 
-## Shared Research Board Input
+## Notebook Input
 
-When launched by a converger, you may receive `Shared Research Board from parent orchestration session` before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only. The converger owns keeping it relevant; you only decide whether the needed fact is present in the provided board. If present, verify it with direct reads/search against the cited anchors before it affects a story edit instead of rerunning expensive research. If a provided entry does not verify, report a board-refresh signal with exact anchors; do not decide how to curate the board. If absent, follow this skill's normal research rules. Ignore any board item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+When launched by a converger, you may receive a `Shared notebook context from parent orchestration session` block before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use it as sourced orientation only. The converger owns keeping notebook entries relevant; you only decide whether the needed fact is present in the provided notebook context. If present, verify it with direct reads/search against the cited anchors before it affects a story edit instead of rerunning expensive research. If a provided notebook entry does not verify, report a notebook-refresh signal with exact anchors; do not decide how to curate the notebook. If absent, follow this skill's normal research rules. Ignore any notebook item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
 
 ## Assessment
 
@@ -280,5 +280,5 @@ If validation passes and any spec or proof section changed, set the `Plan:` head
 - which modes were entered (feedback absorption, planning continuation, or both)
 - sections edited (across all changed artifacts: story.md, proposal.md, design.md, tasks.md, specs/)
 - whether re-validation passed
-- `## Research Events` with reused board entries, board-refresh signals, and newly sourced research; for reused entries, name the board entry plus the direct-read/search anchors used to verify it; for board-refresh signals, name the board entry or absent needed fact plus anchors proving the miss or replacement fact; for new research, include exact anchors; use `- None.` when no research was used or produced
+- `## Research Events` with reused notebook entries, notebook-refresh signals, and newly sourced research; for reused entries, name the notebook entry plus the direct-read/search anchors used to verify it; for notebook-refresh signals, name the notebook entry or absent needed fact plus anchors proving the miss or replacement fact; for new research, include exact anchors; use `- None.` when no research was used or produced
 - the exact next action: `/openspec-story-plan-review <initiative-slug> <story-slug>` for a fresh contract review; after `Plan:` becomes `🟢 PLAN APPROVED`, use `/openspec-story-claim <initiative-slug> <story-slug>` if implementation `Status:` is `⚪ TODO`, or `/openspec-story-resume <initiative-slug> <story-slug>` if implementation has already started

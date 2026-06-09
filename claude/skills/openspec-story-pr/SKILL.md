@@ -328,7 +328,7 @@ Before transitioning to `✅ DONE`, read `<progress_file> → ## Current Claim �
 
 ## No MASTER.md update
 
-There is no `MASTER.md` and no tracker table in this flow. All status updates go to `<story_file> → Status:` header field and `<progress_file> → ## Progress Timeline`. No centralized board is consulted or written.
+There is no `MASTER.md` and no tracker table in this flow. All status updates go to `<story_file> → Status:` header field and `<progress_file> → ## Progress Timeline`. No centralized coordination cache is consulted or written.
 
 ## Rules
 
