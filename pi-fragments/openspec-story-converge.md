@@ -1,8 +1,8 @@
 ## Pi Primitives
 
-Use `spawn`, `notebook_write`, `notebook_read`, and `notebook_index` for fresh child-agent launches and shared notebook context. Notebook pages may store sourced research entries and neutral operational notes. They must not store lifecycle status, implementation proof state, review verdicts, approval decisions, or claimed/reviewed lifecycle decisions; `story.md`, `progress.md`, `tasks.md`, and `reviews.md` remain the canonical OpenSpec artifacts.
+Use Pi runtime tools (`spawn`, `notebook_write`, `notebook_read`, and `notebook_index`) for fresh child-agent launches and sourced notebook orientation. Follow the base skill's canonical artifact, notebook-authority, and convergence-routing rules.
 
-After story resolution, use the canonical `<initiative_slug>` and `<story_slug>` in every notebook page name and child prompt.
+After story resolution, use the canonical `<initiative_slug>` and `<story_slug>` in every Pi notebook page name and child prompt.
 
 ### Notebook pages
 Maintain two notebook pages for the run:
@@ -11,13 +11,7 @@ Maintain two notebook pages for the run:
 - `openspec-ops-<initiative_slug>-<story_slug>` — neutral operational notes such as command failures, worktree/test blockers, hotspots, repeated findings, and acceptance/proof rows repeatedly implicated across passes.
 
 ### Child-agent launches
-Each cycle launches exactly one fresh subagent via `spawn`. Build the prompt with:
-
-- the exact owning workflow skill name: `openspec-story-claim`, `openspec-story-resume`, or `openspec-story-review`;
-- the task description and resolved change workspace (`<initiative_slug>/<story_slug>`);
-- notebook page names so the child can `notebook_read` them;
-- `WORKTREE=` values if provided; and
-- a short operational summary from `openspec-ops-<initiative_slug>-<story_slug>` when useful.
+Launch each base-selected fresh pass with `spawn`. Include the owning workflow skill name, resolved `openspec/<initiative_slug>/<story_slug>`, Pi notebook page names, any `WORKTREE=` passthrough values, and a short `openspec-ops-<initiative_slug>-<story_slug>` summary when useful.
 
 ```
 spawn({
@@ -29,4 +23,4 @@ spawn({
 })
 ```
 
-After the subagent returns, trust its final response as provisional and use minimal authority spot-checks before routing, for example `rg -n '^(Status:|Plan:)' story.md`, plus `rg` over only PR/DONE or review-gate anchors in `progress.md`/`reviews.md` when those states matter; use bounded reads only for the newest relevant entry bodies. Broaden only when anchors are missing, stale, ambiguous, or conflict with the agent report. Then read `notebook_read({name: "openspec-research-<initiative_slug>-<story_slug>"})`, curate entries, and update `openspec-ops-<initiative_slug>-<story_slug>` with neutral operational facts only. If a notebook entry does not verify, refine or retire it and summarize stale-reference handling in the final report.
+After the subagent returns, use `notebook_read` / `notebook_write` for the named research and ops pages, then apply the base skill's provisional-result, minimal authority spot-check, curation, and stale-reference handling rules.

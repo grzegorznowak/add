@@ -1,8 +1,8 @@
 ## Pi Primitives
 
-Use `spawn`, `notebook_write`, `notebook_read`, and `notebook_index` for optional read-only planning evidence probes and shared notebook context. Notebook pages may store sourced planning research orientation only. Do not use notebook pages to store Plan lane decisions, review verdicts, approval evidence, lifecycle decisions, or story contract authority; `story.md` and its `## Plan Review Log` are canonical.
+Use Pi runtime tools (`spawn`, `notebook_write`, `notebook_read`, and `notebook_index`) only as optional read-only planning evidence probes and sourced notebook orientation. Follow the base skill's canonical Plan Review Log, Plan-lane, story-contract, and notebook-authority rules.
 
-After story resolution, use the canonical `<initiative_slug>` and `<story_slug>` in every child prompt and notebook page name.
+After story resolution, use the canonical `<initiative_slug>` and `<story_slug>` in every child prompt and Pi notebook page name.
 
 ### Research before plan review
 When broad planning context would be noisy, spawn a read-only child for a focused evidence probe:

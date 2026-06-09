@@ -1,8 +1,8 @@
 ## Pi Primitives
 
-Use `spawn`, `notebook_write`, `notebook_read`, and `notebook_index` for optional focused read-only planning probes and shared notebook context. Notebook pages support sourced planning research orientation only; `story.md`, `proposal.md`, `design.md`, `tasks.md`, and `specs/*.md` remain canonical for Plan lane, plan-review findings, and story contract edits.
+Use Pi runtime tools (`spawn`, `notebook_write`, `notebook_read`, and `notebook_index`) only as optional focused read-only planning probes and sourced notebook orientation. Follow the base skill's canonical Plan-lane, story-contract, and notebook-authority rules.
 
-After story resolution, use the canonical `<initiative_slug>` and `<story_slug>` in every child prompt and notebook page name.
+After story resolution, use the canonical `<initiative_slug>` and `<story_slug>` in every child prompt and Pi notebook page name.
 
 ### Planning research
 When a spec gap needs codebase evidence, spawn a read-only child for the specific section, TAP row, prerequisite, or ownership seam:
@@ -13,5 +13,5 @@ spawn({prompt: "For openspec/<initiative_slug>/<story_slug>, research planning g
 
 Retrieve findings with `notebook_read({name: "openspec-plan-research-<initiative_slug>-<story_slug>"})`. Verify material claims with direct reads/search before story edits.
 
-### Notebook from converger
-Retrieve `notebook_read({name: "openspec-plan-research-<initiative_slug>-<story_slug>"})` when a converger names that page. If an entry does not verify, mention the mismatch with correction anchors in the relevant final-response section; do not curate converger-provided notebook entries directly. Write new sourced research to that notebook page when runtime notebook tools are available.
+### Pi notebook from converger
+When a converger names `openspec-plan-research-<initiative_slug>-<story_slug>`, retrieve it with `notebook_read({name: "openspec-plan-research-<initiative_slug>-<story_slug>"})`; then apply the base skill's verification and stale-reference handling rules.

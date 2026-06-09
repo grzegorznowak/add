@@ -1,8 +1,8 @@
 ## Pi Primitives
 
-Use `spawn`, `notebook_write`, `notebook_read`, and `notebook_index` for optional focused read-only probes and shared notebook context. Notebook pages support sourced research orientation only; `story.md`, `progress.md`, `tasks.md`, and `reviews.md` remain the canonical OpenSpec artifacts for lifecycle status, implementation proof, task state, and review decisions.
+Use Pi runtime tools (`spawn`, `notebook_write`, `notebook_read`, and `notebook_index`) only as optional focused read-only probes and sourced notebook orientation. Follow the base skill's canonical artifact and notebook-authority rules.
 
-After story selection, use the canonical `<initiative_slug>` and `<story_slug>` in every child prompt and notebook page name.
+After story selection, use the canonical `<initiative_slug>` and `<story_slug>` in every child prompt and Pi notebook page name.
 
 ### Research before first change
 Spawn a read-only child for the next acceptance/TAP slice you are about to implement, not for broad architecture:
@@ -20,7 +20,7 @@ When needed, spawn a focused read-only Debt Friction probe:
 spawn({prompt: "Debt Friction check for openspec/<initiative_slug>/<story_slug>. Inspect for duplicated behavior, unclear ownership, weak tests, missing seams, hidden coupling. Only report with causal link: story action → evidence → delivery impact. Write findings to notebook page 'openspec-debt-<initiative_slug>-<story_slug>' with path:line anchors.", thinking: "medium"})
 ```
 
-Record accepted Debt Friction only in the canonical places named by the base skill (`progress.md` during implementation and review evidence when relevant).
+Do not store Debt Friction decisions in notebook pages; record accepted Debt Friction only in the base skill's canonical write-back location.
 
-### Notebook from converger
-Retrieve `notebook_read({name: "openspec-research-<initiative_slug>-<story_slug>"})` when a converger names that page. Verify each entry with direct reads/search against cited anchors before acting. If an entry does not verify, mention the mismatch with correction anchors in the relevant final-response section; do not curate converger-provided notebook entries directly. Write new sourced research to that notebook page when runtime notebook tools are available.
+### Pi notebook from converger
+When a converger names `openspec-research-<initiative_slug>-<story_slug>`, retrieve it with `notebook_read({name: "openspec-research-<initiative_slug>-<story_slug>"})`; then apply the base skill's verification and stale-reference handling rules.
