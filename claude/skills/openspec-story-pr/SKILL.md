@@ -3,7 +3,7 @@ name: openspec-story-pr
 description: Move one OpenSpec change from local review or local DONE into a GitHub PR, recording PR metadata on progress.md. Optional stage between IN REVIEW and DONE.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug> [pr-url|OPEN=true]"
-allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(gh pr list:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*) Bash(curl:*)
+allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(git rev-parse:*) Bash(gh pr list:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*) Bash(curl:*)
 ---
 
 # OpenSpec Story PR

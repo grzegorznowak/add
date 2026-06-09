@@ -20,6 +20,7 @@ This command may edit the change workspace's spec sections in `story.md`, the `s
 - Runtime sections in `progress.md` (`## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `## PR State`, `## Unresolved Debt Friction`)
 - Runtime artifact `reviews.md` (implementation review log)
 - Runtime artifact `blocked.md` (no write; reads to abort when it exists)
+- Completed `Status: ✅ DONE` stories (no in-place contract rework; route new feedback through `/openspec-feedback` as a new candidate, initiative-level decision, defer/reject entry, or an explicit lifecycle reopen decision)
 - Any file outside the resolved change workspace at `openspec/changes/<story-slug>/`
 
 ## Why explicit selection (never auto-infer)
@@ -40,11 +41,13 @@ Plan resume must come from an explicit operator choice. Auto-inferring resumes p
    - If missing in both locations, abort with: `change workspace not found: openspec/changes/<story-slug>/ — run /openspec-story-plan first`.
 7. Resolve `<story_file>` = `<change_dir>/story.md`.
    - If the file does not exist, abort with the exact missing path.
-8. Derive the planning lane from the `Plan:` header field in `<story_file>`.
+8. Derive the implementation lifecycle status from the `Status:` header field in `<story_file>`.
+   - If it is `✅ DONE`, abort with: "completed stories are not contract-reworked in place; route new feedback through `/openspec-feedback` as a candidate, initiative-level decision, defer/reject entry, or explicit lifecycle reopen decision."
+9. Derive the planning lane from the `Plan:` header field in `<story_file>`.
    - If the `Plan:` header field is missing, infer legacy planning state from the latest effective `## Plan Review Log` entry: the last appended review entry after applying any later addressed-entry references. Map `approve` → `🟢 PLAN APPROVED`; unresolved `request_changes` or `not_reviewable` → `🟠 PLAN CHANGES REQUESTED`; `blocked` → `⛔ PLAN BLOCKED`; no entry → `🟡 PLAN DRAFT`. If no `## Plan Review Log` exists, default to `🟡 PLAN DRAFT`.
-9. If the planning lane is `🟢 PLAN APPROVED` and every required spec section is structurally complete, abort: "this story's plan is already approved; no plan-resume work is needed."
-10. If the planning lane is `⛔ PLAN BLOCKED`, abort: "this story's plan is blocked; the operator must decide how to unblock before plan-resume can continue."
-11. If `blocked.md` exists at `<change_dir>/blocked.md`, abort: "blocked.md gate file exists; the operator may edit it to record resolution notes, but must remove it before plan-resume can continue."
+10. If the planning lane is `🟢 PLAN APPROVED` and every required spec section is structurally complete, abort: "this story's plan is already approved; no plan-resume work is needed."
+11. If the planning lane is `⛔ PLAN BLOCKED`, abort: "this story's plan is blocked; the operator must decide how to unblock before plan-resume can continue."
+12. If `blocked.md` exists at `<change_dir>/blocked.md`, abort: "blocked.md gate file exists; the operator may edit it to record resolution notes, but must remove it before plan-resume can continue."
 
 ## Plan readiness check
 

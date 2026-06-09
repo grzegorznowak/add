@@ -3,7 +3,7 @@ name: openspec-feedback
 description: Absorb structured review/tool, PR, or reviewer feedback into an OpenSpec initiative by routing it to story edits, review rework, story candidates, or initiative-level decisions. Use when feedback needs to be incorporated without bloating or drifting stories.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> [--pr <pr-url>] [--latest|--all] [--since <source-id>] [feedback-or-file]"
-allowed-tools: Read Edit Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*)
+allowed-tools: Read Edit Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*) Bash(printf:*) Bash(sha256sum:*) Bash(shasum:*)
 ---
 
 # OpenSpec Feedback
@@ -52,8 +52,9 @@ Feedback often spans several stories. Selecting a story before classification re
    - Accept `--latest` (default), `--all`, and `--since <source_id>`.
    - Treat remaining text as feedback payload unless it resolves to a readable file path.
 2. Resolve the initiative:
-   - If an initiative slug was provided, validate that `<cwd>/openspec/initiatives/<slug>/initiative.md` exists.
-   - If omitted, list every directory under `<cwd>/openspec/initiatives/` with an `initiative.md`, then ask the operator to pick by number or slug. This is explicit menu selection, not inference.
+   - If an initiative slug was provided, validate it matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` before resolving any path. If it fails, abort with: `invalid initiative slug; use lowercase hyphenated slug characters only`.
+   - Then validate that `<cwd>/openspec/initiatives/<slug>/initiative.md` exists.
+   - If omitted, list every directory under `<cwd>/openspec/initiatives/` with an `initiative.md`, then ask the operator to pick by number or slug. This is explicit menu selection, not inference. Validate the selected slug against the same canonical slug rule before resolving any path.
    - If no initiatives exist, stop and tell the operator to run `/openspec-epic-plan` first.
 3. Read the project guidance before making recommendations:
    - `AGENTS.md`, then `CLAUDE.md` as fallback when present.
@@ -103,7 +104,7 @@ In payload mode:
 1. If the remaining argument is a readable file path, read that file and record its path as `Source path`.
 2. Otherwise treat the remaining argument or pasted text as the feedback payload and set `Source path` to `manual-paste`.
 3. Split the payload into feedback items by explicit IDs, headings, bullets, review comments, or clear topic boundaries.
-4. For each item, compute a stable `Content hash` as `sha256:<hex>` over the item's normalized text (trim surrounding whitespace, normalize CRLF to LF, preserve internal wording). Use a synthetic source id of `manual:<hash-prefix>:<ordinal>` (for example `manual:sha256-1a2b3c4d5e6f:1`) unless the payload already includes a stable source URL or ID. Do not use timestamps as the only manual/file source identity.
+4. For each item, compute a stable `Content hash` as `sha256:<hex>` over the item's normalized text (trim surrounding whitespace, normalize CRLF to LF, preserve internal wording). Use an allowed hash command such as `printf %s '<normalized-item-text>' | sha256sum` (or `shasum -a 256`) so the hash is reproducible. Use a synthetic source id of `manual:<hash-prefix>:<ordinal>` (for example `manual:sha256-1a2b3c4d5e6f:1`) unless the payload already includes a stable source URL or ID. Do not use timestamps as the only manual/file source identity.
 5. Preserve a short, safe excerpt from the item as `Evidence` and in the initiative absorption log so dedupe/audit can reconstruct what was absorbed without pasting the full payload.
 
 ## Phase 2 — Normalize feedback items
@@ -139,6 +140,15 @@ When a feedback item is ambiguous, ask one focused question before classificatio
 
 Story identification is by change workspace slug under `openspec/changes/<slug>/`. There is no MASTER.md tracker table — discover candidate stories from initiative.md sections (Story Candidates, resources), existing change workspace directories, and explicit links in the feedback.
 
+### Canonical slug and containment gate
+
+Before reading or writing any story workspace from discovered feedback, initiative text, PR metadata, or operator correction:
+
+1. Validate every candidate `<story-slug>` against `^[a-z0-9]+(?:-[a-z0-9]+)*$`. Reject slugs with path separators, whitespace, `..`, absolute paths, URL fragments, or any other non-canonical shape.
+2. Resolve only `<workspace_root>/openspec/changes/<story-slug>/`; never concatenate raw feedback text or corrected target text into a path before validation.
+3. Confirm the resolved directory exists, contains `story.md`, is not under `openspec/changes/archive/`, and remains contained under `<workspace_root>/openspec/changes/` after resolution.
+4. If an acknowledged operator redirect names an invalid, missing, archived, or non-contained target, stop and ask for a canonical non-archived story slug or choose a non-story disposition (`new-story-candidate`, `epic-level-decision`, or `defer-or-reject`).
+
 Use the story intent test before editing any story. A feedback item may amend an existing story only when all are true:
 
 1. Same user or system outcome.
@@ -168,6 +178,7 @@ Read only the change workspace artifacts needed to classify plausible targets. P
 Status and lane rules:
 
 - Do not edit archived change workspaces under `openspec/changes/archive/`.
+- Do not route to, read as writable, or create paths for a story target that failed the canonical slug and containment gate.
 - Do not rewrite a `✅ DONE` story's product contract. Convert feedback to a candidate, initiative-level decision, or defer/reject entry unless the operator explicitly decides the completed story must be reopened through the normal lifecycle.
 - Do not transition implementation `Status` in `story.md` from this command.
 - You may downgrade or invalidate the `Plan:` header field in `story.md`, but this command must never set `Plan:` to `🟢 PLAN APPROVED`:

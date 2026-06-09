@@ -67,6 +67,7 @@ Allowed starting states:
 - `Status: 🔄 IN PROGRESS` only when `Plan:` is `🟢 PLAN APPROVED`.
 - `Status: 🟣 IN REVIEW` only when `Plan:` is `🟢 PLAN APPROVED`.
 - `Status: 🔵 IN PR` only when `<progress_file> → ## PR State` shows PR review is requesting changes and `Plan:` is `🟢 PLAN APPROVED`.
+- `Status: ⛔ BLOCKED` only when `Plan:` is `🟢 PLAN APPROVED` and `<blocked_file>` is absent; this means the explicit gate file was removed and `/openspec-story-resume` must normalize the stale status back to `🔄 IN PROGRESS` before work continues.
 - `Status: ✅ DONE` only when durable evidence shows independent completion authority: either the latest relevant `<reviews_file>` entry records `Decision: approve`, `Approval gate: pass`, and risk-lens/finding-closure evidence, or `<progress_file> → ## PR State` shows `PR status: merged` with both a populated merge commit and a populated merged-at timestamp.
 
 Reject with a precise next action:
@@ -75,8 +76,8 @@ Reject with a precise next action:
 - `Status:` absent, `⬜ TODO`, or `⚪ TODO` with `## Current Claim` already present in `<progress_file>`: status drift; ask the operator to resolve before converging.
 - `Status: ✅ DONE` without either durable review approval with `Approval gate: pass` or merged-PR evidence: status drift; ask the operator to restore `Status: 🟣 IN REVIEW` and run `/openspec-story-review <initiative> <story-slug>`, or refresh merged PR metadata with `/openspec-story-pr <initiative> <story-slug>`.
 - `Status: 🔵 IN PR` without requested changes in `<progress_file> → ## PR State`: use `/openspec-story-pr <initiative> <story-slug>` for PR refresh or merge-state handling.
-- `Status: ⛔ BLOCKED`: blocked stories need operator unblocking before convergence.
-- `<blocked_file>` exists at `<change_dir>/blocked.md`: convergence is refused while an explicit gate file exists. The operator may edit it to record resolution notes, but must remove `blocked.md` to unblock.
+- `Status: ⛔ BLOCKED` while `<blocked_file>` exists: blocked stories need operator unblocking before convergence.
+- `<blocked_file>` exists at `<change_dir>/blocked.md`: convergence is refused while an explicit gate file exists. The operator may edit it to record resolution notes, but must remove `blocked.md` to unblock. Once the file is removed, stale `Status: ⛔ BLOCKED` is resumable and routes to `/openspec-story-resume` for normalization.
 
 Plan-approved means `Plan:` is `🟢 PLAN APPROVED`. No other source is consulted for the plan state.
 
@@ -90,6 +91,7 @@ Before each subagent launch, build the command line from the current status:
 - `Status: 🔄 IN PROGRESS`: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🟣 IN REVIEW`: `/openspec-story-review <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🔵 IN PR` with requested changes: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`.
+- `Status: ⛔ BLOCKED` with no `<blocked_file>` present and plan-approved: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]` to normalize the resolved blocker and continue.
 - `Status: ✅ DONE`: do not launch claim, resume, or review. Re-check the durable completion authority from the eligibility gate; if present, stop successfully with result `DONE`. If the evidence is absent or incomplete, stop as status drift and route to `/openspec-story-review <initiative> <story-slug>` or `/openspec-story-pr <initiative> <story-slug>` refresh instead of continuing the loop.
 
 For each cycle:
@@ -160,7 +162,7 @@ Do not use another broad cycle to compensate for an oversized or under-specified
 Other hard stops:
 
 - `MAX_CYCLES` reached;
-- latest decision is blocked or `Status:` is `⛔ BLOCKED`;
+- latest decision is blocked, or `Status:` is `⛔ BLOCKED` while `blocked.md` still exists;
 - `blocked.md` appears in `<change_dir>`;
 - story enters a status owned by another command, such as `Status: 🔵 IN PR` without requested changes;
 - subagent cannot resolve the story, command, or worktree;

@@ -178,6 +178,7 @@ Before deep implementation work:
   - <repo-basename>: <absolute-worktree-path>
 - Main-tree targets: <repo-basename>, <repo-basename>
 - Primary write surfaces: <paths>
+- Status: 🔄 IN PROGRESS
 
 ## Progress Timeline
 - <UTC ISO timestamp> Claimed story and started implementation.

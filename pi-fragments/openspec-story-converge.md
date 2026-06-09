@@ -1,6 +1,6 @@
 ## Pi Primitives
 
-Use `spawn`, `notebook_write`, `notebook_read`, `notebook_index`.
+Use `spawn` for fresh child-agent launches. Do not use notebook pages as lifecycle authority, Research Board storage, proof state, review verdict storage, or operational-note storage for this command.
 
 ### Child-agent launches
 Each cycle launches exactly one fresh subagent via `spawn`. Use:
@@ -11,8 +11,5 @@ spawn({prompt: "<full task prompt including Research Board, operational notes, a
 
 After the subagent returns, re-read coordination files (`story.md`, `progress.md`, `reviews.md`) directly to derive state — never trust subagent prose alone.
 
-### Research Board persistence
-The converger maintains an in-memory Research Board. Do not persist it to disk. When the board grows too large to pass in full, pause and ask the operator before compacting.
-
-### Operational notes → notebook
-After each cycle, update: `notebook_write({name: "converge-openspec-<initiative>-<story>", content: "- Cycle <n>: <result> — <state change>"})`.
+### Research Board and operational-note persistence
+The converger maintains the Research Board and operational notes in memory only for the current run. Do not persist them to notebook pages or any other cache. If durable process learning is valuable after the run, ask the operator whether to record it separately; it must never replace `story.md`, `progress.md`, or `reviews.md` as lifecycle authority.

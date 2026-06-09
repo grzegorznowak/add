@@ -5,11 +5,13 @@
      Written by /openspec-story-claim and /openspec-story-resume. -->
 - Claimed at:
 - Claimed by: <fresh / continuation> session
+- Model: <model name>
 - Scope: <one sentence for this work chunk>
 - Worktrees:
   - <repo-basename>: <absolute path>
 - Main-tree targets: <repo-basename>, <repo-basename>
 - Primary write surfaces: <paths>
+- Status: 🔄 IN PROGRESS | 🟣 IN REVIEW | 🔵 IN PR | ✅ DONE | ⛔ BLOCKED
 
 ## Progress Timeline
 <!-- Append-only timestamped bullets recording meaningful milestones.
@@ -35,7 +37,9 @@
 - Branch:
 - Opened at:
 - PR status: open | changes_requested | approved | merged | closed
+- Review decision: <APPROVED | CHANGES_REQUESTED | REVIEW_REQUIRED | blank | unavailable>
 - Merge commit: <sha or "—">
+- Merged at: <UTC ISO timestamp or "—">
 - Last synced:
 
 ## Unresolved Debt Friction

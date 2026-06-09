@@ -43,7 +43,7 @@ This skill defers to the following artifacts, in priority order:
 3. If `story-slug` is omitted:
    - Scan all directories under `openspec/changes/` for `story.md` files.
    - Read each `story.md` and check the `Status:` header.
-   - Select the first change with `Status: 🔄 IN PROGRESS` or `Status: 🔵 IN PR` where `changes_requested` is present in reviews.md or progress.md.
+   - Select the first change with `Status: 🔄 IN PROGRESS`, `Status: 🔵 IN PR` where `changes_requested` is present in reviews.md or progress.md, or `Status: ⛔ BLOCKED` when `blocked.md` is absent (previous blocker resolved by removing the gate file).
    - If multiple are found, report them and ask the operator to disambiguate.
    - If none are found, report that no in-progress changes exist and halt.
 
@@ -82,10 +82,10 @@ These gates must pass before Phase 1 worktree checks, Phase 2 claim refresh, any
 
 #### Blocker Check
 
-1. If `blocked.md` exists in the change workspace, read it and halt with the blocker message.
-2. If `story.md → Status:` contains `⛔ BLOCKED`, halt with the status message.
-3. If `progress.md → ## Session Handoff → Status:` contains `⛔ BLOCKED`, halt.
-4. If any of these conditions are true, report the blocker and halt.
+1. If `blocked.md` exists in the change workspace, read it and halt with the blocker message. File existence is the explicit lifecycle gate.
+2. If `blocked.md` is absent but `story.md → Status:` contains `⛔ BLOCKED`, treat this as a resolved blocker marker: proceed, and normalize the status back to `🔄 IN PROGRESS` during Phase 2 before implementation work. Do not halt on status alone.
+3. If `progress.md → ## Session Handoff → Status:` contains `⛔ BLOCKED` while `blocked.md` is absent, treat it as stale handoff context. Preserve it as history, but proceed and write a fresh handoff/status during this resume.
+4. If a blocker is reported by any source other than the removed gate file, ask the operator to recreate `blocked.md` before halting; do not keep a story stranded solely by stale status text.
 
 #### Parallelism Guard
 
@@ -139,9 +139,13 @@ If the current claim has no `Main-tree targets:` field, treat it as legacy unkno
    - Worktrees: The resolved worktree map from Phase 1, using the canonical `- Worktrees:` parent bullet only when at least one worktree exists.
    - Main-tree targets: The preserved/resolved main-tree target basenames from Phase 1, using the canonical `- Main-tree targets:` bullet only when at least one main-tree target exists.
    - Claim: A concise statement of what this session will do, based on the resume intent from Phase 0.
-   - Status: Current status (matches `story.md Status:` header).
+   - Status: Current status (matches `story.md Status:` header), except a stale `⛔ BLOCKED` header with no `blocked.md` is first normalized to `🔄 IN PROGRESS`.
 
-2. Append to `progress.md → ## Progress Timeline`:
+2. If `story.md → Status:` was `⛔ BLOCKED` and `blocked.md` is absent, update `story.md → Status:` to `🔄 IN PROGRESS` before writing the refreshed claim and include this timeline note before the normal resume entry:
+   ```
+   [<ISO 8601 timestamp>] **Unblocked**: blocked.md is absent; normalized stale blocked status to `🔄 IN PROGRESS`.
+   ```
+3. Append to `progress.md → ## Progress Timeline`:
    ```
    [<ISO 8601 timestamp>] **Resume**: <session resume summary>
      Worktrees: <basename>=<path>, ...
@@ -316,7 +320,7 @@ If a blocker was encountered:
 
 ### Status Inconsistencies
 
-If `story.md → Status:` and `progress.md → ## Session Handoff → Status:` disagree, prefer `story.md → Status:` (the durable status header) and note the inconsistency in the session handoff.
+If `story.md → Status:` and `progress.md → ## Session Handoff → Status:` disagree, prefer `story.md → Status:` (the durable status header) and note the inconsistency in the session handoff. A stale `⛔ BLOCKED` handoff does not block resume once `blocked.md` has been removed.
 
 ### Worktree Mismatch
 
@@ -353,3 +357,15 @@ Apply these before making implementation decisions. If the Shared Research Board
 ## Default Legend
 
 There is no `MASTER.md` legend to update. If status definitions or conventions need to be documented, note them in `progress.md` or `story.md` directly. The canonical status definitions are maintained in this skill's status transition table (Phase 3.5).
+
+## Final response
+
+State:
+- which story was resumed (slug and path)
+- the starting and final `Status:` values, including any `⛔ BLOCKED` → `🔄 IN PROGRESS` normalization after `blocked.md` removal
+- files changed (coordination files and product files separately)
+- tasks completed or still open
+- proof commands run and results, or why proof was not run
+- blockers, risks, or dirty worktree notes, if any
+- `## Research Events` with reused board entries, board-refresh signals, and newly sourced research; for reused entries, name the board entry plus the direct-read/search anchors used to verify it; for board-refresh signals, name the board entry or absent needed fact plus anchors proving the miss or replacement fact; for new research, include exact anchors; use `- None.` when no research was used or produced
+- the exact next action for the next fresh session (`/openspec-story-review`, `/openspec-story-resume`, `/openspec-story-plan-converge`, `/openspec-story-pr`, or operator blocker resolution)

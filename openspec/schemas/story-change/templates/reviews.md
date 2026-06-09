@@ -1,7 +1,8 @@
 # Reviews: <change-slug>
 
 <!-- Append-only numbered review entries. Each entry follows the ADD Review Log
-     schema. The converge loop reads the latest entry's Decision + Approval gate. -->
+     schema. The converge loop reads the latest entry's Decision, Approval gate,
+     risk-lens coverage, and finding-closure evidence. -->
 
 <!-- Entry template:
 - <UTC ISO timestamp> Review run by fresh maintainer session
@@ -19,6 +20,8 @@
   - Traceability: forward <complete|gaps>; backward <complete|gaps>
   - Design trace: complete|gaps|not applicable; rendered evidence: complete|gaps|not applicable
   - Code surfaces searched: <paths/patterns or none beyond changed files>
+  - Risk lenses reviewed: <activated lenses and exclusions, or none material>
+  - Finding closure: <disposition + fix proof + regression/side-effect check, or none>
   - Evidence quality: confirmed <short>; inferred <short>; unknown <short>; provisional <short>
   - Files reviewed: <paths>
   - Hypothesis triage:

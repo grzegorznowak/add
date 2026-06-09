@@ -1,15 +1,15 @@
 ## Pi Primitives
 
-Use `spawn`, `notebook_write`, `notebook_read`, `notebook_index`.
+Use `spawn` for optional read-only evidence probes. Do not use notebook pages to store review verdicts, approval evidence, Research Board state, or lifecycle decisions; `reviews.md` is the durable review authority.
 
 ### Research before review
-Spawn a read-only child for broad codebase context before forming review opinions:
+When broad context would be noisy, spawn a read-only child for codebase context before forming review opinions:
 
 ```
-spawn({prompt: "For openspec/<initiative>/<story>, research: scope boundaries, critical files from story.md, existing tests, and risk-lens surface. Write findings to notebook page 'review-openspec-<initiative>-<story>' with path:line anchors. Return summary.", thinking: "high"})
+spawn({prompt: "For openspec/<initiative>/<story>, research: scope boundaries, critical files from story.md, existing tests, and risk-lens surface. Cite path:line anchors. Return a compact summary only; do not decide the verdict or edit files.", thinking: "high"})
 ```
 
-Retrieve: `notebook_read({name: "review-openspec-<initiative>-<story>"})`. Use findings for orientation only — verify everything with direct reads against cited anchors before any verdict.
+Use child findings for orientation only. Verify every material claim with direct reads/search against cited anchors before any verdict or `reviews.md` write-back.
 
-### Review findings → notebook
-Persist review verdict: `notebook_write({name: "review-openspec-<initiative>-<story>", content: "- Decision: <approve|request_changes|blocked|not_reviewable>\n- Key findings: <summary>"})`.
+### Review findings
+Write the final review verdict only to the canonical OpenSpec review artifact (`openspec/changes/<story>/reviews.md`) using the schema in the base skill. Do not persist a duplicate verdict in notebook storage.

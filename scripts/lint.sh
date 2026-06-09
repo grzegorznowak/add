@@ -18,6 +18,8 @@
 #   13. Generated installers protect modified existing files unless forced.
 #   14. Codex skills do not carry prompt-era compatibility scaffolding.
 #   15. No `cure_workspace` absolute paths anywhere.
+#   16. Generated Codex OpenSpec skills preserve every auxiliary argument contract.
+#   17. Pi OpenSpec fragments do not persist lifecycle/review/board authority to notebooks.
 #
 # Exit codes:
 #   0 — clean
@@ -402,6 +404,32 @@ expect_codex_contains() {
     fail "$skill: generated Codex body missing '$expected'"
   fi
 }
+expect_codex_argument_line() {
+  local skill="$1" expected="$2" file
+  file="$CODEX_SKILLS/$skill/SKILL.md"
+  if [[ ! -f "$file" ]]; then
+    fail "$skill: missing generated Codex skill for argument-line check"
+  elif grep -Fxq "$expected" "$file"; then
+    ok "$skill: argument line preserves contract"
+  else
+    fail "$skill: generated Codex argument line missing exact '$expected'"
+  fi
+}
+
+expect_codex_argument_line openspec_archive 'Argument: INITIATIVE=<slug> STORY=<slug>'
+expect_codex_argument_line openspec_epic_plan 'Argument: [SLUG=<slug>]'
+expect_codex_argument_line openspec_feedback 'Argument: INITIATIVE=<slug> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]'
+expect_codex_argument_line openspec_story_claim 'Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"]...'
+expect_codex_argument_line openspec_story_resume 'Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"]...'
+expect_codex_argument_line openspec_story_review 'Argument: INITIATIVE=<slug> STORY=<slug> [WORKTREE="<basename>=<path>"]...'
+expect_codex_argument_line openspec_story_converge 'Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"]...'
+expect_codex_argument_line openspec_story_plan 'Argument: [INITIATIVE=<slug>]'
+expect_codex_argument_line openspec_story_plan_resume 'Argument: INITIATIVE=<slug> STORY=<slug>'
+expect_codex_argument_line openspec_story_plan_review 'Argument: INITIATIVE=<slug> STORY=<slug>'
+expect_codex_argument_line openspec_story_plan_converge 'Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5]'
+expect_codex_argument_line openspec_story_pr 'Argument: INITIATIVE=<slug> STORY=<slug> [<pr_url_or_OPEN=true>]'
+
+expect_codex_contains openspec_feedback "the INITIATIVE, feedback flags, and feedback payload named variables"
 expect_codex_contains openspec_story_claim "the INITIATIVE, STORY, and WORKTREE named variables"
 expect_codex_contains openspec_story_review "the INITIATIVE, STORY, and WORKTREE named variables"
 expect_codex_contains openspec_story_converge "the INITIATIVE, STORY, MAX_CYCLES, and WORKTREE named variables"
@@ -410,6 +438,27 @@ expect_codex_contains openspec_story_pr "the INITIATIVE, STORY, and PR selector 
 
 expect_codex_contains openspec_story_claim "Claimed by: Codex fresh session"
 expect_codex_contains openspec_story_resume "Claimed by: Codex fresh session (resume)"
+
+if grep -RIn '\$ARGUMENTS' "$CODEX_SKILLS"/openspec_* 2>/dev/null; then
+  fail "generated Codex OpenSpec skills still contain raw \$ARGUMENTS"
+else
+  ok "generated Codex OpenSpec skills have no raw \$ARGUMENTS"
+fi
+
+if grep -RIn 'Claimed by: pi' "$CODEX_SKILLS"/openspec_* 2>/dev/null; then
+  fail "generated Codex OpenSpec skills contain hard-coded pi claimant identity"
+else
+  ok "generated Codex OpenSpec skills avoid hard-coded pi claimant identity"
+fi
+
+echo
+
+echo "lint: openspec pi fragment boundary"
+if grep -RInE 'notebook_(write|read|index)|Persist review verdict|Review findings → notebook|Proof tracking → notebook|Operational notes → notebook|Research Board from converger → notebook' "$PI_FRAGMENTS"/openspec-*.md 2>/dev/null; then
+  fail "OpenSpec Pi fragments persist lifecycle/review/proof/board state to notebooks (matches above)"
+else
+  ok "OpenSpec Pi fragments keep lifecycle/review/proof/board authority out of notebooks"
+fi
 
 echo
 if [[ $FAIL -ne 0 ]]; then
