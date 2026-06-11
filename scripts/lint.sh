@@ -11,13 +11,17 @@
 #   6. Generated Codex skills have valid agents/openai.yaml.
 #   7. Generated Codex skills preserve Shared Research Board Input contracts.
 #   8. Generated Pi skills have no Shared Research Board Input sections.
-#   9. Pairing — every Claude skill has a Codex and Pi counterpart.
-#   10. Phase-heading parity between Claude and generated Codex skills.
-#   11. Main installer Codex dry-run uses the generated compiler path.
-#   12. Non-TTY installer mutation requires explicit --yes.
-#   13. Generated installers protect modified existing files unless forced.
-#   14. Codex skills do not carry prompt-era compatibility scaffolding.
-#   15. No `cure_workspace` absolute paths anywhere.
+#   9. OpenSpec skills use notebook terminology instead of Research Board terminology.
+#   10. Pairing — every Claude skill has a Codex and Pi counterpart.
+#   11. Phase-heading parity between Claude and generated Codex skills.
+#   12. Main installer Codex dry-run uses the generated compiler path.
+#   13. Non-TTY installer mutation requires explicit --yes.
+#   14. Generated installers protect modified existing files unless forced.
+#   15. Codex skills do not carry prompt-era compatibility scaffolding.
+#   16. No `cure_workspace` absolute paths anywhere.
+#   17. Generated Codex OpenSpec skills preserve every auxiliary argument contract.
+#   18. Pi OpenSpec fragments do not persist review/proof/lifecycle authority to notebooks.
+#   19. OpenSpec skills do not require the removed research-event response section.
 #
 # Exit codes:
 #   0 — clean
@@ -273,18 +277,44 @@ for cn in "${CLAUDE_NAMES[@]:-}"; do
   claude_md="$CLAUDE_SKILLS/$cn/SKILL.md"
   codex_md="$CODEX_SKILLS/$expected_codex/SKILL.md"
   [[ -f "$codex_md" ]] || continue
-  if grep -q '^## Shared Research Board Input$' "$claude_md"; then
-    if grep -q '^## Shared Research Board Input$' "$codex_md"; then
+  if grep -qE '^##+ Shared Research Board Input$' "$claude_md"; then
+    if grep -qE '^##+ Shared Research Board Input$' "$codex_md"; then
       ok "codex: $expected_codex preserves Shared Research Board Input"
     else
       fail "$expected_codex: missing generated Codex Shared Research Board Input section"
     fi
   fi
 done
-if grep -Rl '^## Shared Research Board Input$' "$PI_SKILLS" 2>/dev/null; then
+if grep -RlE '^##+ Shared Research Board Input$' "$PI_SKILLS" 2>/dev/null; then
   fail "generated pi skills still contain Shared Research Board Input section"
 else
   ok "pi: no Shared Research Board Input"
+fi
+
+echo
+echo "lint: OpenSpec notebook terminology"
+if grep -RInE 'Shared Research Board|Research Board|board-refresh|board entries|board entry|provided board' "$CLAUDE_SKILLS"/openspec-* "$PI_FRAGMENTS"/openspec-*.md "$CODEX_SKILLS"/openspec_* "$PI_SKILLS"/openspec-* 2>/dev/null; then
+  fail "OpenSpec source, fragments, or generated skills still use Research Board terminology (matches above)"
+else
+  ok "OpenSpec skills use notebook terminology"
+fi
+
+echo
+echo "lint: OpenSpec notebook prompt boundaries"
+bad_notebook_prompt_pattern='complete inline note''book snap''shot|whole relevant note''book con''text|inline the note''book|f''ull note''book|note''book con''text becomes too large to pass in f''ull'
+if grep -RInE "$bad_notebook_prompt_pattern" "$CLAUDE_SKILLS"/openspec-* "$PI_FRAGMENTS"/openspec-*.md "$CODEX_SKILLS"/openspec_* "$PI_SKILLS"/openspec-* 2>/dev/null; then
+  fail "OpenSpec source, fragments, or generated skills ask for oversized notebook prompt context (matches above)"
+else
+  ok "OpenSpec notebook prompts use references or compact excerpts"
+fi
+
+echo
+echo "lint: OpenSpec removed research-event response contract"
+bad_research_event_pattern='Research Ev''ents|research ev''ents'
+if grep -RInE "$bad_research_event_pattern" "$CLAUDE_SKILLS"/openspec-* "$PI_FRAGMENTS"/openspec-*.md "$CODEX_SKILLS"/openspec_* "$PI_SKILLS"/openspec-* 2>/dev/null; then
+  fail "OpenSpec source, fragments, or generated skills still require removed research-event response contract (matches above)"
+else
+  ok "OpenSpec skills avoid the removed research-event response contract"
 fi
 
 echo
@@ -386,6 +416,76 @@ if grep -RIn 'cure_workspace' "$CLAUDE_SKILLS" "$PI_FRAGMENTS" "$REPO_ROOT/docs"
   fail "found 'cure_workspace' references (above) — strip project-specific paths"
 else
   ok "no cure_workspace leakage"
+fi
+
+echo
+
+echo "lint: codex argument contracts"
+expect_codex_contains() {
+  local skill="$1" expected="$2" file
+  file="$CODEX_SKILLS/$skill/SKILL.md"
+  if [[ ! -f "$file" ]]; then
+    fail "$skill: missing generated Codex skill for argument-contract check"
+  elif grep -Fq "$expected" "$file"; then
+    ok "$skill: preserves $expected"
+  else
+    fail "$skill: generated Codex body missing '$expected'"
+  fi
+}
+expect_codex_argument_line() {
+  local skill="$1" expected="$2" file
+  file="$CODEX_SKILLS/$skill/SKILL.md"
+  if [[ ! -f "$file" ]]; then
+    fail "$skill: missing generated Codex skill for argument-line check"
+  elif grep -Fxq "$expected" "$file"; then
+    ok "$skill: argument line preserves contract"
+  else
+    fail "$skill: generated Codex argument line missing exact '$expected'"
+  fi
+}
+
+expect_codex_argument_line openspec_archive 'Argument: INITIATIVE=<slug> STORY=<slug>'
+expect_codex_argument_line openspec_epic_plan 'Argument: [SLUG=<slug>]'
+expect_codex_argument_line openspec_feedback 'Argument: INITIATIVE=<slug> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]'
+expect_codex_argument_line openspec_story_claim 'Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"]...'
+expect_codex_argument_line openspec_story_resume 'Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"]...'
+expect_codex_argument_line openspec_story_review 'Argument: INITIATIVE=<slug> STORY=<slug> [WORKTREE="<basename>=<path>"]...'
+expect_codex_argument_line openspec_story_converge 'Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"]...'
+expect_codex_argument_line openspec_story_plan 'Argument: [INITIATIVE=<slug>]'
+expect_codex_argument_line openspec_story_plan_resume 'Argument: INITIATIVE=<slug> STORY=<slug>'
+expect_codex_argument_line openspec_story_plan_review 'Argument: INITIATIVE=<slug> STORY=<slug>'
+expect_codex_argument_line openspec_story_plan_converge 'Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5]'
+expect_codex_argument_line openspec_story_pr 'Argument: INITIATIVE=<slug> STORY=<slug> [<pr_url_or_OPEN=true>]'
+
+expect_codex_contains openspec_feedback "the INITIATIVE, feedback flags, and feedback payload named variables"
+expect_codex_contains openspec_story_claim "the INITIATIVE, STORY, and WORKTREE named variables"
+expect_codex_contains openspec_story_review "the INITIATIVE, STORY, and WORKTREE named variables"
+expect_codex_contains openspec_story_converge "the INITIATIVE, STORY, MAX_CYCLES, and WORKTREE named variables"
+expect_codex_contains openspec_story_plan_converge "the INITIATIVE, STORY, and MAX_CYCLES named variables"
+expect_codex_contains openspec_story_pr "the INITIATIVE, STORY, and PR selector named variables"
+
+expect_codex_contains openspec_story_claim "Claimed by: Codex fresh session"
+expect_codex_contains openspec_story_resume "Claimed by: Codex fresh session (resume)"
+
+if grep -RIn '\$ARGUMENTS' "$CODEX_SKILLS"/openspec_* 2>/dev/null; then
+  fail "generated Codex OpenSpec skills still contain raw \$ARGUMENTS"
+else
+  ok "generated Codex OpenSpec skills have no raw \$ARGUMENTS"
+fi
+
+if grep -RIn 'Claimed by: pi' "$CODEX_SKILLS"/openspec_* 2>/dev/null; then
+  fail "generated Codex OpenSpec skills contain hard-coded pi claimant identity"
+else
+  ok "generated Codex OpenSpec skills avoid hard-coded pi claimant identity"
+fi
+
+echo
+
+echo "lint: openspec pi fragment authority boundary"
+if grep -RInE 'Persist review verdict|Review findings → notebook|Proof tracking → notebook|approval evidence.*notebook_write|lifecycle.*notebook_write' "$PI_FRAGMENTS"/openspec-*.md 2>/dev/null; then
+  fail "OpenSpec Pi fragments persist review/proof/lifecycle authority to notebooks (matches above)"
+else
+  ok "OpenSpec Pi fragments keep review/proof/lifecycle authority in canonical artifacts"
 fi
 
 echo

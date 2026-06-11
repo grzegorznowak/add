@@ -95,11 +95,12 @@ codex_args() {
   # - $ARGUMENTS (the Claude positional-arg variable) → Codex named vars
   #   appropriate for this skill.
   #
-  # The Argument line is rewritten per skill.  Body references to
-  # $ARGUMENTS are replaced with "EPIC and STORY" (or the appropriate
-  # subset) so the resolution instructions stay readable.
+  # The Argument line is rewritten per skill. Body references to
+  # $ARGUMENTS are replaced with each skill's Codex named variables.
+  # OpenSpec mappings preserve auxiliary variables such as WORKTREE and
+  # MAX_CYCLES so resolution instructions keep their own CLI contract.
 
-  local arg_line_body_repl
+  local arg_line body_repl
 
   case "$skill" in
     epic-story-claim)
@@ -154,6 +155,54 @@ codex_args() {
       arg_line='s/^Argument:.*/Argument: EPIC=<name-or-path> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]/'
       body_repl='s/\$ARGUMENTS/EPIC/g'
       ;;
+    openspec-archive)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug>/'
+      body_repl='s/\$ARGUMENTS/the INITIATIVE and STORY named variables/g'
+      ;;
+    openspec-epic-plan)
+      arg_line='s/^Argument:.*/Argument: [SLUG=<slug>]/'
+      body_repl='s/\$ARGUMENTS/the SLUG named variable/g'
+      ;;
+    openspec-feedback)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]/'
+      body_repl='s/\$ARGUMENTS/the INITIATIVE, feedback flags, and feedback payload named variables/g'
+      ;;
+    openspec-story-claim)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"].../'
+      body_repl='s/\$ARGUMENTS/the INITIATIVE, STORY, and WORKTREE named variables/g'
+      ;;
+    openspec-story-resume)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"].../'
+      body_repl='s/\$ARGUMENTS/the INITIATIVE, STORY, and WORKTREE named variables/g'
+      ;;
+    openspec-story-review)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug> [WORKTREE="<basename>=<path>"].../'
+      body_repl='s/\$ARGUMENTS/the INITIATIVE, STORY, and WORKTREE named variables/g'
+      ;;
+    openspec-story-converge)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"].../'
+      body_repl='s/\$ARGUMENTS/the INITIATIVE, STORY, MAX_CYCLES, and WORKTREE named variables/g'
+      ;;
+    openspec-story-plan)
+      arg_line='s/^Argument:.*/Argument: [INITIATIVE=<slug>]/'
+      body_repl='s/\$ARGUMENTS/the INITIATIVE named variable/g'
+      ;;
+    openspec-story-plan-resume)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug>/'
+      body_repl='s/\$ARGUMENTS/the INITIATIVE and STORY named variables/g'
+      ;;
+    openspec-story-plan-review)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug>/'
+      body_repl='s/\$ARGUMENTS/the INITIATIVE and STORY named variables/g'
+      ;;
+    openspec-story-plan-converge)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5]/'
+      body_repl='s/\$ARGUMENTS/the INITIATIVE, STORY, and MAX_CYCLES named variables/g'
+      ;;
+    openspec-story-pr)
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug> [<pr_url_or_OPEN=true>]/'
+      body_repl='s/\$ARGUMENTS/the INITIATIVE, STORY, and PR selector named variables/g'
+      ;;
     merge-conflict-analysis)
       # Already key-value pairs — keep the original line structure, just drop
       # the Claude-specific \$ARGUMENTS wrapper token.
@@ -181,8 +230,8 @@ for skill_dir in "$CLAUDE_SKILLS"/*/; do
   skill_file="$skill_dir/SKILL.md"
   [[ -f "$skill_file" ]] || continue
 
-  # Codex convergers inherit the Claude Research Board handoff protocol, so keep
-  # executor-side board input and Research Events sections intact.
+  # Codex skills inherit the Claude notebook-reference protocol, so keep
+  # executor-side notebook input contracts intact.
   stripped="$(cat "$skill_file" | codex_args "$skill_name")"
   codex_name="${skill_name//-/_}"
 
