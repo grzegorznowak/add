@@ -20,7 +20,7 @@ Usage: install-codex.sh [--force] [--prune-unsupported] [--dry-run]
 Compile Codex skills from claude/skills into CODEX_SKILLS_DIR (default: ~/.codex/skills).
 Existing generated files are overwritten only when their content is unchanged;
 use --force to replace local edits or other conflicting files.
-Use --prune-unsupported to remove recognized archived legacy workflow skills.
+Use --prune-unsupported to remove recognized unsupported workflow skills (archived legacy or renamed).
 EOF
 }
 
@@ -149,7 +149,7 @@ codex_args() {
       arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug>/'
       body_repl='s/\$ARGUMENTS/the INITIATIVE and STORY named variables/g'
       ;;
-    openspec-epic-plan)
+    openspec-initiative-plan)
       arg_line='s/^Argument:.*/Argument: [SLUG=<slug>]/'
       body_repl='s/\$ARGUMENTS/the SLUG named variable/g'
       ;;
@@ -227,6 +227,7 @@ declare -a UNSUPPORTED_CODEX_SKILLS=(
   epic_story_pr
   epic_story_resume
   epic_story_review
+  openspec_epic_plan
 )
 
 frontmatter_name() {
@@ -254,7 +255,7 @@ prune_unsupported_codex() {
     [[ -e "$dir" || -L "$dir" ]] || continue
 
     if [[ -L "$dir" || ! -d "$dir" ]]; then
-      printf 'warn: skip  %s (unsupported legacy name exists but is not a directory)\n' "$dir" >&2
+      printf 'warn: skip  %s (unsupported workflow name exists but is not a directory)\n' "$dir" >&2
       continue
     fi
 

@@ -55,7 +55,7 @@ Feedback often spans several stories. Selecting a story before classification re
    - If an initiative slug was provided, validate it matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` before resolving any path. If it fails, abort with: `invalid initiative slug; use lowercase hyphenated slug characters only`.
    - Then validate that `<cwd>/openspec/initiatives/<slug>/initiative.md` exists.
    - If omitted, list every directory under `<cwd>/openspec/initiatives/` with an `initiative.md`, then ask the operator to pick by number or slug. This is explicit menu selection, not inference. Validate the selected slug against the same canonical slug rule before resolving any path.
-   - If no initiatives exist, stop and tell the operator to run `/openspec-epic-plan` first.
+   - If no initiatives exist, stop and tell the operator to run `/openspec-initiative-plan` first.
 3. Read the project guidance before making recommendations:
    - `AGENTS.md`, then `CLAUDE.md` as fallback when present.
    - `<initiative>/initiative.md`.

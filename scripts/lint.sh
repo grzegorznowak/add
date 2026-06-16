@@ -55,7 +55,7 @@ in_array() {
   return 1
 }
 
-declare -a UNSUPPORTED_LEGACY_SKILLS=(
+declare -a UNSUPPORTED_SKILLS=(
   epic-feedback
   epic-plan
   epic-pr
@@ -69,6 +69,7 @@ declare -a UNSUPPORTED_LEGACY_SKILLS=(
   epic-story-pr
   epic-story-resume
   epic-story-review
+  openspec-epic-plan
 )
 
 declare -a UNSUPPORTED_CODEX_SKILLS=(
@@ -85,6 +86,7 @@ declare -a UNSUPPORTED_CODEX_SKILLS=(
   epic_story_pr
   epic_story_resume
   epic_story_review
+  openspec_epic_plan
 )
 
 is_supported_active_skill() {
@@ -178,8 +180,8 @@ else
     dir_name="$(basename "$skill_dir")"
     skill_md="$skill_dir/SKILL.md"
 
-    if in_array "$dir_name" "${UNSUPPORTED_LEGACY_SKILLS[@]}"; then
-      fail "$skill_dir: archived legacy workflow skill remains in active claude/skills/"
+    if in_array "$dir_name" "${UNSUPPORTED_SKILLS[@]}"; then
+      fail "$skill_dir: unsupported workflow skill remains in active claude/skills/"
     elif ! is_supported_active_skill "$dir_name"; then
       fail "$skill_dir: active skill is neither openspec-* nor an approved utility"
     fi
@@ -216,8 +218,8 @@ else
     frag_name="$(basename "$fragment" .md)"
     first_line="$(head -1 "$fragment")"
 
-    if in_array "$frag_name" "${UNSUPPORTED_LEGACY_SKILLS[@]}"; then
-      fail "$fragment: archived legacy workflow fragment remains in active pi-fragments/"
+    if in_array "$frag_name" "${UNSUPPORTED_SKILLS[@]}"; then
+      fail "$fragment: unsupported workflow fragment remains in active pi-fragments/"
     elif ! is_supported_pi_fragment "$frag_name"; then
       fail "$fragment: active pi fragment is neither openspec-* nor an approved utility fragment"
     fi
@@ -271,7 +273,7 @@ for skill_dir in "$CODEX_SKILLS"/*/; do
   openai_yaml="$skill_dir/agents/openai.yaml"
 
   if in_array "$dir_name" "${UNSUPPORTED_CODEX_SKILLS[@]}"; then
-    fail "$skill_dir: archived legacy workflow skill was generated for Codex"
+    fail "$skill_dir: unsupported workflow skill was generated for Codex"
   elif ! is_supported_active_skill "$(underscore_to_hyphen "$dir_name")"; then
     fail "$skill_dir: generated Codex skill is neither openspec_* nor an approved utility"
   fi
@@ -313,8 +315,8 @@ for skill_dir in "$PI_SKILLS"/*/; do
   dir_name="$(basename "$skill_dir")"
   skill_md="$skill_dir/SKILL.md"
 
-  if in_array "$dir_name" "${UNSUPPORTED_LEGACY_SKILLS[@]}"; then
-    fail "$skill_dir: archived legacy workflow skill was generated for pi"
+  if in_array "$dir_name" "${UNSUPPORTED_SKILLS[@]}"; then
+    fail "$skill_dir: unsupported workflow skill was generated for pi"
   elif ! is_supported_active_skill "$dir_name"; then
     fail "$skill_dir: generated pi skill is neither openspec-* nor an approved utility"
   fi
@@ -478,19 +480,20 @@ mkdir -p "$codex_no_prune/epic_story_claim/agents"
 printf '%s\n' '---' 'name: epic_story_claim' 'description: legacy' '---' > "$codex_no_prune/epic_story_claim/SKILL.md"
 printf 'policy:\n  allow_implicit_invocation: false\n' > "$codex_no_prune/epic_story_claim/agents/openai.yaml"
 if CODEX_SKILLS_DIR="$codex_no_prune" "$REPO_ROOT/scripts/install-codex.sh" >/dev/null 2>&1 && [[ -d "$codex_no_prune/epic_story_claim" ]]; then
-  ok "install-codex.sh leaves unsupported legacy dirs without --prune-unsupported"
+  ok "install-codex.sh leaves unsupported dirs without --prune-unsupported"
 else
-  fail "install-codex.sh pruned or failed on unsupported legacy dir without --prune-unsupported"
+  fail "install-codex.sh pruned or failed on unsupported dir without --prune-unsupported"
 fi
 
 codex_prune="$TMPDIR/codex-prune"
-mkdir -p "$codex_prune/epic_story_claim/agents" "$codex_prune/epic_story_resume/agents"
+mkdir -p "$codex_prune/epic_story_claim/agents" "$codex_prune/epic_story_resume/agents" "$codex_prune/openspec_epic_plan/agents"
 printf '%s\n' '---' 'name: epic_story_claim' 'description: legacy' '---' > "$codex_prune/epic_story_claim/SKILL.md"
 printf '%s\n' '---' 'name: not_epic_story_resume' 'description: local' '---' > "$codex_prune/epic_story_resume/SKILL.md"
+printf '%s\n' '---' 'name: openspec_epic_plan' 'description: renamed' '---' > "$codex_prune/openspec_epic_plan/SKILL.md"
 printf 'policy:\n  allow_implicit_invocation: false\n' > "$codex_prune/epic_story_claim/agents/openai.yaml"
 if CODEX_SKILLS_DIR="$codex_prune" "$REPO_ROOT/scripts/install-codex.sh" --prune-unsupported >/dev/null 2>&1; then
-  if [[ ! -e "$codex_prune/epic_story_claim" && -d "$codex_prune/epic_story_resume" ]]; then
-    ok "install-codex.sh --prune-unsupported removes only verified legacy dirs"
+  if [[ ! -e "$codex_prune/epic_story_claim" && ! -e "$codex_prune/openspec_epic_plan" && -d "$codex_prune/epic_story_resume" ]]; then
+    ok "install-codex.sh --prune-unsupported removes only verified unsupported dirs"
   else
     fail "install-codex.sh --prune-unsupported did not prune/skip expected Codex dirs"
   fi
@@ -502,18 +505,19 @@ pi_no_prune="$TMPDIR/pi-no-prune"
 mkdir -p "$pi_no_prune/epic-story-claim"
 printf '%s\n' '---' 'name: epic-story-claim' 'description: legacy' '---' > "$pi_no_prune/epic-story-claim/SKILL.md"
 if PI_SKILLS_DIR="$pi_no_prune" "$REPO_ROOT/scripts/install-pi.sh" >/dev/null 2>&1 && [[ -d "$pi_no_prune/epic-story-claim" ]]; then
-  ok "install-pi.sh leaves unsupported legacy dirs without --prune-unsupported"
+  ok "install-pi.sh leaves unsupported dirs without --prune-unsupported"
 else
-  fail "install-pi.sh pruned or failed on unsupported legacy dir without --prune-unsupported"
+  fail "install-pi.sh pruned or failed on unsupported dir without --prune-unsupported"
 fi
 
 pi_prune="$TMPDIR/pi-prune"
-mkdir -p "$pi_prune/epic-story-claim" "$pi_prune/epic-story-resume"
+mkdir -p "$pi_prune/epic-story-claim" "$pi_prune/epic-story-resume" "$pi_prune/openspec-epic-plan"
 printf '%s\n' '---' 'name: epic-story-claim' 'description: legacy' '---' > "$pi_prune/epic-story-claim/SKILL.md"
 printf '%s\n' '---' 'name: not-epic-story-resume' 'description: local' '---' > "$pi_prune/epic-story-resume/SKILL.md"
+printf '%s\n' '---' 'name: openspec-epic-plan' 'description: renamed' '---' > "$pi_prune/openspec-epic-plan/SKILL.md"
 if PI_SKILLS_DIR="$pi_prune" "$REPO_ROOT/scripts/install-pi.sh" --prune-unsupported >/dev/null 2>&1; then
-  if [[ ! -e "$pi_prune/epic-story-claim" && -d "$pi_prune/epic-story-resume" ]]; then
-    ok "install-pi.sh --prune-unsupported removes only verified legacy dirs"
+  if [[ ! -e "$pi_prune/epic-story-claim" && ! -e "$pi_prune/openspec-epic-plan" && -d "$pi_prune/epic-story-resume" ]]; then
+    ok "install-pi.sh --prune-unsupported removes only verified unsupported dirs"
   else
     fail "install-pi.sh --prune-unsupported did not prune/skip expected pi dirs"
   fi
@@ -654,7 +658,7 @@ expect_codex_argument_line() {
 }
 
 expect_codex_argument_line openspec_archive 'Argument: INITIATIVE=<slug> STORY=<slug>'
-expect_codex_argument_line openspec_epic_plan 'Argument: [SLUG=<slug>]'
+expect_codex_argument_line openspec_initiative_plan 'Argument: [SLUG=<slug>]'
 expect_codex_argument_line openspec_feedback 'Argument: INITIATIVE=<slug> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]'
 expect_codex_argument_line openspec_story_claim 'Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"]...'
 expect_codex_argument_line openspec_story_resume 'Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"]...'

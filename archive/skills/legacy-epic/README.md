@@ -2,13 +2,13 @@
 
 This directory keeps the pre-OpenSpec `epic-*` workflow for provenance only. The active installer and plugin do **not** scan this archive; only `claude/skills/` and `pi-fragments/` are installed or compiled by default.
 
-Use the OpenSpec workflow skills for new work. If an old user install still has legacy skills, run the runtime installer with `--prune-unsupported` to remove only recognized legacy workflow entries from the selected runtime targets.
+Use the OpenSpec workflow skills for new work. If an old user install still has legacy skills, run the runtime installer with `--prune-unsupported` to remove recognized unsupported workflow entries from the selected runtime targets.
 
 ## Replacement map
 
 | Archived legacy skill | Preferred OpenSpec skill |
 |---|---|
-| `epic-plan` | `openspec-epic-plan` |
+| `epic-plan` | `openspec-initiative-plan` |
 | `epic-story-plan` | `openspec-story-plan` |
 | `epic-story-plan-review` | `openspec-story-plan-review` |
 | `epic-story-plan-resume` | `openspec-story-plan-resume` |

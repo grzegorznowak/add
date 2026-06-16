@@ -25,7 +25,7 @@ Usage: install-pi.sh [--force] [--prune-unsupported] [--dry-run]
 Compile pi skills from claude/skills plus pi-fragments into PI_SKILLS_DIR
 (default: ~/.pi/agent/skills). Existing generated files are overwritten only when
 their content is unchanged; use --force to replace local edits or conflicts.
-Use --prune-unsupported to remove recognized archived legacy workflow skills.
+Use --prune-unsupported to remove recognized unsupported workflow skills (archived legacy or renamed).
 EOF
 }
 
@@ -173,6 +173,7 @@ declare -a UNSUPPORTED_PI_SKILLS=(
   epic-story-pr
   epic-story-resume
   epic-story-review
+  openspec-epic-plan
 )
 
 frontmatter_name() {
@@ -200,7 +201,7 @@ prune_unsupported_pi() {
     [[ -e "$dir" || -L "$dir" ]] || continue
 
     if [[ -L "$dir" || ! -d "$dir" ]]; then
-      printf 'warn: skip  %s (unsupported legacy name exists but is not a directory)\n' "$dir" >&2
+      printf 'warn: skip  %s (unsupported workflow name exists but is not a directory)\n' "$dir" >&2
       continue
     fi
 

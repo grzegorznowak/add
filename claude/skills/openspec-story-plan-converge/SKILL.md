@@ -42,7 +42,7 @@ There is no `MASTER.md`, no tracker table, no step/number row, and no implementa
 2. Reject unknown flags. This command does not accept `WORKTREE=` because planning may read source code for evidence but never writes source code.
 3. Validate `<initiative>` and `<story-slug>` before resolving paths. Each must match `^[a-z0-9]+(?:-[a-z0-9]+)*$`; if either fails, abort with: `invalid slug; use lowercase hyphenated slug characters only`.
 4. Resolve `<initiative_file>` = `<workspace_root>/openspec/initiatives/<initiative>/initiative.md`.
-   - If missing, abort with: `initiative not found — run /openspec-epic-plan first`.
+   - If missing, abort with: `initiative not found — run /openspec-initiative-plan first`.
 5. Resolve `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>/`.
    - If missing, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
    - If archived, abort with: `story is archived; move it back to openspec/changes/ first`.

@@ -16,7 +16,8 @@
 #   --yes                            skip the confirmation prompt
 #   --force                          overwrite non-symlink Claude targets and
 #                                    modified generated Codex/pi files
-#   --prune-unsupported              remove recognized archived legacy workflow skills
+#   --prune-unsupported              remove recognized unsupported workflow skills
+#                                    (archived legacy or renamed)
 #   --dry-run                        show what would happen, change nothing
 #   --help                           show this message
 
@@ -68,7 +69,7 @@ agent_selected() {
   return 1
 }
 
-declare -a UNSUPPORTED_LEGACY_SKILLS=(
+declare -a UNSUPPORTED_SKILLS=(
   epic-feedback
   epic-plan
   epic-pr
@@ -82,6 +83,7 @@ declare -a UNSUPPORTED_LEGACY_SKILLS=(
   epic-story-pr
   epic-story-resume
   epic-story-review
+  openspec-epic-plan
 )
 
 resolve_symlink_target() {
@@ -156,12 +158,12 @@ prune_claude_unsupported_into() {
     return 0
   fi
 
-  for name in "${UNSUPPORTED_LEGACY_SKILLS[@]}"; do
+  for name in "${UNSUPPORTED_SKILLS[@]}"; do
     dest="$dest_root/$name"
     [[ -e "$dest" || -L "$dest" ]] || continue
 
     if [[ ! -L "$dest" ]]; then
-      warn "skip  $dest (unsupported legacy name exists but is not a symlink)"
+      warn "skip  $dest (unsupported workflow name exists but is not a symlink)"
       continue
     fi
 
@@ -304,7 +306,7 @@ print_install_plan() {
     log "  project path:  $PROJECT_PATH"
   fi
   if [[ $PRUNE_UNSUPPORTED -eq 1 ]]; then
-    log "  prune:        recognized archived legacy workflow skills"
+    log "  prune:        recognized unsupported workflow skills"
   else
     log "  prune:        no"
   fi

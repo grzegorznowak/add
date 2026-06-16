@@ -39,16 +39,16 @@ initiatives and changes from `openspec/initiatives/` and `openspec/changes/`.
 
 ## Standard lifecycle
 
-### 1. Initiative bootstrap
+### 1. Initiative planning
 
-`/openspec-epic-plan` creates exactly one initiative file:
+`/openspec-initiative-plan` creates exactly one initiative file:
 
 ```text
 openspec/initiatives/<initiative-slug>/initiative.md
 ```
 
-The command name is historical; the workflow concept is an **initiative**. This
-step records goal, source-of-truth mode, rough story candidates, decisions,
+This is the initiative-level planning counterpart to `/openspec-story-plan`. It
+records goal, source-of-truth mode, rough story candidates, decisions,
 constraints, external resources, and risks. It never creates change workspaces
 or touches product code.
 
@@ -213,7 +213,7 @@ After those gates pass, `/openspec-archive` invokes OpenSpec's built-in
 
 | Transition / write | Owner |
 |---|---|
-| Create `openspec/initiatives/<slug>/initiative.md` | `/openspec-epic-plan` |
+| Create `openspec/initiatives/<slug>/initiative.md` | `/openspec-initiative-plan` |
 | Create change planning artifacts | `/openspec-story-plan` |
 | `Plan:` independent verdict | `/openspec-story-plan-review` |
 | Planning artifact repair | `/openspec-story-plan-resume` |

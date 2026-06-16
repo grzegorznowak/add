@@ -50,9 +50,9 @@ from the OpenSpec artifacts themselves.
 
 ## Lifecycle at a glance
 
-1. **Bootstrap an initiative** — `/openspec-epic-plan` creates
-   `openspec/initiatives/<slug>/initiative.md`. The command name is historical;
-   the artifact and workflow concept are an OpenSpec initiative.
+1. **Plan an initiative** — `/openspec-initiative-plan` creates
+   `openspec/initiatives/<slug>/initiative.md` as the initiative-level planning
+   counterpart to `/openspec-story-plan`.
 2. **Plan a story-sized change** — `/openspec-story-plan INITIATIVE=<slug>`
    interviews the operator and writes the change workspace planning artifacts.
    It does not seed implementation runtime files.
@@ -94,7 +94,7 @@ schemas, proof matrices, Debt Friction, and runtime section conventions.
 
 | Command | Responsibility |
 |---|---|
-| `/openspec-epic-plan` | Bootstrap one OpenSpec initiative file under `openspec/initiatives/<slug>/`. |
+| `/openspec-initiative-plan` | Plan one OpenSpec initiative file under `openspec/initiatives/<slug>/`. |
 | `/openspec-story-plan` | Create a new change workspace with proposal, story, design, tasks, and delta specs. |
 | `/openspec-story-plan-review` | Independently review a change workspace's planning contract and Plan lane. |
 | `/openspec-story-plan-resume` | Repair planning artifacts after feedback or incomplete sections. |
@@ -173,15 +173,17 @@ Flags:
 - `--yes` — skip confirmation; required for non-TTY installs that mutate files.
 - `--force` — overwrite non-symlink Claude targets and modified generated
   Codex/pi files.
-- `--prune-unsupported` — explicitly remove recognized archived legacy workflow
-  skills from selected install targets.
+- `--prune-unsupported` — explicitly remove recognized unsupported workflow
+  skills from selected install targets, including archived legacy commands and
+  renamed command entries.
 - `--dry-run` — show planned writes/prunes without changing files.
 
 Pruning is never automatic. Use the correctly spelled `--prune-unsupported`
-only when you intentionally want stale installed legacy workflow skills removed.
-The prune path is conservative: Claude removes only recognized legacy symlinks
-that point into this repo, while Codex/pi remove exact legacy generated
-directories only after `SKILL.md` frontmatter matches the expected legacy name.
+only when you intentionally want stale installed unsupported workflow skills
+removed. The prune path is conservative: Claude removes only recognized
+unsupported symlinks that point into this repo, while Codex/pi remove exact
+recognized generated directories only after `SKILL.md` frontmatter matches the
+expected unsupported name.
 
 ### Plugin install (Claude Code only)
 
@@ -228,7 +230,8 @@ cd ~/.local/share/add && git pull
 scripts/install.sh --yes --agents all
 ```
 
-If you previously installed the archived legacy workflow, prune once explicitly:
+If you previously installed the archived legacy workflow or the renamed
+`/openspec-epic-plan` command, prune once explicitly:
 
 ```bash
 scripts/install.sh --yes --agents all --prune-unsupported
@@ -242,8 +245,8 @@ scripts/install.sh --yes --agents all --prune-unsupported
 
 Only symlinks pointing at this repo are removed. Anything you authored yourself
 is left untouched. Generated Codex/pi directories are real files and can be
-removed manually, or pruned for recognized archived legacy workflow names during
-a runtime install with `--prune-unsupported`.
+removed manually, or pruned for recognized unsupported workflow names during a
+runtime install with `--prune-unsupported`.
 
 ## Contributing
 

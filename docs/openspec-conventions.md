@@ -28,7 +28,7 @@ constructing paths from operator input, feedback, URLs, or inferred text.
 
 ## `initiative.md`
 
-Created by `/openspec-epic-plan`. Minimum shape:
+Created by `/openspec-initiative-plan`. Minimum shape:
 
 ```md
 # <Human Title>

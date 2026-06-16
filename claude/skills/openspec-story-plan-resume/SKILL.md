@@ -33,7 +33,7 @@ Plan resume must come from an explicit operator choice. Auto-inferring resumes p
 2. Validate both slugs before resolving paths. Each must match `^[a-z0-9]+(?:-[a-z0-9]+)*$`; if either fails, abort with: `invalid slug; use lowercase hyphenated slug characters only`.
 3. Set `<workspace_root>` = `<cwd>`.
 4. Resolve `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative-slug>`.
-   - If `<initiative_dir>` does not exist, abort with: `initiative not found: openspec/initiatives/<initiative-slug>/ — run /openspec-epic-plan first`.
+   - If `<initiative_dir>` does not exist, abort with: `initiative not found: openspec/initiatives/<initiative-slug>/ — run /openspec-initiative-plan first`.
 5. Read `<initiative_dir>/initiative.md` for context.
 6. Resolve `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>/`.
    - If `<change_dir>` does not exist, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
