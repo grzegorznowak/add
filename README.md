@@ -17,6 +17,13 @@ compressed, and the same session that wrote the code is tempted to approve its
 own work. `add` avoids that by making the lifecycle file-backed and
 session-bounded.
 
+For Pi users, ADD treats
+[`pi-agenticoding`](https://github.com/agenticoding/pi-agenticoding) as a core
+building block for getting the most out of these workflows. Its `spawn`,
+`notebook`, and `handoff` primitives provide isolated subtasks, durable compact
+grounding, and deliberate clean-context handoffs, while ADD's repo-local
+OpenSpec files remain the workflow source of truth.
+
 The durable model is:
 
 ```text
@@ -88,7 +95,7 @@ reasoning; it is read-only and never performs lifecycle transitions.
    `/opsx:archive <story-slug>` command.
 
 See [`docs/openspec-lifecycle.md`](docs/openspec-lifecycle.md) for the full
-state machine and command authority table, and
+ASCII state machine and command authority table, and
 [`docs/openspec-conventions.md`](docs/openspec-conventions.md) for artifact
 schemas, proof matrices, Debt Friction, and runtime section conventions.
 
@@ -153,6 +160,12 @@ Install targets:
 - generated Codex skill → `~/.codex/skills/<snake_name>/`
 - generated Codex skill → `<project>/.agents/skills/<snake_name>/`
 - generated pi skill → `~/.pi/agent/skills/<name>/`
+
+Pi context layer: when using generated pi skills, install
+[`pi-agenticoding`](https://github.com/agenticoding/pi-agenticoding) separately
+(`pi install npm:pi-agenticoding`). It supplies the `spawn`, `notebook`, and
+`handoff` tools that make ADD's long OpenSpec loops practical; the ADD installer
+only installs the ADD skill files.
 
 Codex and pi outputs are generated at install time from the canonical Claude
 skills. There is no committed `codex/skills/` source tree. Claude installs are

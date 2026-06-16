@@ -6,6 +6,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- `docs/openspec-lifecycle.md` now includes an ASCII OpenSpec state-machine
+  diagram covering initiative, planning, implementation, PR, feedback, archive,
+  and spec-sync states.
+- README and lifecycle docs now reference `pi-agenticoding` as the Pi
+  context-management building block (`spawn`, `notebook`, `handoff`) for ADD's
+  session-bounded OpenSpec workflows.
 - `openspec-next-action` recommends the next OpenSpec workflow command by
   inspecting current or selected initiative/change/spec artifacts without
   performing lifecycle transitions.

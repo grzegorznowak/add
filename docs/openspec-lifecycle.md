@@ -40,6 +40,130 @@ initiatives and changes from `openspec/initiatives/` and `openspec/changes/`.
 inspects current or selected initiative/change/spec artifacts and recommends the
 next owner command without performing transitions.
 
+## OpenSpec state machine
+
+The diagram below is the canonical ASCII view of the active workflow. It shows
+durable file states, not transient chat state. `/openspec-next-action` may
+inspect any active initiative/change/spec state and recommend the next owner
+command, but it never edits files or performs transitions.
+
+```text
+Legend: [state] = durable OpenSpec state, "-- command -->" = owner transition,
+        {gate} = required file/evidence gate.
+
+(no initiative)
+    |
+    | /openspec-initiative-plan
+    v
+[initiative.md]
+    |
+    | /openspec-story-plan INITIATIVE=<slug>
+    v
+[active change workspace]
+  proposal.md + story.md + design.md + tasks.md + optional specs/**/*.md
+  story.md: Plan = 🟡 PLAN DRAFT, Status = ⬜ TODO
+    |
+    v
++----------------------------- PLAN LANE --------------------------------+
+|                                                                        |
+| [🟡 PLAN DRAFT]                                                        |
+|      | /openspec-story-plan-review                                     |
+|      v                                                                 |
+| [🟣 PLAN IN REVIEW]                                                    |
+|      | approve                                                        |
+|      +-------------------------------> [🟢 PLAN APPROVED]              |
+|      | request changes / repairable planning gap                       |
+|      +-------------------------------> [🟠 PLAN CHANGES REQUESTED]     |
+|      |                        /openspec-story-plan-resume                |
+|      |                                      v                          |
+|      |                                 [🟡 PLAN DRAFT]                 |
+|      | blocked verdict                                                 |
+|      +-------------------------------> [⛔ PLAN BLOCKED]               |
+|                                             | operator resolves cause   |
+|                                             v                          |
+|                                        [🟡 PLAN DRAFT or review]       |
+|                                                                        |
+| /openspec-feedback may downgrade or repair planning artifacts, but it   |
+| never approves the Plan lane.                                           |
+|                                                                        |
+| /openspec-story-plan-converge orchestrates fresh review/resume passes   |
+| until approved, blocked, no progress, invalid state, or cycle limit.    |
++------------------------------------------------------------------------+
+    |
+    | Only Plan: 🟢 PLAN APPROVED and no blocked.md unlocks implementation.
+    v
++------------------------- IMPLEMENTATION LANE --------------------------+
+|                                                                        |
+| [⬜/⚪ TODO] --/openspec-story-claim--> [🔄 IN PROGRESS]                |
+|                                         |                              |
+|                                         | implementation complete      |
+|                                         v                              |
+|                                  [🟣 IN REVIEW]                        |
+|                                                                        |
+| /openspec-story-resume continues [🔄 IN PROGRESS], applies review/PR    |
+| feedback, and returns completed work to [🟣 IN REVIEW].                |
+|                                                                        |
+| /openspec-story-review branches from [🟣 IN REVIEW]:                   |
+|   request changes ---------------------------> [🔄 IN PROGRESS]        |
+|   blocked -----------------------------------> [⛔ BLOCKED]            |
+|   approve, no PR ----------------------------> [✅ DONE]               |
+|   approve locally; next /openspec-story-pr --> [🟣 IN REVIEW]          |
+|                                                                        |
+| [⛔ BLOCKED] -- operator removes blocked.md --> [⛔ BLOCKED, resumable] |
+| [⛔ BLOCKED, resumable] --/openspec-story-resume--> [🔄 IN PROGRESS]   |
+|                                                                        |
+| Optional PR stage owned by /openspec-story-pr:                         |
+| [🟣 IN REVIEW] -- open or attach PR ---------> [🔵 IN PR]              |
+| [🔵 IN PR] -- still open --------------------> [🔵 IN PR]              |
+| [🔵 IN PR] -- PR requests changes -----------> [🔄 IN PROGRESS]        |
+| [🔵 IN PR] -- merged evidence ---------------> [✅ DONE]               |
+| explicit non-archived [✅ DONE] -- late PR --> [🔵 IN PR or ✅ DONE]    |
+|                                                                        |
+| /openspec-story-converge orchestrates fresh claim/resume/review passes  |
+| until DONE, local approval, blocked, invalid state, no progress, or     |
+| cycle budget exhaustion.                                               |
++------------------------------------------------------------------------+
+    |
+    | /openspec-archive preflights DONE, task checklist, review approval,
+    | no blocked.md, and merged PR evidence or explicit no-PR confirmation.
+    | It then delegates to OpenSpec /opsx:archive <story-slug>.
+    v
+[archived change workspace]
+  openspec/changes/archive/<story-slug>/
+[durable specs]
+  openspec/specs/**
+```
+
+Side inputs and gates:
+
+- `/openspec-feedback` can route feedback into initiative logs, story plan
+  review logs, implementation review logs, future story candidates, or
+  initiative-level decisions. It never touches product source, never approves
+  the Plan lane, and never advances implementation status.
+- `blocked.md` is the hard implementation and archive stop, even if the
+  `Status:` header is stale.
+- Delta specs live under the active change workspace until archive. The
+  archive command delegates to OpenSpec's built-in `/opsx:archive` step, which
+  syncs durable spec behavior into `openspec/specs/` and moves the workspace to
+  `openspec/changes/archive/<story-slug>/`.
+
+## Pi context-management building block
+
+For Pi runtimes, ADD treats
+[`pi-agenticoding`](https://github.com/agenticoding/pi-agenticoding) as a core
+building block for getting the most out of these session-bounded workflows. The
+extension provides `spawn`, `notebook`, and `handoff` primitives for isolated
+subtasks, compact durable grounding, and deliberate clean-context handoffs; its
+primer explicitly frames research, planning, and execution as separate jobs. See
+its [Core Primitives](https://github.com/agenticoding/pi-agenticoding#core-primitives)
+and [context primer](https://github.com/agenticoding/pi-agenticoding/blob/main/system-prompt.ts)
+for the source of those runtime concepts.
+
+`pi-agenticoding` is not OpenSpec-specific. ADD layers the OpenSpec artifact
+conventions and command authority described here on top of those generic Pi
+context-management tools, while the repo-local OpenSpec files remain the source
+of truth.
+
 ## Standard lifecycle
 
 ### 1. Initiative planning
@@ -90,8 +214,10 @@ Command ownership:
 - `/openspec-story-plan-resume` edits planning artifacts to absorb feedback and
   returns the Plan lane to draft; it does not approve its own work.
 - `/openspec-story-plan-converge` orchestrates fresh plan-review and plan-resume
-  sessions until approval, block, no-progress, or cycle limit. It owns no direct
-  artifact writes beyond its delegated commands.
+  sessions until approval, block, no-progress, or cycle limit. It performs no
+  normal review/resume artifact writes itself; its direct writes are limited to
+  safety normalization required by its skill contract, such as downgrading an
+  orphaned `🟢 PLAN APPROVED` that lacks an independent approve log.
 - `/openspec-feedback` may downgrade the Plan lane when new feedback changes a
   contract, but it never approves the plan.
 
