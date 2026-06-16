@@ -64,7 +64,7 @@ There is no central tracker table. Treat `story.md → Plan:` and `story.md → 
 Read only the artifacts needed for routing:
 
 - Initiative mode: `initiative.md`, plus a directory listing of `openspec/changes/*/story.md`.
-- Story mode: `story.md` headers, `blocked.md` existence, and bounded evidence from `progress.md`, `reviews.md`, and `tasks.md` only when relevant to PR, DONE, or archive routing.
+- Story mode: `story.md` headers, `blocked.md` existence, and bounded evidence from `progress.md`, `reviews.md`, and `tasks.md` only when relevant to feedback, PR delivery evidence, DONE, or archive routing.
 - Spec mode: the resolved path and its containing workspace or stable spec location.
 
 Evidence to extract:
@@ -73,7 +73,7 @@ Evidence to extract:
 - `Status:` from `story.md`.
 - Whether `blocked.md` exists.
 - Whether the story is active, archived, or missing.
-- Whether `progress.md → ## PR State` indicates open, merged, or requested-changes PR state.
+- Whether `progress.md → ## PR State` indicates open, merged, or requested-changes PR feedback that affects archive or feedback routing.
 - Whether the latest relevant `reviews.md` entry appears to record `Decision: approve` and `Approval gate: pass`.
 - Whether `tasks.md` has obviously unchecked in-scope tasks when considering archive.
 - Whether required planning scaffold files (`proposal.md`, `story.md`, `design.md`, `tasks.md`) exist when the plan is not approved.
@@ -116,7 +116,7 @@ If `Status:` is not `✅ DONE` and `Plan:` is not `🟢 PLAN APPROVED`, planning
 | `Plan: 🟠 PLAN CHANGES REQUESTED` | `/openspec-story-plan-resume <initiative> <story-slug>` |
 | Repeated plan review/resume uncertainty | `/openspec-story-plan-converge <initiative> <story-slug>` |
 
-### Implementation and PR lane after plan approval
+### Implementation, PR delivery, and archive after plan approval
 
 Plan-approved means exactly `Plan: 🟢 PLAN APPROVED`.
 
@@ -124,18 +124,15 @@ Plan-approved means exactly `Plan: 🟢 PLAN APPROVED`.
 |---|---|
 | Missing, unset, `⬜ TODO`, or `⚪ TODO` | `/openspec-story-claim <initiative> <story-slug>` |
 | `🔄 IN PROGRESS` | `/openspec-story-resume <initiative> <story-slug>` |
-| `🟣 IN REVIEW` without apparent latest approval | `/openspec-story-review <initiative> <story-slug>` |
-| `🟣 IN REVIEW` with latest approval and `Approval gate: pass` | `/openspec-story-pr <initiative> <story-slug>` if the optional PR stage is desired; otherwise operator decision whether to rerun review for no-PR completion |
-| `🔵 IN PR` with requested changes evidence | `/openspec-story-resume <initiative> <story-slug>` |
-| `🔵 IN PR` with merged evidence, stale metadata, or unclear PR state | `/openspec-story-pr <initiative> <story-slug>` |
-| `🔵 IN PR` with open PR and no requested changes | `/openspec-story-pr <initiative> <story-slug>` to refresh, or wait for PR review |
+| `🟣 IN REVIEW` | `/openspec-story-review <initiative> <story-slug>` |
 | `✅ DONE` with no `blocked.md` | `/openspec-archive <initiative> <story-slug>` when quick archive gates look satisfied; otherwise route to the owner command named in the missing gate |
 | Unknown status value | Operator decision: inspect `story.md` and normalize through the owning command; do not guess |
 
 Quick archive-gate routing for `✅ DONE`:
 
-- If PR state shows an unmerged PR, recommend `/openspec-story-pr <initiative> <story-slug>`.
-- If latest implementation review approval is missing or unclear and there is no merged PR evidence, recommend `/openspec-story-review <initiative> <story-slug>`.
+- If `## PR State` shows requested changes or actionable unabsorbed PR feedback, recommend `/openspec-feedback <initiative> --pr <pr-url>`.
+- If `## PR State` shows an unmerged PR without requested changes, recommend `/openspec-story-pr <initiative> <story-slug>` to refresh delivery evidence, or wait for PR review before archiving.
+- If latest implementation review approval is missing or unclear, recommend `/openspec-story-review <initiative> <story-slug>`.
 - If tasks are obviously unchecked, recommend `/openspec-story-resume <initiative> <story-slug>` or `/openspec-story-review <initiative> <story-slug>` depending on whether the gap is implementation work or review/status drift.
 - Otherwise recommend `/openspec-archive <initiative> <story-slug>` and note that archive performs the authoritative preflight and may ask for no-PR confirmation.
 
@@ -149,7 +146,7 @@ When `--all` is supplied:
    - blocked/operator decision first;
    - planning actions;
    - implementation actions;
-   - PR/archive actions;
+   - PR delivery/archive actions;
    - no action.
 4. Do not choose a single story unless exactly one entry is actionable and unambiguous.
 
@@ -177,4 +174,4 @@ Return only this compact report. Include every section; use `None.` or `unavaila
 | <only when --all or ambiguity requires listing> |
 ```
 
-When the next action is an operator decision, make the decision prompt concrete, for example: `rerun with INITIATIVE=<slug> STORY=<story-slug>`, `resolve/remove openspec/changes/<story>/blocked.md`, or `choose whether this locally approved story should enter the PR stage`.
+When the next action is an operator decision, make the decision prompt concrete, for example: `rerun with INITIATIVE=<slug> STORY=<story-slug>`, `resolve/remove openspec/changes/<story>/blocked.md`, or `choose whether this locally DONE story needs PR delivery evidence before archive`.

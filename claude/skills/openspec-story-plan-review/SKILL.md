@@ -21,7 +21,7 @@ This command only edits the resolved `story.md` file's `## Plan Review Log` sect
 - any spec section of `story.md` (`## Purpose`, `## Actors`, `## Triggering Need`, `## Expected Prerequisites`, `## Scope`, `## Out of Scope`, `## Scenarios / Behavior Examples`, `## Acceptance`, `## Verification`, `## Discovery Notes`, `## Critical Files`, `## Implementation Notes`, `## Locked Decisions`)
 - supporting planning artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/`)
 - runtime artifacts (`progress.md`, `reviews.md`, `blocked.md`)
-- the implementation `Status:` header field on `story.md` (`⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR`, `✅ DONE`, `⛔ BLOCKED`)
+- the implementation `Status:` header field on `story.md` (`⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `✅ DONE`, `⛔ BLOCKED`)
 
 It may check whether `<change_dir>/blocked.md` exists during resolution, solely to honor the explicit block gate before writing a review lane transition. It must not read, create, edit, or remove `blocked.md`.
 
@@ -219,7 +219,7 @@ You may update the `Plan:` header field in `story.md` as part of this review. Ne
 - `blocked` → set `Plan:` to `⛔ PLAN BLOCKED`. Use this only when the plan is unsalvageable as written and the operator needs to pause on this story (e.g., the plan depends on an upstream story that does not exist, or a `## Locked Decision` directly contradicts the architecture and the plan cannot be minimally amended).
 - `not_reviewable` → set `Plan:` to `🟠 PLAN CHANGES REQUESTED` if missing context can be repaired in the story contract. If missing context cannot be repaired in the story contract, restore the pre-review `Plan:` value from before this command wrote `🟣 PLAN IN REVIEW` and say what context is missing. Never leave the final lane at `🟣 PLAN IN REVIEW` for a completed `not_reviewable` verdict.
 
-**Explicit prohibitions:** never move a story's `Plan:` header into `⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `🔵 IN PR`, `✅ DONE`, or implementation `⛔ BLOCKED` from this command. Those transitions are owned by `/openspec-story-claim`, `/openspec-story-resume`, `/openspec-story-review`, and `/openspec-story-pr`.
+**Explicit prohibitions:** never move a story's `Plan:` header into `⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `✅ DONE`, or implementation `⛔ BLOCKED` from this command. Those transitions are owned by `/openspec-story-claim`, `/openspec-story-resume`, and `/openspec-story-review`.
 
 ## Plan review log write-back
 

@@ -353,10 +353,10 @@ sections:
 - `## Current Claim` — current implementation owner, scope, write surfaces,
   worktree bindings, and status.
 - `## Progress Timeline` — concise timestamped milestones, red-first evidence,
-  proof updates, replanning checkpoints, Debt Friction, and PR transitions.
+  proof updates, replanning checkpoints, Debt Friction, and PR metadata updates.
 - `## Session Handoff` — latest exit state and next action for a fresh session.
-- `## PR State` — sole durable PR metadata location, owned by
-  `/openspec-story-pr`.
+- `## PR State` — sole durable PR metadata/evidence location, owned by
+  `/openspec-story-pr`; it does not own implementation status transitions.
 
 `## Current Claim` uses plural worktree bindings when needed:
 
@@ -437,8 +437,12 @@ live files before it drives an edit, review verdict, or status transition.
   archive commands.
 - Create runtime files during `/openspec-story-plan`.
 - Approve a plan from `/openspec-story-plan-resume` or `/openspec-feedback`.
-- Transition implementation status from `/openspec-feedback`.
-- Mark a story `✅ DONE` while an active PR is unmerged.
+- Advance or approve implementation status from `/openspec-feedback`, or derive
+  status transitions from PR metadata refreshes. `/openspec-feedback` may only
+  reopen to `🔄 IN PROGRESS` after an acknowledged `resume-current-story`
+  disposition.
+- Treat an unmerged PR as authority to reopen or downgrade a locally DONE story;
+  route actionable PR feedback through `/openspec-feedback` for classification.
 - Archive a story with `blocked.md`, incomplete tasks, missing review approval,
   or unresolved PR/no-PR evidence.
 - Treat notebook pages, chat summaries, or old handoffs as stronger authority

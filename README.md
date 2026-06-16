@@ -47,10 +47,11 @@ openspec/
   task checklist, and spec deltas.
 - **Plan lane** — `story.md`'s `Plan:` header records whether the contract is
   draft, in review, approved, needs changes, or blocked.
-- **Implementation status** — `story.md`'s `Status:` header records execution:
-  TODO, in progress, in review, in PR, done, or blocked.
+- **Implementation status** — `story.md`'s `Status:` header records local
+  execution: TODO, in progress, in review, done, or blocked.
 - **Runtime evidence** — `progress.md`, `reviews.md`, `tasks.md`, and optional
-  `blocked.md` preserve handoff, proof, review findings, PR state, and blockers.
+  `blocked.md` preserve handoff, proof, review findings, PR delivery metadata,
+  and blockers.
 
 There is no central tracker table in the active workflow. Fresh sessions resume
 from the OpenSpec artifacts themselves.
@@ -76,21 +77,23 @@ reasoning; it is read-only and never performs lifecycle transitions.
    ready TODO story, including satisfied `## Expected Prerequisites`, writes
    `progress.md`, chooses the smallest credible failing seam, turns it green,
    records proof, and hands off. `/openspec-story-resume` continues in-progress
-   work or applies review/PR-change feedback after the story is back in
-   `🔄 IN PROGRESS`.
+   work or applies review/feedback that `/openspec-feedback` routed back to the
+   story.
 5. **Review independently** — `/openspec-story-review` is read-only for product
-   code. It writes `reviews.md` and the `Status:` header, approving only when the
-   implementation, tests, tasks, and OpenSpec contract line up.
+   code. It writes `reviews.md` and the `Status:` header, marking `✅ DONE` only
+   when the implementation, tests, tasks, and OpenSpec contract line up.
 6. **Converge implementation** — `/openspec-story-converge` orchestrates fresh
-   claim/resume/review sessions for one change until local review approves,
+   claim/resume/review sessions for one change until the story is locally DONE,
    a blocker appears, no progress is made, or the cycle budget ends.
-7. **Optional PR stage** — `/openspec-story-pr` creates, attaches, or refreshes a
-   GitHub PR and records the durable PR state in `progress.md`. Merged PR
-   evidence moves the story to `✅ DONE`; requested changes route back to resume.
+7. **PR delivery helper** — `/openspec-story-pr` creates, attaches, or refreshes a
+   GitHub PR and records durable PR metadata/evidence in `progress.md` without
+   owning story status. Merged PR evidence supports archive; requested changes
+   are absorbed through `/openspec-feedback`.
 8. **Absorb feedback** — `/openspec-feedback` routes PR, reviewer, tool, or
    operator feedback to the initiative log, plan review log, implementation
    review log, story candidates, or initiative-level decisions without touching
-   product code.
+   product code. When acknowledged feedback invalidates local completion, it can
+   reopen the story to `🔄 IN PROGRESS` so `/openspec-story-resume` owns the fix.
 9. **Archive completed changes** — `/openspec-archive` preflights DONE status,
    task completion, review approval, blocker absence, and PR/no-PR evidence,
    then delegates spec sync and the workspace move to OpenSpec's built-in
@@ -114,11 +117,11 @@ schemas, proof matrices, Debt Friction, and runtime section conventions.
 | `/openspec-story-plan-resume` | Repair planning artifacts after feedback or incomplete sections. |
 | `/openspec-story-plan-converge` | Loop fresh plan-review and plan-resume passes until the Plan lane resolves. |
 | `/openspec-story-claim` | Claim one approved TODO story and begin red-first implementation. |
-| `/openspec-story-resume` | Continue implementation, resolve blockers, or address review/PR feedback. |
+| `/openspec-story-resume` | Continue implementation, resolve blockers, or address review/feedback routed back to the story. |
 | `/openspec-story-review` | Independently review implementation and update `reviews.md` plus `story.md → Status:`. |
-| `/openspec-story-converge` | Loop fresh claim/resume/review passes until local implementation approval or stop. |
-| `/openspec-story-pr` | Manage the optional GitHub PR stage and durable `progress.md → ## PR State`. |
-| `/openspec-feedback` | Classify and absorb structured feedback into the right OpenSpec artifacts. |
+| `/openspec-story-converge` | Loop fresh claim/resume/review passes until local implementation completion or stop. |
+| `/openspec-story-pr` | Manage optional GitHub PR delivery metadata/evidence in `progress.md → ## PR State`. |
+| `/openspec-feedback` | Classify and absorb structured feedback, including acknowledged story reopens, into the right OpenSpec artifacts. |
 | `/openspec-archive` | Preflight completion gates, then delegate spec sync and archive move to `/opsx:archive`. |
 
 ### Utilities

@@ -11,7 +11,7 @@
   - <repo-basename>: <absolute path>
 - Main-tree targets: <repo-basename>, <repo-basename>
 - Primary write surfaces: <paths>
-- Status: 🔄 IN PROGRESS | 🟣 IN REVIEW | 🔵 IN PR | ✅ DONE | ⛔ BLOCKED
+- Status: 🔄 IN PROGRESS | 🟣 IN REVIEW | ✅ DONE | ⛔ BLOCKED
 
 ## Progress Timeline
 <!-- Append-only timestamped bullets recording meaningful milestones.
@@ -30,7 +30,7 @@
 - Exact next step: <one concrete recommendation>
 
 ## PR State
-<!-- Written by /openspec-story-pr. There is exactly one PR Tracking section. -->
+<!-- Written by /openspec-story-pr. There is exactly one PR State section. -->
 - PR URL:
 - Number:
 - Title:
