@@ -6,6 +6,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- `openspec-next-action` recommends the next OpenSpec workflow command by
+  inspecting current or selected initiative/change/spec artifacts without
+  performing lifecycle transitions.
 - OpenSpec workflow skills are now the active workflow surface:
   `openspec-initiative-plan`, `openspec-story-plan`, plan review/resume/converge,
   implementation claim/resume/review/converge, `openspec-story-pr`,

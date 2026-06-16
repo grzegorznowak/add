@@ -50,6 +50,10 @@ from the OpenSpec artifacts themselves.
 
 ## Lifecycle at a glance
 
+Use `/openspec-next-action` at any point to inspect the current or selected
+OpenSpec initiative/change/spec state and get the next recommended command with
+reasoning; it is read-only and never performs lifecycle transitions.
+
 1. **Plan an initiative** — `/openspec-initiative-plan` creates
    `openspec/initiatives/<slug>/initiative.md` as the initiative-level planning
    counterpart to `/openspec-story-plan`.
@@ -95,6 +99,7 @@ schemas, proof matrices, Debt Friction, and runtime section conventions.
 | Command | Responsibility |
 |---|---|
 | `/openspec-initiative-plan` | Plan one OpenSpec initiative file under `openspec/initiatives/<slug>/`. |
+| `/openspec-next-action` | Inspect current or selected OpenSpec state and recommend the next workflow command. |
 | `/openspec-story-plan` | Create a new change workspace with proposal, story, design, tasks, and delta specs. |
 | `/openspec-story-plan-review` | Independently review a change workspace's planning contract and Plan lane. |
 | `/openspec-story-plan-resume` | Repair planning artifacts after feedback or incomplete sections. |

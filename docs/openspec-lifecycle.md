@@ -36,6 +36,9 @@ openspec/
 
 There is no central tracker table in the active workflow. Commands discover
 initiatives and changes from `openspec/initiatives/` and `openspec/changes/`.
+`/openspec-next-action` is the read-only routing helper for this model: it
+inspects current or selected initiative/change/spec artifacts and recommends the
+next owner command without performing transitions.
 
 ## Standard lifecycle
 
@@ -224,9 +227,11 @@ After those gates pass, `/openspec-archive` invokes OpenSpec's built-in
 | PR state and PR-driven transitions | `/openspec-story-pr` |
 | Feedback routing receipts/candidates/decisions | `/openspec-feedback` |
 | Archive preflight and delegation to `/opsx:archive` | `/openspec-archive` |
+| Read-only lifecycle inspection and next-command recommendation | `/openspec-next-action` |
 | Plan or implementation loop selection | `/openspec-story-plan-converge`, `/openspec-story-converge` |
 
-Loopers choose the next command; they do not bypass command authority.
+`/openspec-next-action` recommends the owner command; loopers choose the next
+command within their convergence loops. Neither bypasses command authority.
 
 ## Rules of thumb
 

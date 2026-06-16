@@ -153,6 +153,10 @@ codex_args() {
       arg_line='s/^Argument:.*/Argument: [SLUG=<slug>]/'
       body_repl='s/\$ARGUMENTS/the SLUG named variable/g'
       ;;
+    openspec-next-action)
+      arg_line='s/^Argument:.*/Argument: [INITIATIVE=<slug>] [STORY=<slug>] [SPEC=<spec-or-path>] [--all]/'
+      body_repl='s/\$ARGUMENTS/the INITIATIVE, STORY, SPEC, and --all selectors/g'
+      ;;
     openspec-feedback)
       arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]/'
       body_repl='s/\$ARGUMENTS/the INITIATIVE, feedback flags, and feedback payload named variables/g'
