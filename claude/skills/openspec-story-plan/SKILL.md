@@ -18,7 +18,7 @@ This command writes planning artifacts under `openspec/changes/<story-slug>/` af
 - source code (product files, tests, configs)
 - runtime artifacts (progress.md, reviews.md, blocked.md)
 - existing change workspaces
-- the old `agent_coordination/` flow
+- non-OpenSpec coordination artifacts outside `openspec/`
 
 ## Why operator-explicit selection
 

@@ -64,15 +64,15 @@
   <!-- ===== PAGE 1 ===== -->
   <rect class="page" x="55" y="55" width="2290" height="1920" />
   <text class="page-label" x="105" y="115">PAGE 1 — OPERATOR POV</text>
-  <text class="title" x="105" y="172">From epic idea to archived behavior</text>
-  <text class="subtitle" x="108" y="206">The operator creates an epic context, plans one focused story change, converges plan quality, converges implementation quality, absorbs external feedback, publishes a PR, and archives accepted behavior.</text>
+  <text class="title" x="105" y="172">From initiative idea to archived behavior</text>
+  <text class="subtitle" x="108" y="206">The operator creates initiative context, plans one focused story change, converges plan quality, converges implementation quality, absorbs external feedback, publishes a PR, and archives accepted behavior.</text>
 
-  <!-- Step 0: Epic -->
+  <!-- Step 0: Initiative -->
   <rect class="panel-green" x="105" y="270" width="2190" height="220" />
-  <text class="section-title" x="145" y="318">0. Create or choose the epic context</text>
-  <text class="comment" x="145" y="350">The epic gives a related set of changes a shared goal, scope, sequencing, and decision history.</text>
+  <text class="section-title" x="145" y="318">0. Create or choose the initiative context</text>
+  <text class="comment" x="145" y="350">The initiative gives a related set of changes a shared goal, scope, sequencing, and decision history.</text>
   <rect class="bubble" x="145" y="378" width="620" height="68" />
-  <text class="small" x="172" y="405">"This epic hardens checkout reliability across payment retries,</text>
+  <text class="small" x="172" y="405">"This initiative hardens checkout reliability across payment retries,</text>
   <text class="small" x="172" y="430">duplicate events, and customer-facing failure states."</text>
   <rect class="command" x="860" y="382" width="250" height="55" />
   <text class="command-text" x="888" y="416">/openspec-epic-plan</text>
@@ -81,12 +81,12 @@
   <rect class="artifact" x="1210" y="365" width="420" height="95" />
   <text class="artifact-text" x="1245" y="402">openspec/initiatives/</text>
   <text class="artifact-text" x="1245" y="426">checkout-hardening/initiative.md</text>
-  <text class="comment" x="1680" y="405">Operator sees: "I can now plan stories inside this epic."</text>
+  <text class="comment" x="1680" y="405">Operator sees: "I can now plan stories inside this initiative."</text>
 
   <!-- Step 1: Story plan -->
   <rect class="panel-blue" x="105" y="540" width="2190" height="275" />
   <text class="section-title" x="145" y="588">1. Plan a story-sized OpenSpec change</text>
-  <text class="comment" x="145" y="620">The story plan turns one outcome inside the epic into a concrete OpenSpec change workspace.</text>
+  <text class="comment" x="145" y="620">The story plan turns one outcome inside the initiative into a concrete OpenSpec change workspace.</text>
   <rect class="bubble" x="145" y="655" width="575" height="68" />
   <text class="small" x="172" y="682">"For the first story, retry failed payment webhooks with</text>
   <text class="small" x="172" y="707">bounded backoff and audit visibility."</text>
@@ -213,7 +213,7 @@
   <!-- Row 1: Command surface -->
   <rect class="panel-green" x="105" y="2400" width="2190" height="195" />
   <text class="section-title" x="145" y="2448">Command surface</text>
-  <text class="comment" x="145" y="2480">Commands are operator-explicit. When arguments are missing, the operator chooses from eligible epics or OpenSpec changes.</text>
+  <text class="comment" x="145" y="2480">Commands are operator-explicit. When arguments are missing, the operator chooses from eligible initiatives or OpenSpec changes.</text>
   <rect class="command" x="145" y="2515" width="235" height="55" /><text class="command-text" x="173" y="2550">/openspec-epic-plan</text>
   <rect class="command" x="430" y="2515" width="250" height="55" /><text class="command-text" x="457" y="2550">/openspec-story-plan</text>
   <rect class="command" x="730" y="2515" width="340" height="55" /><text class="command-text" x="757" y="2550">/openspec-story-plan-converge</text>
@@ -224,10 +224,10 @@
   <path class="arrow-green" d="M380 2542 H430" /><path class="arrow-green" d="M680 2542 H730" /><path class="arrow-green" d="M1070 2542 H1120" />
   <path class="arrow-green" d="M1430 2542 H1480" /><path class="arrow-green" d="M1710 2542 H1760" /><path class="arrow-green" d="M1990 2542 H2040" />
 
-  <!-- Row 2: Epic context -->
+  <!-- Row 2: Initiative context -->
   <rect class="panel-purple" x="105" y="2640" width="2190" height="430" />
-  <text class="section-title" x="145" y="2688">Epic context — initiative.md</text>
-  <text class="comment" x="145" y="2718">A durable initiative groups related story-sized changes and holds epic-level metadata, decisions, and feedback routing.</text>
+  <text class="section-title" x="145" y="2688">Initiative context — initiative.md</text>
+  <text class="comment" x="145" y="2718">A durable initiative groups related story-sized changes and holds initiative-level metadata, decisions, and feedback routing.</text>
 
   <rect class="artifact" x="145" y="2765" width="500" height="130" />
   <text class="artifact-text" x="180" y="2812">openspec/initiatives/</text>
@@ -370,7 +370,7 @@
   <rect class="chip-orange" x="375" y="5010" width="210" height="26" /><text class="status" x="394" y="5028">amend-existing-story</text>
   <rect class="chip-orange" x="605" y="5010" width="210" height="26" /><text class="status" x="624" y="5028">queue-planning-feedback</text>
   <rect class="chip-green" x="835" y="5010" width="210" height="26" /><text class="status" x="854" y="5028">new-story-candidate</text>
-  <rect class="chip-green" x="1065" y="5010" width="210" height="26" /><text class="status" x="1084" y="5028">epic-level-decision</text>
+  <rect class="chip-green" x="1065" y="5010" width="250" height="26" /><text class="status" x="1084" y="5028">initiative-level-decision</text>
   <rect class="chip-red" x="1295" y="5010" width="170" height="26" /><text class="status" x="1315" y="5028">defer-or-reject</text>
 
   <!-- Legend -->

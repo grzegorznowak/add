@@ -16,6 +16,7 @@
 #   --yes                            skip the confirmation prompt
 #   --force                          overwrite non-symlink Claude targets and
 #                                    modified generated Codex/pi files
+#   --prune-unsupported              remove recognized archived legacy workflow skills
 #   --dry-run                        show what would happen, change nothing
 #   --help                           show this message
 
@@ -32,6 +33,7 @@ AGENTS=""           # claude | codex | pi | both | all
 PROJECT_PATH=""
 YES=0
 FORCE=0
+PRUNE_UNSUPPORTED=0
 DRY_RUN=0
 HAVE_FLAGS=0
 
@@ -64,6 +66,32 @@ agent_selected() {
   [[ "$AGENTS" == "$agent" ]] && return 0
   [[ "$AGENTS" == "both" && ( "$agent" == "claude" || "$agent" == "codex" ) ]] && return 0
   return 1
+}
+
+declare -a UNSUPPORTED_LEGACY_SKILLS=(
+  epic-feedback
+  epic-plan
+  epic-pr
+  epic-squash
+  epic-story-claim
+  epic-story-converge
+  epic-story-plan
+  epic-story-plan-converge
+  epic-story-plan-resume
+  epic-story-plan-review
+  epic-story-pr
+  epic-story-resume
+  epic-story-review
+)
+
+resolve_symlink_target() {
+  local link_path="$1" target link_dir
+  target="$(readlink "$link_path")" || return 1
+  if [[ "$target" != /* ]]; then
+    link_dir="$(cd "$(dirname "$link_path")" && pwd -P)" || return 1
+    target="$link_dir/$target"
+  fi
+  realpath -m "$target"
 }
 
 # $1 = source path, $2 = destination path, $3 = "dir" or "file"
@@ -115,13 +143,48 @@ install_claude_into() {
     fi
     link_one "${skill_dir%/}" "$dest_root/$name" "dir"
   done
+  if [[ $PRUNE_UNSUPPORTED -eq 1 ]]; then
+    prune_claude_unsupported_into "$dest_root"
+  fi
+}
+
+prune_claude_unsupported_into() {
+  local dest_root="$1" name dest resolved
+  log "Claude prune unsupported → $dest_root"
+  if [[ ! -d "$dest_root" ]]; then
+    log "  skip  $dest_root (not present)"
+    return 0
+  fi
+
+  for name in "${UNSUPPORTED_LEGACY_SKILLS[@]}"; do
+    dest="$dest_root/$name"
+    [[ -e "$dest" || -L "$dest" ]] || continue
+
+    if [[ ! -L "$dest" ]]; then
+      warn "skip  $dest (unsupported legacy name exists but is not a symlink)"
+      continue
+    fi
+
+    resolved="$(resolve_symlink_target "$dest" 2>/dev/null || true)"
+    if [[ "$resolved" == "$REPO_ROOT" || "$resolved" == "$REPO_ROOT/"* ]]; then
+      log "  prune $dest"
+      run rm "$dest"
+    else
+      warn "skip  $dest (symlink points outside this repo: ${resolved:-unresolved})"
+    fi
+  done
 }
 
 install_codex_skills_into() {
   local dest_root="$1"
+  local args=()
+  [[ $PRUNE_UNSUPPORTED -eq 1 ]] && args+=(--prune-unsupported)
+  [[ $DRY_RUN -eq 1 ]] && args+=(--dry-run)
+
   ensure_dir "$dest_root"
   log "Codex skills (generated) → $dest_root"
-  if ! run env "CODEX_SKILLS_DIR=$dest_root" "ADD_INSTALL_FORCE=$FORCE" "$REPO_ROOT/scripts/install-codex.sh"; then
+  log "  compiler $REPO_ROOT/scripts/install-codex.sh ${args[*]:-}"
+  if ! env "CODEX_SKILLS_DIR=$dest_root" "ADD_INSTALL_FORCE=$FORCE" "ADD_INSTALL_DRY_RUN=$DRY_RUN" "$REPO_ROOT/scripts/install-codex.sh" "${args[@]}"; then
     err "install-codex.sh failed"
     exit 1
   fi
@@ -129,9 +192,14 @@ install_codex_skills_into() {
 
 install_pi_skills_into() {
   local dest_root="$1"
+  local args=()
+  [[ $PRUNE_UNSUPPORTED -eq 1 ]] && args+=(--prune-unsupported)
+  [[ $DRY_RUN -eq 1 ]] && args+=(--dry-run)
+
   ensure_dir "$dest_root"
   log "pi skills (generated) → $dest_root"
-  if ! run env "PI_SKILLS_DIR=$dest_root" "ADD_INSTALL_FORCE=$FORCE" "$REPO_ROOT/scripts/install-pi.sh"; then
+  log "  compiler $REPO_ROOT/scripts/install-pi.sh ${args[*]:-}"
+  if ! env "PI_SKILLS_DIR=$dest_root" "ADD_INSTALL_FORCE=$FORCE" "ADD_INSTALL_DRY_RUN=$DRY_RUN" "$REPO_ROOT/scripts/install-pi.sh" "${args[@]}"; then
     err "install-pi.sh failed"
     exit 1
   fi
@@ -235,6 +303,11 @@ print_install_plan() {
   if [[ -n "$PROJECT_PATH" ]]; then
     log "  project path:  $PROJECT_PATH"
   fi
+  if [[ $PRUNE_UNSUPPORTED -eq 1 ]]; then
+    log "  prune:        recognized archived legacy workflow skills"
+  else
+    log "  prune:        no"
+  fi
   log
   log "Targets:"
   if agent_selected claude; then
@@ -276,6 +349,7 @@ parse_flags() {
         ;;
       --yes|-y) YES=1; shift ;;
       --force)  FORCE=1; shift ;;
+      --prune-unsupported) PRUNE_UNSUPPORTED=1; shift ;;
       --dry-run) DRY_RUN=1; shift ;;
       -h|--help)
         awk '

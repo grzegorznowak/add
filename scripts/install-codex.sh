@@ -10,20 +10,25 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_SKILLS="$REPO_ROOT/claude/skills"
 CODEX_DEST="${CODEX_SKILLS_DIR:-$HOME/.codex/skills}"
 FORCE="${ADD_INSTALL_FORCE:-0}"
+DRY_RUN="${ADD_INSTALL_DRY_RUN:-0}"
+PRUNE_UNSUPPORTED=0
 
 usage() {
   cat <<'EOF'
-Usage: install-codex.sh [--force]
+Usage: install-codex.sh [--force] [--prune-unsupported] [--dry-run]
 
 Compile Codex skills from claude/skills into CODEX_SKILLS_DIR (default: ~/.codex/skills).
 Existing generated files are overwritten only when their content is unchanged;
 use --force to replace local edits or other conflicting files.
+Use --prune-unsupported to remove recognized archived legacy workflow skills.
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --force) FORCE=1; shift ;;
+    --prune-unsupported) PRUNE_UNSUPPORTED=1; shift ;;
+    --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) printf 'error: unknown argument: %s\n' "$1" >&2; exit 2 ;;
   esac
@@ -34,21 +39,41 @@ ensure_dir_path() {
   if [[ -L "$path" ]]; then
     if [[ "$FORCE" == "1" ]]; then
       printf 'warn: replacing symlink %s\n' "$path" >&2
-      rm -f "$path"
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would: rm -f %s\n' "$path"
+      else
+        rm -f "$path"
+      fi
     else
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would refuse: existing symlink %s (use --force)\n' "$path"
+        return 0
+      fi
       printf 'error: refusing to replace existing symlink %s (use --force)\n' "$path" >&2
       return 1
     fi
   elif [[ -e "$path" && ! -d "$path" ]]; then
     if [[ "$FORCE" == "1" ]]; then
       printf 'warn: replacing conflicting path %s\n' "$path" >&2
-      rm -rf "$path"
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would: rm -rf %s\n' "$path"
+      else
+        rm -rf "$path"
+      fi
     else
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would refuse: existing non-directory %s (use --force)\n' "$path"
+        return 0
+      fi
       printf 'error: refusing to replace existing non-directory %s (use --force)\n' "$path" >&2
       return 1
     fi
   fi
-  mkdir -p "$path"
+  if [[ "$DRY_RUN" == "1" ]]; then
+    [[ -d "$path" ]] || printf '  would: mkdir -p %s\n' "$path"
+  else
+    mkdir -p "$path"
+  fi
 }
 
 write_content_if_safe() {
@@ -60,9 +85,17 @@ write_content_if_safe() {
   if [[ -e "$dest" && ! -f "$dest" ]]; then
     if [[ "$FORCE" == "1" ]]; then
       printf 'warn: replacing conflicting path %s\n' "$dest" >&2
-      rm -rf "$dest"
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would: rm -rf %s\n' "$dest"
+      else
+        rm -rf "$dest"
+      fi
     else
       rm -f "$tmp"
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would refuse: existing non-file %s (use --force)\n' "$dest"
+        return 0
+      fi
       printf 'error: refusing to replace existing non-file %s (use --force)\n' "$dest" >&2
       return 1
     fi
@@ -73,12 +106,21 @@ write_content_if_safe() {
       printf 'warn: overwriting modified generated file %s\n' "$dest" >&2
     else
       rm -f "$tmp"
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would refuse: modified file %s (use --force)\n' "$dest"
+        return 0
+      fi
       printf 'error: refusing to overwrite existing modified file %s (use --force)\n' "$dest" >&2
       return 1
     fi
   fi
 
-  mv "$tmp" "$dest"
+  if [[ "$DRY_RUN" == "1" ]]; then
+    printf '  would: write %s\n' "$dest"
+    rm -f "$tmp"
+  else
+    mv "$tmp" "$dest"
+  fi
 }
 
 # Transform Claude-specific positional $ARGUMENTS → Codex named-variable
@@ -103,58 +145,6 @@ codex_args() {
   local arg_line body_repl
 
   case "$skill" in
-    epic-story-claim)
-      arg_line='s/^Argument:.*/Argument: EPIC=<name> [STORY=<step>] [WORKTREE="<basename>=<path>"].../'
-      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
-      ;;
-    epic-story-resume)
-      arg_line='s/^Argument:.*/Argument: EPIC=<name> [STORY=<step>] [WORKTREE="<basename>=<path>"].../'
-      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
-      ;;
-    epic-story-review)
-      arg_line='s/^Argument:.*/Argument: EPIC=<name> STORY=<step> [WORKTREE="<basename>=<path>"].../'
-      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
-      ;;
-    epic-story-converge)
-      arg_line='s/^Argument:.*/Argument: EPIC=<name> STORY=<step> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"].../'
-      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
-      ;;
-    epic-story-plan-converge)
-      arg_line='s/^Argument:.*/Argument: EPIC=<name> STORY=<step> [MAX_CYCLES=5]/'
-      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
-      ;;
-    epic-story-plan-review)
-      arg_line='s/^Argument:.*/Argument: EPIC=<name> STORY=<step>/'
-      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
-      ;;
-    epic-story-plan-resume)
-      arg_line='s/^Argument:.*/Argument: EPIC=<name> STORY=<step>/'
-      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
-      ;;
-    epic-story-plan)
-      arg_line='s/^Argument:.*/Argument: [EPIC=<name>]/'
-      body_repl='s/\$ARGUMENTS/EPIC/g'
-      ;;
-    epic-plan)
-      arg_line='s/^Argument:.*/Argument: [NAME=<slug>]/'
-      body_repl='s/\$ARGUMENTS/the named variables/g'
-      ;;
-    epic-squash)
-      arg_line='s/^Argument:.*/Argument: EPIC=<epic-path>/'
-      body_repl='s/\$ARGUMENTS/EPIC/g'
-      ;;
-    epic-pr)
-      arg_line='s/^Argument:.*/Argument: EPIC=<name-or-path> [<pr_url_or_OPEN=true>]/'
-      body_repl='s/\$ARGUMENTS/EPIC/g'
-      ;;
-    epic-story-pr)
-      arg_line='s/^Argument:.*/Argument: EPIC=<name> STORY=<step> [<pr_url_or_OPEN=true>]/'
-      body_repl='s/\$ARGUMENTS/EPIC and STORY/g'
-      ;;
-    epic-feedback)
-      arg_line='s/^Argument:.*/Argument: EPIC=<name-or-path> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]/'
-      body_repl='s/\$ARGUMENTS/EPIC/g'
-      ;;
     openspec-archive)
       arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug>/'
       body_repl='s/\$ARGUMENTS/the INITIATIVE and STORY named variables/g'
@@ -223,6 +213,72 @@ codex_args() {
   fi | sed -E "$body_repl" | sed 's/\$RUNTIME_NAME/Codex/g'
 }
 
+declare -a UNSUPPORTED_CODEX_SKILLS=(
+  epic_feedback
+  epic_plan
+  epic_pr
+  epic_squash
+  epic_story_claim
+  epic_story_converge
+  epic_story_plan
+  epic_story_plan_converge
+  epic_story_plan_resume
+  epic_story_plan_review
+  epic_story_pr
+  epic_story_resume
+  epic_story_review
+)
+
+frontmatter_name() {
+  local file="$1"
+  awk '
+    NR == 1 && /^---[[:space:]]*$/ { fm = 1; next }
+    NR == 1 { exit }
+    fm && /^---[[:space:]]*$/ { exit }
+    fm && /^name:[[:space:]]*/ {
+      sub(/^name:[[:space:]]*/, "")
+      gsub(/^["'"'"']|["'"'"']$/, "")
+      print
+      exit
+    }
+  ' "$file"
+}
+
+prune_unsupported_codex() {
+  [[ "$PRUNE_UNSUPPORTED" == "1" ]] || return 0
+
+  local name dir skill_md actual
+  printf 'Codex prune unsupported → %s\n' "$CODEX_DEST"
+  for name in "${UNSUPPORTED_CODEX_SKILLS[@]}"; do
+    dir="$CODEX_DEST/$name"
+    [[ -e "$dir" || -L "$dir" ]] || continue
+
+    if [[ -L "$dir" || ! -d "$dir" ]]; then
+      printf 'warn: skip  %s (unsupported legacy name exists but is not a directory)\n' "$dir" >&2
+      continue
+    fi
+
+    skill_md="$dir/SKILL.md"
+    if [[ ! -f "$skill_md" ]]; then
+      printf 'warn: skip  %s (missing SKILL.md)\n' "$dir" >&2
+      continue
+    fi
+
+    actual="$(frontmatter_name "$skill_md")"
+    if [[ "$actual" != "$name" ]]; then
+      printf 'warn: skip  %s (frontmatter name is %s, expected %s)\n' "$dir" "${actual:-<missing>}" "$name" >&2
+      continue
+    fi
+
+    printf '  prune %s\n' "$dir"
+    if [[ "$DRY_RUN" == "1" ]]; then
+      printf '  would: rm -rf %s\n' "$dir"
+    else
+      rm -rf "$dir"
+    fi
+  done
+}
+
 ensure_dir_path "$CODEX_DEST"
 
 for skill_dir in "$CLAUDE_SKILLS"/*/; do
@@ -250,5 +306,7 @@ for skill_dir in "$CLAUDE_SKILLS"/*/; do
   write_content_if_safe "$out_dir/agents/openai.yaml" $'policy:\n  allow_implicit_invocation: false'
   echo "  $skill_name -> $codex_name -> $out_dir/SKILL.md"
 done
+
+prune_unsupported_codex
 
 echo "Codex skills installed to $CODEX_DEST"

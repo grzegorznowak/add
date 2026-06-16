@@ -476,7 +476,7 @@ Approval is not allowed if the proof contract is still unresolved. A story is on
 - If the same underlying issue qualifies for both `Product Assessment` and `Technical Assessment`, report the canonical finding only once. Prefer `Product Assessment` when the issue affects requested behavior, acceptance, user-visible correctness, operator value, or the approval verdict. Use `Technical Assessment` for distinct implementation concerns that are not already captured by the product finding.
 - `In Scope Issues` are issues the resolved story directly owns or must satisfy to pass.
 - `Out of Scope Issues` are adjacent problems, follow-on work, or broader initiative concerns worth flagging but not required for this story to pass.
-- `Initiative Contract Drift` (was `Epic Contract Drift` in the legacy epic flow) is only for mismatches between this story and initiative-level commitments in `initiative.md`, dependencies, or relevant sibling stories. Do not use it for generic cleanup or unrelated debt.
+- `Initiative Contract Drift` is only for mismatches between this story and initiative-level commitments in `initiative.md`, dependencies, or relevant sibling stories. Do not use it for generic cleanup or unrelated debt.
 - Contract-changing feedback discovered during implementation review must be routed explicitly. If the implementation seems reasonable but the story/initiative context is stale, request contract repair through `/openspec-story-plan-converge`, `/openspec-feedback`, or `/openspec-epic-plan` rather than approving a hidden contract change. If the story contract is current and code is wrong, route to `/openspec-story-resume`.
 - Order findings in every issue list by severity, include file references, and use `- None.` when a list is empty.
 

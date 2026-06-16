@@ -6,33 +6,29 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
-- `epic-feedback` absorbs CURe, PR, or reviewer feedback into an epic-scoped
-  routing log, story contract edits, implementation review findings, story
-  candidates, or epic-level notes.
-- `epic-pr` opens or refreshes an epic-level GitHub PR from `CONTRACT.md`
-  plus current non-archived DONE stories, with a lightweight epic check-in
-  before publishing.
+- OpenSpec workflow skills are now the active workflow surface:
+  `openspec-epic-plan`, `openspec-story-plan`, plan review/resume/converge,
+  implementation claim/resume/review/converge, `openspec-story-pr`,
+  `openspec-feedback`, and `openspec-archive`.
+- `merge-conflict-analysis` joins `grillme` and `memorize` as a supported
+  non-workflow utility skill.
+- Runtime installers support explicit `--prune-unsupported` cleanup for
+  recognized archived legacy workflow skills.
+- Active OpenSpec lifecycle and artifact convention docs now replace the moved
+  legacy lifecycle/conventions docs.
 
 ### Changed
-- `epic-story-plan` is now the direct story publication command. After the
-  interview and checkpoint, it writes `story-NN-<slug>.md` and appends the
-  `⚪ TODO` row to `MASTER.md`.
-- Story planning now includes lightweight `Actors` and `Scenarios / Behavior
-  Examples` sections for new drafts. Scenarios funnel into Acceptance and
-  Verification instead of acting as a parallel requirements list; legacy stories
-  without those sections remain reviewable.
-- `epic-story-pr` PR bodies now include detected original ticket/card links
-  near the top when those links are available.
-- Story planning now uses lean section ownership: acceptance owns behavior,
-  verification owns proof, implementation notes are an execution brief, and
-  discovery notes are source-derived facts rather than a catch-all transcript.
-- `epic-story-plan-review` expects stories scaffolded directly by
-  `epic-story-plan`.
+- Active installs now include only OpenSpec workflow skills plus approved
+  utility skills. Codex and pi generators compile from that active source set.
+- Documentation and plugin metadata now describe the OpenSpec workflow as the
+  first-class lifecycle instead of the old command set.
+- OpenSpec feedback disposition wording now uses `initiative-level-decision` for
+  initiative-wide policy or architecture decisions.
 - Plugin metadata bumped to `0.2.0`.
 
 ### Removed
-- The standalone story publication command was removed. Story creation now
-  happens in `epic-story-plan`.
+- Legacy `epic-*` workflow skills are no longer installed by default and were
+  moved to `archive/skills/legacy-epic/` for provenance.
 
 ## [0.1.0] - 2026-04-22
 

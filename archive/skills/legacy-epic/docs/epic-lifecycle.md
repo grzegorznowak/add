@@ -1,5 +1,7 @@
 # Epic / Story Lifecycle
 
+> Archived legacy documentation. The active workflow now uses OpenSpec skills under `claude/skills/`; this file is retained only with the archived `epic-*` workflow for provenance.
+
 The `add` commands all share one status state machine. This document is the
 single source of truth for what each status means and which commands
 transition between them. When the rules in a command's body and the rules

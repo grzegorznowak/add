@@ -6,7 +6,7 @@ argument-hint: '[SLUG="<slug>"]'
 allowed-tools: Read Grep Glob Write Bash(git status:*) Bash(git log:*)
 ---
 
-# OpenSpec Epic Plan
+# OpenSpec Initiative Bootstrap
 
 Bootstrap a new OpenSpec-backed initiative by interviewing the operator through purpose, scope, constraints, and rough story roadmap — then write `openspec/initiatives/<slug>/initiative.md`. No change workspaces are created here; `/openspec-epic-plan` only produces the initiative file that subsequent `/openspec-story-plan` invocations read.
 
@@ -18,7 +18,7 @@ This command writes exactly one file: `<workspace_root>/openspec/initiatives/<sl
 - source code (product files, tests, configs)
 - existing initiative directories or their contents
 - change workspaces under `openspec/changes/`
-- the old `agent_coordination/` flow (this is a separate command family)
+- non-OpenSpec coordination artifacts outside `openspec/`
 
 If the resolved initiative directory already exists (with or without an `initiative.md`), the command aborts without writing.
 

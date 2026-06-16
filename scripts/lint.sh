@@ -55,6 +55,52 @@ in_array() {
   return 1
 }
 
+declare -a UNSUPPORTED_LEGACY_SKILLS=(
+  epic-feedback
+  epic-plan
+  epic-pr
+  epic-squash
+  epic-story-claim
+  epic-story-converge
+  epic-story-plan
+  epic-story-plan-converge
+  epic-story-plan-resume
+  epic-story-plan-review
+  epic-story-pr
+  epic-story-resume
+  epic-story-review
+)
+
+declare -a UNSUPPORTED_CODEX_SKILLS=(
+  epic_feedback
+  epic_plan
+  epic_pr
+  epic_squash
+  epic_story_claim
+  epic_story_converge
+  epic_story_plan
+  epic_story_plan_converge
+  epic_story_plan_resume
+  epic_story_plan_review
+  epic_story_pr
+  epic_story_resume
+  epic_story_review
+)
+
+is_supported_active_skill() {
+  local name="$1"
+  [[ "$name" == openspec-* ]] && return 0
+  case "$name" in
+    grillme|memorize|merge-conflict-analysis) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
+is_supported_pi_fragment() {
+  local name="$1"
+  [[ "$name" == openspec-* || "$name" == memorize ]]
+}
+
 # Extract a field value from the first YAML frontmatter block.
 frontmatter_value() {
   local file="$1" field="$2"
@@ -132,6 +178,12 @@ else
     dir_name="$(basename "$skill_dir")"
     skill_md="$skill_dir/SKILL.md"
 
+    if in_array "$dir_name" "${UNSUPPORTED_LEGACY_SKILLS[@]}"; then
+      fail "$skill_dir: archived legacy workflow skill remains in active claude/skills/"
+    elif ! is_supported_active_skill "$dir_name"; then
+      fail "$skill_dir: active skill is neither openspec-* nor an approved utility"
+    fi
+
     if [[ ! -f "$skill_md" ]]; then
       fail "$skill_dir: missing SKILL.md"
       continue
@@ -163,6 +215,12 @@ else
     [[ -f "$fragment" ]] || continue
     frag_name="$(basename "$fragment" .md)"
     first_line="$(head -1 "$fragment")"
+
+    if in_array "$frag_name" "${UNSUPPORTED_LEGACY_SKILLS[@]}"; then
+      fail "$fragment: archived legacy workflow fragment remains in active pi-fragments/"
+    elif ! is_supported_pi_fragment "$frag_name"; then
+      fail "$fragment: active pi fragment is neither openspec-* nor an approved utility fragment"
+    fi
 
     if [[ "$first_line" == "---" ]]; then
       # Replace fragment: must have valid frontmatter and name field
@@ -212,6 +270,12 @@ for skill_dir in "$CODEX_SKILLS"/*/; do
   skill_md="$skill_dir/SKILL.md"
   openai_yaml="$skill_dir/agents/openai.yaml"
 
+  if in_array "$dir_name" "${UNSUPPORTED_CODEX_SKILLS[@]}"; then
+    fail "$skill_dir: archived legacy workflow skill was generated for Codex"
+  elif ! is_supported_active_skill "$(underscore_to_hyphen "$dir_name")"; then
+    fail "$skill_dir: generated Codex skill is neither openspec_* nor an approved utility"
+  fi
+
   if [[ ! -f "$skill_md" ]]; then
     fail "$skill_dir: missing SKILL.md"
     continue
@@ -248,6 +312,12 @@ for skill_dir in "$PI_SKILLS"/*/; do
   [[ -d "$skill_dir" ]] || continue
   dir_name="$(basename "$skill_dir")"
   skill_md="$skill_dir/SKILL.md"
+
+  if in_array "$dir_name" "${UNSUPPORTED_LEGACY_SKILLS[@]}"; then
+    fail "$skill_dir: archived legacy workflow skill was generated for pi"
+  elif ! is_supported_active_skill "$dir_name"; then
+    fail "$skill_dir: generated pi skill is neither openspec-* nor an approved utility"
+  fi
 
   if [[ ! -f "$skill_md" ]]; then
     fail "$skill_dir: missing SKILL.md"
@@ -384,21 +454,160 @@ fi
 echo
 echo "lint: generated installer overwrite safety"
 codex_conflict="$TMPDIR/codex-conflict"
-mkdir -p "$codex_conflict/epic_story_claim/agents"
-printf 'local codex edit\n' > "$codex_conflict/epic_story_claim/SKILL.md"
-printf 'policy:\n  allow_implicit_invocation: false\n' > "$codex_conflict/epic_story_claim/agents/openai.yaml"
+mkdir -p "$codex_conflict/openspec_story_claim/agents"
+printf 'local codex edit\n' > "$codex_conflict/openspec_story_claim/SKILL.md"
+printf 'policy:\n  allow_implicit_invocation: false\n' > "$codex_conflict/openspec_story_claim/agents/openai.yaml"
 if CODEX_SKILLS_DIR="$codex_conflict" "$REPO_ROOT/scripts/install-codex.sh" >/dev/null 2>&1; then
   fail "install-codex.sh overwrote modified existing SKILL.md without --force"
 else
   ok "install-codex.sh protects modified existing SKILL.md"
 fi
 pi_conflict="$TMPDIR/pi-conflict"
-mkdir -p "$pi_conflict/epic-story-claim"
-printf 'local pi edit\n' > "$pi_conflict/epic-story-claim/SKILL.md"
+mkdir -p "$pi_conflict/openspec-story-claim"
+printf 'local pi edit\n' > "$pi_conflict/openspec-story-claim/SKILL.md"
 if PI_SKILLS_DIR="$pi_conflict" "$REPO_ROOT/scripts/install-pi.sh" >/dev/null 2>&1; then
   fail "install-pi.sh overwrote modified existing SKILL.md without --force"
 else
   ok "install-pi.sh protects modified existing SKILL.md"
+fi
+
+echo
+echo "lint: explicit unsupported prune"
+codex_no_prune="$TMPDIR/codex-no-prune"
+mkdir -p "$codex_no_prune/epic_story_claim/agents"
+printf '%s\n' '---' 'name: epic_story_claim' 'description: legacy' '---' > "$codex_no_prune/epic_story_claim/SKILL.md"
+printf 'policy:\n  allow_implicit_invocation: false\n' > "$codex_no_prune/epic_story_claim/agents/openai.yaml"
+if CODEX_SKILLS_DIR="$codex_no_prune" "$REPO_ROOT/scripts/install-codex.sh" >/dev/null 2>&1 && [[ -d "$codex_no_prune/epic_story_claim" ]]; then
+  ok "install-codex.sh leaves unsupported legacy dirs without --prune-unsupported"
+else
+  fail "install-codex.sh pruned or failed on unsupported legacy dir without --prune-unsupported"
+fi
+
+codex_prune="$TMPDIR/codex-prune"
+mkdir -p "$codex_prune/epic_story_claim/agents" "$codex_prune/epic_story_resume/agents"
+printf '%s\n' '---' 'name: epic_story_claim' 'description: legacy' '---' > "$codex_prune/epic_story_claim/SKILL.md"
+printf '%s\n' '---' 'name: not_epic_story_resume' 'description: local' '---' > "$codex_prune/epic_story_resume/SKILL.md"
+printf 'policy:\n  allow_implicit_invocation: false\n' > "$codex_prune/epic_story_claim/agents/openai.yaml"
+if CODEX_SKILLS_DIR="$codex_prune" "$REPO_ROOT/scripts/install-codex.sh" --prune-unsupported >/dev/null 2>&1; then
+  if [[ ! -e "$codex_prune/epic_story_claim" && -d "$codex_prune/epic_story_resume" ]]; then
+    ok "install-codex.sh --prune-unsupported removes only verified legacy dirs"
+  else
+    fail "install-codex.sh --prune-unsupported did not prune/skip expected Codex dirs"
+  fi
+else
+  fail "install-codex.sh --prune-unsupported failed"
+fi
+
+pi_no_prune="$TMPDIR/pi-no-prune"
+mkdir -p "$pi_no_prune/epic-story-claim"
+printf '%s\n' '---' 'name: epic-story-claim' 'description: legacy' '---' > "$pi_no_prune/epic-story-claim/SKILL.md"
+if PI_SKILLS_DIR="$pi_no_prune" "$REPO_ROOT/scripts/install-pi.sh" >/dev/null 2>&1 && [[ -d "$pi_no_prune/epic-story-claim" ]]; then
+  ok "install-pi.sh leaves unsupported legacy dirs without --prune-unsupported"
+else
+  fail "install-pi.sh pruned or failed on unsupported legacy dir without --prune-unsupported"
+fi
+
+pi_prune="$TMPDIR/pi-prune"
+mkdir -p "$pi_prune/epic-story-claim" "$pi_prune/epic-story-resume"
+printf '%s\n' '---' 'name: epic-story-claim' 'description: legacy' '---' > "$pi_prune/epic-story-claim/SKILL.md"
+printf '%s\n' '---' 'name: not-epic-story-resume' 'description: local' '---' > "$pi_prune/epic-story-resume/SKILL.md"
+if PI_SKILLS_DIR="$pi_prune" "$REPO_ROOT/scripts/install-pi.sh" --prune-unsupported >/dev/null 2>&1; then
+  if [[ ! -e "$pi_prune/epic-story-claim" && -d "$pi_prune/epic-story-resume" ]]; then
+    ok "install-pi.sh --prune-unsupported removes only verified legacy dirs"
+  else
+    fail "install-pi.sh --prune-unsupported did not prune/skip expected pi dirs"
+  fi
+else
+  fail "install-pi.sh --prune-unsupported failed"
+fi
+
+codex_dry_prune="$TMPDIR/codex-dry-prune"
+mkdir -p "$codex_dry_prune/epic_story_claim/agents"
+printf '%s\n' '---' 'name: epic_story_claim' 'description: legacy' '---' > "$codex_dry_prune/epic_story_claim/SKILL.md"
+codex_dry_prune_output=""
+if codex_dry_prune_output="$(CODEX_SKILLS_DIR="$codex_dry_prune" "$REPO_ROOT/scripts/install-codex.sh" --dry-run --prune-unsupported 2>&1)" && [[ -d "$codex_dry_prune/epic_story_claim" ]] && grep -Fq "would: rm -rf $codex_dry_prune/epic_story_claim" <<<"$codex_dry_prune_output"; then
+  ok "install-codex.sh --dry-run --prune-unsupported reports prune without mutating"
+else
+  fail "install-codex.sh --dry-run --prune-unsupported did not report prune safely"
+fi
+
+pi_dry_prune="$TMPDIR/pi-dry-prune"
+mkdir -p "$pi_dry_prune/epic-story-claim"
+printf '%s\n' '---' 'name: epic-story-claim' 'description: legacy' '---' > "$pi_dry_prune/epic-story-claim/SKILL.md"
+pi_dry_prune_output=""
+if pi_dry_prune_output="$(PI_SKILLS_DIR="$pi_dry_prune" "$REPO_ROOT/scripts/install-pi.sh" --dry-run --prune-unsupported 2>&1)" && [[ -d "$pi_dry_prune/epic-story-claim" ]] && grep -Fq "would: rm -rf $pi_dry_prune/epic-story-claim" <<<"$pi_dry_prune_output"; then
+  ok "install-pi.sh --dry-run --prune-unsupported reports prune without mutating"
+else
+  fail "install-pi.sh --dry-run --prune-unsupported did not report prune safely"
+fi
+
+prune_home="$TMPDIR/prune-home"
+mkdir -p "$prune_home/.claude/skills"
+ln -s "$REPO_ROOT/archive/skills/legacy-epic/claude/skills/epic-story-claim" "$prune_home/.claude/skills/epic-story-claim"
+if HOME="$prune_home" "$REPO_ROOT/scripts/install.sh" --agents claude --yes --prune-unsupported >/dev/null 2>&1; then
+  if [[ ! -e "$prune_home/.claude/skills/epic-story-claim" && ! -L "$prune_home/.claude/skills/epic-story-claim" ]]; then
+    ok "install.sh --prune-unsupported prunes Claude legacy symlinks"
+  else
+    fail "install.sh --prune-unsupported did not prune Claude legacy symlink"
+  fi
+else
+  fail "install.sh --agents claude --prune-unsupported failed"
+fi
+
+outside_prune_home="$TMPDIR/outside-prune-home"
+outside_target="$TMPDIR/outside-legacy-target"
+mkdir -p "$outside_prune_home/.claude/skills" "$outside_target"
+ln -s "$outside_target" "$outside_prune_home/.claude/skills/epic-story-claim"
+if HOME="$outside_prune_home" "$REPO_ROOT/scripts/install.sh" --agents claude --yes --prune-unsupported >/dev/null 2>&1; then
+  if [[ -L "$outside_prune_home/.claude/skills/epic-story-claim" ]]; then
+    ok "install.sh --prune-unsupported skips Claude legacy symlinks outside this repo"
+  else
+    fail "install.sh --prune-unsupported removed a Claude legacy symlink outside this repo"
+  fi
+else
+  fail "install.sh --agents claude --prune-unsupported failed with outside symlink"
+fi
+
+dry_prune_home="$TMPDIR/dry-prune-home"
+mkdir -p "$dry_prune_home/.claude/skills"
+ln -s "$REPO_ROOT/archive/skills/legacy-epic/claude/skills/epic-story-claim" "$dry_prune_home/.claude/skills/epic-story-claim"
+dry_prune_output=""
+if dry_prune_output="$(HOME="$dry_prune_home" "$REPO_ROOT/scripts/install.sh" --agents claude --yes --dry-run --prune-unsupported 2>&1)" && [[ -L "$dry_prune_home/.claude/skills/epic-story-claim" ]] && grep -Fq "prune $dry_prune_home/.claude/skills/epic-story-claim" <<<"$dry_prune_output"; then
+  ok "install.sh --dry-run --prune-unsupported reports Claude prune without mutating"
+else
+  fail "install.sh --dry-run --prune-unsupported did not report prune safely"
+fi
+
+forward_home="$TMPDIR/forward-prune-home"
+mkdir -p "$forward_home/.codex/skills/epic_story_claim" "$forward_home/.pi/agent/skills/epic-story-claim"
+printf '%s\n' '---' 'name: epic_story_claim' 'description: legacy' '---' > "$forward_home/.codex/skills/epic_story_claim/SKILL.md"
+printf '%s\n' '---' 'name: epic-story-claim' 'description: legacy' '---' > "$forward_home/.pi/agent/skills/epic-story-claim/SKILL.md"
+if HOME="$forward_home" "$REPO_ROOT/scripts/install.sh" --agents codex --yes --prune-unsupported >/dev/null 2>&1 && HOME="$forward_home" "$REPO_ROOT/scripts/install.sh" --agents pi --yes --prune-unsupported >/dev/null 2>&1; then
+  if [[ ! -e "$forward_home/.codex/skills/epic_story_claim" && ! -e "$forward_home/.pi/agent/skills/epic-story-claim" ]]; then
+    ok "install.sh forwards --prune-unsupported to generated installers"
+  else
+    fail "install.sh did not forward --prune-unsupported to generated installers"
+  fi
+else
+  fail "install.sh generated-installer prune forwarding failed"
+fi
+
+if "$REPO_ROOT/scripts/install.sh" --prune-unsuported --dry-run >/dev/null 2>&1; then
+  fail "install.sh accepted misspelled --prune-unsuported"
+else
+  ok "install.sh rejects misspelled --prune-unsuported"
+fi
+
+if "$REPO_ROOT/scripts/install-codex.sh" --prune-unsuported >/dev/null 2>&1; then
+  fail "install-codex.sh accepted misspelled --prune-unsuported"
+else
+  ok "install-codex.sh rejects misspelled --prune-unsuported"
+fi
+
+if "$REPO_ROOT/scripts/install-pi.sh" --prune-unsuported >/dev/null 2>&1; then
+  fail "install-pi.sh accepted misspelled --prune-unsuported"
+else
+  ok "install-pi.sh rejects misspelled --prune-unsuported"
 fi
 
 echo
