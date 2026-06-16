@@ -659,6 +659,7 @@ expect_codex_argument_line() {
 
 expect_codex_argument_line openspec_archive 'Argument: INITIATIVE=<slug> STORY=<slug>'
 expect_codex_argument_line openspec_initiative_plan 'Argument: [SLUG=<slug>]'
+expect_codex_argument_line openspec_next_action 'Argument: [INITIATIVE=<slug>] [STORY=<slug>] [SPEC=<spec-or-path>] [--all]'
 expect_codex_argument_line openspec_feedback 'Argument: INITIATIVE=<slug> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]'
 expect_codex_argument_line openspec_story_claim 'Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"]...'
 expect_codex_argument_line openspec_story_resume 'Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"]...'
@@ -670,6 +671,7 @@ expect_codex_argument_line openspec_story_plan_review 'Argument: INITIATIVE=<slu
 expect_codex_argument_line openspec_story_plan_converge 'Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5]'
 expect_codex_argument_line openspec_story_pr 'Argument: INITIATIVE=<slug> STORY=<slug> [<pr_url_or_OPEN=true>]'
 
+expect_codex_contains openspec_next_action "the INITIATIVE, STORY, SPEC, and --all selectors"
 expect_codex_contains openspec_feedback "the INITIATIVE, feedback flags, and feedback payload named variables"
 expect_codex_contains openspec_story_claim "the INITIATIVE, STORY, and WORKTREE named variables"
 expect_codex_contains openspec_story_review "the INITIATIVE, STORY, and WORKTREE named variables"
