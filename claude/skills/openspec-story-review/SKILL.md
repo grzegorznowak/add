@@ -385,12 +385,10 @@ Before transitioning to `✅ DONE`, check `progress.md`'s `## Current Claim` -> 
 You may update only the `Status:` header field in `story.md` and append to `reviews.md` as part of the review. Use this policy:
 
 - if review starts on a story with `Status: 🔄 IN PROGRESS` but implementation is clearly ready for review, move it to `Status: 🟣 IN REVIEW`
-- if review passes with no blocking findings AND the story does not use the optional GitHub PR stage, mark it `Status: ✅ DONE`
-- if review passes with no blocking findings AND the story is expected to go through a GitHub PR review, leave it at `Status: 🟣 IN REVIEW` and tell the user to run `/openspec-story-pr <initiative-slug> <story-slug>` to transition to `Status: 🔵 IN PR`
-- if a story was already marked `Status: ✅ DONE` as local-only completion and later needs a GitHub PR, `/openspec-story-pr <initiative-slug> <story-slug>` owns that late injection; review does not reopen it
+- if review passes with no blocking findings, mark it `Status: ✅ DONE`
 - if review finds issues that require more implementation work, move it to `Status: 🔄 IN PROGRESS`
 - if review cannot complete because of an external blocker, mark it `Status: ⛔ BLOCKED`
-- if the story is currently `Status: 🔵 IN PR`, treat this as a pre-merge sanity review only; **do not transition the status from `Status: 🔵 IN PR` yourself**. Any merge-state change belongs to `/openspec-story-pr`. Record findings in `reviews.md` as normal.
+- if the story is already `Status: ✅ DONE`, do not reopen it from this command solely because PR delivery is pending; use `/openspec-story-pr <initiative-slug> <story-slug>` for PR metadata/evidence and `/openspec-feedback` for actionable PR feedback.
 
 ## Review log write-back
 

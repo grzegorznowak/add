@@ -6,6 +6,12 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
+- `docs/openspec-lifecycle.md` now includes an ASCII OpenSpec state-machine
+  diagram covering initiative, planning, local implementation review, PR delivery
+  evidence, feedback, archive, and spec-sync states.
+- README and lifecycle docs now reference `pi-agenticoding` as the Pi
+  context-management building block (`spawn`, `notebook`, `handoff`) for ADD's
+  session-bounded OpenSpec workflows.
 - `openspec-next-action` recommends the next OpenSpec workflow command by
   inspecting current or selected initiative/change/spec artifacts without
   performing lifecycle transitions.
@@ -22,6 +28,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   legacy lifecycle/conventions docs.
 
 ### Changed
+- Clarified OpenSpec command authority: implementation claim readiness includes
+  completed expected prerequisites, `/openspec-story-review` owns local approval
+  to `✅ DONE`, `/openspec-story-pr` records optional PR delivery evidence without
+  mutating story status, and loopers may perform only documented
+  safety-normalization writes.
+- Removed the PR lifecycle status from the active OpenSpec story state machine;
+  PR feedback is absorbed through `/openspec-feedback`, which may explicitly
+  reopen story work for resume, while archive still requires merged PR evidence
+  or explicit no-PR confirmation.
 - Active installs now include only OpenSpec workflow skills plus approved
   utility skills. Codex and pi generators compile from that active source set.
 - Documentation and plugin metadata now describe the OpenSpec workflow as the

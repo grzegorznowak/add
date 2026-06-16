@@ -36,7 +36,7 @@ There is no `MASTER.md` and no tracker table. All status is self-contained in th
 3. If an unstarted story is plan-approved, delegate claiming to `/openspec-story-claim <initiative> <story-slug>`.
 4. Run up to `MAX_CYCLES` fresh-agent implementation cycles.
 5. Pass compact notebook references for sourced research, plus neutral operational notes, into later fresh agents.
-6. Stop on local approval, blocker, no-progress, invalid state, or cycle budget exhaustion.
+6. Stop on local completion, blocker, no-progress, invalid state, or cycle budget exhaustion.
 7. Print the convergence trace, notebook context summary, commit recommendation, and optional operator follow-ups without writing coordination files directly.
 
 ## Phase 1 — Parse and Resolve
@@ -66,16 +66,14 @@ Allowed starting states:
 - `Status:` is absent, unset, `⬜ TODO`, or `⚪ TODO` only when the story is plan-approved and the `## Current Claim` section in `<progress_file>` does not exist or is empty.
 - `Status: 🔄 IN PROGRESS` only when `Plan:` is `🟢 PLAN APPROVED`.
 - `Status: 🟣 IN REVIEW` only when `Plan:` is `🟢 PLAN APPROVED`.
-- `Status: 🔵 IN PR` only when `<progress_file> → ## PR State` shows PR review is requesting changes and `Plan:` is `🟢 PLAN APPROVED`.
 - `Status: ⛔ BLOCKED` only when `Plan:` is `🟢 PLAN APPROVED` and `<blocked_file>` is absent; this means the explicit gate file was removed and `/openspec-story-resume` must normalize the stale status back to `🔄 IN PROGRESS` before work continues.
-- `Status: ✅ DONE` only when durable evidence shows independent completion authority: either the latest relevant `<reviews_file>` entry records `Decision: approve`, `Approval gate: pass`, and risk-lens/finding-closure evidence, or `<progress_file> → ## PR State` shows `PR status: merged` with both a populated merge commit and a populated merged-at timestamp.
+- `Status: ✅ DONE` only when durable evidence shows independent completion authority: the latest relevant `<reviews_file>` entry records `Decision: approve`, `Approval gate: pass`, and risk-lens/finding-closure evidence.
 
 Reject with a precise next action:
 
 - Any non-DONE story whose `Plan:` header field exists and is not `🟢 PLAN APPROVED`: use `/openspec-story-plan-converge <initiative> <story-slug>`.
 - `Status:` absent, `⬜ TODO`, or `⚪ TODO` with `## Current Claim` already present in `<progress_file>`: status drift; ask the operator to resolve before converging.
-- `Status: ✅ DONE` without either durable review approval with `Approval gate: pass` or merged-PR evidence: status drift; ask the operator to restore `Status: 🟣 IN REVIEW` and run `/openspec-story-review <initiative> <story-slug>`, or refresh merged PR metadata with `/openspec-story-pr <initiative> <story-slug>`.
-- `Status: 🔵 IN PR` without requested changes in `<progress_file> → ## PR State`: use `/openspec-story-pr <initiative> <story-slug>` for PR refresh or merge-state handling.
+- `Status: ✅ DONE` without durable review approval with `Approval gate: pass`: status drift; ask the operator to restore `Status: 🟣 IN REVIEW` and run `/openspec-story-review <initiative> <story-slug>`.
 - `Status: ⛔ BLOCKED` while `<blocked_file>` exists: blocked stories need operator unblocking before convergence.
 - `<blocked_file>` exists at `<change_dir>/blocked.md`: convergence is refused while an explicit gate file exists. The operator may edit it to record resolution notes, but must remove `blocked.md` to unblock. Once the file is removed, stale `Status: ⛔ BLOCKED` is resumable and routes to `/openspec-story-resume` for normalization.
 
@@ -90,9 +88,8 @@ Before each subagent launch, build the command line from the current status:
 - `Status:` absent/unset, `⬜ TODO`, or `⚪ TODO` and plan-approved: `/openspec-story-claim <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🔄 IN PROGRESS`: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🟣 IN REVIEW`: `/openspec-story-review <initiative> <story-slug> [WORKTREE=...]`.
-- `Status: 🔵 IN PR` with requested changes: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: ⛔ BLOCKED` with no `<blocked_file>` present and plan-approved: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]` to normalize the resolved blocker and continue.
-- `Status: ✅ DONE`: do not launch claim, resume, or review. Re-check the durable completion authority from the eligibility gate; if present, stop successfully with result `DONE`. If the evidence is absent or incomplete, stop as status drift and route to `/openspec-story-review <initiative> <story-slug>` or `/openspec-story-pr <initiative> <story-slug>` refresh instead of continuing the loop.
+- `Status: ✅ DONE`: do not launch claim, resume, or review. Re-check the durable completion authority from the eligibility gate; if present, stop successfully with result `DONE`. If the evidence is absent or incomplete, stop as status drift and route to `/openspec-story-review <initiative> <story-slug>` instead of continuing the loop.
 
 For each cycle:
 
@@ -123,12 +120,12 @@ For each cycle:
 5. End the task prompt with the exact slash command line, then launch exactly one fresh subagent.
 6. Require subagents to write new sourced research directly to the named research notebook page when runtime notebook tools are available. If notebook tools are unavailable, allow compact sourced fallback notes in normal final reporting instead. Require subagents to mention any referenced notebook entry or fallback excerpt that failed verification with exact anchors in their relevant blocker, finding, or notes section. After the pass finishes, inspect the named research notebook page or child-reported entries as needed, then use mismatch notes to update, replace, retire, or ask about affected entries. Do not append verdicts, implementation opinions, or unanchored summaries.
 7. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that pass only. The next lifecycle pass still starts in a new fresh subagent.
-8. After the pass finishes, treat the subagent final response as the provisional result. Before routing or stopping, perform a minimal authority spot-check of only the decision-bearing fields and anchors: for example, use `rg -n '^(Status:|Plan:)' <story_file>` for lifecycle headers, `rg -n '^(## PR State|### |Status:)' <progress_file>` only when PR/DONE state matters, and `rg -n '^(## |### |Verdict:|Approval gate:)' <reviews_file>` only when review authority matters. Use bounded reads only for the newest relevant entry body. If those spot-checks agree with the agent's report, continue from the canonical fields. If anchors are missing, stale, ambiguous, or conflicting, broaden to targeted reads of the affected file(s) or launch a focused repair/review pass.
+8. After the pass finishes, treat the subagent final response as the provisional result. Before routing or stopping, perform a minimal authority spot-check of only the decision-bearing fields and anchors: for example, use `rg -n '^(Status:|Plan:)' <story_file>` for lifecycle headers, `rg -n '^(### |Status:)' <progress_file>` only when progress state matters, and `rg -n '^(## |### |Verdict:|Approval gate:)' <reviews_file>` only when review authority matters. Use bounded reads only for the newest relevant entry body. If those spot-checks agree with the agent's report, continue from the canonical fields. If anchors are missing, stale, ambiguous, or conflicting, broaden to targeted reads of the affected file(s) or launch a focused repair/review pass.
 9. If a claim or resume pass leaves the story at `Status: 🟣 IN REVIEW`, the same cycle may launch a fresh review pass.
-10. If a review pass returns `approve`, confirm the latest entry in `<reviews_file>` records `Approval gate: pass` plus risk-lens review and finding closure (or explicit `none material`) using the same minimal spot-check/bounded-read approach before stopping successfully. If approval lacks that gate or evidence, launch one fresh review child focused on approval-gate and risk-lens closure instead of accepting chat output alone. Local approval is convergence even when the story remains `Status: 🟣 IN REVIEW` because the optional PR stage is next. Report this as `APPROVED`, not `DONE`, unless the authoritative final status is already `✅ DONE`.
+10. If a review pass returns `approve`, confirm the latest entry in `<reviews_file>` records `Approval gate: pass` plus risk-lens review and finding closure (or explicit `none material`) using the same minimal spot-check/bounded-read approach, then require the authoritative final status to be `✅ DONE` before stopping successfully. If approval lacks that gate or evidence, launch one fresh review child focused on approval-gate and risk-lens closure instead of accepting chat output alone. If approval evidence is complete but status is not `✅ DONE`, treat it as status drift and route to `/openspec-story-review <initiative> <story-slug>` to write the local completion status.
 11. If a review pass returns `request_changes` or `not_reviewable`, the same cycle may launch one fresh `/openspec-story-resume` corrective pass, then the next cycle starts with a fresh review when ready. If the finding exposes a new risk lens, ensure the resume child treats that lens as part of the acceptance/proof closure or routes back to planning.
 12. If any pass moves the story to `Status: ⛔ BLOCKED`, stop.
-13. If any pass moves the story to `Status: ✅ DONE`, stop successfully only after a minimal spot-check confirms durable authority in `<reviews_file>` or merged `<progress_file> → ## PR State` as described in the eligibility gate. If DONE lacks that evidence, treat it as status drift, stop, and route to `/openspec-story-review` or `/openspec-story-pr` refresh instead of accepting subagent chat output.
+13. If any pass moves the story to `Status: ✅ DONE`, stop successfully only after a minimal spot-check confirms durable review authority in `<reviews_file>` as described in the eligibility gate. If DONE lacks that evidence, treat it as status drift, stop, and route to `/openspec-story-review` instead of accepting subagent chat output.
 14. If `<blocked_file>` appears in `<change_dir>` at any point during the convergence run, stop immediately.
 15. Run the no-progress gate before starting the next cycle.
 
@@ -166,7 +163,7 @@ Other hard stops:
 - `MAX_CYCLES` reached;
 - latest decision is blocked, or `Status:` is `⛔ BLOCKED` while `blocked.md` still exists;
 - `blocked.md` appears in `<change_dir>`;
-- story enters a status owned by another command, such as `Status: 🔵 IN PR` without requested changes;
+- story enters an unknown or unsupported status;
 - subagent cannot resolve the story, command, or worktree;
 - the operator declines an interactive decision required by claim or resume.
 
@@ -182,20 +179,19 @@ Do not commit directly. The recommendation is advisory and must be explicit abou
 
 Recommend a final commit when:
 
-- local review approved;
-- the next action is `/openspec-story-pr <initiative> <story-slug>`;
-- the story reached `Status: ✅ DONE` but worktree changes remain dirty.
+- local review approved and the story reached `Status: ✅ DONE`;
+- worktree changes remain dirty.
 
 Recommend a WIP checkpoint only when stopping at `MAX_CYCLES`, operator input, or no-progress with useful completed changes. Do not recommend a commit when the story blocked before meaningful implementation or no code/test/config changes exist.
 
-When the final authoritative status is `✅ DONE`, do not suggest `/openspec-story-pr` as the next action. `/openspec-story-pr` is the next action only for local approval that leaves the story in `Status: 🟣 IN REVIEW` and the operator wants the optional PR stage.
+When the final authoritative status is `✅ DONE`, treat implementation convergence as complete. `/openspec-story-pr` may be a later delivery helper before archive, but it is not the next lifecycle step.
 
 ## Phase 6 — Final Response
 
 Return only the compact report below. Do not include internal deliberation, analysis prose, "Thinking:" blocks, private rationale, or comments about what you are considering before or after the report. Include every section in the template; use `None.` or `unavailable` rather than omitting a section.
 
 ```markdown
-**Convergence Result**: APPROVED | DONE | BLOCKED | STOPPED | MAX_CYCLES
+**Convergence Result**: DONE | BLOCKED | STOPPED | MAX_CYCLES
 **Initiative**: <initiative-slug>
 **Story**: <story-slug>
 **Cycles Used**: <n>/<MAX_CYCLES>
@@ -227,7 +223,7 @@ Return only the compact report below. Do not include internal deliberation, anal
 - None.
 
 ## Next Action
-- <single concrete command or decision: `/openspec-story-pr <initiative> <story-slug>` only when result is APPROVED and final status is `🟣 IN REVIEW`; `None. Story is already ✅ DONE.` when result is DONE; otherwise the next operator decision or rerun command>
+- <single concrete command or decision: `None. Story is already ✅ DONE.` when result is DONE; otherwise the next operator decision or rerun command>
 ```
 
 Do not run `/memorize` automatically. If the nice-to-haves are valuable, the operator can decide whether to promote them later.

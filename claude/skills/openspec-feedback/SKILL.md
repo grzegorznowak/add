@@ -23,7 +23,7 @@ This command may edit coordination documents only:
   - `reviews.md` (implementation review entries)
   - `progress.md` (replanning checkpoints when contract changes during resume)
 
-It never touches product source code, tests, configs, archived change workspaces, `CONTRACT.md`, worktrees, branches, or GitHub PR bodies. It never creates a full new change workspace. New work discovered from feedback becomes a feedback-derived story candidate in the initiative; `/openspec-story-plan` owns full story planning.
+It never touches product source code, tests, configs, archived change workspaces, `CONTRACT.md`, worktrees, branches, or GitHub PR bodies. It never creates a full new change workspace and never advances or approves implementation status. Its only allowed `story.md → Status:` write is an explicitly acknowledged `resume-current-story` reopen to `🔄 IN PROGRESS` so implementation can resume after local/PR feedback. New work discovered from feedback becomes a feedback-derived story candidate in the initiative; `/openspec-story-plan` owns full story planning.
 
 There is no dry-run mode. Normal operation is:
 
@@ -179,8 +179,9 @@ Status and lane rules:
 
 - Do not edit archived change workspaces under `openspec/changes/archive/`.
 - Do not route to, read as writable, or create paths for a story target that failed the canonical slug and containment gate.
-- Do not rewrite a `✅ DONE` story's product contract. Convert feedback to a candidate, initiative-level decision, or defer/reject entry unless the operator explicitly decides the completed story must be reopened through the normal lifecycle.
-- Do not transition implementation `Status` in `story.md` from this command.
+- Do not rewrite a `✅ DONE` story's product contract. Convert feedback to a candidate, initiative-level decision, or defer/reject entry unless the operator explicitly acknowledges a `resume-current-story` reopen through the normal lifecycle.
+- Do not advance or approve implementation `Status` in `story.md` from this command. The only allowed status mutation is reopening an acknowledged `resume-current-story` target from `✅ DONE` or `🟣 IN REVIEW` to `🔄 IN PROGRESS`; if it is already `🔄 IN PROGRESS`, leave it unchanged.
+- Never derive a status reopen from PR metadata alone. The acknowledged Proposed Feedback Absorption plan must name `resume-current-story`, the target story, and the reason the local completion/review state must be revisited.
 - You may downgrade or invalidate the `Plan:` header field in `story.md`, but this command must never set `Plan:` to `🟢 PLAN APPROVED`:
   - `queue-planning-feedback` sets `Plan:` to `🟠 PLAN CHANGES REQUESTED`.
   - contract-changing `amend-existing-story` sets `Plan:` to `🟠 PLAN CHANGES REQUESTED` after the contract edits are blended and validation passes, because fresh `/openspec-story-plan-review` must independently approve the changed contract before implementation resumes.
@@ -267,6 +268,14 @@ After constructing story spec/proof edits and before writing, run these phases i
 
 After all phases pass, proceed to write the edits to disk. Then add the story-local receipt and initiative-level entry.
 
+For acknowledged `resume-current-story`, update `story.md → Status:` only as needed to make implementation resumable:
+
+- `✅ DONE` or `🟣 IN REVIEW` → `🔄 IN PROGRESS`.
+- `🔄 IN PROGRESS` → unchanged.
+- `⛔ BLOCKED`, TODO, missing, or unknown status → stop and revise the disposition or ask the operator for the owning lifecycle command; do not guess.
+
+Record the before/after status in the feedback-derived `reviews.md` entry.
+
 For contract-changing `resume-current-story`, also append a concise replanning checkpoint to `progress.md → ## Progress Timeline` before `/openspec-story-resume` runs:
 
 ```md
@@ -330,7 +339,7 @@ For `resume-current-story`, append to `reviews.md` (the standalone review artifa
   - Prior review concerns: not_assessable
   - Plan lane at review time: <value or absent>
   - Initiative contract drift: none | present
-  - Status transition: <current status> → <current status>
+  - Status transition: <current status> → <new status; `🔄 IN PROGRESS` when reopening, otherwise unchanged>
   - Sections reviewed: <story sections checked against the feedback, or n/a>
   - Original intent checked: <issues/PRs/Jira/tickets/initiative sources or none found/inaccessible>
   - Traceability: forward <complete|gaps>; backward <complete|gaps>
@@ -377,11 +386,12 @@ If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, de
 - update `### Fail-open Checks` when prompt/template fail-open risks are introduced or changed
 - update or add `### Risk Lens Inventory` when feedback exposes async/event-loop, platform/API, external I/O, permissions/security, resource lifecycle, retries/timeouts, semantic invariant, or other domain risks not already covered
 - append the replanning checkpoint to `progress.md → ## Progress Timeline`
+- apply the `resume-current-story` status reopen rule above
 - set `Plan:` header field in `story.md` to `🟠 PLAN CHANGES REQUESTED` after the validation gate passes and make `/openspec-story-plan-review` the next action; this command cannot approve its own contract edits
 
 When contract/proof edits are fully blended, `/openspec-story-plan-review <initiative> <story-slug>` is mandatory before `/openspec-story-resume`. If plan review requests changes, the story re-enters the plan-converge loop through `/openspec-story-plan-resume` until `Plan:` returns to `🟢 PLAN APPROVED`.
 
-Do not delete or rewrite older `reviews.md` entries. If the story is `🔵 IN PR`, do not update `## PR State` in `progress.md` here; recommend `/openspec-story-pr` refresh when the PR status itself must move the story back to `🔄 IN PROGRESS`.
+Do not delete or rewrite older `reviews.md` entries. Do not update `## PR State` in `progress.md` here; recommend `/openspec-story-pr` only when PR metadata or merge evidence itself needs refresh. Actionable PR feedback is absorbed here as review/contract coordination; when the acknowledged disposition is `resume-current-story`, this command records the reopen to `🔄 IN PROGRESS` so `/openspec-story-resume` can own the code changes.
 
 For `new-story-candidate`, append or create this initiative-level section in `initiative.md`:
 
@@ -431,8 +441,9 @@ Report:
 - files changed (with full paths under `openspec/`)
 - disposition and target for each item
 - any items skipped or left ambiguous
+- any story status reopen performed, or none
 - recurring risk / miss categories observed, or none
-- exact next command when relevant, such as `/openspec-story-resume`, `/openspec-story-pr`, or `/openspec-story-plan`
+- exact next command when relevant, such as `/openspec-story-plan-review`, `/openspec-story-resume`, `/openspec-story-pr`, or `/openspec-story-plan`
 
 When `amend-existing-story` touched any contract/proof section, include in the response:
 "Required next: run `/openspec-story-plan-review <initiative> <story-slug>` from a fresh session to re-validate the amended plan."

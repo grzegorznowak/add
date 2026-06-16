@@ -1,6 +1,6 @@
 ---
 name: openspec-story-pr
-description: Move one OpenSpec change from local review or local DONE into a GitHub PR, recording PR metadata on progress.md. Optional stage between IN REVIEW and DONE.
+description: Open, attach, or refresh optional GitHub PR delivery metadata/evidence for one OpenSpec story. Does not change story Status.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug> [pr-url|OPEN=true]"
 allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(git rev-parse:*) Bash(gh pr list:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*) Bash(curl:*)
@@ -8,15 +8,21 @@ allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash
 
 # OpenSpec Story PR
 
-Transition a story from `🟣 IN REVIEW` to `🔵 IN PR`, recording GitHub PR metadata on the change workspace's `progress.md`. This is the **optional** stage between local review acceptance and merged-to-main (`✅ DONE`). It can also inject a PR into an explicitly selected, non-archived `✅ DONE` story when that DONE meant local completion and the remote PR stage is being added late.
+Open, attach, or refresh a GitHub PR for a locally completed OpenSpec story and record delivery metadata on the change workspace's `progress.md`. This is a lightweight delivery helper after local review has already marked the story `✅ DONE`; it is not a story lifecycle state and never updates `story.md → Status:`.
 
-Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [<pr_url_or_OPEN=true>]`. Initiative and story may be inferred for active `🟣 IN REVIEW` / `🔵 IN PR` work. `✅ DONE` PR injection requires the story to be explicit. The third arg is either a full GitHub PR URL (attach mode) or the literal `OPEN=true` to have this flow open the PR via `gh` (open mode). For an explicitly selected `✅ DONE` story, omitting the third arg implies open mode after existing PR detection fails.
+Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [<pr_url_or_OPEN=true>]`. Initiative and story may be inferred only when exactly one non-archived, locally DONE story is eligible. The third arg is either a full GitHub PR URL (attach mode) or the literal `OPEN=true` to have this flow open the PR via `gh` (open mode). Omitting the third arg means refresh an existing `## PR State` URL when present, otherwise discover an existing branch PR, otherwise ask before opening a new PR.
 
 ## Intent
 
-This flow applies when a story has passed local review and the changes need to go through the normal GitHub PR review and merge process before the story can be marked `✅ DONE`. It is **not** required. Stories that do not need a separate GitHub PR stage skip straight from `🟣 IN REVIEW` to `✅ DONE`.
+This flow applies after `/openspec-story-review` has approved local product/spec correctness and written `Status: ✅ DONE`. GitHub PRs are external delivery/review channels: they may be useful or required before archive, but they are not the authority for local story completion.
 
-Sometimes a story was already marked `✅ DONE` because the team treated it as locally complete, then later decides to open a GitHub PR for the same implementation. In that case, run `/openspec-story-pr <initiative> <story>`. If the PR is unmerged, this flow records PR metadata and moves the story back to `🔵 IN PR` until remote review finishes. If the PR is already merged, it records PR metadata and keeps the story `✅ DONE`.
+Use this command to:
+
+- generate or refresh a product-facing PR body from story/proposal/spec context;
+- open a PR via `gh`, attach an existing PR URL, or refresh metadata for an already-bound PR;
+- maintain `progress.md → ## PR State` as durable PR delivery evidence for archive preflight.
+
+If a PR reviewer requests changes, do not downgrade the story here. Route actionable PR feedback through `/openspec-feedback`, which can reopen the story for resume, amend planning/contract artifacts, create a follow-up candidate, record an initiative decision, or defer/reject the feedback.
 
 ## Resolution Model
 
@@ -27,106 +33,98 @@ Sometimes a story was already marked `✅ DONE` because the team treated it as l
 - `<story_file>` = `<change_dir>/story.md`.
 - `<progress_file>` = `<change_dir>/progress.md`.
 - `<proposal_file>` = `<change_dir>/proposal.md`.
+- `<reviews_file>` = `<change_dir>/reviews.md`.
 
-There is no `MASTER.md`, no tracker table, and no step/number row. All status is self-contained in the change workspace artifacts:
+There is no `MASTER.md`, no tracker table, and no PR lifecycle status. All status is self-contained in the change workspace artifacts:
 
-- The `Status:` header field in `<story_file>` is the authoritative implementation status.
+- The `Status:` header field in `<story_file>` is the authoritative implementation status and is not changed by this command.
 - The `Plan:` header field in `<story_file>` is the authoritative planning lane.
-- The `## Current Claim` section in `<progress_file>` records active implementation state and worktree bindings.
-- The `## PR State` section in `<progress_file>` is the sole PR metadata location.
+- The latest relevant `<reviews_file>` approval is local completion authority.
+- The `## Current Claim` section in `<progress_file>` records implementation state and worktree bindings.
+- The `## PR State` section in `<progress_file>` is the sole PR metadata/evidence location.
 - The `## Progress Timeline` section in `<progress_file>` records milestone bullets.
 
 ## Status lifecycle (reference)
 
 - `⬜ TODO` — not started
 - `🔄 IN PROGRESS` — actively being worked
-- `🟣 IN REVIEW` — local review pass ready
-- `🔵 IN PR` — **this flow** — local review passed, PR opened, awaiting GitHub review + merge
-- `✅ DONE` — PR merged, or local-only review accepted when no PR stage was known
-- `⛔ BLOCKED` — external blocker
+- `🟣 IN REVIEW` — ready for independent local review
+- `✅ DONE` — local workflow completed by independent `/openspec-story-review` approval
+- `⛔ BLOCKED` — explicit blocker
 
 ## Phase 0 — Resolution and inference
 
-This flow accepts three positional inputs in `$ARGUMENTS` — `<initiative>`, `<story>`, and `<pr_url_or_OPEN=true>` — and runs three independent inference passes for any of them that is missing. **Explicit values always win and skip their corresponding inference pass.** The goal is that an operator who has just claimed or resumed exactly one story can run `/openspec-story-pr` with no arguments at all.
+This flow accepts three positional inputs in `$ARGUMENTS` — `<initiative>`, `<story>`, and `<pr_url_or_OPEN=true>` — and runs three independent inference passes for any of them that is missing. **Explicit values always win and skip their corresponding inference pass.** The goal is convenience without silently selecting completed history from a crowded workspace.
 
 Parse `$ARGUMENTS` first. Treat any of the three slots that is empty as a request to infer.
 
 ### Pass 1 — Initiative inference (when `<initiative>` is empty)
 
 1. List `<workspace_root>/openspec/initiatives/*/` directories that contain an `initiative.md`.
-2. An initiative is **active** if its `initiative.md` exists and at least one corresponding change workspace exists under `<workspace_root>/openspec/changes/<change-slug>/` whose `<story_file>` has a `Status:` that is not `✅ DONE` and the change workspace is not under `openspec/changes/archive/`.
-3. If exactly one active initiative exists, use it. Print: `inferred initiative: <slug> (single active initiative)`.
-4. If zero active initiatives exist, abort with: `no active initiative found under openspec/initiatives/. Pass <initiative> explicitly, or create one first.`
-5. If multiple active initiatives exist, abort with the list and: `multiple active initiatives; pass <initiative> explicitly to disambiguate.`
+2. An initiative is eligible if its `initiative.md` exists and at least one corresponding non-archived change workspace exists under `<workspace_root>/openspec/changes/<change-slug>/` whose `<story_file>` has `Status: ✅ DONE`.
+3. If exactly one eligible initiative exists, use it. Print: `inferred initiative: <slug> (single eligible initiative)`.
+4. If zero eligible initiatives exist, abort with: `no locally DONE initiative found under openspec/initiatives/. Pass <initiative> explicitly, or finish local story review first.`
+5. If multiple eligible initiatives exist, abort with the list and: `multiple eligible initiatives; pass <initiative> explicitly to disambiguate.`
 
 ### Pass 2 — Story inference (when `<story>` is empty)
 
-After the initiative is known, list all change workspace directories under `<workspace_root>/openspec/changes/` (excluding `archive/`). For each, read the `Status:` header field in `<story_file>` and collect every story whose status is one of:
+After the initiative is known, list all change workspace directories under `<workspace_root>/openspec/changes/` (excluding `archive/`). For each, read the `Status:` header field in `<story_file>` and collect every story whose status is `✅ DONE`.
 
-- `🟣 IN REVIEW` — the canonical entry condition for this flow
-- `🔵 IN PR` — included so re-running this flow for refresh works without args
-
-Do **not** auto-infer `✅ DONE` stories. DONE PR injection requires the story argument because DONE rows are completed history, not active work. If `<story>` was passed explicitly and the story is non-archived `✅ DONE`, accept it for the late PR injection path.
-
-1. If exactly one story matches, use it. Print: `inferred story: <story-slug> — <title> (status: <emoji>)`.
-2. If zero stories match, do not just abort — emit a specific recovery hint based on the initiative's change workspaces:
-   - if exactly one story is `🔄 IN PROGRESS`, say: `no story is in review yet. Story <story-slug> — <title> is still in progress; finish implementation and run /openspec-story-review <initiative> <story-slug> first.`
-   - if multiple stories are `🔄 IN PROGRESS`, list them and recommend `/openspec-story-review` for the one the operator means.
-   - if no stories are in progress either, say: `no story is in review or in progress. Run /openspec-story-claim <initiative> <story-slug> to start one.`
-3. If multiple stories match the eligible set, list each candidate as `<story-slug> | <status> | <title>` and abort with: `multiple stories are eligible; pass <story> explicitly to disambiguate.`
+1. If exactly one story matches, use it. Print: `inferred story: <story-slug> — <title> (status: ✅ DONE)`.
+2. If zero stories match, emit a specific recovery hint based on the initiative's change workspaces:
+   - if exactly one story is `🟣 IN REVIEW`, say: `story <story-slug> — <title> is still in local review; run /openspec-story-review <initiative> <story-slug> first so local completion is authoritative.`
+   - if any story is `🔄 IN PROGRESS`, say: `no locally DONE story found. Finish implementation and run /openspec-story-review <initiative> <story-slug> first.`
+   - otherwise say: `no locally DONE story found. Run /openspec-next-action INITIATIVE=<initiative> to choose the next lifecycle command.`
+3. If multiple stories match the eligible set, list each candidate as `<story-slug> | ✅ DONE | <title>` and abort with: `multiple locally DONE stories are eligible; pass <story> explicitly to disambiguate.`
 
 ### Pass 3 — PR inference (when `<pr_url_or_OPEN=true>` is empty)
 
 After the story is resolved, decide whether this is an attach (existing PR) or open (new PR) operation. Walk the inference chain in order:
 
 1. **PR State section.** Read `<progress_file>` and look for a `## PR State` section. If it exists and has a `- PR URL:` line with a non-empty URL, that is the existing PR. Use attach mode in refresh form. Print: `inferred PR (from PR State): <url>`. Skip the rest of the chain.
-   - If the story is `✅ DONE` and PR State points to an unmerged PR, report the status drift and ask what to do before changing files. Recommend moving the story back to `🔵 IN PR` and refreshing PR metadata. If the user declines, abort without changing `story.md`, `progress.md`, or the PR.
 
 2. **Project repo detection.** Read `<progress_file>` for the `## Current Claim` section and parse the `- Primary write surfaces:` field. Take the first path. Walk up the directory tree until you find a `.git/` directory; that is the project repo. If no `.git/` is found, fall back to the workspace `.git/` if one exists. If still none, skip directly to step 4.
 
 3. **Branch-based PR lookup.**
    - Inside the detected project repo, run `git rev-parse --abbrev-ref HEAD` to get the current branch.
    - If the branch is the repo's default branch, skip to step 4 (operating directly on `main`/`master` is not how PRs are opened).
-   - Otherwise run `gh pr list --head <branch> --state all --json url,number,headRefName,title,state,mergedAt,mergeCommit,closedAt,reviewDecision,latestReviews` from inside the project repo. Use all states so late PR injection can discover already merged or closed PRs instead of opening duplicates.
+   - Otherwise run `gh pr list --head <branch> --state all --json url,number,headRefName,title,state,mergedAt,mergeCommit,closedAt,reviewDecision,latestReviews` from inside the project repo. Use all states so this helper can discover already merged or closed PRs instead of opening duplicates.
    - If exactly one PR is returned, print `inferred PR (from current branch <branch>): <url> (state: <state>)` and **ask the user to confirm** before attaching. The branch may legitimately host work unrelated to this story.
-     - If the inferred PR is merged, attach/refresh it with the live merged metadata. For an explicitly selected local `✅ DONE` story, keep `Status: ✅ DONE` when merge commit and merged-at evidence are complete; do not open a duplicate PR.
+     - If the inferred PR is merged, attach/refresh it with the live merged metadata; do not open a duplicate PR.
      - If the inferred PR is closed but not merged, report that closed-unmerged PR and do not silently open a duplicate. Ask whether to attach the closed PR for audit metadata or explicitly proceed with replacement OPEN mode; if the user does not choose replacement OPEN mode, abort without write-back.
      - If the inferred PR is open, attach it normally after confirmation.
    - If multiple PRs are returned, list each as `<number> | <state> | <title> | <url>` and ask which to attach. Highlight merged and closed-unmerged candidates; do not fall through to implicit OPEN mode until the operator explicitly rejects/ignores the existing candidates.
    - If zero are returned, fall through to step 4.
 
 4. **Fall through to OPEN mode.** If no existing PR was found by any previous step, or the operator explicitly chose replacement OPEN mode after reviewing branch PR candidates:
-   - For an explicitly selected `✅ DONE` story, treat `OPEN=true` as implicit and proceed to open mode without an extra confirmation only when the all-state branch lookup found no existing PR, or when the operator explicitly chose replacement OPEN mode after reviewing existing branch PR candidates.
-   - For all other stories, ask the user: `no existing PR found for branch <branch>. Open a new one via gh? [Y/n]`
+   - Ask the user: `no existing PR found for the detected story branch/repo. Open a new one via gh? [Y/n]`
    - If yes, proceed exactly as the existing `OPEN=true` path in "PR creation mode".
    - If no, abort with: `pass <pr_url> explicitly when one exists, or rerun with OPEN=true to open a fresh PR.`
 
 ### Inference summary printout
 
-Before doing any work that affects `story.md`, `progress.md`, or the PR, print a single resolved-context block so the user can verify what was inferred:
+Before doing any work that affects `progress.md` or the PR, print a single resolved-context block so the user can verify what was inferred:
 
 ```
 Resolved context:
-- initiative: <slug>          (explicit | inferred from single active initiative)
+- initiative: <slug>          (explicit | inferred from single eligible initiative)
 - story: <story-slug> — <title>  (explicit | inferred from single eligible story)
-- status: <emoji>
+- status: ✅ DONE
 - PR:    <url>           (explicit | from PR State | from current branch | new via OPEN)
 ```
 
-Print this even when everything was passed explicitly — the printout is the contract the user approves before any destructive step runs.
+Print this even when everything was passed explicitly — the printout is the contract the user approves before any PR/body update runs.
 
 ### Entry-condition check
 
-Once the story is resolved, abort fast unless its current status is one of `🟣 IN REVIEW`, `🔵 IN PR`, or `✅ DONE`.
+Once the story is resolved, abort fast unless its current status is `✅ DONE` and the change workspace is not archived.
 
-- `🟣 IN REVIEW` is the canonical entry condition for opening or attaching a PR.
-- `🔵 IN PR` is refresh/resync mode per "Refresh existing PR metadata" below.
-- `✅ DONE` is allowed only when the story was explicitly selected and the change workspace is not in `openspec/changes/archive/`. Treat it as late PR injection from local DONE. Do not require a second confirmation after explicit initiative + story selection, but still ask before attaching a branch-inferred PR and before overwriting a substantial PR body.
-- Archived `✅ DONE` stories are ineligible. Abort with: `Story <story-slug> is archived. PR injection only works for non-archived DONE stories.`
+Also require:
 
-Also abort when the story's `Plan:` header field is not `🟢 PLAN APPROVED`. Recovery hint: run `/openspec-story-plan-converge <initiative> <story-slug>` before opening, refreshing, or merging PR state.
+- `Plan:` header field is `🟢 PLAN APPROVED`. Recovery hint: run `/openspec-story-plan-converge <initiative> <story-slug>` before PR delivery work.
+- The latest relevant `<reviews_file>` entry records both `Decision: approve` and `Approval gate: pass`. Recovery hint: run `/openspec-story-review <initiative> <story-slug>` before PR delivery work.
 
-Abort for `IN PROGRESS`, `BLOCKED`, `TODO`, or any unknown status with a recovery hint naming the correct preceding command.
+Abort for TODO, IN REVIEW, IN PROGRESS, BLOCKED, missing, or unknown implementation status with a recovery hint naming the correct preceding command. Do not normalize or mutate `story.md → Status:` from this command.
 
 ### Known limitations
 
@@ -227,7 +225,7 @@ For original ticket/card links:
 
 Do not paste sections verbatim if they contain internal terminology. Rephrase into reviewer-facing language. A reviewer who has never seen the change workspace should understand the PR body.
 
-**Exclusion enforcement**: never read or include content from `design.md`, `tasks.md`, `progress.md`, or `reviews.md`. These files are explicitly out of scope per decision #6. If a section of `story.md` is implementation-facing (`## Discovery Notes`, `## Locked Decisions`, `## Implementation Notes`, `## Critical Files`, `## Acceptance Proof Matrix`, `## Test Architecture Plan`), exclude it from the PR body.
+**Exclusion enforcement for PR body generation**: never include content from `design.md`, `tasks.md`, `progress.md`, or `reviews.md` in the PR body. These files may be read only for this command's PR metadata, entry-condition, and approval-evidence gates. If a section of `story.md` is implementation-facing (`## Discovery Notes`, `## Locked Decisions`, `## Implementation Notes`, `## Critical Files`, `## Acceptance Proof Matrix`, `## Test Architecture Plan`), exclude it from the PR body.
 
 ## PR creation mode
 
@@ -284,74 +282,61 @@ When `gh pr view` is available, derive the progress `PR status` from the enriche
 4. Else if `reviewDecision` is `APPROVED`, set `PR status: approved`.
 5. Else set `PR status: open`.
 
-If `gh` is unavailable in attach mode, record the supplied URL and any user-provided fields, set unavailable fields to `unavailable` or `—`, and do not transition to `✅ DONE` unless the operator explicitly supplies merged-state evidence, a merge commit, **and** a merged-at timestamp. When any of these three is missing, leave the story at its current status and tell the operator to provide the missing evidence or rerun with `gh` available.
+If `gh` is unavailable in attach mode, record the supplied URL and any user-provided fields, set unavailable fields to `unavailable` or `—`, and report that archive cannot treat the PR as merged until live GitHub data or explicit merged-state evidence, merge commit, and merged-at timestamp are recorded.
 
 ### Progress Timeline entry
 
-Append a timestamped bullet under `## Progress Timeline` in `<progress_file>`. Use the entry that matches the transition:
+Append a timestamped bullet under `## Progress Timeline` in `<progress_file>`. Use the entry that matches the operation:
 
 ```md
-- <UTC ISO timestamp> Moved step to `🔵 IN PR` — <PR URL>
-- <UTC ISO timestamp> Reopened remote review from local `✅ DONE`; moved step to `🔵 IN PR` — <PR URL>
-- <UTC ISO timestamp> Attached merged PR to local `✅ DONE` story — <PR URL>
+- <UTC ISO timestamp> Opened PR delivery record — <PR URL> (status: <PR status>)
+- <UTC ISO timestamp> Attached PR delivery record — <PR URL> (status: <PR status>)
+- <UTC ISO timestamp> Refreshed PR delivery record — <PR URL> (status: <PR status>)
 ```
 
-### story.md Status header update
+Do not write lifecycle transition language in the timeline. This command records delivery metadata only.
 
-Update the `Status:` header field in `<story_file>` with the same status being written:
+### story.md Status header
 
-| From | Action |
-|------|--------|
-| `🟣 IN REVIEW` | set `Status:` to `🔵 IN PR` |
-| `🔵 IN PR` (refresh, PR still open) | leave `Status:` at `🔵 IN PR` |
-| `🔵 IN PR` (PR merged with complete durable evidence) | set `Status:` to `✅ DONE` |
-| `🔵 IN PR` (PR requests code changes) | set `Status:` to `🔄 IN PROGRESS` |
-| `✅ DONE` (explicit, non-archived, PR still open) | set `Status:` to `🔵 IN PR` |
-| `✅ DONE` (explicit, non-archived, PR merged with complete durable evidence) | leave `Status:` at `✅ DONE` |
-
-If the `Status:` header field is missing or ambiguous, abort with: `story.md has no parseable Status: header. Cannot update status.`
+Never update the `Status:` header field in `<story_file>` from this command. If the entry-condition check no longer sees `Status: ✅ DONE`, abort before writing PR metadata and route to the owning lifecycle command.
 
 ## Refresh existing PR metadata
 
-If the story is already `🔵 IN PR` and the user reinvokes this flow, treat it as a refresh:
-- Re-query `gh pr view --json number,title,headRefName,state,url,body,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` if available and update `## PR State → PR status`, `Review decision`, `Merge commit`, `Merged at`, and `Last synced`
-- If `PR status` is now `merged` and the refreshed state has both a populated `Merge commit:` and a populated `Merged at:`, transition the story to `✅ DONE`
-- If `PR status` is now `merged` but merge commit or merged-at evidence is missing, leave the story at `🔵 IN PR`, report the missing durable evidence, and tell the user to rerun `/openspec-story-pr` with `gh` available or provide the missing evidence explicitly
-- If `PR status` is `changes_requested` or the reviewer requested code changes, transition the story back to `🔄 IN PROGRESS` and record the reason in `## Progress Timeline`. Tell the user to rerun `/openspec-story-resume` to address the feedback.
-- Otherwise leave the story at `🔵 IN PR` and update `Last synced`
+If `## PR State` already has a PR URL, refresh it:
 
-If the story is `✅ DONE` and already has `## PR State` for an unmerged PR, report the DONE/PR drift and ask what to do. Recommend moving the story back to `🔵 IN PR` and refreshing metadata. If the user declines, abort without write-back.
-
-## Pre-transition worktree check
-
-Before transitioning to `✅ DONE`, read `<progress_file> → ## Current Claim → - Worktrees:` for uncommitted changes. If any worktree is dirty (e.g., local metadata or post-PR adjustments), offer to commit before marking done. If `<progress_file>` has no `## Current Claim` section, skip.
+- Re-query `gh pr view --json number,title,headRefName,state,url,body,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` if available and update `## PR State → PR status`, `Review decision`, `Merge commit`, `Merged at`, and `Last synced`.
+- If `PR status` is `merged` and both `Merge commit:` and `Merged at:` are populated, report that archive PR evidence is complete.
+- If `PR status` is `merged` but merge commit or merged-at evidence is missing, report the missing durable evidence and tell the user to rerun `/openspec-story-pr` with `gh` available or provide the missing evidence explicitly before archive.
+- If `PR status` is `changes_requested` or reviewer comments request changes, do not update `story.md → Status:`. Tell the user to run `/openspec-feedback <initiative> --pr <PR URL>` so the feedback can be classified into story rework, planning changes, a follow-up story, initiative decision, or defer/reject.
+- Otherwise leave local story completion alone and update PR delivery metadata only.
 
 ## No MASTER.md update
 
-There is no `MASTER.md` and no tracker table in this flow. All status updates go to `<story_file> → Status:` header field and `<progress_file> → ## Progress Timeline`. No centralized coordination cache is consulted or written.
+There is no `MASTER.md` and no tracker table in this flow. PR evidence is written to `<progress_file> → ## PR State` and `<progress_file> → ## Progress Timeline` only. No centralized coordination cache is consulted or written, and no story status is changed.
 
 ## Rules
 
 1. **Use the PR description inclusion boundary above.** The PR body is a product contract for reviewers, not an implementation diary.
-2. **Never mark a story `✅ DONE` from this flow unless the PR is actually merged and durable evidence is complete.** Merged means enriched `gh pr view` data has `state: MERGED` or a non-empty `mergedAt`, **plus** a populated merge commit and merged-at timestamp. When `gh` is unavailable, the operator must supply merged-state evidence, a merge commit, and a merged-at timestamp — all three.
-3. **Never touch product code in this flow.** It is a coordination-only transition (except for the optional `gh pr create` call in open mode).
-4. **Never archive a `🔵 IN PR` story.** `/openspec-archive` requires DONE.
-5. **Never skip the progress.md write-back.** The PR URL is the only durable link between the change workspace and the GitHub review.
-6. **Never leave `Last synced` stale across transitions.**
-7. **Never paste `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `design.md`, `tasks.md`, `reviews.md`, or `progress.md` content into the PR body.** Those sections are implementation diary, not product contract.
-8. **Never silently infer a DONE story.** Late PR injection from `✅ DONE` requires explicit story selection.
-9. **Never leave an unmerged PR represented as `✅ DONE` after the operator chooses to proceed.** Move both `story.md → Status:` and `progress.md → ## PR State` accordingly.
+2. **Never change `story.md → Status:` from this flow.** Local completion is owned by `/openspec-story-review`; PR merge evidence is an archive gate, not story lifecycle authority.
+3. **Never touch product code in this flow.** It is a coordination-only PR delivery helper (except for the optional `gh pr create` call in open mode).
+4. **Never skip the progress.md write-back when a PR is opened, attached, or refreshed.** The PR URL is the durable link between the change workspace and the GitHub review.
+5. **Never leave `Last synced` stale across PR metadata refreshes.**
+6. **Never paste `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `design.md`, `tasks.md`, `reviews.md`, or `progress.md` content into the PR body.** Those sections are implementation diary, not product contract.
+7. **Never silently pick among multiple locally DONE stories.** Ask the operator to pass the story explicitly.
+8. **Never absorb PR feedback here.** Route actionable feedback through `/openspec-feedback`.
+9. **Never treat cached local PR metadata as merged archive evidence when live `gh` data is available.** Archive performs its own authoritative preflight.
 10. **Never summarize or quote original tickets.** Include detected links only, and omit the section when no link is found.
 
 ## Final response
 
 State:
-- which initiative and change workspace were transitioned
-- the PR URL, number, and branch
-- the new status in `story.md → Status:`
-- whether `gh` enrichment was used
+- which initiative and change workspace were updated
+- the PR URL, number, branch, and derived PR status
+- whether merge evidence is complete for archive
+- that `story.md → Status:` was left unchanged
+- whether `gh` enrichment/body update was used
 - exactly what the user should do next:
   - wait on PR review
-  - rerun `/openspec-story-resume` to address PR feedback
-  - rerun `/openspec-story-pr` with the same PR URL to resync PR state
-  - rerun `/openspec-archive` once the story is `✅ DONE` and stable
+  - run `/openspec-feedback <initiative> --pr <url>` to absorb PR feedback
+  - rerun `/openspec-story-pr` with the same PR URL to refresh PR metadata
+  - rerun `/openspec-archive` once local DONE, task, review, and PR/no-PR gates are ready

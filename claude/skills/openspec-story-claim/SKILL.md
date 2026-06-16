@@ -288,14 +288,13 @@ At the end of the session, update `progress.md → ## Session Handoff`:
 The `Status:` field in `story.md` is the authoritative implementation status. There is no `MASTER.md` in this flow. Update `story.md → Status:` using this lifecycle:
 - `🔄 IN PROGRESS` — implementation still actively underway
 - `🟣 IN REVIEW` — implementation done enough for an independent `/openspec-story-review`; the focused red seam is green or an explicit exception is recorded; run final verification, review the touched files, tighten rough edges
-- `🔵 IN PR` (optional) — local review passed and changes are in a GitHub PR awaiting remote review and merge. **Do not set this status from `/openspec-story-claim`**; use `/openspec-story-pr` to record PR metadata.
-- `✅ DONE` — independent review completed via `/openspec-story-review`, or a PR stage was used and `/openspec-story-pr` verified the PR is merged. **Do not set this status from `/openspec-story-claim`.**
+- `✅ DONE` — independent review completed via `/openspec-story-review`. **Do not set this status from `/openspec-story-claim`.**
 - `⛔ BLOCKED` — an external blocker prevents completion or review
 
 **Default rule:**
 1. Claim as `🔄 IN PROGRESS`
 2. Once the chosen focused seam is green and implementation is complete, move to `🟣 IN REVIEW`
-3. Stop there and hand off to `/openspec-story-review` for independent completion authority. If the story needs a GitHub PR stage after local review approval, `/openspec-story-pr` transitions to `🔵 IN PR` and later to `✅ DONE` only after the PR is merged.
+3. Stop there and hand off to `/openspec-story-review` for independent completion authority. Optional GitHub PR delivery happens after local completion via `/openspec-story-pr`, which records PR metadata but does not own `story.md → Status:`.
 4. If the session ends before review is complete, leave at `🟣 IN REVIEW`
 5. If the session ends before implementation is complete, leave at `🔄 IN PROGRESS`
 

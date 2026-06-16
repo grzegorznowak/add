@@ -40,6 +40,134 @@ initiatives and changes from `openspec/initiatives/` and `openspec/changes/`.
 inspects current or selected initiative/change/spec artifacts and recommends the
 next owner command without performing transitions.
 
+## OpenSpec state machine
+
+The diagram below is the canonical ASCII view of the active workflow. It shows
+durable file states, not transient chat state. `/openspec-next-action` may
+inspect any active initiative/change/spec state and recommend the next owner
+command, but it never edits files or performs transitions.
+
+```text
+Legend: [state] = durable OpenSpec state, "-- command -->" = owner transition,
+        {gate} = required file/evidence gate.
+
+(no initiative)
+    |
+    | /openspec-initiative-plan
+    v
+[initiative.md]
+    |
+    | /openspec-story-plan INITIATIVE=<slug>
+    v
+[active change workspace]
+  proposal.md + story.md + design.md + tasks.md + optional specs/**/*.md
+  story.md: Plan = 🟡 PLAN DRAFT, Status = ⬜ TODO
+    |
+    v
++----------------------------- PLAN LANE --------------------------------+
+|                                                                        |
+| [🟡 PLAN DRAFT]                                                        |
+|      | /openspec-story-plan-review                                     |
+|      v                                                                 |
+| [🟣 PLAN IN REVIEW]                                                    |
+|      | approve                                                        |
+|      +-------------------------------> [🟢 PLAN APPROVED]              |
+|      | request changes / repairable planning gap                       |
+|      +-------------------------------> [🟠 PLAN CHANGES REQUESTED]     |
+|      |                        /openspec-story-plan-resume                |
+|      |                                      v                          |
+|      |                                 [🟡 PLAN DRAFT]                 |
+|      | blocked verdict                                                 |
+|      +-------------------------------> [⛔ PLAN BLOCKED]               |
+|                                             | operator resolves cause   |
+|                                             v                          |
+|                                        [🟡 PLAN DRAFT or review]       |
+|                                                                        |
+| /openspec-feedback may downgrade or repair planning artifacts, but it   |
+| never approves the Plan lane.                                           |
+|                                                                        |
+| /openspec-story-plan-converge orchestrates fresh review/resume passes   |
+| until approved, blocked, no progress, invalid state, or cycle limit.    |
++------------------------------------------------------------------------+
+    |
+    | Implementation claim requires Plan: 🟢 PLAN APPROVED, no blocked.md,
+    | TODO/unclaimed status, and /openspec-story-claim readiness gates,
+    | including completed ## Expected Prerequisites.
+    v
++------------------------- IMPLEMENTATION LANE --------------------------+
+|                                                                        |
+| [⬜/⚪ TODO] --/openspec-story-claim--> [🔄 IN PROGRESS]                |
+|                                         |                              |
+|                                         | implementation complete      |
+|                                         v                              |
+|                                  [🟣 IN REVIEW]                        |
+|                                                                        |
+| /openspec-story-resume continues [🔄 IN PROGRESS], applies local review |
+| or feedback that /openspec-feedback routed back to the story, and       |
+| returns completed work to [🟣 IN REVIEW].                              |
+|                                                                        |
+| /openspec-story-review branches from [🟣 IN REVIEW]:                   |
+|   request changes ---------------------------> [🔄 IN PROGRESS]        |
+|   blocked -----------------------------------> [⛔ BLOCKED]            |
+|   approve -----------------------------------> [✅ DONE]               |
+|                                                                        |
+| [⛔ BLOCKED] -- operator removes blocked.md --> [⛔ BLOCKED, resumable] |
+| [⛔ BLOCKED, resumable] --/openspec-story-resume--> [🔄 IN PROGRESS]   |
+|                                                                        |
+| PR delivery utility, not a story status:                               |
+| [✅ DONE] -- /openspec-story-pr open/attach/refresh PR evidence        |
+| PR feedback -- /openspec-feedback --> plan repair, story reopen/resume,|
+|                 follow-up story, initiative decision, or defer/reject  |
+| merged PR evidence + review approval + tasks --> /openspec-archive     |
+|                                                                        |
+| /openspec-story-converge orchestrates fresh claim/resume/review passes  |
+| until DONE, blocked, invalid state, no progress, or cycle budget        |
+| exhaustion.                                                            |
++------------------------------------------------------------------------+
+    |
+    | /openspec-archive preflights DONE, task checklist, review approval,
+    | no blocked.md, and merged PR evidence or explicit no-PR confirmation.
+    | It then delegates to OpenSpec /opsx:archive <story-slug>.
+    v
+[archived change workspace]
+  openspec/changes/archive/<story-slug>/
+[durable specs]
+  openspec/specs/**
+```
+
+Side inputs and gates:
+
+- `/openspec-feedback` can route feedback into initiative logs, story plan
+  review logs, implementation review logs, future story candidates, or
+  initiative-level decisions. It never touches product source, never approves
+  the Plan lane, and never advances implementation status. Its only status
+  write is an acknowledged `resume-current-story` reopen from `✅ DONE` or
+  `🟣 IN REVIEW` back to `🔄 IN PROGRESS`; PR metadata alone never reopens a
+  story.
+- `blocked.md` is the hard implementation and archive stop, even if the
+  `Status:` header is stale.
+- Delta specs live under the active change workspace until archive. The
+  archive command delegates to OpenSpec's built-in `/opsx:archive` step, which
+  syncs durable spec behavior into `openspec/specs/` and moves the workspace to
+  `openspec/changes/archive/<story-slug>/`.
+
+## Pi context-management building block
+
+For Pi runtimes, ADD treats
+[`pi-agenticoding`](https://github.com/agenticoding/pi-agenticoding) as a core
+building block for getting the most out of these session-bounded workflows. The
+extension provides `spawn`, `notebook`, and `handoff` primitives for isolated
+subtasks, compact durable grounding, and deliberate clean-context handoffs; its
+primer explicitly frames research, planning, and execution as separate jobs. See
+its [Core Primitives](https://github.com/agenticoding/pi-agenticoding#core-primitives)
+and [context primer](https://github.com/agenticoding/pi-agenticoding/blob/main/system-prompt.ts)
+for the source of those runtime concepts.
+
+`pi-agenticoding` is not OpenSpec-specific. ADD layers the OpenSpec artifact
+conventions and command authority described here on top of those generic Pi
+context-management tools, while the repo-local OpenSpec files remain the source
+of truth.
+
 ## Standard lifecycle
 
 ### 1. Initiative planning
@@ -90,12 +218,17 @@ Command ownership:
 - `/openspec-story-plan-resume` edits planning artifacts to absorb feedback and
   returns the Plan lane to draft; it does not approve its own work.
 - `/openspec-story-plan-converge` orchestrates fresh plan-review and plan-resume
-  sessions until approval, block, no-progress, or cycle limit. It owns no direct
-  artifact writes beyond its delegated commands.
+  sessions until approval, block, no-progress, or cycle limit. It performs no
+  normal review/resume artifact writes itself; its direct writes are limited to
+  safety normalization required by its skill contract, such as downgrading an
+  orphaned `🟢 PLAN APPROVED` that lacks an independent approve log.
 - `/openspec-feedback` may downgrade the Plan lane when new feedback changes a
   contract, but it never approves the plan.
 
 Implementation cannot start or continue unless `Plan: 🟢 PLAN APPROVED`.
+A fresh claim also requires `/openspec-story-claim` readiness gates: TODO or
+legacy-unset status, concrete change workspace, no `blocked.md`, and every
+`## Expected Prerequisites` dependency already at `Status: ✅ DONE`.
 
 ### 4. Implementation
 
@@ -106,8 +239,7 @@ Implementation uses `story.md → Status:`:
 | `⬜ TODO` / `⚪ TODO` | Not started. |
 | `🔄 IN PROGRESS` | An implementation session owns current work. |
 | `🟣 IN REVIEW` | Implementation is ready for independent local review. |
-| `🔵 IN PR` | Local review passed and the optional PR stage is active. |
-| `✅ DONE` | Local workflow is complete, and any active PR stage has merged. |
+| `✅ DONE` | Local workflow is complete after independent review approval. |
 | `⛔ BLOCKED` | An implementation blocker exists. `blocked.md` is the hard gate. |
 
 Implementation commands are red-first by default:
@@ -135,8 +267,10 @@ previous findings, design trace, risk lenses, and evidence quality. It can:
 
 - request changes and route back to `/openspec-story-resume`;
 - mark a story blocked;
-- leave a locally approved story at `🟣 IN REVIEW` when a PR stage is expected;
-- mark a no-PR local story `✅ DONE` when all completion gates pass.
+- mark a locally approved story `✅ DONE` when all completion gates pass.
+
+GitHub PRs are external delivery/review channels. A PR may still be opened or
+refreshed after local completion, but PR state does not own `story.md → Status:`.
 
 ### 6. Implementation convergence
 
@@ -144,8 +278,7 @@ previous findings, design trace, risk lenses, and evidence quality. It can:
 operator-selected change. It alternates fresh claim/resume/review sessions until
 one of these hard stops occurs:
 
-- authoritative `Status: ✅ DONE` with durable review or merged-PR evidence;
-- local approval with `Status: 🟣 IN REVIEW` and optional next PR action;
+- authoritative `Status: ✅ DONE` with durable review approval;
 - `blocked.md` or another explicit blocker;
 - invalid lifecycle state, such as unapproved Plan lane;
 - no-progress detection;
@@ -155,21 +288,22 @@ The converger may pass neutral operational notes or sourced notebook page names
 to child sessions. Those notes are orientation only; material claims must be
 verified against live files before edits or verdicts.
 
-### 7. Optional PR stage
+### 7. PR delivery helper
 
-`/openspec-story-pr` owns GitHub PR metadata and the `🔵 IN PR` state. It writes
-`progress.md → ## PR State` and appends to `## Progress Timeline`.
+`/openspec-story-pr` is a lightweight PR delivery helper. It writes
+`progress.md → ## PR State`, updates the product-facing PR body when possible,
+and appends to `## Progress Timeline`. It does not change `story.md → Status:`.
+Local story completion is already represented by `Status: ✅ DONE` after
+`/openspec-story-review` approval.
 
-Allowed transitions:
+Supported operations:
 
-| From | To | Condition |
-|---|---|---|
-| `🟣 IN REVIEW` | `🔵 IN PR` | PR opened or attached. |
-| `🔵 IN PR` | `🔵 IN PR` | PR refreshed and still open. |
-| `🔵 IN PR` | `🔄 IN PROGRESS` | PR/reviewer requests changes. |
-| `🔵 IN PR` | `✅ DONE` | PR is merged with durable merge commit and merged-at evidence. |
-| explicit non-archived `✅ DONE` | `🔵 IN PR` | A late unmerged PR stage is injected. |
-| explicit non-archived `✅ DONE` | `✅ DONE` | A late PR is already merged with durable evidence. |
+| Operation | Effect |
+|---|---|
+| Open or attach a PR for a locally DONE story | Record/update `## PR State` and PR body. |
+| Refresh PR metadata | Update PR status, review decision, merge commit, merged-at, and last-sync evidence. |
+| PR merged | Record durable merge evidence for archive preflight. |
+| PR or reviewer requests changes | Route through `/openspec-feedback` for classification; `/openspec-story-pr` does not mutate story status directly. |
 
 PR bodies are product-facing. They must not paste implementation diary content
 from `progress.md`, `reviews.md`, `tasks.md`, or internal planning sections.
@@ -177,8 +311,11 @@ from `progress.md`, `reviews.md`, `tasks.md`, or internal planning sections.
 ### 8. Feedback absorption
 
 `/openspec-feedback` is a side input to the lifecycle. It classifies structured
-feedback and writes coordination artifacts only. It never touches product source,
-worktrees, branches, archived changes, or PR bodies.
+feedback, including GitHub PR review feedback, and writes coordination artifacts
+only. It never touches product source, worktrees, branches, archived changes, or
+PR bodies. When an acknowledged `resume-current-story` disposition invalidates a
+locally completed or in-review result, it may reopen `story.md → Status:` to
+`🔄 IN PROGRESS` so `/openspec-story-resume` can own the code changes.
 
 Canonical dispositions:
 
@@ -186,7 +323,7 @@ Canonical dispositions:
 |---|---|
 | `queue-planning-feedback` | `story.md → ## Plan Review Log` and Plan lane downgrade. |
 | `amend-existing-story` | Story/design contract edits plus Plan lane downgrade. |
-| `resume-current-story` | `reviews.md`, optional contract edits, and next resume/plan-review action. |
+| `resume-current-story` | `reviews.md`, optional contract edits, optional reopen to `🔄 IN PROGRESS`, and next resume/plan-review action. |
 | `new-story-candidate` | Initiative candidate section for future `/openspec-story-plan`. |
 | `initiative-level-decision` | Initiative decision notes plus absorption log. |
 | `defer-or-reject` | Initiative absorption log only. |
@@ -205,7 +342,7 @@ requires:
 - task checklist complete;
 - durable local review approval;
 - merged PR evidence, or explicit operator confirmation that the story is
-  archived without a PR stage.
+  archived without a PR.
 
 After those gates pass, `/openspec-archive` invokes OpenSpec's built-in
 `/opsx:archive <story-slug>` command. Archived workspaces move to
@@ -221,14 +358,15 @@ After those gates pass, `/openspec-archive` invokes OpenSpec's built-in
 | `Plan:` independent verdict | `/openspec-story-plan-review` |
 | Planning artifact repair | `/openspec-story-plan-resume` |
 | Plan-lane downgrade from external feedback | `/openspec-feedback` |
-| TODO → IN PROGRESS claim | `/openspec-story-claim` |
+| Ready TODO → IN PROGRESS claim, including prerequisite readiness | `/openspec-story-claim` |
 | Implementation progress, handoff, blocker creation | `/openspec-story-claim`, `/openspec-story-resume` |
 | Implementation review log and local approval/request changes | `/openspec-story-review` |
-| PR state and PR-driven transitions | `/openspec-story-pr` |
-| Feedback routing receipts/candidates/decisions | `/openspec-feedback` |
+| PR metadata and delivery evidence | `/openspec-story-pr` |
+| Feedback routing receipts/candidates/decisions, including PR feedback | `/openspec-feedback` |
 | Archive preflight and delegation to `/opsx:archive` | `/openspec-archive` |
 | Read-only lifecycle inspection and next-command recommendation | `/openspec-next-action` |
 | Plan or implementation loop selection | `/openspec-story-plan-converge`, `/openspec-story-converge` |
+| Orphaned `🟢 PLAN APPROVED` safety downgrade | `/openspec-story-plan-converge` |
 
 `/openspec-next-action` recommends the owner command; loopers choose the next
 command within their convergence loops. Neither bypasses command authority.
@@ -240,10 +378,10 @@ command within their convergence loops. Neither bypasses command authority.
 2. Do not implement without `Plan: 🟢 PLAN APPROVED`.
 3. Do not approve implementation while proof rows are provisional or acceptance
    coverage is incomplete.
-4. Do not leave a story at `✅ DONE` while an active PR is unmerged.
-5. Do not archive `🔵 IN PR` or blocked stories.
-6. Use `/openspec-feedback` for new external feedback, especially after a story
-   is complete or when feedback might affect several stories.
+4. Treat unmerged PRs as archive blockers, not story-status blockers.
+5. Do not archive stories with `blocked.md` or missing PR/no-PR evidence.
+6. Use `/openspec-feedback` for new external feedback, especially PR feedback,
+   after a story is complete, or when feedback might affect several stories.
 7. Keep fresh-session boundaries: planning, plan review, implementation,
    implementation review, PR handling, feedback absorption, and archive are
    separate jobs.

@@ -42,7 +42,8 @@ This skill defers to the following artifacts, in priority order. Notebook contex
 3. If `story-slug` is omitted:
    - Scan all directories under `openspec/changes/` for `story.md` files.
    - Read each `story.md` and check the `Status:` header.
-   - Select the first change with `Status: 🔄 IN PROGRESS`, `Status: 🔵 IN PR` where `changes_requested` is present in reviews.md or progress.md, or `Status: ⛔ BLOCKED` when `blocked.md` is absent (previous blocker resolved by removing the gate file).
+   - Select the first change with `Status: 🔄 IN PROGRESS`, or `Status: ⛔ BLOCKED` when `blocked.md` is absent (previous blocker resolved by removing the gate file).
+   - Do not infer work from PR metadata alone. If PR feedback appears actionable for a locally DONE story, tell the operator to run `/openspec-feedback` first so feedback is classified and routed before implementation resumes.
    - If multiple are found, report them and ask the operator to disambiguate.
    - If none are found, report that no in-progress changes exist and halt.
 
@@ -85,6 +86,13 @@ These gates must pass before Phase 1 worktree checks, Phase 2 claim refresh, any
 2. If `blocked.md` is absent but `story.md → Status:` contains `⛔ BLOCKED`, treat this as a resolved blocker marker: proceed, and normalize the status back to `🔄 IN PROGRESS` during Phase 2 before implementation work. Do not halt on status alone.
 3. If `progress.md → ## Session Handoff → Status:` contains `⛔ BLOCKED` while `blocked.md` is absent, treat it as stale handoff context. Preserve it as history, but proceed and write a fresh handoff/status during this resume.
 4. If a blocker is reported by any source other than the removed gate file, ask the operator to recreate `blocked.md` before halting; do not keep a story stranded solely by stale status text.
+
+#### Resume Status Check
+
+1. Read `story.md → Status:` after the Plan Approval and Blocker checks.
+2. If `Status: 🔄 IN PROGRESS`, proceed.
+3. If `Status: ⛔ BLOCKED` and `blocked.md` is absent, proceed only for the stale-blocker normalization described above.
+4. If status is TODO, IN REVIEW, DONE, missing, or unknown, halt and recommend the owning lifecycle command (`/openspec-story-claim`, `/openspec-story-review`, `/openspec-feedback`, `/openspec-story-pr`, or `/openspec-next-action`) instead of guessing. For actionable PR feedback on a DONE story, recommend `/openspec-feedback <initiative-slug> --pr <pr-url>`; when acknowledged as `resume-current-story`, feedback reopens the story to `🔄 IN PROGRESS` before implementation resumes.
 
 #### Parallelism Guard
 
@@ -235,11 +243,12 @@ The agent may transition the change status through these states:
 |------|----|---------|
 | `🔄 IN PROGRESS` | `🔄 IN PROGRESS` | Continue implementing (default on resume) |
 | `🔄 IN PROGRESS` | `🟣 IN REVIEW` | All tasks complete, ready for review |
-| `🔵 IN PR` | `🔄 IN PROGRESS` | Changes requested in review |
-| `🔵 IN PR` | `🔵 IN PR` | PR open, waiting for review |
-| `🔵 IN PR` | `✅ DONE` | PR merged |
 | `🔄 IN PROGRESS` | `⛔ BLOCKED` | External blocker encountered |
-| `⛔ BLOCKED` | `🔄 IN PROGRESS` | Blocker resolved |
+| `⛔ BLOCKED` | `🔄 IN PROGRESS` | Blocker resolved after `blocked.md` removal |
+
+`/openspec-story-resume` does not interpret PR metadata as a lifecycle status.
+`/openspec-story-pr` may refresh PR metadata/evidence, but actionable PR feedback
+must be routed through `/openspec-feedback` before implementation work resumes.
 
 Status transitions update both:
 1. `story.md → Status:` header
@@ -250,7 +259,7 @@ Status transitions update both:
 The agent's default behavior on resume is:
 1. **Resume at `IN PROGRESS`** — Continue implementing remaining tasks.
 2. **Move to `🟣 IN REVIEW` when done** — When all tasks are complete and implementation proof passes.
-3. **Then hand off to PR** — The parent or a subsequent session will handle the PR workflow.
+3. **Then hand off to review** — The parent or a subsequent session will handle independent review. Optional PR delivery happens only after local completion.
 
 ## Phase 4 — Finish Protocol
 
@@ -329,13 +338,14 @@ If the resolved worktrees don't match what was in the previous claim:
 3. If the operator didn't specify, ask which worktrees to use.
 4. Document the change in the Progress Timeline.
 
-### PR State Transition
+### PR State Boundary
 
-If `progress.md → ## PR State` indicates a PR is open and the status is `🔵 IN PR`:
-1. Check for `changes_requested` in reviews.md or progress.md.
-2. If changes are requested, treat as "resume implementation."
-3. If no changes are requested, report "PR is open and awaiting review; no implementation work to resume."
-4. Halt and let the parent handle the PR workflow.
+If `progress.md → ## PR State` indicates a PR is open or has requested changes:
+1. Do not refresh PR metadata, derive lifecycle status from PR metadata, or mark the story done.
+2. If actionable PR feedback is present, report: "PR feedback is present. Run `/openspec-feedback <initiative-slug> --pr <pr-url>` to classify and route it; an acknowledged `resume-current-story` disposition reopens the story before implementation resumes."
+3. If merged evidence appears, report: "PR may be merged; run `/openspec-story-pr` to refresh durable merge evidence for archive, or `/openspec-archive` when all archive gates are ready."
+4. Otherwise report: "PR is open and awaiting review; no implementation work to resume unless feedback is routed through `/openspec-feedback`."
+5. Halt and let the parent handle the PR delivery or feedback workflow.
 
 ### No Remaining Work
 
