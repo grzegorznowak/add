@@ -1,5 +1,7 @@
 # Epic / Story File Conventions
 
+> Archived legacy documentation. The active workflow now uses OpenSpec skills under `claude/skills/`; this file is retained only with the archived `epic-*` workflow for provenance.
+
 Every command in this repo reads and writes a small set of well-defined
 files inside an epic directory. This document is the schema. Stick to it
 and the commands will work; deviate and they will misread your epic.

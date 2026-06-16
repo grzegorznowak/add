@@ -1,14 +1,14 @@
 ---
-name: openspec-epic-plan
-description: Interview-driven bootstrap of an OpenSpec initiative — produces openspec/initiatives/<slug>/initiative.md with goal, context, story candidates, decisions, constraints, and external resources. Use when starting a new body of work that needs an OpenSpec-backed initiative before any change workspaces can be drafted.
+name: openspec-initiative-plan
+description: Interview-driven OpenSpec initiative planning — creates openspec/initiatives/<slug>/initiative.md with goal, context, story candidates, decisions, constraints, and external resources. Use when starting a new body of work that needs an OpenSpec-backed initiative before any change workspaces can be drafted.
 disable-model-invocation: true
 argument-hint: '[SLUG="<slug>"]'
 allowed-tools: Read Grep Glob Write Bash(git status:*) Bash(git log:*)
 ---
 
-# OpenSpec Epic Plan
+# OpenSpec Initiative Plan
 
-Bootstrap a new OpenSpec-backed initiative by interviewing the operator through purpose, scope, constraints, and rough story roadmap — then write `openspec/initiatives/<slug>/initiative.md`. No change workspaces are created here; `/openspec-epic-plan` only produces the initiative file that subsequent `/openspec-story-plan` invocations read.
+Plan a new OpenSpec-backed initiative by interviewing the operator through purpose, scope, constraints, and rough story roadmap — then write `openspec/initiatives/<slug>/initiative.md`. No change workspaces are created here; `/openspec-initiative-plan` only produces the initiative file that subsequent `/openspec-story-plan` invocations read.
 
 Argument: `$ARGUMENTS` — optional `[SLUG="<slug>"]`. If provided, the interview uses it as the initial slug candidate and may still confirm or tweak it. If omitted, the first interview question asks for the slug.
 
@@ -18,7 +18,7 @@ This command writes exactly one file: `<workspace_root>/openspec/initiatives/<sl
 - source code (product files, tests, configs)
 - existing initiative directories or their contents
 - change workspaces under `openspec/changes/`
-- the old `agent_coordination/` flow (this is a separate command family)
+- non-OpenSpec coordination artifacts outside `openspec/`
 
 If the resolved initiative directory already exists (with or without an `initiative.md`), the command aborts without writing.
 

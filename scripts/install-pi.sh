@@ -15,20 +15,25 @@ CLAUDE_SKILLS="$REPO_ROOT/claude/skills"
 PI_FRAGMENTS="$REPO_ROOT/pi-fragments"
 PI_DEST="${PI_SKILLS_DIR:-$HOME/.pi/agent/skills}"
 FORCE="${ADD_INSTALL_FORCE:-0}"
+DRY_RUN="${ADD_INSTALL_DRY_RUN:-0}"
+PRUNE_UNSUPPORTED=0
 
 usage() {
   cat <<'EOF'
-Usage: install-pi.sh [--force]
+Usage: install-pi.sh [--force] [--prune-unsupported] [--dry-run]
 
 Compile pi skills from claude/skills plus pi-fragments into PI_SKILLS_DIR
 (default: ~/.pi/agent/skills). Existing generated files are overwritten only when
 their content is unchanged; use --force to replace local edits or conflicts.
+Use --prune-unsupported to remove recognized unsupported workflow skills (archived legacy or renamed).
 EOF
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --force) FORCE=1; shift ;;
+    --prune-unsupported) PRUNE_UNSUPPORTED=1; shift ;;
+    --dry-run) DRY_RUN=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) printf 'error: unknown argument: %s\n' "$1" >&2; exit 2 ;;
   esac
@@ -47,21 +52,41 @@ ensure_dir_path() {
   if [[ -L "$path" ]]; then
     if [[ "$FORCE" == "1" ]]; then
       printf 'warn: replacing symlink %s\n' "$path" >&2
-      rm -f "$path"
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would: rm -f %s\n' "$path"
+      else
+        rm -f "$path"
+      fi
     else
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would refuse: existing symlink %s (use --force)\n' "$path"
+        return 0
+      fi
       printf 'error: refusing to replace existing symlink %s (use --force)\n' "$path" >&2
       return 1
     fi
   elif [[ -e "$path" && ! -d "$path" ]]; then
     if [[ "$FORCE" == "1" ]]; then
       printf 'warn: replacing conflicting path %s\n' "$path" >&2
-      rm -rf "$path"
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would: rm -rf %s\n' "$path"
+      else
+        rm -rf "$path"
+      fi
     else
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would refuse: existing non-directory %s (use --force)\n' "$path"
+        return 0
+      fi
       printf 'error: refusing to replace existing non-directory %s (use --force)\n' "$path" >&2
       return 1
     fi
   fi
-  mkdir -p "$path"
+  if [[ "$DRY_RUN" == "1" ]]; then
+    [[ -d "$path" ]] || printf '  would: mkdir -p %s\n' "$path"
+  else
+    mkdir -p "$path"
+  fi
 }
 
 write_content_if_safe() {
@@ -73,9 +98,17 @@ write_content_if_safe() {
   if [[ -e "$dest" && ! -f "$dest" ]]; then
     if [[ "$FORCE" == "1" ]]; then
       printf 'warn: replacing conflicting path %s\n' "$dest" >&2
-      rm -rf "$dest"
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would: rm -rf %s\n' "$dest"
+      else
+        rm -rf "$dest"
+      fi
     else
       rm -f "$tmp"
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would refuse: existing non-file %s (use --force)\n' "$dest"
+        return 0
+      fi
       printf 'error: refusing to replace existing non-file %s (use --force)\n' "$dest" >&2
       return 1
     fi
@@ -86,12 +119,21 @@ write_content_if_safe() {
       printf 'warn: overwriting modified generated file %s\n' "$dest" >&2
     else
       rm -f "$tmp"
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would refuse: modified file %s (use --force)\n' "$dest"
+        return 0
+      fi
       printf 'error: refusing to overwrite existing modified file %s (use --force)\n' "$dest" >&2
       return 1
     fi
   fi
 
-  mv "$tmp" "$dest"
+  if [[ "$DRY_RUN" == "1" ]]; then
+    printf '  would: write %s\n' "$dest"
+    rm -f "$tmp"
+  else
+    mv "$tmp" "$dest"
+  fi
 }
 
 fragment_is_replace() {
@@ -115,6 +157,73 @@ compile_skill() {
   else
     printf '%s\n' "$stripped"
   fi
+}
+
+declare -a UNSUPPORTED_PI_SKILLS=(
+  epic-feedback
+  epic-plan
+  epic-pr
+  epic-squash
+  epic-story-claim
+  epic-story-converge
+  epic-story-plan
+  epic-story-plan-converge
+  epic-story-plan-resume
+  epic-story-plan-review
+  epic-story-pr
+  epic-story-resume
+  epic-story-review
+  openspec-epic-plan
+)
+
+frontmatter_name() {
+  local file="$1"
+  awk '
+    NR == 1 && /^---[[:space:]]*$/ { fm = 1; next }
+    NR == 1 { exit }
+    fm && /^---[[:space:]]*$/ { exit }
+    fm && /^name:[[:space:]]*/ {
+      sub(/^name:[[:space:]]*/, "")
+      gsub(/^["'"'"']|["'"'"']$/, "")
+      print
+      exit
+    }
+  ' "$file"
+}
+
+prune_unsupported_pi() {
+  [[ "$PRUNE_UNSUPPORTED" == "1" ]] || return 0
+
+  local name dir skill_md actual
+  printf 'pi prune unsupported → %s\n' "$PI_DEST"
+  for name in "${UNSUPPORTED_PI_SKILLS[@]}"; do
+    dir="$PI_DEST/$name"
+    [[ -e "$dir" || -L "$dir" ]] || continue
+
+    if [[ -L "$dir" || ! -d "$dir" ]]; then
+      printf 'warn: skip  %s (unsupported workflow name exists but is not a directory)\n' "$dir" >&2
+      continue
+    fi
+
+    skill_md="$dir/SKILL.md"
+    if [[ ! -f "$skill_md" ]]; then
+      printf 'warn: skip  %s (missing SKILL.md)\n' "$dir" >&2
+      continue
+    fi
+
+    actual="$(frontmatter_name "$skill_md")"
+    if [[ "$actual" != "$name" ]]; then
+      printf 'warn: skip  %s (frontmatter name is %s, expected %s)\n' "$dir" "${actual:-<missing>}" "$name" >&2
+      continue
+    fi
+
+    printf '  prune %s\n' "$dir"
+    if [[ "$DRY_RUN" == "1" ]]; then
+      printf '  would: rm -rf %s\n' "$dir"
+    else
+      rm -rf "$dir"
+    fi
+  done
 }
 
 ensure_dir_path "$PI_DEST"
@@ -146,5 +255,7 @@ for fragment in "$PI_FRAGMENTS"/*.md; do
   write_content_if_safe "$out_dir/SKILL.md" "$compiled"
   echo "  $skill_name -> $out_dir/SKILL.md (orphan fragment)"
 done
+
+prune_unsupported_pi
 
 echo "pi skills installed to $PI_DEST"

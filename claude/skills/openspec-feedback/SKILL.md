@@ -55,7 +55,7 @@ Feedback often spans several stories. Selecting a story before classification re
    - If an initiative slug was provided, validate it matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` before resolving any path. If it fails, abort with: `invalid initiative slug; use lowercase hyphenated slug characters only`.
    - Then validate that `<cwd>/openspec/initiatives/<slug>/initiative.md` exists.
    - If omitted, list every directory under `<cwd>/openspec/initiatives/` with an `initiative.md`, then ask the operator to pick by number or slug. This is explicit menu selection, not inference. Validate the selected slug against the same canonical slug rule before resolving any path.
-   - If no initiatives exist, stop and tell the operator to run `/openspec-epic-plan` first.
+   - If no initiatives exist, stop and tell the operator to run `/openspec-initiative-plan` first.
 3. Read the project guidance before making recommendations:
    - `AGENTS.md`, then `CLAUDE.md` as fallback when present.
    - `<initiative>/initiative.md`.
@@ -147,7 +147,7 @@ Before reading or writing any story workspace from discovered feedback, initiati
 1. Validate every candidate `<story-slug>` against `^[a-z0-9]+(?:-[a-z0-9]+)*$`. Reject slugs with path separators, whitespace, `..`, absolute paths, URL fragments, or any other non-canonical shape.
 2. Resolve only `<workspace_root>/openspec/changes/<story-slug>/`; never concatenate raw feedback text or corrected target text into a path before validation.
 3. Confirm the resolved directory exists, contains `story.md`, is not under `openspec/changes/archive/`, and remains contained under `<workspace_root>/openspec/changes/` after resolution.
-4. If an acknowledged operator redirect names an invalid, missing, archived, or non-contained target, stop and ask for a canonical non-archived story slug or choose a non-story disposition (`new-story-candidate`, `epic-level-decision`, or `defer-or-reject`).
+4. If an acknowledged operator redirect names an invalid, missing, archived, or non-contained target, stop and ask for a canonical non-archived story slug or choose a non-story disposition (`new-story-candidate`, `initiative-level-decision`, or `defer-or-reject`).
 
 Use the story intent test before editing any story. A feedback item may amend an existing story only when all are true:
 
@@ -164,7 +164,7 @@ Classify each actionable feedback item into exactly one disposition:
 | `amend-existing-story` | Rare direct amendment explicitly acknowledged by the operator outside a planning or implementation feedback cycle. | `story.md` contract sections (+ `design.md` when needed), `Plan:` lane invalidation when the contract changes, story-local receipt, initiative absorption log. |
 | `resume-current-story` | Implemented work misses the current story or PR review requests rework for it. | `reviews.md` (implementation review entry), `story.md` contract edits when needed, `progress.md` replanning checkpoint when contract changes, `Plan:` lane invalidation when the contract changes, story-local receipt, initiative absorption log. |
 | `new-story-candidate` | Feedback introduces a new outcome, dependency, rollout concern, or hardening task. | Initiative candidate section plus absorption log. |
-| `epic-level-decision` | Feedback changes an initiative policy, architectural choice, or cross-story rule. | Initiative decision notes plus absorption log. |
+| `initiative-level-decision` | Feedback changes an initiative policy, architectural choice, or cross-story rule. | Initiative decision notes plus absorption log. |
 | `defer-or-reject` | Feedback is out of scope, duplicate, non-actionable, or intentionally declined. | Initiative absorption log only. |
 
 Read only the change workspace artifacts needed to classify plausible targets. Prefer explicit evidence from:
@@ -398,7 +398,7 @@ For `new-story-candidate`, append or create this initiative-level section in `in
 - Recommended next command: `/openspec-story-plan INITIATIVE="<slug>"` and reference `FB-###` during the interview
 ```
 
-For `epic-level-decision`, append to an existing initiative decision section if one exists. Otherwise create in `initiative.md`:
+For `initiative-level-decision`, append to an existing initiative decision section if one exists. Otherwise create in `initiative.md`:
 
 ```md
 ## Feedback-Derived Decisions

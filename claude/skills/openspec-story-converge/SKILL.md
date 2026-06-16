@@ -48,7 +48,7 @@ There is no `MASTER.md` and no tracker table. All status is self-contained in th
    - `WORKTREE="<value>"`: optional, repeatable, passed through unchanged.
 2. Reject unknown flags.
 3. Set `<workspace_root>` = `<cwd>` and resolve `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative>`.
-4. Read `<initiative_dir>/initiative.md`. If missing, abort with: `initiative not found — run /openspec-epic-plan first`.
+4. Read `<initiative_dir>/initiative.md`. If missing, abort with: `initiative not found — run /openspec-initiative-plan first`.
 5. Resolve `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>/`.
    - If missing, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
    - If archived, abort with: `story is archived; move it back to openspec/changes/ first`.

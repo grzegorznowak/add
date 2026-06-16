@@ -45,7 +45,7 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
    - If `<story-slug>` was passed, validate it matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` before resolving any path, then continue to resolution step 4. If not, abort with: `invalid story slug; use lowercase hyphenated slug characters only`.
    - If `<story-slug>` was not passed, list every story referenced in the resolved initiative's `## Story Candidates` section whose `story.md` Plan lane is not `🟢 PLAN APPROVED`, plus any story with no Plan lane. For each, print: `<story-slug> — <Plan> — <Status> — <Deliverable summary>`. If the filtered list is empty, abort with: `no stories needing plan review in initiative <slug>; pass a story explicitly to re-review an approved plan`. Otherwise ask the operator to pick (number or slug), set `<story-slug>` to that selection, and validate it against the same canonical slug rule before resolving any path.
 4. Set `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative-slug>`.
-   - If `<initiative_dir>` does not exist, abort with: `initiative not found: openspec/initiatives/<initiative-slug>/ — run /openspec-epic-plan first`.
+   - If `<initiative_dir>` does not exist, abort with: `initiative not found: openspec/initiatives/<initiative-slug>/ — run /openspec-initiative-plan first`.
 5. Set `<initiative_file>` = `<initiative_dir>/initiative.md`.
    - If `<initiative_file>` does not exist, abort with the exact missing path.
 6. Set `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>`.
@@ -100,7 +100,7 @@ Remember the pre-review `Plan:` value, then set the `Plan:` header field in `sto
 6. the resolved `<story_file>`
 7. dependency change workspace `story.md` files and materially relevant sibling change workspaces
 
-Unlike the epic flow, there is no `CONTRACT.md` in OpenSpec. The `initiative.md` fills the epic-level context role. If original ticket/PR/Jira intent conflicts with decisions recorded in `initiative.md`, do not silently prefer the ticket; the plan is not approvable unless it records an explicit reopen, scope-deviation, or initiative-update decision. If `initiative.md` context conflicts with the live codebase, the codebase wins and the finding should say the initiative context is stale and needs updating. Never invent linkage: if ticket/PR/Jira evidence is absent, inaccessible, weak, or contradictory, say so explicitly and review against the remaining initiative/story sources.
+There is no `CONTRACT.md` in the active OpenSpec workflow. The `initiative.md` file is the initiative-level context source for decisions, constraints, and cross-story commitments. If original ticket/PR/Jira intent conflicts with decisions recorded in `initiative.md`, do not silently prefer the ticket; the plan is not approvable unless it records an explicit reopen, scope-deviation, or initiative-update decision. If `initiative.md` context conflicts with the live codebase, the codebase wins and the finding should say the initiative context is stale and needs updating. Never invent linkage: if ticket/PR/Jira evidence is absent, inaccessible, weak, or contradictory, say so explicitly and review against the remaining initiative/story sources.
 
 Do not infer identity from filename shape or naming conventions that are not explicitly recorded in `initiative.md` or `story.md`.
 
@@ -172,7 +172,7 @@ Blockers:
 - `## Verification` lacks exact `### Verification Commands`, `### Test Architecture Plan`, or `### Acceptance Proof Matrix` subsections.
 - Verification commands are vague (`run the tests`), claim non-existent files, or fail to name reviewer-runnable commands/manual/file-read actions.
 - `### Test Architecture Plan` lacks required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale`.
-- TAP rows fail the TAP quality gate from `docs/epic-conventions.md`: stable `TAP-*` ids; cheapest reliable real boundary; exact seam; behavior-facing assertion or reviewer-visible signal; fixture/data isolation and live-dependency policy; focused command/CI lane; fallback plan; and repo-convention split/merge rationale when behavior shares a file.
+- TAP rows fail the TAP quality gate from `docs/openspec-conventions.md`: stable `TAP-*` ids; cheapest reliable real boundary; exact seam; behavior-facing assertion or reviewer-visible signal; fixture/data isolation and live-dependency policy; focused command/CI lane; fallback plan; and repo-convention split/merge rationale when behavior shares a file.
 - Broad E2E/manual proof is used when an obvious lower-layer deterministic seam would provide equivalent confidence without an explicit rationale.
 - Hidden live dependencies, slow/flaky/order-coupled fixtures, private-choreography assertions unless contractual, fake mocked-helper seams, or grab-bag test placement would make proof unreliable.
 - `Acceptance Proof Matrix` omits any `A<n>` id, uses proof maturity outside `final|provisional`, leaves `Open Detail` blank for a provisional row, or combines ids/variants whose failure signal is not genuinely shared.
@@ -205,7 +205,7 @@ Blockers:
 Blockers:
 - Review evidence speculates about code, tests, tickets, PRs, or Jira sources that were not inspected or explicitly classified as inaccessible/unknown.
 - Unknown or provisional evidence affects acceptance, route ownership, ticket intent, proof credibility, or contract drift without safe bounds and a follow-up path.
-- Debt Friction that affects proof or scope is hidden instead of recorded with the `docs/epic-conventions.md` shape. A plan is `blocked` for Debt Friction only when meaningful acceptance or proof planning is not possible.
+- Debt Friction that affects proof or scope is hidden instead of recorded with the `docs/openspec-conventions.md` shape. A plan is `blocked` for Debt Friction only when meaningful acceptance or proof planning is not possible.
 
 Warnings:
 - Non-blocking evidence gaps, repo-fit concerns, or optional follow-ups should be logged with severity and next action instead of silently ignored.
