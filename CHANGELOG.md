@@ -28,6 +28,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   legacy lifecycle/conventions docs.
 
 ### Changed
+- Clarified OpenSpec command authority: implementation claim readiness includes
+  completed expected prerequisites, `/openspec-story-pr` owns PR-driven status
+  transitions, and loopers may perform only documented safety-normalization
+  writes.
 - Active installs now include only OpenSpec workflow skills plus approved
   utility skills. Codex and pi generators compile from that active source set.
 - Documentation and plugin metadata now describe the OpenSpec workflow as the

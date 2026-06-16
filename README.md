@@ -72,10 +72,12 @@ reasoning; it is read-only and never performs lifecycle transitions.
    `/openspec-story-plan-resume` repairs planning gaps;
    `/openspec-story-plan-converge` loops fresh review/resume passes until the
    Plan lane is approved, blocked, or stopped.
-4. **Implement red-first** — `/openspec-story-claim` claims a plan-approved TODO
-   story, writes `progress.md`, chooses the smallest credible failing seam, turns
-   it green, records proof, and hands off. `/openspec-story-resume` continues
-   in-progress work or applies review feedback.
+4. **Implement red-first** — `/openspec-story-claim` claims a plan-approved,
+   ready TODO story, including satisfied `## Expected Prerequisites`, writes
+   `progress.md`, chooses the smallest credible failing seam, turns it green,
+   records proof, and hands off. `/openspec-story-resume` continues in-progress
+   work or applies review/PR-change feedback after the story is back in
+   `🔄 IN PROGRESS`.
 5. **Review independently** — `/openspec-story-review` is read-only for product
    code. It writes `reviews.md` and the `Status:` header, approving only when the
    implementation, tests, tasks, and OpenSpec contract line up.

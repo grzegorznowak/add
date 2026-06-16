@@ -409,8 +409,10 @@ has been removed. A resolved blocker may leave historical notes in
 - Claim/resume/PR commands may discover eligible work when that is their job,
   but explicit arguments always win.
 - Loopers (`/openspec-story-plan-converge`, `/openspec-story-converge`) target
-  exactly one operator-selected story and delegate all writes to lifecycle
-  commands.
+  exactly one operator-selected story and delegate normal writes to lifecycle
+  commands. Explicitly documented safety-normalization writes are allowed; for
+  example, `/openspec-story-plan-converge` may downgrade an orphaned
+  `🟢 PLAN APPROVED` that lacks an independent approve log.
 - Commands should print resolved context before high-blast-radius writes.
 
 ## Pi notebook conventions

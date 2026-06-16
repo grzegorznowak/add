@@ -90,7 +90,9 @@ Legend: [state] = durable OpenSpec state, "-- command -->" = owner transition,
 | until approved, blocked, no progress, invalid state, or cycle limit.    |
 +------------------------------------------------------------------------+
     |
-    | Only Plan: 🟢 PLAN APPROVED and no blocked.md unlocks implementation.
+    | Implementation claim requires Plan: 🟢 PLAN APPROVED, no blocked.md,
+    | TODO/unclaimed status, and /openspec-story-claim readiness gates,
+    | including completed ## Expected Prerequisites.
     v
 +------------------------- IMPLEMENTATION LANE --------------------------+
 |                                                                        |
@@ -100,8 +102,9 @@ Legend: [state] = durable OpenSpec state, "-- command -->" = owner transition,
 |                                         v                              |
 |                                  [🟣 IN REVIEW]                        |
 |                                                                        |
-| /openspec-story-resume continues [🔄 IN PROGRESS], applies review/PR    |
-| feedback, and returns completed work to [🟣 IN REVIEW].                |
+| /openspec-story-resume continues [🔄 IN PROGRESS], applies local review |
+| or PR-change feedback after /openspec-story-pr routes it back, and      |
+| returns completed work to [🟣 IN REVIEW].                              |
 |                                                                        |
 | /openspec-story-review branches from [🟣 IN REVIEW]:                   |
 |   request changes ---------------------------> [🔄 IN PROGRESS]        |
@@ -222,6 +225,9 @@ Command ownership:
   contract, but it never approves the plan.
 
 Implementation cannot start or continue unless `Plan: 🟢 PLAN APPROVED`.
+A fresh claim also requires `/openspec-story-claim` readiness gates: TODO or
+legacy-unset status, concrete change workspace, no `blocked.md`, and every
+`## Expected Prerequisites` dependency already at `Status: ✅ DONE`.
 
 ### 4. Implementation
 
@@ -347,7 +353,7 @@ After those gates pass, `/openspec-archive` invokes OpenSpec's built-in
 | `Plan:` independent verdict | `/openspec-story-plan-review` |
 | Planning artifact repair | `/openspec-story-plan-resume` |
 | Plan-lane downgrade from external feedback | `/openspec-feedback` |
-| TODO → IN PROGRESS claim | `/openspec-story-claim` |
+| Ready TODO → IN PROGRESS claim, including prerequisite readiness | `/openspec-story-claim` |
 | Implementation progress, handoff, blocker creation | `/openspec-story-claim`, `/openspec-story-resume` |
 | Implementation review log and local approval/request changes | `/openspec-story-review` |
 | PR state and PR-driven transitions | `/openspec-story-pr` |
@@ -355,6 +361,7 @@ After those gates pass, `/openspec-archive` invokes OpenSpec's built-in
 | Archive preflight and delegation to `/opsx:archive` | `/openspec-archive` |
 | Read-only lifecycle inspection and next-command recommendation | `/openspec-next-action` |
 | Plan or implementation loop selection | `/openspec-story-plan-converge`, `/openspec-story-converge` |
+| Orphaned `🟢 PLAN APPROVED` safety downgrade | `/openspec-story-plan-converge` |
 
 `/openspec-next-action` recommends the owner command; loopers choose the next
 command within their convergence loops. Neither bypasses command authority.
