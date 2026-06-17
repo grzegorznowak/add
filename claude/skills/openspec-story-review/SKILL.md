@@ -88,6 +88,7 @@ Do **not** rediscover the initiative from scratch. Your job is to:
 
 Before doing a full review:
 - inspect the `Status:` header in `story.md`
+- if `Status:` is neither `🟣 IN REVIEW` nor `✅ DONE`, treat the story as not reviewable from this command. In particular, `🔄 IN PROGRESS` must reach `🟣 IN REVIEW` through implementation ownership before review starts; do not normalize it into review from here.
 - inspect the `Plan:` header in `story.md`
 - inspect `<change_dir>/progress.md` for `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, and `## PR State`
 - inspect `<change_dir>/blocked.md` — if this file exists, the story is explicitly blocked; abort or record `not_reviewable`
@@ -97,6 +98,7 @@ Before doing a full review:
 
 If the story is clearly not reviewable yet, abort fast with a concise reason. Examples:
 - story `Status:` is still `⬜ TODO` and there is no implementation / handoff evidence
+- story `Status:` is `🔄 IN PROGRESS`; implementation readiness still belongs to implementation ownership, not review
 - story is blocked by an unmet dependency (`blocked.md` exists or `## Expected Prerequisites` lists an unsatisfied dependency) and the code cannot be sensibly judged
 - no credible mapping from the story spec to any code or tests yet
 - any acceptance id has no proof row, or any proof row is still `provisional`
@@ -388,7 +390,7 @@ Before transitioning to `✅ DONE`, check `progress.md`'s `## Current Claim` -> 
 
 You may update only the `Status:` header field in `story.md` and append to `reviews.md` as part of the review. Use this policy:
 
-- if review starts on a story with `Status: 🔄 IN PROGRESS` but implementation is clearly ready for review, move it to `Status: 🟣 IN REVIEW`
+- if review starts on a story whose `Status:` is not `🟣 IN REVIEW` or `✅ DONE`, treat it as `not_reviewable` and leave `Status:` unchanged; review does not promote `🔄 IN PROGRESS` to `🟣 IN REVIEW`
 - if review passes with no blocking findings, mark it `Status: ✅ DONE`
 - if review finds issues that require more implementation work, move it to `Status: 🔄 IN PROGRESS`
 - if review cannot complete because of an external blocker, mark it `Status: ⛔ BLOCKED`
