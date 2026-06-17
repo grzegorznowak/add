@@ -83,6 +83,7 @@ declare -a UNSUPPORTED_SKILLS=(
   epic-story-pr
   epic-story-resume
   epic-story-review
+  openspec-story-pr
   openspec-epic-plan
 )
 

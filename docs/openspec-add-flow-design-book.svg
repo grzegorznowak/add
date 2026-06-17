@@ -166,7 +166,7 @@
   <rect class="panel-purple" x="940" y="1675" width="1355" height="225" />
   <text class="section-title" x="980" y="1723">6. Publish and archive</text>
   <text class="comment" x="980" y="1755">After local approval, the operator publishes a focused PR, then archives the change when behavior is accepted.</text>
-  <rect class="command" x="980" y="1790" width="245" height="55" /><text class="command-text" x="1008" y="1824">/openspec-story-pr</text>
+  <rect class="command" x="980" y="1790" width="245" height="55" /><text class="command-text" x="1008" y="1824">/openspec-pr</text>
   <path class="arrow-green" d="M1225 1817 H1320" />
   <rect class="panel" x="1320" y="1773" width="270" height="90" />
   <text class="body-strong" x="1355" y="1805">Focused PR body</text>
@@ -219,7 +219,7 @@
   <rect class="command" x="765" y="2515" width="340" height="55" /><text class="command-text" x="792" y="2550">/openspec-story-plan-converge</text>
   <rect class="command" x="1125" y="2515" width="310" height="55" /><text class="command-text" x="1153" y="2550">/openspec-story-converge</text>
   <rect class="command" x="1455" y="2515" width="230" height="55" /><text class="command-text" x="1483" y="2550">/openspec-feedback</text>
-  <rect class="command" x="1705" y="2515" width="230" height="55" /><text class="command-text" x="1733" y="2550">/openspec-story-pr</text>
+  <rect class="command" x="1705" y="2515" width="230" height="55" /><text class="command-text" x="1733" y="2550">/openspec-pr</text>
   <rect class="command" x="1955" y="2515" width="220" height="55" /><text class="command-text" x="1982" y="2550">/openspec-archive</text>
   <path class="arrow-green" d="M475 2542 H495" /><path class="arrow-green" d="M745 2542 H765" /><path class="arrow-green" d="M1105 2542 H1125" />
   <path class="arrow-green" d="M1435 2542 H1455" /><path class="arrow-green" d="M1685 2542 H1705" /><path class="arrow-green" d="M1935 2542 H1955" />

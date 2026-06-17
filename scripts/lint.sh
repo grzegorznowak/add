@@ -69,6 +69,7 @@ declare -a UNSUPPORTED_SKILLS=(
   epic-story-pr
   epic-story-resume
   epic-story-review
+  openspec-story-pr
   openspec-epic-plan
 )
 
@@ -86,6 +87,7 @@ declare -a UNSUPPORTED_CODEX_SKILLS=(
   epic_story_pr
   epic_story_resume
   epic_story_review
+  openspec_story_pr
   openspec_epic_plan
 )
 
@@ -669,7 +671,7 @@ expect_codex_argument_line openspec_story_plan 'Argument: [INITIATIVE=<slug>]'
 expect_codex_argument_line openspec_story_plan_resume 'Argument: INITIATIVE=<slug> STORY=<slug>'
 expect_codex_argument_line openspec_story_plan_review 'Argument: INITIATIVE=<slug> STORY=<slug>'
 expect_codex_argument_line openspec_story_plan_converge 'Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5]'
-expect_codex_argument_line openspec_story_pr 'Argument: INITIATIVE=<slug> STORY=<slug> [<pr_url_or_OPEN=true>]'
+expect_codex_argument_line openspec_pr 'Argument: INITIATIVE=<slug> STORY=<slug> [<pr_url_or_OPEN=true>]'
 
 expect_codex_contains openspec_next_action "the INITIATIVE, STORY, SPEC, and --all selectors"
 expect_codex_contains openspec_feedback "the INITIATIVE, feedback flags, and feedback payload named variables"
@@ -677,7 +679,7 @@ expect_codex_contains openspec_story_claim "the INITIATIVE, STORY, and WORKTREE 
 expect_codex_contains openspec_story_review "the INITIATIVE, STORY, and WORKTREE named variables"
 expect_codex_contains openspec_story_converge "the INITIATIVE, STORY, MAX_CYCLES, and WORKTREE named variables"
 expect_codex_contains openspec_story_plan_converge "the INITIATIVE, STORY, and MAX_CYCLES named variables"
-expect_codex_contains openspec_story_pr "the INITIATIVE, STORY, and PR selector named variables"
+expect_codex_contains openspec_pr "the INITIATIVE, STORY, and PR selector named variables"
 
 expect_codex_contains openspec_story_claim "Claimed by: Codex fresh session"
 expect_codex_contains openspec_story_resume "Claimed by: Codex fresh session (resume)"

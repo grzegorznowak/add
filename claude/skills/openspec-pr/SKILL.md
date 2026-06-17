@@ -1,12 +1,12 @@
 ---
-name: openspec-story-pr
+name: openspec-pr
 description: Open, attach, or refresh optional GitHub PR delivery metadata/evidence for one OpenSpec story. Does not change story Status.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug> [pr-url|OPEN=true]"
 allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(git rev-parse:*) Bash(gh pr list:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*) Bash(curl:*)
 ---
 
-# OpenSpec Story PR
+# OpenSpec PR
 
 Open, attach, or refresh a GitHub PR for a locally completed OpenSpec story and record delivery metadata on the change workspace's `progress.md`. This is a lightweight delivery helper after local review has already marked the story `✅ DONE`; it is not a story lifecycle state and never updates `story.md → Status:`.
 
@@ -306,7 +306,7 @@ If `## PR State` already has a PR URL, refresh it:
 
 - Re-query `gh pr view --json number,title,headRefName,state,url,body,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` if available and update `## PR State → PR status`, `Review decision`, `Merge commit`, `Merged at`, and `Last synced`.
 - If `PR status` is `merged` and both `Merge commit:` and `Merged at:` are populated, report that archive PR evidence is complete.
-- If `PR status` is `merged` but merge commit or merged-at evidence is missing, report the missing durable evidence and tell the user to rerun `/openspec-story-pr` with `gh` available or provide the missing evidence explicitly before archive.
+- If `PR status` is `merged` but merge commit or merged-at evidence is missing, report the missing durable evidence and tell the user to rerun `/openspec-pr` with `gh` available or provide the missing evidence explicitly before archive.
 - If `PR status` is `changes_requested` or reviewer comments request changes, do not update `story.md → Status:`. Tell the user to run `/openspec-feedback <initiative> --pr <PR URL>` so the feedback can be classified into story rework, planning changes, a follow-up story, initiative decision, or defer/reject.
 - Otherwise leave local story completion alone and update PR delivery metadata only.
 
@@ -338,5 +338,5 @@ State:
 - exactly what the user should do next:
   - wait on PR review
   - run `/openspec-feedback <initiative> --pr <url>` to absorb PR feedback
-  - rerun `/openspec-story-pr` with the same PR URL to refresh PR metadata
+  - rerun `/openspec-pr` with the same PR URL to refresh PR metadata
   - rerun `/openspec-archive` once local DONE, task, review, and PR/no-PR gates are ready

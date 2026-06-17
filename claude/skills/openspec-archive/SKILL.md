@@ -39,7 +39,7 @@ This command is a coordination-only transition. It never touches source code, te
    - If `<change_dir>` is missing, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
    - If already archived, abort with: `story <story-slug> is already archived at openspec/changes/archive/<story-slug>/`.
    - If missing in both locations, abort with: `change workspace not found: openspec/changes/<story-slug>/`.
-5. Read `<change_dir>/story.md`. Confirm that the `Status:` header field exists and is `✅ DONE`. If not `✅ DONE`, abort with the current status and: `Only locally DONE stories can be archived. Current status: <status>. Run /openspec-story-converge or /openspec-story-review first; use /openspec-story-pr only to record PR delivery evidence after local completion.`
+5. Read `<change_dir>/story.md`. Confirm that the `Status:` header field exists and is `✅ DONE`. If not `✅ DONE`, abort with the current status and: `Only locally DONE stories can be archived. Current status: <status>. Run /openspec-story-converge or /openspec-story-review first; use /openspec-pr only to record PR delivery evidence after local completion.`
 6. Read `<initiative_file>` for the post-archive update context.
 
 ## Phase 2 — Pre-flight checks
@@ -52,12 +52,12 @@ If `<blocked_file>` exists at `<change_dir>/blocked.md`, abort with: `Story has 
 
 ### Check B — PR State (PR must be merged)
 
-Read `<progress_file>` and look for the `## PR State` section. Extract the `- PR URL:` value, trimming whitespace. If the section is absent, the `- PR URL:` line is absent, or the value is blank/placeholder (`<empty>`, `—`, `none`, or a template `<...>` value), this means there is no durable PR binding. Ask the operator: `No PR State found for <story-slug>. Archive without a PR? [y/N]`. If the operator declines, abort with: `Archive deferred. Run /openspec-story-pr to create or attach a PR, or re-run /openspec-archive and confirm no-PR-archive.`
+Read `<progress_file>` and look for the `## PR State` section. Extract the `- PR URL:` value, trimming whitespace. If the section is absent, the `- PR URL:` line is absent, or the value is blank/placeholder (`<empty>`, `—`, `none`, or a template `<...>` value), this means there is no durable PR binding. Ask the operator: `No PR State found for <story-slug>. Archive without a PR? [y/N]`. If the operator declines, abort with: `Archive deferred. Run /openspec-pr to create or attach a PR, or re-run /openspec-archive and confirm no-PR-archive.`
 
 **If `## PR State` has a non-empty `- PR URL:` value:**
 
 - Do not trust cached local `PR status`, `Merge commit`, or `Merged at` fields as merge evidence by themselves. Before passing the PR gate, run `gh pr view <url> --json state,mergedAt,mergeCommit` and use the live GitHub response as the authority.
-- If `gh` is unavailable, the command fails, the PR cannot be read, or GitHub reports any non-merged state, abort with: `PR is not confirmed merged from GitHub. Run /openspec-story-pr <initiative-slug> <story-slug> <pr_url> to resync, then re-archive.` Include the observed state/error in the report.
+- If `gh` is unavailable, the command fails, the PR cannot be read, or GitHub reports any non-merged state, abort with: `PR is not confirmed merged from GitHub. Run /openspec-pr <initiative-slug> <story-slug> <pr_url> to resync, then re-archive.` Include the observed state/error in the report.
 - If GitHub confirms the PR is merged but `mergeCommit.oid` or `mergedAt` is missing, abort with the same resync hint; archive requires both a non-placeholder merge commit and a non-placeholder merged timestamp.
 - If GitHub confirms merged with complete evidence, refresh/populate `## PR State` in `<progress_file>` so `- PR status: merged`, `- Merge commit:` (from `mergeCommit.oid`), `- Merged at:` (from `mergedAt`), and `- Last synced:` reflect the live response before continuing.
 

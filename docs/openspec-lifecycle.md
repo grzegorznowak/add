@@ -115,7 +115,7 @@ Legend: [state] = durable OpenSpec state, "-- command -->" = owner transition,
 | [⛔ BLOCKED, resumable] --/openspec-story-resume--> [🔄 IN PROGRESS]   |
 |                                                                        |
 | PR delivery utility, not a story status:                               |
-| [✅ DONE] -- /openspec-story-pr open/attach/refresh PR evidence        |
+| [✅ DONE] -- /openspec-pr open/attach/refresh PR evidence               |
 | PR feedback -- /openspec-feedback --> plan repair, story reopen/resume,|
 |                 follow-up story, initiative decision, or defer/reject  |
 | merged PR evidence + review approval + tasks --> /openspec-archive     |
@@ -290,7 +290,7 @@ verified against live files before edits or verdicts.
 
 ### 7. PR delivery helper
 
-`/openspec-story-pr` is a lightweight PR delivery helper. It writes
+`/openspec-pr` is a lightweight PR delivery helper. It writes
 `progress.md → ## PR State`, updates the product-facing PR body when possible,
 and appends to `## Progress Timeline`. It does not change `story.md → Status:`.
 Local story completion is already represented by `Status: ✅ DONE` after
@@ -303,7 +303,7 @@ Supported operations:
 | Open or attach a PR for a locally DONE story | Record/update `## PR State` and PR body. |
 | Refresh PR metadata | Update PR status, review decision, merge commit, merged-at, and last-sync evidence. |
 | PR merged | Record durable merge evidence for archive preflight. |
-| PR or reviewer requests changes | Route through `/openspec-feedback` for classification; `/openspec-story-pr` does not mutate story status directly. |
+| PR or reviewer requests changes | Route through `/openspec-feedback` for classification; `/openspec-pr` does not mutate story status directly. |
 
 PR bodies are product-facing. They must not paste implementation diary content
 from `progress.md`, `reviews.md`, `tasks.md`, or internal planning sections.
@@ -361,7 +361,7 @@ After those gates pass, `/openspec-archive` invokes OpenSpec's built-in
 | Ready TODO → IN PROGRESS claim, including prerequisite readiness | `/openspec-story-claim` |
 | Implementation progress, handoff, blocker creation | `/openspec-story-claim`, `/openspec-story-resume` |
 | Implementation review log and local approval/request changes | `/openspec-story-review` |
-| PR metadata and delivery evidence | `/openspec-story-pr` |
+| PR metadata and delivery evidence | `/openspec-pr` |
 | Feedback routing receipts/candidates/decisions, including PR feedback | `/openspec-feedback` |
 | Archive preflight and delegation to `/opsx:archive` | `/openspec-archive` |
 | Read-only lifecycle inspection and next-command recommendation | `/openspec-next-action` |

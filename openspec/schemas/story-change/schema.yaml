@@ -56,7 +56,7 @@ artifacts:
     description: >
       Progress tracking: Current Claim, Progress Timeline, Session Handoff,
       PR State, Unresolved Debt Friction. Written by /openspec-story-claim,
-      /openspec-story-resume, and /openspec-story-pr. Excluded from PR bodies
+      /openspec-story-resume, and /openspec-pr. Excluded from PR bodies
       (implementation diary, not product contract).
     template: progress.md
 
