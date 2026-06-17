@@ -1,6 +1,6 @@
 ---
 name: openspec-story-converge
-description: Run fresh claim/resume implementation passes against one OpenSpec change until it reaches Status: 🟣 IN REVIEW, becomes blocked, or the loop reaches a hard stop. Use when a plan-approved implementation story needs continuation only; independent review is intentionally left to a separate fresh session.
+description: "Run fresh claim/resume implementation passes against one OpenSpec change until it reaches Status: 🟣 IN REVIEW, becomes blocked, or the loop reaches a hard stop. Use when a plan-approved implementation story needs continuation only; independent review is intentionally left to a separate fresh session."
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug> [MAX_CYCLES=5] [WORKTREE=\"<basename>=<path>\"]..."
 allowed-tools: Read Grep Glob Task Bash(git status:*) Bash(git worktree:*)

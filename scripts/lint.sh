@@ -161,6 +161,33 @@ check_frontmatter_value() {
   fi
 }
 
+check_frontmatter_yaml_scalar_safety() {
+  local file="$1" output
+  if ! output="$(awk '
+    NR == 1 && /^---[[:space:]]*$/ { fm = 1; next }
+    NR == 1 { exit 0 }
+    fm && /^---[[:space:]]*$/ { exit 0 }
+    fm && /^[[:space:]]*[A-Za-z0-9_-]+:[[:space:]]*/ {
+      line = $0
+      value = line
+      sub(/^[[:space:]]*[A-Za-z0-9_-]+:[[:space:]]*/, "", value)
+      trimmed = value
+      sub(/^[[:space:]]*/, "", trimmed)
+      if (trimmed == "") next
+      first = substr(trimmed, 1, 1)
+      if (first == "\"" || first == "\047" || first == "[" || first == "{" || first == "|" || first == ">") next
+      if (trimmed ~ /:[[:space:]]/) {
+        print FILENAME ":" NR ": quote frontmatter scalar values that contain colon-space (: )"
+        bad = 1
+      }
+    }
+    END { exit bad ? 1 : 0 }
+  ' "$file")"; then
+    fail "$file: YAML frontmatter contains an unsafe unquoted scalar"
+    printf '%s\n' "$output" | sed 's/^/  /' >&2
+  fi
+}
+
 # Extract the value of `name:` from a SKILL.md frontmatter
 extract_name() {
   frontmatter_value "$1" name
@@ -194,6 +221,7 @@ else
     fi
 
     check_frontmatter_fields "$skill_md" name description disable-model-invocation argument-hint allowed-tools
+    check_frontmatter_yaml_scalar_safety "$skill_md"
     check_frontmatter_value "$skill_md" disable-model-invocation true
 
     declared_name="$(extract_name "$skill_md")"
@@ -228,6 +256,7 @@ else
 
     if [[ "$first_line" == "---" ]]; then
       # Replace fragment: must have valid frontmatter and name field
+      check_frontmatter_yaml_scalar_safety "$fragment"
       declared_name="$(extract_name "$fragment")"
       if [[ -z "$declared_name" ]]; then
         fail "$fragment: replace fragment missing 'name:' in frontmatter"
@@ -286,6 +315,7 @@ for skill_dir in "$CODEX_SKILLS"/*/; do
   fi
 
   check_frontmatter_fields "$skill_md" name description
+  check_frontmatter_yaml_scalar_safety "$skill_md"
 
   declared_name="$(extract_name "$skill_md")"
   if [[ -z "$declared_name" ]]; then
@@ -329,6 +359,7 @@ for skill_dir in "$PI_SKILLS"/*/; do
   fi
 
   check_frontmatter_fields "$skill_md" name description
+  check_frontmatter_yaml_scalar_safety "$skill_md"
 
   declared_name="$(extract_name "$skill_md")"
   if [[ -z "$declared_name" ]]; then
