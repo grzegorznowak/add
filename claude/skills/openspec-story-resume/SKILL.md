@@ -118,7 +118,7 @@ These gates must pass before Phase 1 worktree checks, Phase 2 claim refresh, any
    - If the operator provides a subset, use operator values for those basenames and retain the rest from the claim.
 4. Preserve main-tree targets from the current claim unless that basename now has an operator-provided or retained worktree. Do not drop the `Main-tree targets:` shape during claim refresh; `/openspec-story-review` uses it to scope dirty main-tree work.
 5. Validate each worktree path exists and is a git repository.
-6. Validate each worktree basename matches the repository's actual directory name or a known alias.
+6. Validate each worktree basename matches the repository's actual directory name or a known alias. Additionally, accept a recorded or explicit basename as a root-repo alias when its path resolves to the current `<workspace_root>` and `<workspace_root>` is itself a git repo, even if the directory basename now differs from the original checkout basename. Treat that alias as the resolved repo identity without adding a persisted `OpenSpec root:` field or changing the `progress.md → ## Current Claim` shape.
 
 ### 1.2 Dirty Detection
 
