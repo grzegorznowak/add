@@ -99,6 +99,13 @@ The planning body should contain these sections when applicable:
 | `## Plan Review Log` | Seeded as an empty section by the story template and `/openspec-story-plan`; entries are created/appended only by plan review, planning feedback, or plan-resume addressed-entry repair. |
 | `## Feedback Absorption Log` | Optional story-local receipt for feedback edits. |
 
+Legacy or malformed stories missing `Plan:`, `Status:`, or the empty `## Plan Review Log`
+anchor are normalized by `/openspec-story-plan-resume`; it may add missing
+`Plan: 🟡 PLAN DRAFT`, add missing `Status: ⚪ TODO`, normalize exact legacy
+`Status: ⬜ TODO` to `Status: ⚪ TODO`, and add the empty log section, but it
+must not rewrite active, in-review, done, blocked, blank, or unknown status
+values.
+
 #### Actors
 
 - Use role bullets, not personas.

@@ -70,13 +70,14 @@ Read only the artifacts needed for routing:
 Evidence to extract:
 
 - `Plan:` from `story.md`.
-- `Status:` from `story.md`.
+- `Status:` from `story.md`, including whether it is missing or exact legacy `⬜ TODO`.
+- Whether `## Plan Review Log` exists in `story.md`.
 - Whether `blocked.md` exists.
 - Whether the story is active, archived, or missing.
 - Whether `progress.md → ## PR State` indicates open, merged, or requested-changes PR feedback that affects archive or feedback routing.
 - Whether the latest relevant `reviews.md` entry appears to record `Decision: approve` and `Approval gate: pass`.
 - Whether `tasks.md` has obviously unchecked in-scope tasks when considering archive.
-- Whether required planning scaffold files (`proposal.md`, `story.md`, `design.md`, `tasks.md`) exist when the plan is not approved.
+- Whether required planning scaffold files (`proposal.md`, `story.md`, `design.md`, `tasks.md`) and scaffold anchors (`Plan:`, `Status:`, `## Plan Review Log`) exist when the plan is not approved.
 
 Do not perform deep review. If the quick evidence is missing, stale, or conflicting, route to the owner command rather than trying to settle the verdict here.
 
@@ -104,14 +105,22 @@ Apply these rules in order.
 | `Status: ⛔ BLOCKED` and no `blocked.md` | `/openspec-story-resume <initiative> <story-slug>` |
 | `Plan: ⛔ PLAN BLOCKED` | Operator decision: resolve planning blocker, then `/openspec-story-plan-converge <initiative> <story-slug>` |
 
+### Story scaffold normalization
+
+If an active story is not `Status: ✅ DONE`, scaffold normalization runs before planning or implementation routing so approved stories with malformed anchors are repaired before claim/resume/review decisions.
+
+| State | Recommendation |
+|---|---|
+| Missing scaffold anchors (`Plan:`, `Status:`, `## Plan Review Log`), malformed scaffold anchors, or legacy `Status: ⬜ TODO` | `/openspec-story-plan-resume <initiative> <story-slug>` |
+
 ### Planning lane before implementation
 
 If `Status:` is not `✅ DONE` and `Plan:` is not `🟢 PLAN APPROVED`, planning owns the next action.
 
 | Plan lane / scaffold | Recommendation |
 |---|---|
-| Missing core planning files or malformed scaffold | `/openspec-story-plan-resume <initiative> <story-slug>` |
-| `Plan:` absent, unset, or `🟡 PLAN DRAFT` | `/openspec-story-plan-review <initiative> <story-slug>` when scaffold exists; otherwise `/openspec-story-plan-resume <initiative> <story-slug>` |
+| Missing core planning files or malformed planning scaffold beyond header/log normalization | `/openspec-story-plan-resume <initiative> <story-slug>` |
+| `Plan:` unset or `🟡 PLAN DRAFT` | `/openspec-story-plan-review <initiative> <story-slug>` when scaffold exists; otherwise `/openspec-story-plan-resume <initiative> <story-slug>` |
 | `Plan: 🟣 PLAN IN REVIEW` | `/openspec-story-plan-review <initiative> <story-slug>` |
 | `Plan: 🟠 PLAN CHANGES REQUESTED` | `/openspec-story-plan-resume <initiative> <story-slug>` |
 | Repeated plan review/resume uncertainty | `/openspec-story-plan-converge <initiative> <story-slug>` |
