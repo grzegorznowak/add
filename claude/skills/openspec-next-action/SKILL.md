@@ -134,9 +134,10 @@ Before using the status table, handle stale plan approval:
 
 | Plan-approved drift state | Recommendation |
 |---|---|
-| `PlanContractDrift=yes` from material uncommitted changes in `story.md`, `design.md`, or `tasks.md` | `/openspec-story-plan-review <initiative> <story-slug>` |
+| `PlanContractDrift=yes` and `Status: ✅ DONE` from material uncommitted changes in `story.md`, `design.md`, or `tasks.md` | `/openspec-feedback <initiative>` |
+| `PlanContractDrift=yes` and `Status:` is not `✅ DONE` from material uncommitted changes in `story.md`, `design.md`, or `tasks.md` | `/openspec-story-plan-review <initiative> <story-slug>` |
 
-This stale-approval rule takes precedence over claim, resume, implementation review, PR delivery, and archive routing because implementation commands operate on the currently approved plan/contract.
+This stale-approval rule takes precedence over claim, resume, implementation review, PR delivery, and archive routing because implementation commands operate on the currently approved plan/contract. Completed stories are the exception: `/openspec-story-plan-review` does not contract-review `Status: ✅ DONE` stories in place, so contract-changing input must go through `/openspec-feedback` for candidate, initiative-level, or explicitly acknowledged reopen handling.
 
 | Status | Recommendation |
 |---|---|
@@ -181,10 +182,11 @@ Return only this compact report. Include every section; use `None.` or `unavaila
 ## Reasoning
 - <evidence-backed reason with file path and field/section>
 - <when routing due plan-contract drift, cite dirty planning artifact path(s) and the changed section or kind of contract content without dumping the diff>
+- <when routing a DONE story with plan-contract drift to `/openspec-feedback`, state that completed stories are not contract-reviewed in place and that feedback/reopen handling owns the next transition>
 - <why this command owns the next transition>
 
 ## Alternatives / Caveats
-- <optional PR/no-PR choice, ambiguity, stale evidence, or archive preflight caveat>
+- <optional PR/no-PR choice, ambiguity, stale evidence, feedback source/PR needed for `/openspec-feedback`, or archive preflight caveat>
 - None.
 
 ## All Candidates
