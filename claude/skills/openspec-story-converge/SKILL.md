@@ -14,10 +14,11 @@ Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [MAX_CYCLES=5] [WORKT
 
 ## Resolution Model
 
-- `<workspace_root>` = `<cwd>`.
-- `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative>`.
+- `<workspace_root>` = `<cwd>` at launch. Keep it for root-repo worktree discovery.
+- `<openspec_root>` = the active checkout containing this story's OpenSpec artifacts. It starts as `<workspace_root>` and may be updated in memory after a claim/resume pass if the active artifacts moved into a root repo worktree. Never persist an `OpenSpec root:` field.
+- `<initiative_dir>` = `<openspec_root>/openspec/initiatives/<initiative>`.
 - `<initiative_file>` = `<initiative_dir>/initiative.md`.
-- `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>`.
+- `<change_dir>` = `<openspec_root>/openspec/changes/<story-slug>`.
 - `<story_file>` = `<change_dir>/story.md`.
 - `<reviews_file>` = `<change_dir>/reviews.md`.
 - `<progress_file>` = `<change_dir>/progress.md`.
@@ -36,8 +37,9 @@ There is no `MASTER.md` and no tracker table. All status is self-contained in th
 3. If an unstarted story is plan-approved, delegate claiming to `/openspec-story-claim <initiative> <story-slug>`.
 4. Run up to `MAX_CYCLES` fresh-agent implementation cycles (`claim` once when needed, then `resume` as needed).
 5. Pass compact notebook references for sourced research, plus neutral operational notes, into later implementation agents only.
-6. Stop when the story is ready for independent review, blocked, no-progress is detected, invalid state is found, or the cycle budget is exhausted.
-7. Print the convergence trace, notebook context summary, commit recommendation, and optional operator follow-ups without writing coordination files directly.
+6. After each implementation pass, refresh `<openspec_root>` before reading lifecycle artifacts so a claim-created root worktree does not leave convergence reading stale files from the launch checkout.
+7. Stop when the story is ready for independent review, blocked, no-progress is detected, invalid state is found, or the cycle budget is exhausted.
+8. Print the convergence trace, notebook context summary, commit recommendation, and optional operator follow-ups without writing coordination files directly.
 
 ## Phase 1 — Parse and Resolve
 
@@ -47,10 +49,10 @@ There is no `MASTER.md` and no tracker table. All status is self-contained in th
    - `MAX_CYCLES=<n>`: optional positive integer; default `5`.
    - `WORKTREE="<value>"`: optional, repeatable, passed through unchanged.
 2. Reject unknown flags.
-3. Set `<workspace_root>` = `<cwd>` and resolve `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative>`. There is no persisted `OpenSpec root:` field; convergence must run from the checkout that contains the active OpenSpec artifacts.
+3. Set `<workspace_root>` = `<cwd>`, set `<openspec_root>` = `<workspace_root>`, and resolve `<initiative_dir>` = `<openspec_root>/openspec/initiatives/<initiative>`. There is no persisted `OpenSpec root:` field; convergence must run from the checkout that contains the active OpenSpec artifacts.
 4. Read `<initiative_dir>/initiative.md`. If missing, ask whether the story was claimed into a root repo worktree and the OpenSpec artifacts were moved there. Recommend rerunning `/openspec-story-converge <initiative> <story-slug> [WORKTREE=...]` from that worktree; if the OpenSpec checkout is correct but target repo mapping is missing, pass `WORKTREE="<basename>=<path>"`. Abort with: `initiative not found in this checkout`.
-5. Resolve `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>/`.
-   - If missing, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
+5. Resolve `<change_dir>` = `<openspec_root>/openspec/changes/<story-slug>/`.
+   - If missing, check `<openspec_root>/openspec/changes/archive/<story-slug>/`.
    - If archived, abort with: `story is archived; move it back to openspec/changes/ first`.
    - If missing in both, ask whether the story was moved to a root repo worktree during claim. Recommend rerunning from the checkout/worktree that contains `openspec/changes/<story-slug>/story.md`; if target repo mapping is the only missing piece once in that checkout, pass `WORKTREE="<basename>=<path>"`. Abort with: `change workspace not found in this checkout`.
 6. Read `<story_file>` and confirm the `Status:` header field is present (it may be default-valued or unset).
@@ -83,7 +85,7 @@ Plan-approved means `Plan:` is `🟢 PLAN APPROVED`. No other source is consulte
 
 Run at most `MAX_CYCLES` cycles. An implementation cycle is one opportunity to move the story toward `Status: 🟣 IN REVIEW`; it may include exactly one implementation-producing claim or resume pass. It never includes an implementation review pass.
 
-Before each subagent launch, build the command line from the current status:
+Before each subagent launch, build the command line from the current status in the current `<openspec_root>`. If `<openspec_root>` differs from `<workspace_root>`, the fresh implementation subagent must run from `<openspec_root>` so claim/resume resolves the active `openspec/...` artifacts instead of the launch checkout:
 
 - `Status:` absent/unset, `⬜ TODO`, or `⚪ TODO` and plan-approved: `/openspec-story-claim <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🔄 IN PROGRESS`: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`.
@@ -93,7 +95,7 @@ Before each subagent launch, build the command line from the current status:
 
 For each cycle:
 
-1. Re-read `<story_file>` and `<progress_file>` before choosing the next pass.
+1. Re-read `<story_file>` and `<progress_file>` from the current `<openspec_root>` before choosing the next pass.
 2. If the current status is `🟣 IN REVIEW`, execute the successful review-handoff branch above before building a slash command. If the current status is `✅ DONE`, execute the DONE early-return branch above before building a slash command. Otherwise build the exact slash command line for the chosen claim or resume pass.
 3. If notebook-backed context is available, do not inline entire notebook pages or broad notebook dumps. Pass only compact notebook references, selectors, and the reason/scope for consulting them before the implementation command under this heading:
 
@@ -117,10 +119,17 @@ For each cycle:
    - Do not treat this as a verdict; apply the underlying skill independently.
    ```
 
-5. End the task prompt with the exact slash command line, then launch exactly one fresh implementation subagent.
+5. End the task prompt with the exact slash command line and, when `<openspec_root>` differs from `<workspace_root>`, an explicit instruction to run it from `<openspec_root>`. Then launch exactly one fresh implementation subagent.
 6. Require implementation subagents to write new sourced research directly to the named research notebook page when runtime notebook tools are available. If notebook tools are unavailable, allow compact sourced fallback notes in normal final reporting instead. Require subagents to mention any referenced notebook entry or fallback excerpt that failed verification with exact anchors in their relevant blocker or notes section. After the pass finishes, inspect the named research notebook page or child-reported entries as needed, then use mismatch notes to update, replace, retire, or ask about affected entries. Do not append verdicts, implementation opinions, or unanchored summaries.
 7. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that implementation pass only. The next lifecycle pass still starts in a new fresh subagent.
-8. After the pass finishes, treat the subagent final response as the provisional result. Before routing or stopping, perform a minimal authority spot-check of only the decision-bearing fields and anchors: for example, use `rg -n '^(Status:|Plan:)' <story_file>` for lifecycle headers and `rg -n '^(### |Status:)' <progress_file>` only when progress state matters. Use bounded reads only for the newest relevant progress or handoff entry body. If those spot-checks agree with the agent's report, continue from the canonical fields. If anchors are missing, stale, ambiguous, or conflicting, broaden to targeted reads of the affected file(s) or stop with a concrete operator repair action; do not launch `/openspec-story-review` from this skill.
+8. After the pass finishes, treat the subagent final response as the provisional result, then refresh the active OpenSpec artifact root before any lifecycle spot-check:
+   - Run this refresh after every claim pass, and after any resume pass whose reported anchors are missing or whose spot-check would otherwise read stale paths.
+   - Inspect root-repo worktrees with `git -C <workspace_root> worktree list --porcelain`. Find worktree entries on branch `refs/heads/<initiative>/<story-slug>` (or whose path matches an explicit `WORKTREE="<basename>=<path>"` for `basename(<workspace_root>)`). Consider a candidate active OpenSpec root only when both `<candidate>/openspec/initiatives/<initiative>/initiative.md` and `<candidate>/openspec/changes/<story-slug>/story.md` exist.
+   - If exactly one candidate differs from `<openspec_root>`, set `<openspec_root>` to that candidate and immediately recompute `<initiative_dir>`, `<initiative_file>`, `<change_dir>`, `<story_file>`, `<reviews_file>`, `<progress_file>`, and `<blocked_file>` from the new root. Record a neutral operational note: `OpenSpec artifacts moved to root worktree <candidate>; convergence continued from that checkout.` Do not read or route from the old artifact paths after this point.
+   - If multiple candidates qualify, stop and ask the operator which checkout is the active OpenSpec root; include the candidate paths. Do not guess.
+   - If no candidate qualifies and the current `<story_file>` or `<progress_file>` is missing after a claim pass, stop with: `OpenSpec artifacts may have moved to a root worktree, but convergence could not locate them. Rerun from the checkout containing openspec/changes/<story-slug>/story.md, or pass WORKTREE="<basename>=<path>" from that checkout.`
+
+   Before routing or stopping, perform a minimal authority spot-check of only the decision-bearing fields and anchors at the refreshed `<openspec_root>`: for example, use `rg -n '^(Status:|Plan:)' <story_file>` for lifecycle headers and `rg -n '^(### |Status:)' <progress_file>` only when progress state matters. Use bounded reads only for the newest relevant progress or handoff entry body. If those spot-checks agree with the agent's report, continue from the canonical fields. If anchors are missing, stale, ambiguous, or conflicting, broaden to targeted reads of the affected file(s) or stop with a concrete operator repair action; do not launch `/openspec-story-review` from this skill.
 9. If a claim or resume pass leaves the story at `Status: 🟣 IN REVIEW`, stop with result `IN_REVIEW`. Do not launch a review pass in the same cycle.
 10. If a claim or resume pass leaves the story at `Status: 🔄 IN PROGRESS`, continue only when the cycle budget remains and the no-progress gate does not fire.
 11. If any pass moves the story to `Status: ⛔ BLOCKED`, stop.
@@ -130,7 +139,7 @@ For each cycle:
 
 ### Worktree Discovery
 
-When preparing a subagent command line, discover worktrees from `<progress_file> → ## Current Claim → - Worktrees:` (plural form with parent bullet). The legacy singular `- Worktree:` form is accepted by the subagent commands; this converger passes `WORKTREE=` values through unchanged and does not reinterpret them. If no `## Current Claim` exists yet (pre-claim), only explicit `WORKTREE=` arguments from the invocation are passed through.
+When preparing a subagent command line, discover worktrees from the current `<progress_file> → ## Current Claim → - Worktrees:` (plural form with parent bullet), where `<progress_file>` is derived from the refreshed `<openspec_root>`. The legacy singular `- Worktree:` form is accepted by the subagent commands; this converger passes `WORKTREE=` values through unchanged and does not reinterpret them. If no `## Current Claim` exists yet (pre-claim), only explicit `WORKTREE=` arguments from the invocation are passed through.
 
 ## Phase 4 — Operational Notes and Stops
 
@@ -168,10 +177,10 @@ Other hard stops:
 
 ## Phase 5 — Commit Recommendation
 
-At the end of the run, inspect `<progress_file> → ## Current Claim` when present:
+At the end of the run, inspect the current `<progress_file> → ## Current Claim` when present:
 
 - For each `- Worktrees:` child bullet (`- <repo-basename>: <absolute path>`), run `git -C <path> status --porcelain` when the path exists.
-- For `- Main-tree targets:`, run `git status --porcelain` against the corresponding target repo when it can be resolved from `<workspace_root>/projects/<basename>` or `<workspace_root>`.
+- For `- Main-tree targets:`, run `git status --porcelain` against the corresponding target repo when it can be resolved from `<openspec_root>/projects/<basename>`, `<workspace_root>/projects/<basename>`, `<openspec_root>`, or `<workspace_root>`.
 - If dirty changes appear to belong to the story, recommend committing them on the feature branch `<initiative>/<story-slug>`.
 
 Do not commit directly. The recommendation is advisory and must be explicit about whether it is a ready-for-review checkpoint or a WIP checkpoint.
@@ -184,7 +193,7 @@ Recommend a ready-for-review checkpoint when:
 
 Recommend a WIP checkpoint only when stopping at `MAX_CYCLES`, operator input, or no-progress with useful completed changes. Do not recommend a commit when the story blocked before meaningful implementation or no code/test/config changes exist.
 
-When the final authoritative status is `🟣 IN REVIEW`, treat implementation convergence as complete. The next lifecycle step is `/openspec-story-review`, but it must be run by the operator from a completely fresh, oblivious session. `/openspec-pr` may be a later delivery helper only after review marks the story `Status: ✅ DONE`.
+When the final authoritative status is `🟣 IN REVIEW`, treat implementation convergence as complete. The next lifecycle step is `/openspec-story-review`, but it must be run by the operator from a completely fresh, oblivious session rooted at the current `<openspec_root>` if it differs from the launch checkout. `/openspec-pr` may be a later delivery helper only after review marks the story `Status: ✅ DONE`.
 
 When the final authoritative status is `✅ DONE`, treat the story as already locally complete due to independent review authority that existed outside this convergence loop. `/openspec-pr` may be a later delivery helper before archive, but it is not the next lifecycle step.
 
@@ -198,6 +207,7 @@ Return only the compact report below. Do not include internal deliberation, anal
 **Story**: <story-slug>
 **Cycles Used**: <n>/<MAX_CYCLES>
 **Final Status**: <status>
+**OpenSpec Root**: <current openspec_root; say same as launch checkout or absolute path when relocated>
 **Change Workspace**: openspec/changes/<story-slug>/
 
 ## Trace
@@ -225,7 +235,7 @@ Return only the compact report below. Do not include internal deliberation, anal
 - None.
 
 ## Next Action
-- <single concrete command or decision. When result is IN_REVIEW: open a completely fresh, oblivious session with no parent/converger notebook references, implementation summaries, operational notes, or prior chat context, then run `/openspec-story-review <initiative> <story-slug> [WORKTREE=...]`. When result is DONE: `None. Story is already ✅ DONE.`>
+- <single concrete command or decision. When result is IN_REVIEW: open a completely fresh, oblivious session rooted at the current OpenSpec root with no parent/converger notebook references, implementation summaries, operational notes, or prior chat context, then run `/openspec-story-review <initiative> <story-slug> [WORKTREE=...]`. When result is DONE: `None. Story is already ✅ DONE.`>
 ```
 
 Do not run `/memorize` automatically. If the nice-to-haves are valuable, the operator can decide whether to promote them later.
