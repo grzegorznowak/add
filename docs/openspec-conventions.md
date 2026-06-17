@@ -410,9 +410,11 @@ has been removed. A resolved blocker may leave historical notes in
   but explicit arguments always win.
 - Loopers (`/openspec-story-plan-converge`, `/openspec-story-converge`) target
   exactly one operator-selected story and delegate normal writes to lifecycle
-  commands. Explicitly documented safety-normalization writes are allowed; for
-  example, `/openspec-story-plan-converge` may downgrade an orphaned
-  `🟢 PLAN APPROVED` that lacks an independent approve log.
+  commands. Implementation convergence delegates only claim/resume passes and
+  stops at `🟣 IN REVIEW` instead of launching review. Explicitly documented
+  safety-normalization writes are allowed; for example,
+  `/openspec-story-plan-converge` may downgrade an orphaned `🟢 PLAN APPROVED`
+  that lacks an independent approve log.
 - Commands should print resolved context before high-blast-radius writes.
 
 ## Pi notebook conventions
@@ -429,7 +431,10 @@ Recommended page families:
 - `openspec-plan-ops-<initiative>-<story>`
 
 Every material notebook claim must be verified with direct reads/search against
-live files before it drives an edit, review verdict, or status transition.
+live files before it drives an edit or status transition. Implementation review
+is the exception: `/openspec-story-review` must run from a fresh, oblivious
+session and must not receive parent/converger notebook entries, implementation
+summaries, operational notes, or prior chat context.
 
 ## What active commands should not do
 

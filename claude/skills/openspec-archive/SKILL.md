@@ -39,7 +39,7 @@ This command is a coordination-only transition. It never touches source code, te
    - If `<change_dir>` is missing, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
    - If already archived, abort with: `story <story-slug> is already archived at openspec/changes/archive/<story-slug>/`.
    - If missing in both locations, abort with: `change workspace not found: openspec/changes/<story-slug>/`.
-5. Read `<change_dir>/story.md`. Confirm that the `Status:` header field exists and is `✅ DONE`. If not `✅ DONE`, abort with the current status and: `Only locally DONE stories can be archived. Current status: <status>. Run /openspec-story-converge or /openspec-story-review first; use /openspec-pr only to record PR delivery evidence after local completion.`
+5. Read `<change_dir>/story.md`. Confirm that the `Status:` header field exists and is `✅ DONE`. If not `✅ DONE`, abort with the current status and: `Only locally DONE stories can be archived. Current status: <status>. Run /openspec-story-review from a fresh oblivious session when status is 🟣 IN REVIEW; otherwise run /openspec-story-converge to finish implementation readiness. Use /openspec-pr only to record PR delivery evidence after local completion.`
 6. Read `<initiative_file>` for the post-archive update context.
 
 ## Phase 2 — Pre-flight checks

@@ -259,7 +259,7 @@ Status transitions update both:
 The agent's default behavior on resume is:
 1. **Resume at `IN PROGRESS`** — Continue implementing remaining tasks.
 2. **Move to `🟣 IN REVIEW` when done** — When all tasks are complete and implementation proof passes.
-3. **Then hand off to review** — The parent or a subsequent session will handle independent review. Optional PR delivery happens only after local completion.
+3. **Then hand off to review** — Tell the operator to open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>` with no parent notebook, implementation summary, operational notes, or prior chat context. Optional PR delivery happens only after local completion.
 
 ## Phase 4 — Finish Protocol
 
@@ -295,7 +295,7 @@ At session end, update:
 If all tasks are complete and implementation proof passes:
 1. Transition status to `🟣 IN REVIEW`.
 2. In the Session Handoff, note: "Ready for review. All tasks complete. Implementation proof passes."
-3. The parent agent can then invoke the review flow.
+3. Tell the operator to open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>`; do not pass parent notebook entries, implementation summaries, operational notes, or prior chat context into review.
 
 ### 4.4 Blocked Session Signal
 
@@ -377,4 +377,4 @@ State:
 - proof commands run and results, or why proof was not run
 - blockers, risks, or dirty worktree notes, if any
 - notebook context used or updated, if material: referenced entries verified with direct-read/search anchors, stale referenced entries or absent needed facts with correction anchors, and notebook pages written for new sourced research; if notebook tools were unavailable, include compact sourced notes in the relevant final section instead
-- the exact next action for the next fresh session (`/openspec-story-review`, `/openspec-story-resume`, `/openspec-story-plan-converge`, `/openspec-pr`, or operator blocker resolution)
+- the exact next action for the next fresh session (`/openspec-story-review`, `/openspec-story-resume`, `/openspec-story-plan-converge`, `/openspec-pr`, or operator blocker resolution); when the next action is review, explicitly tell the operator to run it from a completely fresh, oblivious session with no parent notebook, implementation summary, operational notes, or prior chat context

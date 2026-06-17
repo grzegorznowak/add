@@ -124,7 +124,7 @@ Plan-approved means exactly `Plan: 🟢 PLAN APPROVED`.
 |---|---|
 | Missing, unset, `⬜ TODO`, or `⚪ TODO` | `/openspec-story-claim <initiative> <story-slug>` |
 | `🔄 IN PROGRESS` | `/openspec-story-resume <initiative> <story-slug>` |
-| `🟣 IN REVIEW` | `/openspec-story-review <initiative> <story-slug>` |
+| `🟣 IN REVIEW` | Open a completely fresh, oblivious session with no implementation/converger notebook, summary, operational notes, or prior chat context, then run `/openspec-story-review <initiative> <story-slug>` |
 | `✅ DONE` with no `blocked.md` | `/openspec-archive <initiative> <story-slug>` when quick archive gates look satisfied; otherwise route to the owner command named in the missing gate |
 | Unknown status value | Operator decision: inspect `story.md` and normalize through the owning command; do not guess |
 

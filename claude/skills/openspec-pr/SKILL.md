@@ -63,7 +63,7 @@ Parse `$ARGUMENTS` first. Treat any of the three slots that is empty as a reques
 1. List `<workspace_root>/openspec/initiatives/*/` directories that contain an `initiative.md`.
 2. An initiative is eligible if its `initiative.md` exists and at least one corresponding non-archived change workspace exists under `<workspace_root>/openspec/changes/<change-slug>/` whose `<story_file>` has `Status: ✅ DONE`.
 3. If exactly one eligible initiative exists, use it. Print: `inferred initiative: <slug> (single eligible initiative)`.
-4. If zero eligible initiatives exist, abort with: `no locally DONE initiative found under openspec/initiatives/. Pass <initiative> explicitly, or finish local story review first.`
+4. If zero eligible initiatives exist, abort with: `no locally DONE initiative found under openspec/initiatives/. PR delivery requires a non-archived story at Status: ✅ DONE with durable local review approval; no PR action was taken. Operator must choose the next lifecycle step.`
 5. If multiple eligible initiatives exist, abort with the list and: `multiple eligible initiatives; pass <initiative> explicitly to disambiguate.`
 
 ### Pass 2 — Story inference (when `<story>` is empty)
@@ -71,10 +71,10 @@ Parse `$ARGUMENTS` first. Treat any of the three slots that is empty as a reques
 After the initiative is known, list all change workspace directories under `<workspace_root>/openspec/changes/` (excluding `archive/`). For each, read the `Status:` header field in `<story_file>` and collect every story whose status is `✅ DONE`.
 
 1. If exactly one story matches, use it. Print: `inferred story: <story-slug> — <title> (status: ✅ DONE)`.
-2. If zero stories match, emit a specific recovery hint based on the initiative's change workspaces:
-   - if exactly one story is `🟣 IN REVIEW`, say: `story <story-slug> — <title> is still in local review; run /openspec-story-review <initiative> <story-slug> first so local completion is authoritative.`
-   - if any story is `🔄 IN PROGRESS`, say: `no locally DONE story found. Finish implementation and run /openspec-story-review <initiative> <story-slug> first.`
-   - otherwise say: `no locally DONE story found. Run /openspec-next-action INITIATIVE=<initiative> to choose the next lifecycle command.`
+2. If zero stories match, emit a specific lifecycle-state notice based on the initiative's change workspaces. Do not route to another command from `/openspec-pr`; notify and let the operator choose the next lifecycle step.
+   - if exactly one story is `🟣 IN REVIEW`, say: `story <story-slug> — <title> is Status: 🟣 IN REVIEW, not ✅ DONE. PR delivery requires durable local review approval from a fresh, oblivious review session first; no PR action was taken. Operator must choose the next lifecycle step.`
+   - if any story is `🔄 IN PROGRESS`, say: `no locally DONE story found; at least one story is Status: 🔄 IN PROGRESS. PR delivery requires Status: ✅ DONE with durable local review approval; no PR action was taken. Operator must choose the next lifecycle step.`
+   - otherwise say: `no locally DONE story found. PR delivery requires Status: ✅ DONE with durable local review approval; no PR action was taken. Operator must choose the next lifecycle step.`
 3. If multiple stories match the eligible set, list each candidate as `<story-slug> | ✅ DONE | <title>` and abort with: `multiple locally DONE stories are eligible; pass <story> explicitly to disambiguate.`
 
 ### Pass 3 — PR inference (when `<pr_url_or_OPEN=true>` is empty)
@@ -121,10 +121,10 @@ Once the story is resolved, abort fast unless its current status is `✅ DONE` a
 
 Also require:
 
-- `Plan:` header field is `🟢 PLAN APPROVED`. Recovery hint: run `/openspec-story-plan-converge <initiative> <story-slug>` before PR delivery work.
-- The latest relevant `<reviews_file>` entry records both `Decision: approve` and `Approval gate: pass`. Recovery hint: run `/openspec-story-review <initiative> <story-slug>` before PR delivery work.
+- `Plan:` header field is `🟢 PLAN APPROVED`. If not, report the current Plan value, state that PR delivery requires plan approval first, take no PR action, and let the operator choose the next lifecycle step.
+- The latest relevant `<reviews_file>` entry records both `Decision: approve` and `Approval gate: pass`. If not, report that durable local review approval is missing, take no PR action, and let the operator choose the next lifecycle step.
 
-Abort for TODO, IN REVIEW, IN PROGRESS, BLOCKED, missing, or unknown implementation status with a recovery hint naming the correct preceding command. Do not normalize or mutate `story.md → Status:` from this command.
+Abort for TODO, IN REVIEW, IN PROGRESS, BLOCKED, missing, or unknown implementation status with a lifecycle-state notice, not a route to another command. Do not normalize or mutate `story.md → Status:` from this command.
 
 ### Known limitations
 
