@@ -388,7 +388,7 @@ You may update only the `Status:` header field in `story.md` and append to `revi
 - if review passes with no blocking findings, mark it `Status: ✅ DONE`
 - if review finds issues that require more implementation work, move it to `Status: 🔄 IN PROGRESS`
 - if review cannot complete because of an external blocker, mark it `Status: ⛔ BLOCKED`
-- if the story is already `Status: ✅ DONE`, do not reopen it from this command solely because PR delivery is pending; use `/openspec-story-pr <initiative-slug> <story-slug>` for PR metadata/evidence and `/openspec-feedback` for actionable PR feedback.
+- if the story is already `Status: ✅ DONE`, do not reopen it from this command solely because PR delivery is pending; use `/openspec-pr <initiative-slug> <story-slug>` for PR metadata/evidence and `/openspec-feedback` for actionable PR feedback.
 
 ## Review log write-back
 

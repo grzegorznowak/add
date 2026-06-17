@@ -391,7 +391,7 @@ If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, de
 
 When contract/proof edits are fully blended, `/openspec-story-plan-review <initiative> <story-slug>` is mandatory before `/openspec-story-resume`. If plan review requests changes, the story re-enters the plan-converge loop through `/openspec-story-plan-resume` until `Plan:` returns to `🟢 PLAN APPROVED`.
 
-Do not delete or rewrite older `reviews.md` entries. Do not update `## PR State` in `progress.md` here; recommend `/openspec-story-pr` only when PR metadata or merge evidence itself needs refresh. Actionable PR feedback is absorbed here as review/contract coordination; when the acknowledged disposition is `resume-current-story`, this command records the reopen to `🔄 IN PROGRESS` so `/openspec-story-resume` can own the code changes.
+Do not delete or rewrite older `reviews.md` entries. Do not update `## PR State` in `progress.md` here; recommend `/openspec-pr` only when PR metadata or merge evidence itself needs refresh. Actionable PR feedback is absorbed here as review/contract coordination; when the acknowledged disposition is `resume-current-story`, this command records the reopen to `🔄 IN PROGRESS` so `/openspec-story-resume` can own the code changes.
 
 For `new-story-candidate`, append or create this initiative-level section in `initiative.md`:
 
@@ -443,7 +443,7 @@ Report:
 - any items skipped or left ambiguous
 - any story status reopen performed, or none
 - recurring risk / miss categories observed, or none
-- exact next command when relevant, such as `/openspec-story-plan-review`, `/openspec-story-resume`, `/openspec-story-pr`, or `/openspec-story-plan`
+- exact next command when relevant, such as `/openspec-story-plan-review`, `/openspec-story-resume`, `/openspec-pr`, or `/openspec-story-plan`
 
 When `amend-existing-story` touched any contract/proof section, include in the response:
 "Required next: run `/openspec-story-plan-review <initiative> <story-slug>` from a fresh session to re-validate the amended plan."

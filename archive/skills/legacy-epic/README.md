@@ -17,10 +17,10 @@ Use the OpenSpec workflow skills for new work. If an old user install still has 
 | `epic-story-resume` | `openspec-story-resume` |
 | `epic-story-review` | `openspec-story-review` |
 | `epic-story-converge` | `openspec-story-converge` |
-| `epic-story-pr` | `openspec-story-pr` |
+| `epic-story-pr` | `openspec-pr` |
 | `epic-feedback` | `openspec-feedback` |
 | `epic-squash` | `openspec-archive` |
-| `epic-pr` | No exact OpenSpec equivalent; use story-level `openspec-story-pr` plus initiative/change status artifacts. |
+| `epic-pr` | No exact OpenSpec equivalent; use `openspec-pr` plus initiative/change status artifacts. |
 
 ## Contents
 

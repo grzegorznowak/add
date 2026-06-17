@@ -85,7 +85,7 @@ reasoning; it is read-only and never performs lifecycle transitions.
 6. **Converge implementation** — `/openspec-story-converge` orchestrates fresh
    claim/resume/review sessions for one change until the story is locally DONE,
    a blocker appears, no progress is made, or the cycle budget ends.
-7. **PR delivery helper** — `/openspec-story-pr` creates, attaches, or refreshes a
+7. **PR delivery helper** — `/openspec-pr` creates, attaches, or refreshes a
    GitHub PR and records durable PR metadata/evidence in `progress.md` without
    owning story status. Merged PR evidence supports archive; requested changes
    are absorbed through `/openspec-feedback`.
@@ -120,7 +120,7 @@ schemas, proof matrices, Debt Friction, and runtime section conventions.
 | `/openspec-story-resume` | Continue implementation, resolve blockers, or address review/feedback routed back to the story. |
 | `/openspec-story-review` | Independently review implementation and update `reviews.md` plus `story.md → Status:`. |
 | `/openspec-story-converge` | Loop fresh claim/resume/review passes until local implementation completion or stop. |
-| `/openspec-story-pr` | Manage optional GitHub PR delivery metadata/evidence in `progress.md → ## PR State`. |
+| `/openspec-pr` | Manage optional GitHub PR delivery metadata/evidence in `progress.md → ## PR State`. |
 | `/openspec-feedback` | Classify and absorb structured feedback, including acknowledged story reopens, into the right OpenSpec artifacts. |
 | `/openspec-archive` | Preflight completion gates, then delegate spec sync and archive move to `/opsx:archive`. |
 

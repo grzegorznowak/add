@@ -294,7 +294,7 @@ The `Status:` field in `story.md` is the authoritative implementation status. Th
 **Default rule:**
 1. Claim as `🔄 IN PROGRESS`
 2. Once the chosen focused seam is green and implementation is complete, move to `🟣 IN REVIEW`
-3. Stop there and hand off to `/openspec-story-review` for independent completion authority. Optional GitHub PR delivery happens after local completion via `/openspec-story-pr`, which records PR metadata but does not own `story.md → Status:`.
+3. Stop there and hand off to `/openspec-story-review` for independent completion authority. Optional GitHub PR delivery happens after local completion via `/openspec-pr`, which records PR metadata but does not own `story.md → Status:`.
 4. If the session ends before review is complete, leave at `🟣 IN REVIEW`
 5. If the session ends before implementation is complete, leave at `🔄 IN PROGRESS`
 

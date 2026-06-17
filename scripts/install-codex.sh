@@ -193,7 +193,7 @@ codex_args() {
       arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5]/'
       body_repl='s/\$ARGUMENTS/the INITIATIVE, STORY, and MAX_CYCLES named variables/g'
       ;;
-    openspec-story-pr)
+    openspec-pr)
       arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> STORY=<slug> [<pr_url_or_OPEN=true>]/'
       body_repl='s/\$ARGUMENTS/the INITIATIVE, STORY, and PR selector named variables/g'
       ;;
@@ -231,6 +231,7 @@ declare -a UNSUPPORTED_CODEX_SKILLS=(
   epic_story_pr
   epic_story_resume
   epic_story_review
+  openspec_story_pr
   openspec_epic_plan
 )
 

@@ -17,7 +17,7 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   performing lifecycle transitions.
 - OpenSpec workflow skills are now the active workflow surface:
   `openspec-initiative-plan`, `openspec-story-plan`, plan review/resume/converge,
-  implementation claim/resume/review/converge, `openspec-story-pr`,
+  implementation claim/resume/review/converge, `openspec-pr`,
   `openspec-feedback`, and `openspec-archive`.
 - `merge-conflict-analysis` joins `grillme` and `memorize` as a supported
   non-workflow utility skill.
@@ -28,9 +28,11 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   legacy lifecycle/conventions docs.
 
 ### Changed
+- Renamed the PR delivery helper from `openspec-story-pr` to `openspec-pr` and
+  added the old generated names to unsupported-prune cleanup lists.
 - Clarified OpenSpec command authority: implementation claim readiness includes
   completed expected prerequisites, `/openspec-story-review` owns local approval
-  to `✅ DONE`, `/openspec-story-pr` records optional PR delivery evidence without
+  to `✅ DONE`, `/openspec-pr` records optional PR delivery evidence without
   mutating story status, and loopers may perform only documented
   safety-normalization writes.
 - Removed the PR lifecycle status from the active OpenSpec story state machine;

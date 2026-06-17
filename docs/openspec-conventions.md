@@ -356,7 +356,7 @@ sections:
   proof updates, replanning checkpoints, Debt Friction, and PR metadata updates.
 - `## Session Handoff` — latest exit state and next action for a fresh session.
 - `## PR State` — sole durable PR metadata/evidence location, owned by
-  `/openspec-story-pr`; it does not own implementation status transitions.
+  `/openspec-pr`; it does not own implementation status transitions.
 
 `## Current Claim` uses plural worktree bindings when needed:
 

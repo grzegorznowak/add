@@ -15,7 +15,7 @@
 
 ## Progress Timeline
 <!-- Append-only timestamped bullets recording meaningful milestones.
-     Written by /openspec-story-claim, /openspec-story-resume, and /openspec-story-pr. -->
+     Written by /openspec-story-claim, /openspec-story-resume, and /openspec-pr. -->
 
 ## Session Handoff
 <!-- Refreshed at the end of every session. Only the most recent entry is authoritative. -->
@@ -30,7 +30,7 @@
 - Exact next step: <one concrete recommendation>
 
 ## PR State
-<!-- Written by /openspec-story-pr. There is exactly one PR State section. -->
+<!-- Written by /openspec-pr. There is exactly one PR State section. -->
 - PR URL:
 - Number:
 - Title:

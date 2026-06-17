@@ -92,7 +92,7 @@ These gates must pass before Phase 1 worktree checks, Phase 2 claim refresh, any
 1. Read `story.md → Status:` after the Plan Approval and Blocker checks.
 2. If `Status: 🔄 IN PROGRESS`, proceed.
 3. If `Status: ⛔ BLOCKED` and `blocked.md` is absent, proceed only for the stale-blocker normalization described above.
-4. If status is TODO, IN REVIEW, DONE, missing, or unknown, halt and recommend the owning lifecycle command (`/openspec-story-claim`, `/openspec-story-review`, `/openspec-feedback`, `/openspec-story-pr`, or `/openspec-next-action`) instead of guessing. For actionable PR feedback on a DONE story, recommend `/openspec-feedback <initiative-slug> --pr <pr-url>`; when acknowledged as `resume-current-story`, feedback reopens the story to `🔄 IN PROGRESS` before implementation resumes.
+4. If status is TODO, IN REVIEW, DONE, missing, or unknown, halt and recommend the owning lifecycle command (`/openspec-story-claim`, `/openspec-story-review`, `/openspec-feedback`, `/openspec-pr`, or `/openspec-next-action`) instead of guessing. For actionable PR feedback on a DONE story, recommend `/openspec-feedback <initiative-slug> --pr <pr-url>`; when acknowledged as `resume-current-story`, feedback reopens the story to `🔄 IN PROGRESS` before implementation resumes.
 
 #### Parallelism Guard
 
@@ -247,7 +247,7 @@ The agent may transition the change status through these states:
 | `⛔ BLOCKED` | `🔄 IN PROGRESS` | Blocker resolved after `blocked.md` removal |
 
 `/openspec-story-resume` does not interpret PR metadata as a lifecycle status.
-`/openspec-story-pr` may refresh PR metadata/evidence, but actionable PR feedback
+`/openspec-pr` may refresh PR metadata/evidence, but actionable PR feedback
 must be routed through `/openspec-feedback` before implementation work resumes.
 
 Status transitions update both:
@@ -343,7 +343,7 @@ If the resolved worktrees don't match what was in the previous claim:
 If `progress.md → ## PR State` indicates a PR is open or has requested changes:
 1. Do not refresh PR metadata, derive lifecycle status from PR metadata, or mark the story done.
 2. If actionable PR feedback is present, report: "PR feedback is present. Run `/openspec-feedback <initiative-slug> --pr <pr-url>` to classify and route it; an acknowledged `resume-current-story` disposition reopens the story before implementation resumes."
-3. If merged evidence appears, report: "PR may be merged; run `/openspec-story-pr` to refresh durable merge evidence for archive, or `/openspec-archive` when all archive gates are ready."
+3. If merged evidence appears, report: "PR may be merged; run `/openspec-pr` to refresh durable merge evidence for archive, or `/openspec-archive` when all archive gates are ready."
 4. Otherwise report: "PR is open and awaiting review; no implementation work to resume unless feedback is routed through `/openspec-feedback`."
 5. Halt and let the parent handle the PR delivery or feedback workflow.
 
@@ -377,4 +377,4 @@ State:
 - proof commands run and results, or why proof was not run
 - blockers, risks, or dirty worktree notes, if any
 - notebook context used or updated, if material: referenced entries verified with direct-read/search anchors, stale referenced entries or absent needed facts with correction anchors, and notebook pages written for new sourced research; if notebook tools were unavailable, include compact sourced notes in the relevant final section instead
-- the exact next action for the next fresh session (`/openspec-story-review`, `/openspec-story-resume`, `/openspec-story-plan-converge`, `/openspec-story-pr`, or operator blocker resolution)
+- the exact next action for the next fresh session (`/openspec-story-review`, `/openspec-story-resume`, `/openspec-story-plan-converge`, `/openspec-pr`, or operator blocker resolution)

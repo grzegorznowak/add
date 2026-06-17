@@ -131,7 +131,7 @@ Plan-approved means exactly `Plan: 🟢 PLAN APPROVED`.
 Quick archive-gate routing for `✅ DONE`:
 
 - If `## PR State` shows requested changes or actionable unabsorbed PR feedback, recommend `/openspec-feedback <initiative> --pr <pr-url>`.
-- If `## PR State` shows an unmerged PR without requested changes, recommend `/openspec-story-pr <initiative> <story-slug>` to refresh delivery evidence, or wait for PR review before archiving.
+- If `## PR State` shows an unmerged PR without requested changes, recommend `/openspec-pr <initiative> <story-slug>` to refresh delivery evidence, or wait for PR review before archiving.
 - If latest implementation review approval is missing or unclear, recommend `/openspec-story-review <initiative> <story-slug>`.
 - If tasks are obviously unchecked, recommend `/openspec-story-resume <initiative> <story-slug>` or `/openspec-story-review <initiative> <story-slug>` depending on whether the gap is implementation work or review/status drift.
 - Otherwise recommend `/openspec-archive <initiative> <story-slug>` and note that archive performs the authoritative preflight and may ask for no-PR confirmation.

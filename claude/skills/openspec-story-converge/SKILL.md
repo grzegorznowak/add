@@ -184,7 +184,7 @@ Recommend a final commit when:
 
 Recommend a WIP checkpoint only when stopping at `MAX_CYCLES`, operator input, or no-progress with useful completed changes. Do not recommend a commit when the story blocked before meaningful implementation or no code/test/config changes exist.
 
-When the final authoritative status is `✅ DONE`, treat implementation convergence as complete. `/openspec-story-pr` may be a later delivery helper before archive, but it is not the next lifecycle step.
+When the final authoritative status is `✅ DONE`, treat implementation convergence as complete. `/openspec-pr` may be a later delivery helper before archive, but it is not the next lifecycle step.
 
 ## Phase 6 — Final Response
 
