@@ -47,14 +47,14 @@ There is no `MASTER.md` and no tracker table. All status is self-contained in th
    - `MAX_CYCLES=<n>`: optional positive integer; default `5`.
    - `WORKTREE="<value>"`: optional, repeatable, passed through unchanged.
 2. Reject unknown flags.
-3. Set `<workspace_root>` = `<cwd>` and resolve `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative>`.
-4. Read `<initiative_dir>/initiative.md`. If missing, abort with: `initiative not found — run /openspec-initiative-plan first`.
+3. Set `<workspace_root>` = `<cwd>` and resolve `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative>`. There is no persisted `OpenSpec root:` field; convergence must run from the checkout that contains the active OpenSpec artifacts.
+4. Read `<initiative_dir>/initiative.md`. If missing, ask whether the story was claimed into a root repo worktree and the OpenSpec artifacts were moved there. Recommend rerunning `/openspec-story-converge <initiative> <story-slug> [WORKTREE=...]` from that worktree; if the OpenSpec checkout is correct but target repo mapping is missing, pass `WORKTREE="<basename>=<path>"`. Abort with: `initiative not found in this checkout`.
 5. Resolve `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>/`.
    - If missing, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
    - If archived, abort with: `story is archived; move it back to openspec/changes/ first`.
-   - If missing in both, abort with: `change workspace not found — run /openspec-story-plan first`.
+   - If missing in both, ask whether the story was moved to a root repo worktree during claim. Recommend rerunning from the checkout/worktree that contains `openspec/changes/<story-slug>/story.md`; if target repo mapping is the only missing piece once in that checkout, pass `WORKTREE="<basename>=<path>"`. Abort with: `change workspace not found in this checkout`.
 6. Read `<story_file>` and confirm the `Status:` header field is present (it may be default-valued or unset).
-   - If `story.md` is missing or unreadable, abort with: `story.md is missing from change workspace`.
+   - If `story.md` is missing or unreadable, ask the same root-worktree relocation question and abort with: `story.md is missing from change workspace`.
 7. Keep the exact `WORKTREE=` fragments for later command lines. Do not normalize or reinterpret them in the converger.
 
 ## Phase 2 — Eligibility Gate

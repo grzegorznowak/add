@@ -35,17 +35,21 @@ This skill defers to the following artifacts, in priority order. Notebook contex
 
 ### 0.1 Resolve the Initiative and Change Workspace
 
-1. Read `openspec/initiatives/<initiative-slug>/initiative.md` to confirm the initiative exists and gather context.
-2. If `story-slug` is provided:
+1. Set `<workspace_root>` = `<cwd>` and resolve OpenSpec artifacts only under this checkout. There is no persisted `OpenSpec root:` field.
+2. Read `openspec/initiatives/<initiative-slug>/initiative.md` to confirm the initiative exists and gather context.
+   - If it is missing, do not guess or silently search other checkouts. Ask whether this story was claimed into a root repo worktree and the OpenSpec artifacts were moved there. Recommend rerunning `/openspec-story-resume <initiative-slug> [story-slug]` from that root worktree. If the operator only needs to point target-repo writes at an existing worktree from the correct OpenSpec checkout, suggest `WORKTREE="<basename>=<path>"`. Halt until the command is run from a checkout that contains `openspec/initiatives/<initiative-slug>/initiative.md`.
+3. If `story-slug` is provided:
    - Confirm `openspec/changes/<story-slug>/` exists and contains `story.md`.
+   - If it is missing, check `openspec/changes/archive/<story-slug>/`; if archived, report that the story is archived and halt.
+   - If it is missing from both active and archive locations, ask whether the story was moved to a root repo worktree during claim. Recommend rerunning from the checkout/worktree that contains `openspec/changes/<story-slug>/story.md`; if target repo mapping is the only missing piece once in that checkout, pass `WORKTREE="<basename>=<path>"`. Halt without updating `progress.md` or touching implementation files.
    - Read `story.md` to extract the `Status:` header and confirm the change is in a resumable state.
-3. If `story-slug` is omitted:
+4. If `story-slug` is omitted:
    - Scan all directories under `openspec/changes/` for `story.md` files.
    - Read each `story.md` and check the `Status:` header.
    - Select the first change with `Status: 🔄 IN PROGRESS`, or `Status: ⛔ BLOCKED` when `blocked.md` is absent (previous blocker resolved by removing the gate file).
    - Do not infer work from PR metadata alone. If PR feedback appears actionable for a locally DONE story, tell the operator to run `/openspec-feedback` first so feedback is classified and routed before implementation resumes.
    - If multiple are found, report them and ask the operator to disambiguate.
-   - If none are found, report that no in-progress changes exist and halt.
+   - If none are found, report that no in-progress changes exist in this checkout. Ask whether the active story's OpenSpec artifacts were moved to a root repo worktree; if yes, rerun from that worktree. Halt.
 
 ### 0.2 Read All Change Workspace Artifacts
 

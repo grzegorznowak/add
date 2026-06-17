@@ -39,23 +39,23 @@ If this command is being considered from the same session that just wrote or con
    - `<story-slug>`: optional, the second positional token (story slug / change workspace name)
    - The raw list of `WORKTREE="<value>"` occurrences (parsed in `## Worktree preflight` step 3 into `<explicit_worktree_map>` and/or `<legacy_worktree>`)
 
-   Set `<workspace_root>` = `<cwd>`. `<workspace_root>` is never re-anchored; coordination files always live here.
+   Set `<workspace_root>` = `<cwd>`. `<workspace_root>` is never re-anchored; coordination files always live here. There is no persisted `OpenSpec root:` field. If the expected initiative or story artifacts are missing from this checkout, ask whether the story was moved to a root repo worktree during claim and recommend rerunning review from the checkout that contains `openspec/...`; use `WORKTREE="<basename>=<path>"` only to point target-repo reads at explicit worktrees once the OpenSpec checkout is correct.
 2. **INITIATIVE resolution (menu fallback):**
    - If `<initiative-slug>` was passed, resolve `<workspace_root>/openspec/initiatives/<initiative-slug>/initiative.md`.
-   - If `<initiative-slug>` was not passed, scan every directory under `<workspace_root>/openspec/initiatives/` whose `initiative.md` exists and whose `## Story Candidates` section references at least one change workspace with a `story.md` that has `Status: 🟣 IN REVIEW`. For each candidate, print: `<slug> — <N stories IN REVIEW, last-touched YYYY-MM-DD>`. If the filtered list is empty, abort with: `no initiatives have stories ready for review (nothing at 🟣 IN REVIEW)`. Otherwise ask the operator to pick (number or slug).
+   - If `<initiative-slug>` was not passed, scan every directory under `<workspace_root>/openspec/initiatives/` whose `initiative.md` exists and whose `## Story Candidates` section references at least one change workspace with a `story.md` that has `Status: 🟣 IN REVIEW`. For each candidate, print: `<slug> — <N stories IN REVIEW, last-touched YYYY-MM-DD>`. If the filtered list is empty, ask whether the review-ready story's OpenSpec artifacts were moved to a root repo worktree; recommend rerunning from that worktree if so, then abort with: `no initiatives have stories ready for review in this checkout (nothing at 🟣 IN REVIEW)`. Otherwise ask the operator to pick (number or slug).
 3. **STORY resolution (menu fallback):**
    - If `<story-slug>` was passed, continue to resolution step 4.
    - If `<story-slug>` was not passed, scan every change workspace referenced in the resolved initiative's `## Story Candidates` section whose `story.md` has `Status: 🟣 IN REVIEW`. For each, print: `<story-slug> — <Status> — <Deliverable summary>`. If the filtered list is empty, abort with: `no stories at 🟣 IN REVIEW in initiative <slug>`. Otherwise ask the operator to pick (number or slug).
 4. Set `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative-slug>`.
-   - If `<initiative_dir>` does not exist, abort with: `initiative not found: openspec/initiatives/<initiative-slug>/ — run /openspec-initiative-plan first`.
+   - If `<initiative_dir>` does not exist, ask whether the story was claimed into a root repo worktree and the OpenSpec artifacts were moved there. Recommend rerunning `/openspec-story-review <initiative-slug> <story-slug>` from that worktree; if the operator is already in the right OpenSpec checkout but needs a target repo override, use `WORKTREE="<basename>=<path>"`. Abort with: `initiative not found in this checkout: openspec/initiatives/<initiative-slug>/`.
 5. Set `<initiative_file>` = `<initiative_dir>/initiative.md`.
-   - If `<initiative_file>` does not exist, abort with the exact missing path.
+   - If `<initiative_file>` does not exist, ask the same root-worktree relocation question and abort with the exact missing path.
 6. Set `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>`.
    - If `<change_dir>` does not exist, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
    - If archived, abort with: `story is archived under openspec/changes/archive/; move it back to openspec/changes/ first`.
-   - If missing in both locations, abort with: `change workspace not found: openspec/changes/<story-slug>/ — run /openspec-story-plan first`.
+   - If missing in both locations, ask whether the story was moved to a root repo worktree during claim. Recommend rerunning from the checkout/worktree that contains `openspec/changes/<story-slug>/story.md`; if target repo mapping is the only missing piece once in that checkout, pass `WORKTREE="<basename>=<path>"`. Abort with: `change workspace not found in this checkout: openspec/changes/<story-slug>/`.
 7. Set `<story_file>` = `<change_dir>/story.md`.
-   - If `<story_file>` does not exist, abort with the exact missing path.
+   - If `<story_file>` does not exist, ask the same root-worktree relocation question and abort with the exact missing path.
 8. The `Status:` header field in `<story_file>` is the authoritative implementation status. There is no `MASTER.md` in this flow. If the story does not use a YAML frontmatter-style `Status:` header but has an equivalent (e.g., an `## Status` section with `🟣 IN REVIEW`), treat that as the authority and use the same format for write-back.
 9. The `Plan:` header field in `<story_file>` is the authoritative planning lane. Check that it is `🟢 PLAN APPROVED` before approving implementation (see `## Review readiness check`).
 
@@ -156,6 +156,7 @@ After reading `progress.md`'s `## Current Claim`, build `<project_root_map>` fro
 8. **Done**. `<project_root_map>` is set. All downstream resolution uses these rules:
    - `<initiative_file>`, `<story_file>`, `progress.md`, `reviews.md`, `blocked.md`, and anything under `openspec/...` → read/write at `<workspace_root>/openspec/...` unconditionally. The review verdict write-back to `reviews.md` also lands at this anchor.
    - Code at `projects/<name>/foo/bar` → if `<project_root_map>` has `<name>`, route to `<project_root_map>[<name>]/foo/bar`; else route to `<workspace_root>/projects/<name>/foo/bar`.
+   - Code in the root repo outside `openspec/...` and outside `projects/<name>/...` → if `<project_root_map>` has `basename(<workspace_root>)`, route the same relative path to that mapped root; else use `<workspace_root>/<relative-path>`.
    - Git commands targeting repo `<name>`: `git -C <project_root_map>[<name>] ...`.
 
 ## Source-of-truth hierarchy
