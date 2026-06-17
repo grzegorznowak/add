@@ -120,9 +120,9 @@ Legend: [state] = durable OpenSpec state, "-- command -->" = owner transition,
 |                 follow-up story, initiative decision, or defer/reject  |
 | merged PR evidence + review approval + tasks --> /openspec-archive     |
 |                                                                        |
-| /openspec-story-converge orchestrates fresh claim/resume/review passes  |
-| until DONE, blocked, invalid state, no progress, or cycle budget        |
-| exhaustion.                                                            |
+| /openspec-story-converge orchestrates fresh claim/resume passes until  |
+| IN REVIEW, blocked, invalid state, no progress, or cycle budget        |
+| exhaustion. It never launches review.                                  |
 +------------------------------------------------------------------------+
     |
     | /openspec-archive preflights DONE, task checklist, review approval,
@@ -256,8 +256,10 @@ exception and an alternative proof path before proceeding.
 
 ### 5. Implementation review
 
-`/openspec-story-review` is independent and read-only for product code. It may
-write only the change workspace review/status artifacts it owns, chiefly:
+`/openspec-story-review` is independent, oblivious, and read-only for product
+code. It must run from a completely fresh session with no implementation-loop
+notebook, summary, operational notes, or prior chat context. It may write only
+the change workspace review/status artifacts it owns, chiefly:
 
 - `reviews.md`
 - `story.md → Status:`
@@ -275,18 +277,24 @@ refreshed after local completion, but PR state does not own `story.md → Status
 ### 6. Implementation convergence
 
 `/openspec-story-converge <initiative> <story>` is an orchestrator for one
-operator-selected change. It alternates fresh claim/resume/review sessions until
-one of these hard stops occurs:
+operator-selected change. It runs fresh claim/resume implementation sessions
+until one of these hard stops occurs:
 
-- authoritative `Status: ✅ DONE` with durable review approval;
+- authoritative `Status: 🟣 IN REVIEW`, meaning implementation is ready for
+  independent review;
+- an already-complete `Status: ✅ DONE` with durable review approval;
 - `blocked.md` or another explicit blocker;
 - invalid lifecycle state, such as unapproved Plan lane;
 - no-progress detection;
 - cycle budget exhaustion.
 
 The converger may pass neutral operational notes or sourced notebook page names
-to child sessions. Those notes are orientation only; material claims must be
-verified against live files before edits or verdicts.
+to implementation child sessions only. Those notes are orientation only;
+material claims must be verified against live files before edits. When the story
+reaches `🟣 IN REVIEW`, the converger stops and tells the operator to open a
+completely fresh, oblivious session and run `/openspec-story-review <initiative>
+<story-slug>` without parent/converger notebook entries, implementation
+summaries, operational notes, or prior chat context.
 
 ### 7. PR delivery helper
 
@@ -368,8 +376,10 @@ After those gates pass, `/openspec-archive` invokes OpenSpec's built-in
 | Plan or implementation loop selection | `/openspec-story-plan-converge`, `/openspec-story-converge` |
 | Orphaned `🟢 PLAN APPROVED` safety downgrade | `/openspec-story-plan-converge` |
 
-`/openspec-next-action` recommends the owner command; loopers choose the next
-command within their convergence loops. Neither bypasses command authority.
+`/openspec-next-action` recommends the owner command; loopers choose only the
+commands inside their documented convergence loops. Implementation convergence
+stops at `🟣 IN REVIEW` and does not invoke `/openspec-story-review`. Neither
+looper bypasses command authority.
 
 ## Rules of thumb
 

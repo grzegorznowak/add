@@ -294,8 +294,8 @@ The `Status:` field in `story.md` is the authoritative implementation status. Th
 **Default rule:**
 1. Claim as `🔄 IN PROGRESS`
 2. Once the chosen focused seam is green and implementation is complete, move to `🟣 IN REVIEW`
-3. Stop there and hand off to `/openspec-story-review` for independent completion authority. Optional GitHub PR delivery happens after local completion via `/openspec-pr`, which records PR metadata but does not own `story.md → Status:`.
-4. If the session ends before review is complete, leave at `🟣 IN REVIEW`
+3. Stop there and tell the operator to open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>` with no parent notebook, implementation summary, operational notes, or prior chat context. Optional GitHub PR delivery happens after local completion via `/openspec-pr`, which records PR metadata but does not own `story.md → Status:`.
+4. If the session ends after implementation is complete but before independent review, leave at `🟣 IN REVIEW`
 5. If the session ends before implementation is complete, leave at `🔄 IN PROGRESS`
 
 ### Blocked detection
@@ -322,4 +322,4 @@ State:
 - files changed
 - whether the initiative or story was updated
 - notebook context used or updated, if material: referenced entries verified with direct-read/search anchors, stale referenced entries or absent needed facts with correction anchors, and notebook pages written for new sourced research; if notebook tools were unavailable, include compact sourced notes in the relevant final section instead
-- the exact next action for the next fresh session
+- the exact next action for the next fresh session; when the next action is review, explicitly tell the operator to run `/openspec-story-review <initiative-slug> <story-slug>` from a completely fresh, oblivious session with no parent notebook, implementation summary, operational notes, or prior chat context

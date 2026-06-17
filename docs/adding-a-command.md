@@ -89,8 +89,10 @@ Argument: `$ARGUMENTS` — <what the user passes>.
   exception path.
 - For looper/orchestrator commands, preserve delegated ownership: launch fresh
   sessions, pass neutral operational notes plus notebook page references or
-  compact sourced excerpts, document hard stops and no-progress gates, and avoid
-  persuasive verdict framing.
+  compact sourced excerpts only to passes whose owning skill allows carried
+  context, document hard stops and no-progress gates, and avoid persuasive
+  verdict framing. Oblivious review commands must not receive carried notebook,
+  operational, summary, or prior-chat context.
 - End with `## Final response` describing the operator-facing result.
 
 ## Pi fragments and notebooks
@@ -102,7 +104,8 @@ pi-specific behavior:
 - use notebook pages for durable, sourced research or neutral ops notes;
 - treat notebook pages as orientation, not lifecycle authority;
 - verify material notebook claims with direct reads/search before edits or
-  verdicts.
+  status transitions in commands that allow notebook context;
+- do not pass notebook context into oblivious implementation review.
 
 Prefer stable subject pages such as:
 

@@ -28,6 +28,10 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   legacy lifecycle/conventions docs.
 
 ### Changed
+- Changed implementation convergence so `/openspec-story-converge` stops at
+  `Status: 🟣 IN REVIEW` and instructs the operator to run
+  `/openspec-story-review` from a completely fresh, oblivious session instead
+  of launching review inside the implementation loop.
 - Renamed the PR delivery helper from `openspec-story-pr` to `openspec-pr` and
   added the old generated names to unsupported-prune cleanup lists.
 - Clarified OpenSpec command authority: implementation claim readiness includes

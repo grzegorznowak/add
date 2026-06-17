@@ -80,11 +80,15 @@ reasoning; it is read-only and never performs lifecycle transitions.
    work or applies review/feedback that `/openspec-feedback` routed back to the
    story.
 5. **Review independently** — `/openspec-story-review` is read-only for product
-   code. It writes `reviews.md` and the `Status:` header, marking `✅ DONE` only
-   when the implementation, tests, tasks, and OpenSpec contract line up.
+   code and must run from a completely fresh, oblivious session with no
+   implementation-loop notebook, summary, operational notes, or prior chat
+   context. It writes `reviews.md` and the `Status:` header, marking `✅ DONE`
+   only when the implementation, tests, tasks, and OpenSpec contract line up.
 6. **Converge implementation** — `/openspec-story-converge` orchestrates fresh
-   claim/resume/review sessions for one change until the story is locally DONE,
-   a blocker appears, no progress is made, or the cycle budget ends.
+   claim/resume implementation sessions for one change until the story reaches
+   `🟣 IN REVIEW`, a blocker appears, no progress is made, or the cycle budget
+   ends. It then tells the operator to run `/openspec-story-review` from a fresh
+   oblivious session; it does not launch review itself.
 7. **PR delivery helper** — `/openspec-pr` creates, attaches, or refreshes a
    GitHub PR and records durable PR metadata/evidence in `progress.md` without
    owning story status. Merged PR evidence supports archive; requested changes
@@ -118,8 +122,8 @@ schemas, proof matrices, Debt Friction, and runtime section conventions.
 | `/openspec-story-plan-converge` | Loop fresh plan-review and plan-resume passes until the Plan lane resolves. |
 | `/openspec-story-claim` | Claim one approved TODO story and begin red-first implementation. |
 | `/openspec-story-resume` | Continue implementation, resolve blockers, or address review/feedback routed back to the story. |
-| `/openspec-story-review` | Independently review implementation and update `reviews.md` plus `story.md → Status:`. |
-| `/openspec-story-converge` | Loop fresh claim/resume/review passes until local implementation completion or stop. |
+| `/openspec-story-review` | Independently review implementation from a fresh, oblivious session and update `reviews.md` plus `story.md → Status:`. |
+| `/openspec-story-converge` | Loop fresh claim/resume implementation passes until `🟣 IN REVIEW` or stop, then instruct the operator to run review separately. |
 | `/openspec-pr` | Manage optional GitHub PR delivery metadata/evidence in `progress.md → ## PR State`. |
 | `/openspec-feedback` | Classify and absorb structured feedback, including acknowledged story reopens, into the right OpenSpec artifacts. |
 | `/openspec-archive` | Preflight completion gates, then delegate spec sync and archive move to `/opsx:archive`. |

@@ -1,6 +1,6 @@
 ---
 name: openspec-story-review
-description: Review one implemented OpenSpec change workspace against its spec, current repo state, and recorded handoff context. Read-only for code; updates only the change workspace's reviews.md and story.md Status header.
+description: Review one implemented OpenSpec change workspace from a fresh, oblivious session against its OpenSpec artifacts and live repo evidence. Read-only for code; updates only the change workspace's reviews.md and story.md Status header.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug> [WORKTREE=\"<basename>=<path>\"]..."
 allowed-tools: Read Edit Grep Glob Task Bash(git status:*) Bash(git diff:*) Bash(git log:*) Bash(git show:*) Bash(git rev-parse:*) Bash(git worktree:*) Bash(basename:*) Bash(gh issue view:*) Bash(gh pr view:*) Bash(jira issue view:*)
@@ -8,7 +8,7 @@ allowed-tools: Read Edit Grep Glob Task Bash(git status:*) Bash(git diff:*) Bash
 
 # OpenSpec Story Review
 
-Review one story implementation against its spec, current repo state, and recorded handoff context. Record the verdict into `reviews.md` and update the `Status:` header in `story.md`.
+Review one story implementation from a fresh, oblivious session against its OpenSpec artifacts and live repo evidence. Record the verdict into `reviews.md` and update the `Status:` header in `story.md`.
 
 Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [WORKTREE="<basename>=<path>"]...`. Both positional args are recommended; if either is omitted, this command uses the explicit menu fallback in `## Resolution`. `WORKTREE=` is an optional, repeatable opt-in that overrides the preflight's worktree lookup per target repo. Two forms are accepted: `WORKTREE="<basename>=<path>"` (multi form, repeatable, preferred) and legacy `WORKTREE="<path>"` (valid only when the story has exactly one target repo; the path is applied to that sole repo). Mixing the two forms in a single invocation is an error. When `WORKTREE=` is absent, the preflight reads any `- Worktrees:` list from `progress.md`'s `## Current Claim`, falling back to a legacy `- Worktree:` singular bullet for claims predating the multi-worktree format.
 
@@ -28,9 +28,9 @@ You can only change the coordination files in the change workspace (`reviews.md`
 
 `/openspec-story-review` never auto-infers the initiative or the story. The operator explicitly chooses — either by passing `<initiative-slug> <story-slug>` as arguments or by picking from the menu this skill shows when either is absent. The menu is **not** inference: it lists the legal candidates (filtered to `🟣 IN REVIEW`) and asks the operator to pick.
 
-The reasoning: review must come from a fresh, independent perspective. The same session that just implemented a story will rationalize its own work, not scrutinize it. Auto-inferring "the current story" would silently pick whatever the session was last working on — exactly the coupling we want to avoid.
+The reasoning: review must come from a fresh, oblivious arbitration perspective. The same session that just implemented or converged a story will rationalize its own work, not scrutinize it. Auto-inferring "the current story" would silently pick whatever the session was last working on — exactly the coupling we want to avoid.
 
-A gentle nudge: if you find yourself picking from the menu in the same session that just wrote the implementation, consider opening a fresh session for the review. The menu still makes it possible to run review from the implementation session, but the friction is intentional and any future change that adds silent auto-inference here must be rejected.
+If this command is being considered from the same session that just wrote or converged the implementation, stop and open a completely fresh session first. Do not carry parent/converger notebook entries, implementation summaries, operational notes, or prior chat context into review. The menu still makes operator-explicit selection possible, but the friction is intentional and any future change that adds silent auto-inference or implementation-context handoff here must be rejected.
 
 ## Resolution
 
@@ -171,9 +171,13 @@ After reading `progress.md`'s `## Current Claim`, build `<project_root_map>` fro
 
 Do not infer identity from filename shape or naming conventions that are not explicitly recorded in `initiative.md` or `story.md`.
 
-## Notebook Input
+## Oblivious Context Boundary
 
-When launched by a converger, you may receive a `Notebook references from parent orchestration session` block before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use referenced notebook selectors or compact fallback excerpts as sourced orientation only. The converger owns keeping notebook references relevant; you only decide whether the needed fact is reachable from a referenced selector or excerpt. If present, read only the relevant notebook page/entry on demand when available, then verify it with direct reads/search against the cited anchors before it affects a finding, approval, or write-back instead of rerunning expensive research. If a referenced notebook entry or excerpt does not verify, mention the mismatch with exact anchors in the relevant final-response section; do not decide how to curate the notebook. If absent, follow this skill's normal research rules. Ignore any notebook item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+`/openspec-story-review` must run as fresh, oblivious arbitration. Its review inputs are limited to current OpenSpec artifacts, live repo/worktree evidence, read-only external issue/PR/Jira evidence explicitly linked or keyed from those artifacts, and explicit operator arguments such as `<initiative-slug>`, `<story-slug>`, and `WORKTREE=` selectors.
+
+Do not accept parent/converger notebook references, implementation summaries, operational notes, prior chat context, or any other implementation-session framing as review input. If the prompt includes a `Notebook references from parent orchestration session` block, broad notebook excerpts, or a request to continue review inside an implementation convergence session, abort before reviewing and tell the operator to rerun exactly `/openspec-story-review <initiative-slug> <story-slug> [WORKTREE=...]` from a completely fresh session with no carried context.
+
+After this boundary check passes, perform normal evidence discovery from the artifacts and live repo. `progress.md` handoff/proof entries remain reviewable because they are durable OpenSpec artifacts, not inherited chat or notebook context.
 
 ## Proof-boundary discipline
 
@@ -226,13 +230,13 @@ Multipass planning:
 Focused pass execution:
 - Use focused child agents in normal operation when the runtime provides them. Each child is read-only for code and coordination files; runtime-specific invocation details belong in runtime-specific fragments.
 - A documented manual focused-pass substitute is allowed only when child-agent spawning fails, times out, or is unavailable. The substitute must record the pass title, substitution reason, files/symbols inspected, searches/direct reads used, findings, and explicit clean or inconclusive result.
-- Child agents may use only their allowed read-only evidence tools such as direct file reads, `git`, and search. Treat any referenced notebook entry or compact excerpt as orientation only and verify it with direct reads/search against cited anchors before relying on it.
+- Child agents may use only their allowed read-only evidence tools such as direct file reads, `git`, and search. Do not pass notebook entries, implementation summaries, operational notes, prior chat context, or convergence framing into review child agents.
 - External documentation may inform hypotheses only when specialized external knowledge is needed; repo code/tests/story artifacts still govern approval.
 
 Focused pass return contract:
 - Pass title and acceptance items covered.
 - Scope reviewed: repos, files, symbols, callsites, and tests.
-- Search/direct-read evidence used, including notebook entries verified through direct anchors or `not needed` with a short reason.
+- Search/direct-read evidence used, or `not needed` with a short reason.
 - External sources used, or `none`.
 - Hypothesis Triage: compact bullets using `suspicious surface: <file/API/flow>; tentative issue: <possible failure>; next proof target: <source/test/proof to check>`. Include only candidate issue threads the pass actually inspected; prune weak candidates before promoting anything into `Findings`.
 - Findings: every non-empty finding ends with `Sources: path:line`; use `- None.` when clean.
@@ -397,7 +401,7 @@ Append a new entry to `<change_dir>/reviews.md`. `reviews.md` is a standalone ar
 Each entry uses this schema:
 
 ```md
-- <UTC ISO timestamp> Review run by fresh maintainer session
+- <UTC ISO timestamp> Review run by fresh oblivious maintainer session
   - Decision: approve | request_changes | blocked | not_reviewable
   - Approval gate: pass | fail
   - Product verdict: approve | request_changes | reject | not_assessed
