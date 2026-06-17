@@ -3,7 +3,7 @@ name: openspec-next-action
 description: Inspect the current or selected OpenSpec initiative, change, or spec state and recommend the single next workflow action with concise reasoning. Use when you need lightweight lifecycle routing before choosing a planning, implementation, PR, feedback, or archive command.
 disable-model-invocation: true
 argument-hint: "[INITIATIVE=<slug>|<initiative-slug>] [STORY=<slug>|<story-slug>] [SPEC=<spec-or-path>] [--all]"
-allowed-tools: Read Grep Glob
+allowed-tools: Read Grep Glob Bash(git status:*) Bash(git diff:*)
 ---
 
 # OpenSpec Next Action
@@ -19,6 +19,7 @@ Argument: `$ARGUMENTS` — optional selectors: `[INITIATIVE=<slug>|<initiative-s
 - `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>`.
 - `<archive_dir>` = `<workspace_root>/openspec/changes/archive/<story-slug>`.
 - `<story_file>` = `<change_dir>/story.md`.
+- `<design_file>` = `<change_dir>/design.md`.
 - `<progress_file>` = `<change_dir>/progress.md`.
 - `<reviews_file>` = `<change_dir>/reviews.md`.
 - `<tasks_file>` = `<change_dir>/tasks.md`.
@@ -28,7 +29,7 @@ There is no central tracker table. Treat `story.md → Plan:` and `story.md → 
 
 ## Hard Boundaries
 
-- Read-only only. Do not edit, create, delete, move, archive, claim, review, open PRs, or update notebook pages.
+- Read-only only. Do not edit, create, delete, move, archive, claim, review, open PRs, update notebook pages, or run mutating shell commands. Bash usage is limited to read-only `git status` and `git diff` inspection.
 - Recommend one next action; do not perform it.
 - Validate any operator-provided initiative or story slug against `^[a-z0-9]+(?:-[a-z0-9]+)*$` before constructing paths.
 - Never read or write archived change workspaces as active stories. Archived work may receive new input only through a new story or `/openspec-feedback`.
@@ -64,7 +65,7 @@ There is no central tracker table. Treat `story.md → Plan:` and `story.md → 
 Read only the artifacts needed for routing:
 
 - Initiative mode: `initiative.md`, plus a directory listing of `openspec/changes/*/story.md`.
-- Story mode: `story.md` headers, `blocked.md` existence, and bounded evidence from `progress.md`, `reviews.md`, and `tasks.md` only when relevant to feedback, PR delivery evidence, DONE, or archive routing.
+- Story mode: `story.md` headers, `blocked.md` existence, bounded dirty-diff evidence from `story.md`, `design.md`, and `tasks.md` when `Plan:` is `🟢 PLAN APPROVED`, and bounded evidence from `progress.md`, `reviews.md`, and `tasks.md` only when relevant to feedback, PR delivery evidence, DONE, or archive routing.
 - Spec mode: the resolved path and its containing workspace or stable spec location.
 
 Evidence to extract:
@@ -77,6 +78,15 @@ Evidence to extract:
 - Whether the latest relevant `reviews.md` entry appears to record `Decision: approve` and `Approval gate: pass`.
 - Whether `tasks.md` has obviously unchecked in-scope tasks when considering archive.
 - Whether required planning scaffold files (`proposal.md`, `story.md`, `design.md`, `tasks.md`) exist when the plan is not approved.
+- For plan-approved active stories, whether `story.md`, `design.md`, or `tasks.md` have uncommitted staged or unstaged material planning/contract changes.
+
+Plan-contract drift check for active stories with `Plan: 🟢 PLAN APPROVED`:
+
+1. Run `git status --porcelain -- <story_file> <design_file> <tasks_file>`.
+2. If those paths are clean, record `PlanContractDrift=no`.
+3. If any are dirty, inspect a bounded diff with `git diff --no-ext-diff --no-textconv -- <story_file> <design_file> <tasks_file>` and `git diff --cached --no-ext-diff --no-textconv -- <story_file> <design_file> <tasks_file>`. For untracked (`??`) paths where diff output is unavailable, read only bounded relevant sections of the artifact as the evidence substitute.
+4. Record `PlanContractDrift=yes` when the diff appears to add, remove, or materially change accepted scope, acceptance criteria, requirements, design decisions, task definitions or checklist item text/list structure, spec references, trace IDs, or comparable plan/contract content. New acceptance IDs or external ticket references in these files are material.
+5. Do not count lifecycle-only field changes (`Plan:` or `Status:`), task checkbox state-only toggles (`[ ]` ↔ `[x]`), whitespace-only edits, or comments that clearly do not affect behavior/scope as drift. If the dirty diff is plausibly material or cannot be confidently classified as lifecycle-only/non-contract from the bounded evidence, treat approval as stale and record `PlanContractDrift=yes`.
 
 Do not perform deep review. If the quick evidence is missing, stale, or conflicting, route to the owner command rather than trying to settle the verdict here.
 
@@ -120,6 +130,15 @@ If `Status:` is not `✅ DONE` and `Plan:` is not `🟢 PLAN APPROVED`, planning
 
 Plan-approved means exactly `Plan: 🟢 PLAN APPROVED`.
 
+Before using the status table, handle stale plan approval:
+
+| Plan-approved drift state | Recommendation |
+|---|---|
+| `PlanContractDrift=yes` and `Status: ✅ DONE` from material uncommitted changes in `story.md`, `design.md`, or `tasks.md` | `/openspec-feedback <initiative>` |
+| `PlanContractDrift=yes` and `Status:` is not `✅ DONE` from material uncommitted changes in `story.md`, `design.md`, or `tasks.md` | `/openspec-story-plan-review <initiative> <story-slug>` |
+
+This stale-approval rule takes precedence over claim, resume, implementation review, PR delivery, and archive routing because implementation commands operate on the currently approved plan/contract. Completed stories are the exception: `/openspec-story-plan-review` does not contract-review `Status: ✅ DONE` stories in place, so contract-changing input must go through `/openspec-feedback` for candidate, initiative-level, or explicitly acknowledged reopen handling.
+
 | Status | Recommendation |
 |---|---|
 | Missing, unset, `⬜ TODO`, or `⚪ TODO` | `/openspec-story-claim <initiative> <story-slug>` |
@@ -158,14 +177,16 @@ Return only this compact report. Include every section; use `None.` or `unavaila
 **Next Action**: <single exact command, operator decision, wait decision, or None>
 **Confidence**: high | medium | low
 **Context**: initiative=<slug|unavailable>; story=<slug|unavailable>; spec=<path|unavailable>
-**State**: Plan=<value|unavailable>; Status=<value|unavailable>; Blocked=<yes|no|unavailable>; Location=<active|archived|missing|initiative|spec>
+**State**: Plan=<value|unavailable>; Status=<value|unavailable>; Blocked=<yes|no|unavailable>; Location=<active|archived|missing|initiative|spec>; PlanContractDrift=<yes|no|unavailable>
 
 ## Reasoning
 - <evidence-backed reason with file path and field/section>
+- <when routing due plan-contract drift, cite dirty planning artifact path(s) and the changed section or kind of contract content without dumping the diff>
+- <when routing a DONE story with plan-contract drift to `/openspec-feedback`, state that completed stories are not contract-reviewed in place and that feedback/reopen handling owns the next transition>
 - <why this command owns the next transition>
 
 ## Alternatives / Caveats
-- <optional PR/no-PR choice, ambiguity, stale evidence, or archive preflight caveat>
+- <optional PR/no-PR choice, ambiguity, stale evidence, feedback source/PR needed for `/openspec-feedback`, or archive preflight caveat>
 - None.
 
 ## All Candidates
