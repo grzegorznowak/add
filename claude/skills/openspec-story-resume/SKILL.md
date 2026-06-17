@@ -35,25 +35,30 @@ This skill defers to the following artifacts, in priority order. Notebook contex
 
 ### 0.1 Resolve the Initiative and Change Workspace
 
-1. Set `<workspace_root>` = `<cwd>` and resolve OpenSpec artifacts only under this checkout. There is no persisted `OpenSpec root:` field.
-2. Read `openspec/initiatives/<initiative-slug>/initiative.md` to confirm the initiative exists and gather context.
-   - If it is missing, do not guess or silently search other checkouts. Ask whether this story was claimed into a root repo worktree and the OpenSpec artifacts were moved there. Recommend rerunning `/openspec-story-resume <initiative-slug> [story-slug]` from that root worktree. If the operator only needs to point target-repo writes at an existing worktree from the correct OpenSpec checkout, suggest `WORKTREE="<basename>=<path>"`. Halt until the command is run from a checkout that contains `openspec/initiatives/<initiative-slug>/initiative.md`.
-3. If `story-slug` is provided:
-   - Confirm `openspec/changes/<story-slug>/` exists and contains `story.md`.
-   - If it is missing, check `openspec/changes/archive/<story-slug>/`; if archived, report that the story is archived and halt.
-   - If it is missing from both active and archive locations, ask whether the story was moved to a root repo worktree during claim. Recommend rerunning from the checkout/worktree that contains `openspec/changes/<story-slug>/story.md`; if target repo mapping is the only missing piece once in that checkout, pass `WORKTREE="<basename>=<path>"`. Halt without updating `progress.md` or touching implementation files.
-   - Read `story.md` to extract the `Status:` header and confirm the change is in a resumable state.
-4. If `story-slug` is omitted:
-   - Scan all directories under `openspec/changes/` for `story.md` files.
+1. Set `<workspace_root>` = `<cwd>` and `<openspec_root>` = `<workspace_root>`. `<workspace_root>` is the launch checkout/root-repo discovery base; `<openspec_root>` is the transient artifact anchor for `openspec/...` and may be rerooted in memory. There is no persisted `OpenSpec root:` field.
+2. Before reading lifecycle artifacts or making readiness decisions, run the OpenSpec-root preflight when `<story-slug>` is known:
+   - Inspect explicit `WORKTREE="<basename>=<path>"` values first. If exactly one points at a git checkout that contains both `openspec/initiatives/<initiative-slug>/initiative.md` and `openspec/changes/<story-slug>/story.md`, treat it as operator-authoritative for the OpenSpec root: set `<openspec_root>=<path>` and route all coordination reads/writes there. If multiple explicit values qualify, ask the operator which checkout is active and halt until clarified; never guess. Explicit target-repo worktree overrides that do not contain both OpenSpec artifacts remain normal Phase 1 worktree inputs.
+   - If no explicit value qualifies, inspect `git -C <workspace_root> worktree list --porcelain` for entries on branch `refs/heads/<initiative-slug>/<story-slug>` that contain both required files above. If exactly one valid candidate exists, set `<openspec_root>` to that candidate, even when `<workspace_root>` also has matching but possibly stale artifacts. If multiple valid candidates exist, ask the operator which checkout is active and halt until clarified; never guess.
+   - If `<story-slug>` is omitted, do not run non-explicit branch-based discovery yet. Use `<workspace_root>` only to present the menu/auto-selection, then rerun this preflight immediately after a story is selected and before eligibility gates or writes. Do not invent a story from a worktree scan.
+3. Read `<openspec_root>/openspec/initiatives/<initiative-slug>/initiative.md` to confirm the initiative exists and gather context.
+   - If it is missing, do not guess or silently search other checkouts. Ask whether this story was claimed into a root repo worktree and the OpenSpec artifacts were moved there. Recommend rerunning `/openspec-story-resume <initiative-slug> [story-slug]` from that root worktree, or pass an explicit valid root `WORKTREE="<basename>=<path>"` when the story slug is provided. Halt until the command resolves a checkout that contains `openspec/initiatives/<initiative-slug>/initiative.md`.
+4. If `story-slug` is provided:
+   - Confirm `<openspec_root>/openspec/changes/<story-slug>/` exists and contains `story.md`.
+   - If it is missing, check `<openspec_root>/openspec/changes/archive/<story-slug>/`; if archived, report that the story is archived and halt.
+   - If it is missing from both active and archive locations, ask whether the story was moved to a root repo worktree during claim. Recommend rerunning from the checkout/worktree that contains `openspec/changes/<story-slug>/story.md`, or pass an explicit valid root `WORKTREE="<basename>=<path>"`. Halt without updating `progress.md` or touching implementation files.
+   - Read `story.md` from `<openspec_root>` to extract the `Status:` header and confirm the change is in a resumable state.
+5. If `story-slug` is omitted:
+   - Scan all directories under `<openspec_root>/openspec/changes/` for `story.md` files.
    - Read each `story.md` and check the `Status:` header.
    - Select the first change with `Status: 🔄 IN PROGRESS`, or `Status: ⛔ BLOCKED` when `blocked.md` is absent (previous blocker resolved by removing the gate file).
    - Do not infer work from PR metadata alone. If PR feedback appears actionable for a locally DONE story, tell the operator to run `/openspec-feedback` first so feedback is classified and routed before implementation resumes.
    - If multiple are found, report them and ask the operator to disambiguate.
-   - If none are found, report that no in-progress changes exist in this checkout. Ask whether the active story's OpenSpec artifacts were moved to a root repo worktree; if yes, rerun from that worktree. Halt.
+   - If none are found, report that no in-progress changes exist in this checkout. Ask whether the active story's OpenSpec artifacts were moved to a root repo worktree; if yes, rerun from that worktree or rerun with a story slug plus explicit valid root `WORKTREE=...`. Halt.
+   - After selecting a story, rerun the OpenSpec-root preflight from step 2 for the selected `<story-slug>` and recompute all artifact paths from `<openspec_root>` before continuing.
 
 ### 0.2 Read All Change Workspace Artifacts
 
-Before any implementation begins, read these files from the resolved change workspace (`openspec/changes/<story-slug>/`):
+Before any implementation begins, read these files from the resolved change workspace (`<openspec_root>/openspec/changes/<story-slug>/`):
 
 1. **`proposal.md`** — Understand the "why" and scope boundaries.
 2. **`story.md`** — Extract `Status:`, `Plan:`, `## Purpose`, `## Acceptance Criteria`, `## Verification`, and any other sections.
@@ -108,8 +113,8 @@ These gates must pass before Phase 1 worktree checks, Phase 2 claim refresh, any
 
 ### 1.1 Resolve Worktrees
 
-1. Parse `WORKTREE` arguments into a map of `basename → path`.
-2. Read `progress.md → ## Current Claim` and extract both:
+1. Parse `WORKTREE` arguments into a map of `basename → path` for implementation worktree routing; this does not change `<openspec_root>` unless the Phase 0.1 OpenSpec-root preflight already validated the path as the artifact root.
+2. Read `<openspec_root>/openspec/changes/<story-slug>/progress.md → ## Current Claim` and extract both:
    - the `- Worktrees:` child list (`- <repo-basename>: <absolute path>`), and
    - the `- Main-tree targets:` bullet, splitting comma-separated repo basenames and trimming whitespace.
 3. Merge worktrees:
@@ -118,7 +123,7 @@ These gates must pass before Phase 1 worktree checks, Phase 2 claim refresh, any
    - If the operator provides a subset, use operator values for those basenames and retain the rest from the claim.
 4. Preserve main-tree targets from the current claim unless that basename now has an operator-provided or retained worktree. Do not drop the `Main-tree targets:` shape during claim refresh; `/openspec-story-review` uses it to scope dirty main-tree work.
 5. Validate each worktree path exists and is a git repository.
-6. Validate each worktree basename matches the repository's actual directory name or a known alias. Additionally, accept a recorded or explicit basename as a root-repo alias when its path resolves to the current `<workspace_root>` and `<workspace_root>` is itself a git repo, even if the directory basename now differs from the original checkout basename. Treat that alias as the resolved repo identity without adding a persisted `OpenSpec root:` field or changing the `progress.md → ## Current Claim` shape.
+6. Validate each worktree basename matches the repository's actual directory name or a known alias. Additionally, accept a recorded or explicit basename as a root-repo alias when its path resolves to the current `<openspec_root>` or `<workspace_root>` and that root is itself a git repo, even if the directory basename now differs from the original checkout basename. Treat that alias as the resolved repo identity without adding a persisted `OpenSpec root:` field or changing the `progress.md → ## Current Claim` shape.
 
 ### 1.2 Dirty Detection
 
@@ -145,7 +150,7 @@ If the current claim has no `Main-tree targets:` field, treat it as legacy unkno
 
 ### 2.1 Refresh the Current Claim
 
-1. Update `progress.md → ## Current Claim` with:
+1. Update `<openspec_root>/openspec/changes/<story-slug>/progress.md → ## Current Claim` with:
    - Claimed/refreshed timestamp: Current ISO 8601 timestamp.
    - Worktrees: The resolved worktree map from Phase 1, using the canonical `- Worktrees:` parent bullet only when at least one worktree exists.
    - Main-tree targets: The preserved/resolved main-tree target basenames from Phase 1, using the canonical `- Main-tree targets:` bullet only when at least one main-tree target exists.
@@ -166,7 +171,7 @@ If the current claim has no `Main-tree targets:` field, treat it as legacy unkno
 
 ### 2.2 Format
 
-The `## Current Claim` section in `progress.md` uses the canonical claim shape consumed by review/converge:
+The `## Current Claim` section in `progress.md` uses the canonical claim shape consumed by review/converge. Preserve this shape exactly; do not add a persisted `OpenSpec root:` field:
 
 ```markdown
 ## Current Claim

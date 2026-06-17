@@ -15,7 +15,7 @@ Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [MAX_CYCLES=5] [WORKT
 ## Resolution Model
 
 - `<workspace_root>` = `<cwd>` at launch. Keep it for root-repo worktree discovery.
-- `<openspec_root>` = the active checkout containing this story's OpenSpec artifacts. It starts as `<workspace_root>` and may be updated in memory after a claim/resume pass if the active artifacts moved into a root repo worktree. Never persist an `OpenSpec root:` field.
+- `<openspec_root>` = the active checkout containing this story's OpenSpec artifacts. It starts as `<workspace_root>` and may be updated in memory during initial resolution or after a claim/resume pass if the active artifacts live in a root repo worktree. Never persist an `OpenSpec root:` field.
 - `<initiative_dir>` = `<openspec_root>/openspec/initiatives/<initiative>`.
 - `<initiative_file>` = `<initiative_dir>/initiative.md`.
 - `<change_dir>` = `<openspec_root>/openspec/changes/<story-slug>`.
@@ -49,15 +49,18 @@ There is no `MASTER.md` and no tracker table. All status is self-contained in th
    - `MAX_CYCLES=<n>`: optional positive integer; default `5`.
    - `WORKTREE="<value>"`: optional, repeatable, passed through unchanged.
 2. Reject unknown flags.
-3. Set `<workspace_root>` = `<cwd>`, set `<openspec_root>` = `<workspace_root>`, and resolve `<initiative_dir>` = `<openspec_root>/openspec/initiatives/<initiative>`. There is no persisted `OpenSpec root:` field; convergence must run from the checkout that contains the active OpenSpec artifacts.
-4. Read `<initiative_dir>/initiative.md`. If missing, ask whether the story was claimed into a root repo worktree and the OpenSpec artifacts were moved there. Recommend rerunning `/openspec-story-converge <initiative> <story-slug> [WORKTREE=...]` from that worktree; if the OpenSpec checkout is correct but target repo mapping is missing, pass `WORKTREE="<basename>=<path>"`. Abort with: `initiative not found in this checkout`.
-5. Resolve `<change_dir>` = `<openspec_root>/openspec/changes/<story-slug>/`.
+3. Set `<workspace_root>` = `<cwd>` and `<openspec_root>` = `<workspace_root>`. There is no persisted `OpenSpec root:` field. `<workspace_root>` remains the launch checkout/root-repo worktree discovery base; `<openspec_root>` is the transient artifact anchor for all `openspec/...` reads.
+4. Before reading lifecycle artifacts or making readiness decisions, run the OpenSpec-root preflight:
+   - Inspect explicit `WORKTREE="<basename>=<path>"` values first. If exactly one points at a git checkout containing both `openspec/initiatives/<initiative>/initiative.md` and `openspec/changes/<story-slug>/story.md`, set `<openspec_root>=<path>`. This operator-provided root is authoritative. If multiple explicit values qualify, ask the operator which checkout is active and halt; never guess. Explicit target-repo overrides that do not contain both OpenSpec artifacts remain normal pass-through worktree inputs.
+   - If no explicit value qualifies, inspect `git -C <workspace_root> worktree list --porcelain` for entries on branch `refs/heads/<initiative>/<story-slug>` that contain both required artifact files. If exactly one valid candidate exists, set `<openspec_root>` to that candidate even when `<workspace_root>` also has matching but possibly stale artifacts. If multiple valid candidates exist, ask the operator which checkout is the active OpenSpec root and halt; never guess.
+5. Recompute `<initiative_dir>` = `<openspec_root>/openspec/initiatives/<initiative>` and read `<initiative_dir>/initiative.md`. If missing, ask whether the story was claimed into a root repo worktree and the OpenSpec artifacts were moved there. Recommend rerunning `/openspec-story-converge <initiative> <story-slug> [WORKTREE=...]` from that worktree, or rerunning with an explicit valid root `WORKTREE="<basename>=<path>"`. Abort with: `initiative not found in this checkout`.
+6. Resolve `<change_dir>` = `<openspec_root>/openspec/changes/<story-slug>/`.
    - If missing, check `<openspec_root>/openspec/changes/archive/<story-slug>/`.
    - If archived, abort with: `story is archived; move it back to openspec/changes/ first`.
-   - If missing in both, ask whether the story was moved to a root repo worktree during claim. Recommend rerunning from the checkout/worktree that contains `openspec/changes/<story-slug>/story.md`; if target repo mapping is the only missing piece once in that checkout, pass `WORKTREE="<basename>=<path>"`. Abort with: `change workspace not found in this checkout`.
-6. Read `<story_file>` and confirm the `Status:` header field is present (it may be default-valued or unset).
+   - If missing in both, ask whether the story was moved to a root repo worktree during claim. Recommend rerunning from the checkout/worktree that contains `openspec/changes/<story-slug>/story.md`, or rerunning with an explicit valid root `WORKTREE="<basename>=<path>"`. Abort with: `change workspace not found in this checkout`.
+7. Read `<story_file>` and confirm the `Status:` header field is present (it may be default-valued or unset).
    - If `story.md` is missing or unreadable, ask the same root-worktree relocation question and abort with: `story.md is missing from change workspace`.
-7. Keep the exact `WORKTREE=` fragments for later command lines. Do not normalize or reinterpret them in the converger.
+8. Keep the exact `WORKTREE=` fragments for later command lines. Do not normalize or reinterpret them in the converger except for the read-only OpenSpec-root preflight above.
 
 ## Phase 2 — Eligibility Gate
 
@@ -124,8 +127,9 @@ For each cycle:
 7. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that implementation pass only. The next lifecycle pass still starts in a new fresh subagent.
 8. After the pass finishes, treat the subagent final response as the provisional result, then refresh the active OpenSpec artifact root before any lifecycle spot-check:
    - Run this refresh after every claim pass, and after any resume pass whose reported anchors are missing or whose spot-check would otherwise read stale paths.
-   - Inspect root-repo worktrees with `git -C <workspace_root> worktree list --porcelain`. Find worktree entries on branch `refs/heads/<initiative>/<story-slug>` (or whose path matches an explicit `WORKTREE="<basename>=<path>"` for `basename(<workspace_root>)`). Consider a candidate active OpenSpec root only when both `<candidate>/openspec/initiatives/<initiative>/initiative.md` and `<candidate>/openspec/changes/<story-slug>/story.md` exist.
-   - If exactly one candidate differs from `<openspec_root>`, set `<openspec_root>` to that candidate and immediately recompute `<initiative_dir>`, `<initiative_file>`, `<change_dir>`, `<story_file>`, `<reviews_file>`, `<progress_file>`, and `<blocked_file>` from the new root. Record a neutral operational note: `OpenSpec artifacts moved to root worktree <candidate>; convergence continued from that checkout.` Do not read or route from the old artifact paths after this point.
+   - Inspect explicit `WORKTREE="<basename>=<path>"` arguments first. If exactly one path is a git checkout containing both `<path>/openspec/initiatives/<initiative>/initiative.md` and `<path>/openspec/changes/<story-slug>/story.md`, it is operator-authoritative for `<openspec_root>`; set `<openspec_root>` to it and recompute artifact paths before any spot-check. If multiple explicit paths qualify, ask the operator which checkout is active and halt; never guess. Target-repo overrides that lack those artifacts are ignored for OpenSpec-root discovery.
+   - If no explicit path qualifies, inspect root-repo worktrees with `git -C <workspace_root> worktree list --porcelain`. Find worktree entries on branch `refs/heads/<initiative>/<story-slug>` and consider a candidate active OpenSpec root only when both `<candidate>/openspec/initiatives/<initiative>/initiative.md` and `<candidate>/openspec/changes/<story-slug>/story.md` exist.
+   - If exactly one candidate qualifies and differs from `<openspec_root>`, set `<openspec_root>` to that candidate and immediately recompute `<initiative_dir>`, `<initiative_file>`, `<change_dir>`, `<story_file>`, `<reviews_file>`, `<progress_file>`, and `<blocked_file>` from the new root. Record a neutral operational note: `OpenSpec artifacts moved to root worktree <candidate>; convergence continued from that checkout.` Do not read or route from the old artifact paths after this point. This reroot also applies when `<workspace_root>` still has matching but stale artifacts.
    - If multiple candidates qualify, stop and ask the operator which checkout is the active OpenSpec root; include the candidate paths. Do not guess.
    - If no candidate qualifies and the current `<story_file>` or `<progress_file>` is missing after a claim pass, stop with: `OpenSpec artifacts may have moved to a root worktree, but convergence could not locate them. Rerun from the checkout containing openspec/changes/<story-slug>/story.md, or pass WORKTREE="<basename>=<path>" from that checkout.`
 
