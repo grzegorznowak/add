@@ -29,9 +29,9 @@ Do **not** try to rediscover or redefine the initiative from scratch. Do **not**
     - `<initiative_slug>`: the first bare positional token (falls back to the single active initiative under `openspec/initiatives/` if omitted)
     - `<story_slug>`: optional second bare positional token (story slug / change workspace name)
     - The raw list of `WORKTREE="<value>"` occurrences (parsed in `## Worktree preflight` step 5 into `<explicit_worktree_map>` and/or `<legacy_worktree>`)
-2. Set `<workspace_root>` = `<cwd>` and resolve `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative_slug>`. `<workspace_root>` is never re-anchored; coordination files always live here.
+2. Set `<workspace_root>` = `<cwd>` and `<openspec_root>` = `<workspace_root>`, then resolve `<initiative_dir>` = `<openspec_root>/openspec/initiatives/<initiative_slug>`. `<openspec_root>` is the active coordination root for this claim; it starts at the launch checkout and may change only in `## Worktree preflight` step 9 when a root-repo worktree is created and the current story's OpenSpec artifacts are copied there. Do not persist an `OpenSpec root:` field.
 3. If `<initiative_dir>` does not exist, stop and report the exact missing path.
-4. Read first (from `<workspace_root>`):
+4. Read first (from `<openspec_root>`):
    - the main repo `AGENTS.md` for the repo you will touch
    - `<initiative_dir>/initiative.md`
 
@@ -77,7 +77,7 @@ If no such story exists, or the targeted story is not claimable:
 To check whether an expected prerequisite is satisfied:
 
 1. Parse `story.md → ## Expected Prerequisites` for references to other change workspaces. Expected format: a list where each bullet names a dependency story slug.
-2. For each dependency slug, resolve `<workspace_root>/openspec/changes/<slug>/story.md`.
+2. For each dependency slug, resolve `<openspec_root>/openspec/changes/<slug>/story.md`.
 3. Read the `Status:` header. The dependency is satisfied when `Status: ✅ DONE`.
 4. If any dependency is not `✅ DONE`, the story is not ready to claim.
 
@@ -85,9 +85,9 @@ If `## Expected Prerequisites` is absent or empty, the story has no dependencies
 
 ## Worktree preflight
 
-After picking a story but before writing any claim, figure out which repos the story will write to, whether any of them are dirty, and for each dirty target build a linked git worktree on the story-specific branch. Clean target repos are written to directly; implementation work on dirty repos happens in a clean branch isolated from whatever else was in the main tree.
+After picking a story but before writing any claim, figure out which repos the story will write to, whether any of them are dirty outside this story's own OpenSpec coordination paths, and for each dirty target build a linked git worktree on the story-specific branch. Clean target repos are written to directly; implementation work on dirty repos happens in a clean branch isolated from whatever else was in the main tree.
 
-**Invariant**: `<workspace_root>` = `<cwd>`, always. All reads and writes under `openspec/...` anchor at `<workspace_root>` unconditionally, regardless of any worktrees created below. Worktrees only redirect writes to `projects/<name>/...` paths and `git -C` commands for the corresponding sub-repo.
+**Invariant**: `<workspace_root>` = `<cwd>` at launch. `<openspec_root>` starts as `<workspace_root>` and remains the active coordination root unless step 9 creates or reuses a worktree for `<workspace_root>` and successfully copies the current story's OpenSpec artifacts there. Worktrees redirect writes to `projects/<name>/...` paths and `git -C` commands for the corresponding repo. Do not persist an `OpenSpec root:` field; later commands must run from the checkout containing the active `openspec/...` artifacts (or pass explicit `WORKTREE=` selectors for target repos).
 
 1. **Set `<story_slug>` as the canonical change workspace name**. This is the directory name under `openspec/changes/`.
 
@@ -99,7 +99,7 @@ After picking a story but before writing any claim, figure out which repos the s
 
    Additionally, run `git -C <workspace_root> rev-parse --is-inside-work-tree`. If it succeeds, add `<workspace_root>` to `<target_repos>`. This preserves the single-repo case (where `<cwd>` itself is the code repo) and the nested-monorepo case.
 
-4. **No targets**. If `<target_repos>` is empty, set `<project_root_map>` = `{}` and skip to step 10. The story will only touch workspace-root paths like `<workspace_root>/openspec/...`.
+4. **No targets**. If `<target_repos>` is empty, set `<project_root_map>` = `{}` and skip to step 10. The story will only touch coordination paths under `<openspec_root>/openspec/...`.
 
 5. **Parse explicit `WORKTREE=` arguments** into `<explicit_worktree_map>`. Collect every `WORKTREE="<value>"` occurrence from `$ARGUMENTS`. For each value:
    - If it contains `=`, split on the FIRST `=` into `<basename>` and `<path>`. Normalize `<path>` to an absolute path and record as `<explicit_worktree_map>[<basename>]` = `<path>`.
@@ -109,23 +109,33 @@ After picking a story but before writing any claim, figure out which repos the s
    - Mixing both forms (some `WORKTREE=` with `=`, some without) is an error: abort with "mix of `WORKTREE=\"path\"` and `WORKTREE=\"basename=path\"` forms is not allowed; use one or the other".
    - If `<legacy_worktree>` is set, it is only valid when exactly one `<target_repo>` was discovered. Apply it as `<explicit_worktree_map>[basename(<target_repo>)]` = `<legacy_worktree>`. Otherwise abort with "`WORKTREE=\"<path>\"` requires exactly one target repo; found N (basenames: ...). Pass `WORKTREE=\"<basename>=<path>\"` form to specify which repo".
 
-6. **Per-repo dirty check and decision**. Initialize `<project_root_map>` = `{}` and `<pending_prompt>` = `[]`. For each `<target_repo>` in `<target_repos>`, iterating in sorted order by basename for determinism:
+6. **Per-repo dirty check and decision**. Initialize `<project_root_map>` = `{}`, `<pending_prompt>` = `[]`, and `<story_openspec_status_map>` = `{}`. For each `<target_repo>` in `<target_repos>`, iterating in sorted order by basename for determinism:
    - `<repo-basename>` = `basename <target_repo>`.
-   - `<dirty>` = `git -C <target_repo> status --porcelain` output non-empty.
+   - `<porcelain>` = `git -C <target_repo> status --porcelain`.
    - `<default-path>` = `$HOME/add-worktrees/<repo-basename>-<initiative_slug>-<story_slug>`.
+   - If `<target_repo>` is exactly `<workspace_root>`, split `<porcelain>` into two groups:
+     - `<story_openspec_porcelain>`: porcelain lines whose path operand(s) are all under one of the current story-owned prefixes `openspec/initiatives/<initiative_slug>/` or `openspec/changes/<story_slug>/`.
+     - `<blocking_porcelain>`: every other porcelain line, including any other `openspec/...` path.
+     - For rename/copy porcelain entries containing ` -> `, classify the line as story-owned only when both the old and new path operands are under the story-owned prefixes. For quoted porcelain paths, classify by the unquoted path value. Ignore the porcelain status code otherwise: modified, staged, untracked, deleted, renamed, and copied entries are all allowed when the path scope is story-owned.
+   - Else, set `<story_openspec_porcelain>` = empty and `<blocking_porcelain>` = `<porcelain>` (sub-repos do not own root `openspec/...`).
+   - Record non-empty `<story_openspec_porcelain>` in `<story_openspec_status_map>[<repo-basename>]` for reporting. `<dirty_for_decision>` is true only when `<blocking_porcelain>` is non-empty.
    - If `<explicit_worktree_map>[<repo-basename>]` is set: mark for creation with `<wt-path>` = that path, regardless of dirtiness.
-   - Else if `<dirty>`: append `(<repo-basename>, <target_repo>, <default-path>, <porcelain output>)` to `<pending_prompt>` — decision deferred to the batched prompt in step 7.
-   - Else (clean, no override): `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree). Done for this repo.
+   - Else if `<dirty_for_decision>`: append `(<repo-basename>, <target_repo>, <default-path>, <blocking_porcelain>, <story_openspec_porcelain>)` to `<pending_prompt>` — decision deferred to the batched prompt in step 7.
+   - Else (clean or only story-owned OpenSpec changes, no override): `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree). If `<story_openspec_porcelain>` is non-empty, report it as informational: these current-story OpenSpec changes are ignored for the worktree decision and `<repo-basename>` will still be recorded as a `Main-tree targets:` entry.
 
-7. **Batched operator prompt**. If `<pending_prompt>` is non-empty, show ONE combined message:
+7. **Batched operator prompt**. If `<pending_prompt>` is non-empty, show ONE combined message. Decisions are based only on dirty paths outside the current story-owned OpenSpec prefixes; story-owned OpenSpec lines are grouped separately as informational:
 
    ```
-   These target repos have uncommitted changes:
+   These target repos have uncommitted changes outside the current story's OpenSpec paths:
      <repo-basename-1>:
-       <indented porcelain output, capped at ~5 lines with "...and N more" suffix if truncated>
+       Dirty changes requiring a worktree decision:
+         <indented blocking porcelain output, capped at ~5 lines with "...and N more" suffix if truncated>
+       Story-owned OpenSpec changes ignored for this decision:
+         <indented story-owned porcelain output, capped the same way; omit this group when empty>
        Default worktree path: <default-path-1>
      <repo-basename-2>:
-       <indented porcelain output...>
+       Dirty changes requiring a worktree decision:
+         <indented blocking porcelain output...>
        Default worktree path: <default-path-2>
 
    Reply with one of:
@@ -140,7 +150,7 @@ After picking a story but before writing any claim, figure out which repos the s
    - Multi-line form: each line must match `<repo-basename>: (default|no|<path>)`. Lines for basenames not in `<pending_prompt>` are ignored with a warning. Basenames in `<pending_prompt>` missing a line are an error.
    - Anything else (unparseable, partial, or mixed): re-prompt ONCE with a clearer hint restating the three acceptable reply forms. On a second malformed reply, abort with "couldn't parse reply after two attempts; re-run /openspec-story-claim". No story.md or progress.md writes have happened yet — aborting is safe.
 
-   After parsing, for each pending repo: either set `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree mode) and warn, or resolve `<wt-path>` and mark for creation.
+   After parsing, for each pending repo: either set `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree mode) and warn, or resolve `<wt-path>` and mark for creation. Keep the story-owned OpenSpec group informational only; it must not force a worktree or block direct main-tree use.
 
 8. **Create worktrees** for every repo marked for creation in step 6 or 7, iterating in sorted basename order for determinism:
    - `mkdir -p "$(dirname <wt-path>)"`
@@ -149,21 +159,35 @@ After picking a story but before writing any claim, figure out which repos the s
    - If it fails for any other reason, report the git error verbatim, list successful worktrees as "NOT cleaned up", and abort. **Do NOT auto-clean up successful worktrees** on partial failure — preserve operator choice.
    - On success: `<project_root_map>[<repo-basename>]` = `<wt-path>`.
 
-9. **Conditional `<workspace_root>` sanity check**. Run this check ONLY if ALL of the following are true:
+9. **Root worktree OpenSpec copy and activation**. Run this step ONLY if ALL of the following are true:
    - `<workspace_root>` is itself a git repo (step 3's `rev-parse --is-inside-work-tree` succeeded),
    - `<workspace_root>` is in `<target_repos>`,
    - `<project_root_map>[basename(<workspace_root>)]` is a worktree (not `<workspace_root>` itself).
 
-   Then run `git -C <project_root_map>[basename(<workspace_root>)] ls-files --error-unmatch openspec/initiatives/<initiative_slug>/initiative.md`. If it fails, abort with: "openspec/ appears to be ignored or uncommitted in `<workspace_root>`'s repo; commit the initiative files first, then re-run /openspec-story-claim".
+   Let `<root_wt>` = `<project_root_map>[basename(<workspace_root>)]`. Copy the current story's coordination artifacts from the launch checkout into that root worktree before any `story.md` or `progress.md` write:
+   - Copy `<workspace_root>/openspec/initiatives/<initiative_slug>/` to `<root_wt>/openspec/initiatives/<initiative_slug>/`.
+   - Copy `<workspace_root>/openspec/changes/<story_slug>/` to `<root_wt>/openspec/changes/<story_slug>/`.
+   - Create parent directories as needed. Copy only these two path-bounded directories; do not copy broad `openspec/`.
+   - Verify the copy before continuing: `<root_wt>/openspec/initiatives/<initiative_slug>/initiative.md` and `<root_wt>/openspec/changes/<story_slug>/story.md` must exist, and recursive comparison of each copied source directory against its destination must show no missing or different files. If verification fails, abort before writing any claim and report the exact source/destination pair that failed.
 
-   Additionally, if `<workspace_root>` is a git repo AND its step-6 porcelain output mentioned files under `openspec/`, warn: "pending changes to `openspec/` on `<workspace_root>` main will NOT be in any worktree — commit them on main and rerun, or proceed knowing they are stranded".
+   After verification succeeds, set `<openspec_root>` = `<root_wt>` for the rest of this claim and re-resolve `<initiative_dir>` and the selected change workspace under `<openspec_root>`. Do not write any persisted `OpenSpec root:` field; future `/openspec-story-resume`, `/openspec-story-review`, and `/openspec-story-converge` invocations should be run from `<root_wt>` (or supplied with explicit `WORKTREE="<basename>=<path>"` selectors for target repos as needed).
 
-   Do NOT run this check against sub-repo worktrees; sub-repos do not contain `openspec/` at all.
+   Then ask the operator whether to clean the copied story-owned coordination paths from the original checkout:
+   ```
+   Copied this story's OpenSpec artifacts into the root worktree at <root_wt> and verified them.
+   Clean the copied paths from the original checkout now? Paths: openspec/initiatives/<initiative_slug>/ and openspec/changes/<story_slug>/ (yes/no)
+   ```
+   - If the operator says yes: verify the copy one more time, then run only path-scoped cleanup for those two paths in `<workspace_root>` (tracked restore for tracked files, then `git -C <workspace_root> clean -fd -- openspec/initiatives/<initiative_slug> openspec/changes/<story_slug>` for untracked files). Never clean broad `openspec/`, never clean unrelated paths, and never clean before copy verification.
+   - If the operator says no: leave the original checkout unchanged and warn that the active coordination copy for this claim is `<root_wt>/openspec/...`.
+
+   Do NOT run this step against sub-repo worktrees; sub-repos do not contain root `openspec/` at all.
 
 10. **Done**. `<project_root_map>` is set. All downstream resolution uses these rules:
-    - `<initiative_dir>/initiative.md`, story files, and anything under `openspec/...` → read/write at `<workspace_root>/openspec/...` unconditionally.
+    - `<initiative_dir>/initiative.md`, story files, and anything under `openspec/...` → read/write at `<openspec_root>/openspec/...`.
     - Code at `projects/<name>/foo/bar` → if `<project_root_map>` has `<name>`, route to `<project_root_map>[<name>]/foo/bar`; else route to `<workspace_root>/projects/<name>/foo/bar`.
+    - Code in the root repo outside `openspec/...` and outside `projects/<name>/...` → if `<project_root_map>` has `basename(<workspace_root>)`, route the same relative path to that mapped root; else use `<workspace_root>/<relative-path>`.
     - Git commands targeting repo `<name>`: `git -C <project_root_map>[<name>] ...` (or `git -C <workspace_root>/projects/<name> ...` if `<name>` is not in the map).
+    - If `<openspec_root>` differs from `<workspace_root>`, every operator-facing next command must say to run from `<openspec_root>` or preserve the explicit `WORKTREE=` selectors needed for non-root target repos.
 
 ## Claim protocol
 
@@ -294,7 +318,7 @@ The `Status:` field in `story.md` is the authoritative implementation status. Th
 **Default rule:**
 1. Claim as `🔄 IN PROGRESS`
 2. Once the chosen focused seam is green and implementation is complete, move to `🟣 IN REVIEW`
-3. Stop there and tell the operator to open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>` with no parent notebook, implementation summary, operational notes, or prior chat context. Optional GitHub PR delivery happens after local completion via `/openspec-pr`, which records PR metadata but does not own `story.md → Status:`.
+3. Stop there and tell the operator to open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>` from the checkout containing the active OpenSpec artifacts (`<openspec_root>` if it differs from the launch root), with no parent notebook, implementation summary, operational notes, or prior chat context. Optional GitHub PR delivery happens after local completion via `/openspec-pr`, which records PR metadata but does not own `story.md → Status:`.
 4. If the session ends after implementation is complete but before independent review, leave at `🟣 IN REVIEW`
 5. If the session ends before implementation is complete, leave at `🔄 IN PROGRESS`
 
