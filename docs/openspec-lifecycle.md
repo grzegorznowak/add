@@ -61,7 +61,7 @@ Legend: [state] = durable OpenSpec state, "-- command -->" = owner transition,
     v
 [active change workspace]
   proposal.md + story.md + design.md + tasks.md + optional specs/**/*.md
-  story.md: Plan = 🟡 PLAN DRAFT, Status = ⬜ TODO
+  story.md: Plan = 🟡 PLAN DRAFT, Status = ⚪ TODO
     |
     v
 +----------------------------- PLAN LANE --------------------------------+

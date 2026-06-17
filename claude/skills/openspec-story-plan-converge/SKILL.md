@@ -29,7 +29,9 @@ Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [MAX_CYCLES=5]`. The 
 - `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>`.
 - `<story_file>` = `<change_dir>/story.md`.
 - The `Plan:` header field in `<story_file>` is the authoritative planning lane.
+- The `Status:` header field in `<story_file>` is the authoritative implementation lane.
 - The `## Plan Review Log` section in `<story_file>` is the authoritative review history.
+- New workspaces created by `/openspec-story-plan` must seed the convergence scaffold: `Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, and an empty `## Plan Review Log` section.
 
 There is no `MASTER.md`, no tracker table, no step/number row, and no implementation Status column in this flow. The change workspace is self-contained under `openspec/changes/<story-slug>/`.
 
@@ -47,8 +49,10 @@ There is no `MASTER.md`, no tracker table, no step/number row, and no implementa
    - If missing, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
    - If archived, abort with: `story is archived; move it back to openspec/changes/ first`.
    - If missing in both, abort with: `change workspace not found — run /openspec-story-plan first`.
-6. Read `<story_file>` and confirm the `Plan:` header field and `## Plan Review Log` section are present (they may be empty or default-valued).
+6. Read `<story_file>`.
    - If `story.md` is missing or unreadable, abort with: `story.md is missing from change workspace`.
+   - Confirm the `Plan:` header field, `Status:` header field, and `## Plan Review Log` section are present. `Plan:` and `## Plan Review Log` may be default-valued or empty; new `/openspec-story-plan` output starts with `Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, and an empty log section.
+   - If any scaffold anchor is missing, abort with: `story.md is missing the /openspec-story-plan convergence scaffold — add Plan: 🟡 PLAN DRAFT, Status: ⚪ TODO, and an empty ## Plan Review Log section from openspec/schemas/story-change/templates/story.md, then rerun /openspec-story-plan-converge; use /openspec-story-plan-resume only if the story also needs spec-section repair`.
 
 ## Phase 2 — Eligibility Gate
 
@@ -59,7 +63,7 @@ Before starting the loop, abort with a clear next action if any condition is tru
 - The `Plan:` header field is `🟢 PLAN APPROVED` but `## Plan Review Log` is empty or lacks an approve entry: treat as orphaned approval. Set `Plan:` to `🟠 PLAN CHANGES REQUESTED` and route through the normal review cycle.
 - The `Plan:` header field is `⛔ PLAN BLOCKED`: stop with blocked status. The operator must resolve the blocker before convergence can proceed.
 - A `blocked.md` file exists at `<change_dir>/blocked.md`: stop immediately. Convergence is refused while an explicit gate file exists. The operator may edit it to record resolution notes, but must remove `blocked.md` to unblock.
-- The story is missing the `/openspec-story-plan` scaffold shape expected by `/openspec-story-plan-review` (no `proposal.md`, no `story.md` with required spec sections, or no `design.md` / `tasks.md`).
+- The story is missing the `/openspec-story-plan` scaffold shape expected by `/openspec-story-plan-review` (no `proposal.md`, no `story.md` with required spec sections and Plan/Status/log anchors, or no `design.md` / `tasks.md`).
 - The story is so malformed that `/openspec-story-plan-resume` cannot identify spec sections to continue.
 
 The planning-lane authority is the `Plan:` header field in `story.md`. No other source is consulted for the plan state.
