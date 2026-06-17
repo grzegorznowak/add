@@ -160,7 +160,14 @@ Assemble the change workspace artifacts:
 
 ### story.md
 
-Full story contract matching the `openspec/schemas/story-change/templates/story.md` shape with all answered sections. Do not create `<TODO: ...>` placeholders.
+Full story contract matching the `openspec/schemas/story-change/templates/story.md` shape with all answered sections. Start from the template's convergence scaffold and preserve these anchors exactly:
+
+```md
+Plan: 🟡 PLAN DRAFT
+Status: ⚪ TODO
+```
+
+Include `## Plan Review Log` as an empty section seeded from the template. Do not append plan-review, planning-feedback, or addressed-entry log entries during initial planning. Do not create `<TODO: ...>` placeholders.
 
 ### design.md
 
@@ -188,6 +195,7 @@ Before the checkpoint:
    - Acceptance Proof Matrix has required columns, covers every `A<n>`
    - Every `Proof Maturity` is `final` or `provisional`; provisional rows have non-blank `Open Detail`
    - Conditional subsections present when the story risk surface requires them
+   - `story.md` preserves the convergence-required scaffold anchors: `Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, and an empty `## Plan Review Log` section
    - No `<TODO: ...>` placeholders in any spec section
 3. Validate prerequisites resolve to real existing change workspaces or are explicitly external.
 4. Validate tasks.md has at least one task per phase that has content.
@@ -200,6 +208,7 @@ Show the operator:
 - Change workspace path: `<workspace_root>/openspec/changes/<story-slug>/`
 - Artifacts to be created: proposal.md, story.md, design.md, tasks.md, specs/**/*.md
 - Acceptance/proof validation summary
+- Story scaffold validation: `Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, and an empty `## Plan Review Log`
 - The full drafted content of each artifact
 - Initiative reference: `<slug>`
 
@@ -212,7 +221,7 @@ Re-verify that `<story-slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` and that `<wo
 ## Write
 
 1. Create `<workspace_root>/openspec/changes/<story-slug>/`.
-2. Write proposal.md, story.md, design.md, tasks.md.
+2. Write proposal.md, story.md, design.md, tasks.md; the written `story.md` must include the validated convergence scaffold (`Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, empty `## Plan Review Log`).
 3. Create `specs/` subdirectory if any delta specs exist and write them.
 4. Never seed runtime artifacts: progress.md, reviews.md, blocked.md.
 
@@ -221,5 +230,5 @@ Re-verify that `<story-slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` and that `<wo
 State:
 - Change workspace path created
 - Artifacts written
-- Validation summary
+- Validation summary, including the `story.md` scaffold anchors
 - Suggested next action: `/openspec-story-plan-converge <initiative> <story-slug>` to converge the plan, or `/openspec-story-plan-review <initiative> <story-slug>` for a single review pass

@@ -61,7 +61,7 @@ Legend: [state] = durable OpenSpec state, "-- command -->" = owner transition,
     v
 [active change workspace]
   proposal.md + story.md + design.md + tasks.md + optional specs/**/*.md
-  story.md: Plan = 🟡 PLAN DRAFT, Status = ⬜ TODO
+  story.md: Plan = 🟡 PLAN DRAFT, Status = ⚪ TODO
     |
     v
 +----------------------------- PLAN LANE --------------------------------+
@@ -215,8 +215,11 @@ Command ownership:
 
 - `/openspec-story-plan-review` writes only the Plan lane and
   `story.md → ## Plan Review Log`.
-- `/openspec-story-plan-resume` edits planning artifacts to absorb feedback and
-  returns the Plan lane to draft; it does not approve its own work.
+- `/openspec-story-plan-resume` edits planning artifacts to absorb feedback,
+  repairs malformed story-plan scaffold anchors (`Plan:`, `Status:`,
+  `## Plan Review Log`) within its narrow TODO-normalization rules, and returns
+  the Plan lane to draft when plan content changed; it does not approve its own
+  work.
 - `/openspec-story-plan-converge` orchestrates fresh plan-review and plan-resume
   sessions until approval, block, no-progress, or cycle limit. It performs no
   normal review/resume artifact writes itself; its direct writes are limited to

@@ -76,7 +76,7 @@ lanes:
 # <Story Title>
 
 Plan: 🟡 PLAN DRAFT
-Status: ⬜ TODO
+Status: ⚪ TODO
 ```
 
 The planning body should contain these sections when applicable:
@@ -96,8 +96,15 @@ The planning body should contain these sections when applicable:
 | `## Critical Files` | Paths and roles the implementer/reviewer should inspect. |
 | `## Implementation Notes` | Execution brief, red-first guidance, phases, and known exceptions. |
 | `## Locked Decisions` | Decisions made during planning and rejected alternatives. |
-| `## Plan Review Log` | Created/appended by plan review or planning feedback, never by initial planning. |
+| `## Plan Review Log` | Seeded as an empty section by the story template and `/openspec-story-plan`; entries are created/appended only by plan review, planning feedback, or plan-resume addressed-entry repair. |
 | `## Feedback Absorption Log` | Optional story-local receipt for feedback edits. |
+
+Legacy or malformed stories missing `Plan:`, `Status:`, or the empty `## Plan Review Log`
+anchor are normalized by `/openspec-story-plan-resume`; it may add missing
+`Plan: 🟡 PLAN DRAFT`, add missing `Status: ⚪ TODO`, normalize exact legacy
+`Status: ⬜ TODO` to `Status: ⚪ TODO`, and add the empty log section, but it
+must not rewrite active, in-review, done, blocked, blank, or unknown status
+values.
 
 #### Actors
 

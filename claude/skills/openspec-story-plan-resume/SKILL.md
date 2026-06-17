@@ -1,6 +1,6 @@
 ---
 name: openspec-story-plan-resume
-description: Pick up an OpenSpec change's planning contract — incorporate plan review feedback, complete unfinished spec sections, or both. Leaves implementation status unchanged and the Plan lane ready for review.
+description: Pick up an OpenSpec change's planning contract — incorporate plan review feedback, complete unfinished spec sections, repair malformed story-plan scaffold anchors, or all three. Leaves implementation status unchanged except narrow TODO scaffold normalization and the Plan lane ready for review.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug>"
 allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*)
@@ -8,15 +8,15 @@ allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*)
 
 # OpenSpec Story Plan Resume
 
-Pick up an OpenSpec change workspace's planning contract — either to incorporate plan review feedback, complete unfinished spec sections, or both. Leaves implementation `Status` unchanged and moves the change's `Plan:` lane toward fresh review.
+Pick up an OpenSpec change workspace's planning contract — incorporate plan review feedback, complete unfinished spec sections, repair malformed `/openspec-story-plan` scaffold anchors, or any combination of those. Leaves implementation `Status` unchanged except narrow TODO scaffold normalization and moves the change's `Plan:` lane toward fresh review.
 
 Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug>`. Pass both positional arguments; this command has no menu fallback.
 
 ## Important
 
-This command may edit the change workspace's spec sections in `story.md`, the `story.md` file's `## Plan Review Log`, `proposal.md`, `design.md`, `tasks.md`, and delta spec files under `specs/`. It never touches:
+This command may edit the change workspace's spec sections in `story.md`, the `story.md` file's `## Plan Review Log`, `proposal.md`, `design.md`, `tasks.md`, and delta spec files under `specs/`. It also owns narrow scaffold normalization for malformed story-plan output: add missing `Plan: 🟡 PLAN DRAFT`, add missing `Status: ⚪ TODO`, normalize legacy `Status: ⬜ TODO` to `Status: ⚪ TODO`, and add a missing empty `## Plan Review Log` section. It never touches:
 - Source code, tests, configs
-- `story.md` implementation `Status:` header field (the story stays in its current implementation lifecycle state)
+- `story.md` implementation `Status:` header field except the narrow missing/legacy TODO scaffold normalization above; never rewrite active, in-review, done, blocked, blank, or unknown status values
 - Runtime sections in `progress.md` (`## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `## PR State`, `## Unresolved Debt Friction`)
 - Runtime artifact `reviews.md` (implementation review log)
 - Runtime artifact `blocked.md` (no write; reads to abort when it exists)
@@ -41,11 +41,15 @@ Plan resume must come from an explicit operator choice. Auto-inferring resumes p
    - If missing in both locations, abort with: `change workspace not found: openspec/changes/<story-slug>/ — run /openspec-story-plan first`.
 7. Resolve `<story_file>` = `<change_dir>/story.md`.
    - If the file does not exist, abort with the exact missing path.
-8. Derive the implementation lifecycle status from the `Status:` header field in `<story_file>`.
+8. Derive the implementation lifecycle status from the `Status:` header field in `<story_file>` and note whether scaffold normalization is needed.
+   - If the `Status:` header field is missing, queue scaffold normalization to add `Status: ⚪ TODO`.
+   - If it is exactly `⬜ TODO`, queue scaffold normalization to replace it with `⚪ TODO`.
    - If it is `✅ DONE`, abort with: "completed stories are not contract-reworked in place; route new feedback through `/openspec-feedback` as a candidate, initiative-level decision, defer/reject entry, or explicit lifecycle reopen decision."
-9. Derive the planning lane from the `Plan:` header field in `<story_file>`.
-   - If the `Plan:` header field is missing, infer legacy planning state from the latest effective `## Plan Review Log` entry: the last appended review entry after applying any later addressed-entry references. Map `approve` → `🟢 PLAN APPROVED`; unresolved `request_changes` or `not_reviewable` → `🟠 PLAN CHANGES REQUESTED`; `blocked` → `⛔ PLAN BLOCKED`; no entry → `🟡 PLAN DRAFT`. If no `## Plan Review Log` exists, default to `🟡 PLAN DRAFT`.
-10. If the planning lane is `🟢 PLAN APPROVED` and every required spec section is structurally complete, abort: "this story's plan is already approved; no plan-resume work is needed."
+   - If it is any active, in-review, blocked, blank, or unknown value, do not rewrite it during scaffold normalization.
+9. Derive the planning lane from the `Plan:` header field in `<story_file>` and note whether scaffold normalization is needed.
+   - If the `Plan:` header field is missing, queue scaffold normalization to add `Plan: 🟡 PLAN DRAFT`; use `🟡 PLAN DRAFT` as the effective planning lane for this resume pass.
+   - If `## Plan Review Log` is missing, queue scaffold normalization to add an empty `## Plan Review Log` section.
+10. If the planning lane is `🟢 PLAN APPROVED`, every required spec section is structurally complete, and no scaffold normalization is queued, abort: "this story's plan is already approved; no plan-resume work is needed."
 11. If the planning lane is `⛔ PLAN BLOCKED`, abort: "this story's plan is blocked; the operator must decide how to unblock before plan-resume can continue."
 12. If `blocked.md` exists at `<change_dir>/blocked.md`, abort: "blocked.md gate file exists; the operator may edit it to record resolution notes, but must remove it before plan-resume can continue."
 
@@ -55,9 +59,9 @@ Before entering the assessment, abort fast if:
 
 - The `story.md` file contains a `## Session Handoff` equivalent section (in a runtime section it shouldn't contain; the canonical session handoff is in `progress.md`) while the implementation `Status:` header is still `⚪ TODO` — say "this story file appears to contain session handoff state but its status is ⚪ TODO. This suggests implementation work may have been started and interrupted. Fix the implementation status or remove the stale runtime section before plan-resume."
 - The change workspace has no scaffold marker from `/openspec-story-plan` — say "this change workspace was not scaffolded by /openspec-story-plan; cannot resume planning. Required artifacts: proposal.md, story.md, design.md, tasks.md."
-- The story file has no `## Plan Review Log`, every required spec section exists and is structurally complete (defined below), and the planning lane is `🟢 PLAN APPROVED` — say "this story is fully planned and approved; no plan-resume work is needed."
+- The story file has no repairable planning work and no scaffold normalization queued while the planning lane is `🟢 PLAN APPROVED` — say "this story is fully planned and approved; no plan-resume work is needed."
 
-Runtime sections do not block this command. When runtime artifacts exist (`progress.md`, `reviews.md`), operate in **contract rework mode**: edit only planning spec sections and `## Plan Review Log` in `story.md`, never `progress.md`, `reviews.md`, source, tests, PR tracking, or implementation `Status:`.
+Runtime sections do not block this command. When runtime artifacts exist (`progress.md`, `reviews.md`), operate in **contract rework mode**: edit only planning spec sections, `## Plan Review Log`, and narrow story scaffold normalization in `story.md`; never edit `progress.md`, `reviews.md`, source, tests, PR tracking, or implementation `Status:` beyond adding a missing `⚪ TODO` status or normalizing legacy `⬜ TODO` to `⚪ TODO`.
 
 A required spec section is structurally complete when:
 - `## Purpose` — exists, non-empty, describes an observable user-visible outcome (not vague improvement or activity).
@@ -99,10 +103,15 @@ When launched by a converger, you may receive a `Notebook references from parent
 
 After reading, determine which mode applies:
 
+- **Mode 0 — Scaffold normalization**: Required when `Plan:` is missing, `Status:` is missing, `Status:` is exactly `⬜ TODO`, or `## Plan Review Log` is missing. Apply this before Mode A or Mode B:
+  - Add missing `Plan: 🟡 PLAN DRAFT`; do not overwrite an existing `Plan:` value.
+  - Add missing `Status: ⚪ TODO`; normalize exact legacy `Status: ⬜ TODO` to `Status: ⚪ TODO`; do not rewrite active, in-review, done, blocked, blank, or unknown status values.
+  - Add a missing empty `## Plan Review Log` section at the end of `story.md`; do not create a review, feedback, or addressed-entry log item unless Mode A requires one later.
+  - Re-read `story.md` after normalization before choosing Mode A or Mode B. If scaffold anchors are still missing or ambiguous, stop and report the exact unresolved anchor.
 - **Mode A — Feedback absorption**: Required when any entry in `## Plan Review Log` has verdict `request_changes` or `not_reviewable` AND no subsequent "addressed" entry follows it. Entries may come from `/openspec-story-plan-review` or planning feedback routed by `/openspec-feedback`. Process pending entries in chronological order (oldest first). After Mode A completes, stop. If planning continuation is still needed, the operator re-runs `/openspec-story-plan-resume <initiative-slug> <story-slug>`.
 - **Mode B — Planning continuation**: Required when Mode A does not apply (no pending entries) AND one or more required spec sections are missing or structurally incomplete.
 
-If neither mode applies and the `Plan:` header field is `🟢 PLAN APPROVED`, abort with the "fully planned and approved" message from the readiness check. If neither mode applies and the `Plan:` header field is `🟡 PLAN DRAFT` or `🟣 PLAN IN REVIEW`, stop with: "the story contract is structurally complete; run `/openspec-story-plan-review <initiative-slug> <story-slug>` for the next planning step." If neither mode applies and the `Plan:` header field is `🟠 PLAN CHANGES REQUESTED`, stop with the unresolved plan-review finding that still needs an addressed entry, or ask the operator to run `/openspec-story-plan-review <initiative-slug> <story-slug>` if no such finding exists.
+If only Mode 0 applied and the story is otherwise structurally complete, stop with the next action `/openspec-story-plan-review <initiative-slug> <story-slug>` or rerun `/openspec-story-plan-converge <initiative-slug> <story-slug>` if this repair was requested by converge. If neither mode applies and the `Plan:` header field is `🟢 PLAN APPROVED`, abort with the "fully planned and approved" message from the readiness check. If neither mode applies and the `Plan:` header field is `🟡 PLAN DRAFT` or `🟣 PLAN IN REVIEW`, stop with: "the story contract is structurally complete; run `/openspec-story-plan-review <initiative-slug> <story-slug>` for the next planning step." If neither mode applies and the `Plan:` header field is `🟠 PLAN CHANGES REQUESTED`, stop with the unresolved plan-review finding that still needs an addressed entry, or ask the operator to run `/openspec-story-plan-review <initiative-slug> <story-slug>` if no such finding exists.
 
 ## Mode A — Feedback absorption
 
@@ -248,36 +257,38 @@ After all sections have been edited, run a separate Debt Friction check. Evaluat
 
 After all mode work completes, validate the full story:
 
-1. Every required spec section exists and is structurally complete (as defined in readiness check).
-2. If `## Actors` is present, it has role bullets and at least one `Primary:` actor.
-3. If `## Scenarios / Behavior Examples` is present, every normative `S<n>` scenario has exactly one `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
-4. Every linked scenario is covered by its acceptance id and by that id's proof row(s); drift at either hop is invalid.
-5. Every acceptance bullet begins with `A<n>:`, covers exactly one behavior, and has at least one proof matrix row. Any named variants, modes, fallback paths, or failure cases inside the bullet are split into separate acceptance ids or represented as separate proof obligations.
-6. Test Architecture Plan has the required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale`, uses stable `TAP-*` row ids, covers every added/changed test or proof surface, and satisfies the TAP quality gate: cheapest reliable real boundary, exact seam, behavior-facing assertion/observable signal, fixture/data isolation and live-dependency policy, focused command/CI lane, fallback plan, and split/merge rationale.
-7. Proof matrix has the required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`, covers every named variant/failure mode or records an explicit exclusion, and references relevant `TAP-*` row ids when tests or proof surfaces change.
-8. Every `Proof Maturity` value is `final` or `provisional`. Every `provisional` row has non-blank `Open Detail`.
-9. When the story spans multiple surfaces, variants, or orchestration branches: `### Surface / Branch Proof Matrix` is present.
-10. When the story references design sources: `### Design Sources` is present with durable anchors and `normative` or `orientation only` status.
-11. When any design source is normative: `### Design Element Trace` is present, every visible element/state is mapped as `required` or bounded `flexible`, and every traced row maps through Scenario -> Acceptance -> Verification with rendered-surface proof where required.
-12. When raw persisted, external, framework, or generated input crosses stricter application assumptions: `### Input Boundary Shape Risk` is present and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
-13. When the feature depends on prompt placeholders or template variables: `### Fail-open Checks` is present.
-14. When the story activates material risk lenses not fully covered elsewhere: `### Risk Lens Inventory` is present and lists proof obligations or explicit exclusions.
-15. Planned assertions separate caller-observable behavior from implementation mechanics unless the mechanics are explicitly locked as contract.
-16. No `<TODO: ...>` placeholders exist in any spec section.
-17. Dependency refs in `## Expected Prerequisites` resolve to existing `openspec/changes/<slug>/` workspaces (cross-initiative deps flagged but not failed).
-18. Supporting artifacts are consistent: `proposal.md` Goal/Context matches Purpose, `design.md` reflects current architecture decisions, `tasks.md` checklist covers current acceptance and verification, `specs/` delta files match current story scope.
+1. The convergence scaffold anchors are present: `Plan:`, `Status:`, and `## Plan Review Log`. `Status:` is not missing and exact legacy `⬜ TODO` has been normalized to `⚪ TODO`; active, in-review, done, blocked, blank, and unknown status values are not rewritten by this command.
+2. Every required spec section exists and is structurally complete (as defined in readiness check).
+3. If `## Actors` is present, it has role bullets and at least one `Primary:` actor.
+4. If `## Scenarios / Behavior Examples` is present, every normative `S<n>` scenario has exactly one `Covers: A<n>` and every orientation-only scenario says `Orientation only`.
+5. Every linked scenario is covered by its acceptance id and by that id's proof row(s); drift at either hop is invalid.
+6. Every acceptance bullet begins with `A<n>:`, covers exactly one behavior, and has at least one proof matrix row. Any named variants, modes, fallback paths, or failure cases inside the bullet are split into separate acceptance ids or represented as separate proof obligations.
+7. Test Architecture Plan has the required columns: `Row ID | Layer / Scope | Behavior / Acceptance Slice | Owning Suite / File(s) | Boundary Exercised | Assertions / Observability | Fixture / Test Data Strategy | CI Lane / Command | Fallback Plan | Split / Merge Rationale`, uses stable `TAP-*` row ids, covers every added/changed test or proof surface, and satisfies the TAP quality gate: cheapest reliable real boundary, exact seam, behavior-facing assertion/observable signal, fixture/data isolation and live-dependency policy, focused command/CI lane, fallback plan, and split/merge rationale.
+8. Proof matrix has the required columns: `Acceptance ID | Proof Maturity | Proof Method | Reviewer Action | Expected Evidence | Relevant Surfaces | Open Detail`, covers every named variant/failure mode or records an explicit exclusion, and references relevant `TAP-*` row ids when tests or proof surfaces change.
+9. Every `Proof Maturity` value is `final` or `provisional`. Every `provisional` row has non-blank `Open Detail`.
+10. When the story spans multiple surfaces, variants, or orchestration branches: `### Surface / Branch Proof Matrix` is present.
+11. When the story references design sources: `### Design Sources` is present with durable anchors and `normative` or `orientation only` status.
+12. When any design source is normative: `### Design Element Trace` is present, every visible element/state is mapped as `required` or bounded `flexible`, and every traced row maps through Scenario -> Acceptance -> Verification with rendered-surface proof where required.
+13. When raw persisted, external, framework, or generated input crosses stricter application assumptions: `### Input Boundary Shape Risk` is present and covers every in-scope boundary/shape case or records an explicit exclusion/unknown with mitigation.
+14. When the feature depends on prompt placeholders or template variables: `### Fail-open Checks` is present.
+15. When the story activates material risk lenses not fully covered elsewhere: `### Risk Lens Inventory` is present and lists proof obligations or explicit exclusions.
+16. Planned assertions separate caller-observable behavior from implementation mechanics unless the mechanics are explicitly locked as contract.
+17. No `<TODO: ...>` placeholders exist in any spec section.
+18. Dependency refs in `## Expected Prerequisites` resolve to existing `openspec/changes/<slug>/` workspaces (cross-initiative deps flagged but not failed).
+19. Supporting artifacts are consistent: `proposal.md` Goal/Context matches Purpose, `design.md` reflects current architecture decisions, `tasks.md` checklist covers current acceptance and verification, `specs/` delta files match current story scope.
 
 If validation fails, report the specific issue and propose a fix. Keep iterating — the operator decides when to stop. Do not write invalid state.
 
-If validation passes and any spec or proof section changed, set the `Plan:` header field in `story.md` to `🟡 PLAN DRAFT`. Do not mark the plan approved from this command; `/openspec-story-plan-review` owns `🟢 PLAN APPROVED`.
+If validation passes and any spec or proof section changed, set the `Plan:` header field in `story.md` to `🟡 PLAN DRAFT`. If scaffold normalization inserted a missing `Plan:` header, the inserted value is `🟡 PLAN DRAFT`. If scaffold normalization only added the missing log anchor or normalized missing/legacy TODO `Status:`, leave any existing `Plan:` value unchanged. Do not mark the plan approved from this command; `/openspec-story-plan-review` owns `🟢 PLAN APPROVED`.
 
 ## Status and output
 
-**Status transition**: None. The implementation `Status:` header field in `story.md` stays unchanged. This skill may update only the `Plan:` header field in `story.md`: set it to `🟡 PLAN DRAFT` after edits, or leave it unchanged when no edits were needed.
+**Status transition**: None, except scaffold normalization. The implementation `Status:` header field in `story.md` stays unchanged unless it is missing or exactly legacy `⬜ TODO`; in those two cases this skill writes `Status: ⚪ TODO`. This skill must not rewrite active, in-review, done, blocked, blank, or unknown status values. It may update the `Plan:` header field in `story.md`: add `Plan: 🟡 PLAN DRAFT` when missing, set it to `🟡 PLAN DRAFT` after spec/proof edits, or leave it unchanged when no plan-affecting edits were needed.
 
 **Final response**: State:
 - which story was resumed (slug and path)
-- which modes were entered (feedback absorption, planning continuation, or both)
+- which modes were entered (scaffold normalization, feedback absorption, planning continuation, or any combination)
+- scaffold anchors normalized, if any (`Plan:`, `Status:`, `## Plan Review Log`)
 - sections edited (across all changed artifacts: story.md, proposal.md, design.md, tasks.md, specs/)
 - whether re-validation passed
 - notebook context used or updated, if material: referenced entries verified with direct-read/search anchors, stale referenced entries or absent needed facts with correction anchors, and notebook pages written for new sourced research; if notebook tools were unavailable, include compact sourced notes in the relevant final section instead
