@@ -20,7 +20,6 @@ Argument: `$ARGUMENTS` — optional selectors: `[INITIATIVE=<slug>|<initiative-s
 - `<archive_dir>` = `<workspace_root>/openspec/changes/archive/<story-slug>`.
 - `<story_file>` = `<change_dir>/story.md`.
 - `<progress_file>` = `<change_dir>/progress.md`.
-- `<reviews_file>` = `<change_dir>/reviews.md`.
 - `<tasks_file>` = `<change_dir>/tasks.md`.
 - `<blocked_file>` = `<change_dir>/blocked.md`.
 
@@ -64,7 +63,7 @@ There is no central tracker table. Treat `story.md → Plan:` and `story.md → 
 Read only the artifacts needed for routing:
 
 - Initiative mode: `initiative.md`, plus a directory listing of `openspec/changes/*/story.md`.
-- Story mode: `story.md` headers, `blocked.md` existence, and bounded evidence from `progress.md`, `reviews.md`, and `tasks.md` only when relevant to feedback, PR delivery evidence, DONE, or archive routing.
+- Story mode: `story.md` headers, `blocked.md` existence, and bounded evidence from `progress.md` and `tasks.md` only when relevant to feedback, PR delivery evidence, DONE, or archive routing.
 - Spec mode: the resolved path and its containing workspace or stable spec location.
 
 Evidence to extract:
@@ -75,7 +74,7 @@ Evidence to extract:
 - Whether `blocked.md` exists.
 - Whether the story is active, archived, or missing.
 - Whether `progress.md → ## PR State` indicates open, merged, or requested-changes PR feedback that affects archive or feedback routing.
-- Whether the latest relevant `reviews.md` entry appears to record `Decision: approve` and `Approval gate: pass`.
+- Whether the story contract and `Status:` header indicate the current lifecycle state.
 - Whether `tasks.md` has obviously unchecked in-scope tasks when considering archive.
 - Whether required planning scaffold files (`proposal.md`, `story.md`, `design.md`, `tasks.md`) and scaffold anchors (`Plan:`, `Status:`, `## Plan Review Log`) exist when the plan is not approved.
 
@@ -141,7 +140,7 @@ Quick archive-gate routing for `✅ DONE`:
 
 - If `## PR State` shows requested changes or actionable unabsorbed PR feedback, recommend `/openspec-feedback <initiative> --pr <pr-url>`.
 - If `## PR State` shows an unmerged PR without requested changes, recommend `/openspec-pr <initiative> <story-slug>` to refresh delivery evidence, or wait for PR review before archiving.
-- If latest implementation review approval is missing or unclear, recommend `/openspec-story-review <initiative> <story-slug>`.
+- If `Status:` is not `✅ DONE`, recommend the lifecycle owner for the current status; `story.md` `Status:` is the only durable completion gate.
 - If tasks are obviously unchecked, recommend `/openspec-story-resume <initiative> <story-slug>` or `/openspec-story-review <initiative> <story-slug>` depending on whether the gap is implementation work or review/status drift.
 - Otherwise recommend `/openspec-archive <initiative> <story-slug>` and note that archive performs the authoritative preflight and may ask for no-PR confirmation.
 

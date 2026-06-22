@@ -33,13 +33,11 @@ If a PR reviewer requests changes, do not downgrade the story here. Route action
 - `<story_file>` = `<change_dir>/story.md`.
 - `<progress_file>` = `<change_dir>/progress.md`.
 - `<proposal_file>` = `<change_dir>/proposal.md`.
-- `<reviews_file>` = `<change_dir>/reviews.md`.
 
 There is no `MASTER.md`, no tracker table, and no PR lifecycle status. All status is self-contained in the change workspace artifacts:
 
-- The `Status:` header field in `<story_file>` is the authoritative implementation status and is not changed by this command.
+- The `Status:` header field in `<story_file>` is the authoritative implementation status, the local completion authority for this command, and is not changed by this command.
 - The `Plan:` header field in `<story_file>` is the authoritative planning lane.
-- The latest relevant `<reviews_file>` approval is local completion authority.
 - The `## Current Claim` section in `<progress_file>` records implementation state and worktree bindings.
 - The `## PR State` section in `<progress_file>` is the sole PR metadata/evidence location.
 - The `## Progress Timeline` section in `<progress_file>` records milestone bullets.
@@ -63,7 +61,7 @@ Parse `$ARGUMENTS` first. Treat any of the three slots that is empty as a reques
 1. List `<workspace_root>/openspec/initiatives/*/` directories that contain an `initiative.md`.
 2. An initiative is eligible if its `initiative.md` exists and at least one corresponding non-archived change workspace exists under `<workspace_root>/openspec/changes/<change-slug>/` whose `<story_file>` has `Status: ✅ DONE`.
 3. If exactly one eligible initiative exists, use it. Print: `inferred initiative: <slug> (single eligible initiative)`.
-4. If zero eligible initiatives exist, abort with: `no locally DONE initiative found under openspec/initiatives/. PR delivery requires a non-archived story at Status: ✅ DONE with durable local review approval; no PR action was taken. Operator must choose the next lifecycle step.`
+4. If zero eligible initiatives exist, abort with: `no locally DONE initiative found under openspec/initiatives/. PR delivery requires a non-archived story at Status: ✅ DONE; no PR action was taken. Operator must choose the next lifecycle step.`
 5. If multiple eligible initiatives exist, abort with the list and: `multiple eligible initiatives; pass <initiative> explicitly to disambiguate.`
 
 ### Pass 2 — Story inference (when `<story>` is empty)
@@ -72,9 +70,9 @@ After the initiative is known, list all change workspace directories under `<wor
 
 1. If exactly one story matches, use it. Print: `inferred story: <story-slug> — <title> (status: ✅ DONE)`.
 2. If zero stories match, emit a specific lifecycle-state notice based on the initiative's change workspaces. Do not route to another command from `/openspec-pr`; notify and let the operator choose the next lifecycle step.
-   - if exactly one story is `🟣 IN REVIEW`, say: `story <story-slug> — <title> is Status: 🟣 IN REVIEW, not ✅ DONE. PR delivery requires durable local review approval from a fresh, oblivious review session first; no PR action was taken. Operator must choose the next lifecycle step.`
-   - if any story is `🔄 IN PROGRESS`, say: `no locally DONE story found; at least one story is Status: 🔄 IN PROGRESS. PR delivery requires Status: ✅ DONE with durable local review approval; no PR action was taken. Operator must choose the next lifecycle step.`
-   - otherwise say: `no locally DONE story found. PR delivery requires Status: ✅ DONE with durable local review approval; no PR action was taken. Operator must choose the next lifecycle step.`
+   - if exactly one story is `🟣 IN REVIEW`, say: `story <story-slug> — <title> is Status: 🟣 IN REVIEW, not ✅ DONE. PR delivery requires Status: ✅ DONE; no PR action was taken. Operator must choose the next lifecycle step.`
+   - if any story is `🔄 IN PROGRESS`, say: `no locally DONE story found; at least one story is Status: 🔄 IN PROGRESS. PR delivery requires Status: ✅ DONE; no PR action was taken. Operator must choose the next lifecycle step.`
+   - otherwise say: `no locally DONE story found. PR delivery requires Status: ✅ DONE; no PR action was taken. Operator must choose the next lifecycle step.`
 3. If multiple stories match the eligible set, list each candidate as `<story-slug> | ✅ DONE | <title>` and abort with: `multiple locally DONE stories are eligible; pass <story> explicitly to disambiguate.`
 
 ### Pass 3 — PR inference (when `<pr_url_or_OPEN=true>` is empty)
@@ -117,12 +115,7 @@ Print this even when everything was passed explicitly — the printout is the co
 
 ### Entry-condition check
 
-Once the story is resolved, abort fast unless its current status is `✅ DONE` and the change workspace is not archived.
-
-Also require:
-
-- `Plan:` header field is `🟢 PLAN APPROVED`. If not, report the current Plan value, state that PR delivery requires plan approval first, take no PR action, and let the operator choose the next lifecycle step.
-- The latest relevant `<reviews_file>` entry records both `Decision: approve` and `Approval gate: pass`. If not, report that durable local review approval is missing, take no PR action, and let the operator choose the next lifecycle step.
+Once the story is resolved, abort fast unless its current status is `✅ DONE` and the change workspace is not archived. PR body generation and PR metadata write-back gate on `story.md` `Status: ✅ DONE`; no separate evidence file is needed.
 
 Abort for TODO, IN REVIEW, IN PROGRESS, BLOCKED, missing, or unknown implementation status with a lifecycle-state notice, not a route to another command. Do not normalize or mutate `story.md → Status:` from this command.
 
@@ -155,7 +148,7 @@ Suppress anything that describes *how* the code was implemented rather than *wha
 - `## Current Claim` (session-local metadata)
 - `## Progress Timeline` (implementation diary with timestamps)
 - `## Session Handoff` (inter-session handoff notes)
-- `## Review Log` / `reviews.md` (prior review round notes)
+- prior local review round notes
 - `design.md` content (architecture decisions, rationale, internal module structure)
 - `tasks.md` content (task checklists, implementation ordering)
 - `progress.md` content (runtime tracking)
@@ -225,7 +218,7 @@ For original ticket/card links:
 
 Do not paste sections verbatim if they contain internal terminology. Rephrase into reviewer-facing language. A reviewer who has never seen the change workspace should understand the PR body.
 
-**Exclusion enforcement for PR body generation**: never include content from `design.md`, `tasks.md`, `progress.md`, or `reviews.md` in the PR body. These files may be read only for this command's PR metadata, entry-condition, and approval-evidence gates. If a section of `story.md` is implementation-facing (`## Discovery Notes`, `## Locked Decisions`, `## Implementation Notes`, `## Critical Files`, `## Acceptance Proof Matrix`, `## Test Architecture Plan`), exclude it from the PR body.
+**Exclusion enforcement for PR body generation**: never include content from `design.md`, `tasks.md`, or `progress.md` in the PR body. These files may be read only for this command's PR metadata and entry-condition gates. If a section of `story.md` is implementation-facing (`## Discovery Notes`, `## Locked Decisions`, `## Implementation Notes`, `## Critical Files`, `## Acceptance Proof Matrix`, `## Test Architecture Plan`), exclude it from the PR body.
 
 ## PR creation mode
 
@@ -321,7 +314,7 @@ There is no `MASTER.md` and no tracker table in this flow. PR evidence is writte
 3. **Never touch product code in this flow.** It is a coordination-only PR delivery helper (except for the optional `gh pr create` call in open mode).
 4. **Never skip the progress.md write-back when a PR is opened, attached, or refreshed.** The PR URL is the durable link between the change workspace and the GitHub review.
 5. **Never leave `Last synced` stale across PR metadata refreshes.**
-6. **Never paste `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `design.md`, `tasks.md`, `reviews.md`, or `progress.md` content into the PR body.** Those sections are implementation diary, not product contract.
+6. **Never paste `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `design.md`, `tasks.md`, or `progress.md` content into the PR body.** Those sections are implementation diary, not product contract.
 7. **Never silently pick among multiple locally DONE stories.** Ask the operator to pass the story explicitly.
 8. **Never absorb PR feedback here.** Route actionable feedback through `/openspec-feedback`.
 9. **Never treat cached local PR metadata as merged archive evidence when live `gh` data is available.** Archive performs its own authoritative preflight.
@@ -339,4 +332,4 @@ State:
   - wait on PR review
   - run `/openspec-feedback <initiative> --pr <url>` to absorb PR feedback
   - rerun `/openspec-pr` with the same PR URL to refresh PR metadata
-  - rerun `/openspec-archive` once local DONE, task, review, and PR/no-PR gates are ready
+  - rerun `/openspec-archive` once local DONE, task, and PR/no-PR gates are ready

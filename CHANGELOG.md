@@ -15,10 +15,15 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
 - `openspec-next-action` recommends the next OpenSpec workflow command by
   inspecting current or selected initiative/change/spec artifacts without
   performing lifecycle transitions.
+- `openspec-story-merge` diagnoses overlap and integration readiness across
+  stories in one initiative, including an explicit future merge/integration plan
+  with topology, provenance, feedback, shared-surface, and blocker maps. It also
+  supports an explicitly acknowledged apply mode for guarded coordination-doc
+  collapse of unstarted active stories.
 - OpenSpec workflow skills are now the active workflow surface:
   `openspec-initiative-plan`, `openspec-story-plan`, plan review/resume/converge,
   implementation claim/resume/review/converge, `openspec-pr`,
-  `openspec-feedback`, and `openspec-archive`.
+  `openspec-feedback`, `openspec-story-merge`, and `openspec-archive`.
 - `merge-conflict-analysis` joins `grillme` and `memorize` as a supported
   non-workflow utility skill.
 - Runtime installers support explicit `--prune-unsupported` cleanup for

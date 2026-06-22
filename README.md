@@ -36,7 +36,6 @@ openspec/
     ├── tasks.md
     ├── specs/**/*.md
     ├── progress.md      # created by implementation commands
-    ├── reviews.md       # created by implementation review / feedback
     └── blocked.md       # existence is an explicit blocker gate
 ```
 
@@ -49,9 +48,9 @@ openspec/
   draft, in review, approved, needs changes, or blocked.
 - **Implementation status** — `story.md`'s `Status:` header records local
   execution: TODO, in progress, in review, done, or blocked.
-- **Runtime evidence** — `progress.md`, `reviews.md`, `tasks.md`, and optional
-  `blocked.md` preserve handoff, proof, review findings, PR delivery metadata,
-  and blockers.
+- **Runtime evidence** — `progress.md`, `tasks.md`, and optional `blocked.md`
+  preserve handoff, proof, PR delivery metadata, and blockers. Review findings
+  may be persisted to the notebook as supplemental evidence.
 
 There is no central tracker table in the active workflow. Fresh sessions resume
 from the OpenSpec artifacts themselves.
@@ -60,7 +59,13 @@ from the OpenSpec artifacts themselves.
 
 Use `/openspec-next-action` at any point to inspect the current or selected
 OpenSpec initiative/change/spec state and get the next recommended command with
-reasoning; it is read-only and never performs lifecycle transitions.
+reasoning; it is read-only and never performs lifecycle transitions. Use
+`/openspec-story-merge <initiative> [stories...]` when several stories appear to
+overlap and you need integration diagnosis before routing, feedback, follow-up
+planning, or a later operator-approved collapse. Story merge is read-only by
+default; an explicit `--apply TARGET=<story> SOURCE=<story>...` mode can apply a
+narrow coordination-doc collapse after hard preflight gates, an exact patch plan,
+and acknowledgement.
 
 1. **Plan an initiative** — `/openspec-initiative-plan` creates
    `openspec/initiatives/<slug>/initiative.md` as the initiative-level planning
@@ -82,8 +87,9 @@ reasoning; it is read-only and never performs lifecycle transitions.
 5. **Review independently** — `/openspec-story-review` is read-only for product
    code and must run from a completely fresh, oblivious session with no
    implementation-loop notebook, summary, operational notes, or prior chat
-   context. It writes `reviews.md` and the `Status:` header, marking `✅ DONE`
-   only when the implementation, tests, tasks, and OpenSpec contract line up.
+   context. It updates the `Status:` header and optionally persists findings to
+   the notebook, marking `✅ DONE` only when the implementation, tests, tasks,
+   and OpenSpec contract line up.
 6. **Converge implementation** — `/openspec-story-converge` orchestrates fresh
    claim/resume implementation sessions for one change until the story reaches
    `🟣 IN REVIEW`, a blocker appears, no progress is made, or the cycle budget
@@ -94,12 +100,20 @@ reasoning; it is read-only and never performs lifecycle transitions.
    owning story status. Merged PR evidence supports archive; requested changes
    are absorbed through `/openspec-feedback`.
 8. **Absorb feedback** — `/openspec-feedback` routes PR, reviewer, tool, or
-   operator feedback to the initiative log, plan review log, implementation
-   review log, story candidates, or initiative-level decisions without touching
-   product code. When acknowledged feedback invalidates local completion, it can
+   operator feedback to the initiative log, plan review log, supplemental
+   implementation review notebook findings, story candidates, or initiative-level
+   decisions without touching product code. When acknowledged feedback invalidates local completion, it can
    reopen the story to `🔄 IN PROGRESS` so `/openspec-story-resume` owns the fix.
-9. **Archive completed changes** — `/openspec-archive` preflights DONE status,
-   task completion, review approval, blocker absence, and PR/no-PR evidence,
+9. **Diagnose or apply story integration** — `/openspec-story-merge <initiative>
+   [stories...]` inspects selected or discovered stories for lifecycle readiness,
+   overlap, and command-authority risks. By default it is read-only. With
+   explicit `--apply TARGET=<story> SOURCE=<story>...`, it may apply a guarded
+   coordination-document collapse: target planning content is merged and returned
+   to draft, source stories become merge-superseded blocker tombstones, and the
+   initiative receives a merge receipt. It never touches product code, story
+   review status, PR state, or archive state.
+10. **Archive completed changes** — `/openspec-archive` preflights DONE status,
+   task completion, blocker absence, and PR/no-PR evidence,
    then delegates spec sync and the workspace move to OpenSpec's built-in
    `/opsx:archive <story-slug>` command.
 
@@ -122,10 +136,11 @@ schemas, proof matrices, Debt Friction, and runtime section conventions.
 | `/openspec-story-plan-converge` | Loop fresh plan-review and plan-resume passes until the Plan lane resolves. |
 | `/openspec-story-claim` | Claim one approved TODO story and begin red-first implementation. |
 | `/openspec-story-resume` | Continue implementation, resolve blockers, or address review/feedback routed back to the story. |
-| `/openspec-story-review` | Independently review implementation from a fresh, oblivious session and update `reviews.md` plus `story.md → Status:`. |
+| `/openspec-story-review` | Independently review implementation from a fresh, oblivious session and update `story.md → Status:` (notebook optional). |
 | `/openspec-story-converge` | Loop fresh claim/resume implementation passes until `🟣 IN REVIEW` or stop, then instruct the operator to run review separately. |
 | `/openspec-pr` | Manage optional GitHub PR delivery metadata/evidence in `progress.md → ## PR State`. |
 | `/openspec-feedback` | Classify and absorb structured feedback, including acknowledged story reopens, into the right OpenSpec artifacts. |
+| `/openspec-story-merge` | Diagnose overlap/integration readiness and, with explicit apply acknowledgement, perform a guarded coordination-doc collapse. |
 | `/openspec-archive` | Preflight completion gates, then delegate spec sync and archive move to `/opsx:archive`. |
 
 ### Utilities

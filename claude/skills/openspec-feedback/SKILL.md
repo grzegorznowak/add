@@ -18,9 +18,8 @@ This command may edit coordination documents only:
 
 - `<initiative>/initiative.md` (Feedback Absorption Log, Feedback-Derived Story Candidates, Feedback-Derived Decisions)
 - non-archived change workspace artifacts under `openspec/changes/<story-slug>/`:
-  - `story.md` (contract sections, Plan lane, story-local receipt, Plan Review Log)
+  - `story.md` (contract sections, Plan lane, Status reopen for acknowledged rework, story-local receipt, Plan Review Log)
   - `design.md` (when design sources or element trace are affected)
-  - `reviews.md` (implementation review entries)
   - `progress.md` (replanning checkpoints when contract changes during resume)
 
 It never touches product source code, tests, configs, archived change workspaces, `CONTRACT.md`, worktrees, branches, or GitHub PR bodies. It never creates a full new change workspace and never advances or approves implementation status. Its only allowed `story.md → Status:` write is an explicitly acknowledged `resume-current-story` reopen to `🔄 IN PROGRESS` so implementation can resume after local/PR feedback. New work discovered from feedback becomes a feedback-derived story candidate in the initiative; `/openspec-story-plan` owns full story planning.
@@ -37,7 +36,7 @@ Feedback often spans several stories. Selecting a story before classification re
 
 `## Feedback Absorption Log` in `initiative.md` answers: "where did this feedback go and why?"
 
-`reviews.md` answers: "what is wrong with this story implementation and what must be fixed?" (standalone artifact, same schema as existing ADD Review Log).
+For `resume-current-story`, present implementation/PR feedback findings to the operator and optionally store a compact memory note in notebook page `openspec-feedback-<initiative_slug>-<story_slug>`. Do not write a separate findings file.
 
 `## Plan Review Log` in `story.md` answers: "what planning contract concerns must be resolved before implementation continues?"
 
@@ -162,7 +161,7 @@ Classify each actionable feedback item into exactly one disposition:
 |---|---|---|
 | `queue-planning-feedback` | Feedback clarifies a story that is still in planning, or should re-enter planning review before implementation continues. | `story.md` → `## Plan Review Log`, `Plan:` lane, plus initiative absorption log. |
 | `amend-existing-story` | Rare direct amendment explicitly acknowledged by the operator outside a planning or implementation feedback cycle. | `story.md` contract sections (+ `design.md` when needed), `Plan:` lane invalidation when the contract changes, story-local receipt, initiative absorption log. |
-| `resume-current-story` | Implemented work misses the current story or PR review requests rework for it. | `reviews.md` (implementation review entry), `story.md` contract edits when needed, `progress.md` replanning checkpoint when contract changes, `Plan:` lane invalidation when the contract changes, story-local receipt, initiative absorption log. |
+| `resume-current-story` | Implemented work misses the current story or PR review requests rework for it. | Operator-facing findings, optional notebook page `openspec-feedback-<initiative_slug>-<story_slug>`, `story.md → Status: 🔄 IN PROGRESS`, `story.md` contract edits when needed, `progress.md` replanning checkpoint when contract changes, `Plan:` lane invalidation when the contract changes, story-local receipt, initiative absorption log. |
 | `new-story-candidate` | Feedback introduces a new outcome, dependency, rollout concern, or hardening task. | Initiative candidate section plus absorption log. |
 | `initiative-level-decision` | Feedback changes an initiative policy, architectural choice, or cross-story rule. | Initiative decision notes plus absorption log. |
 | `defer-or-reject` | Feedback is out of scope, duplicate, non-actionable, or intentionally declined. | Initiative absorption log only. |
@@ -173,7 +172,7 @@ Read only the change workspace artifacts needed to classify plausible targets. P
 - initiative.md story candidates and external resources
 - `## PR State` URLs in `progress.md` (when present)
 - matching acceptance IDs, paths, or scope language in `story.md`
-- existing `reviews.md` or `## Plan Review Log` entries when they directly mention the same issue
+- existing `## Plan Review Log` entries or relevant notebook findings when they directly mention the same issue
 
 Status and lane rules:
 
@@ -188,7 +187,7 @@ Status and lane rules:
   - contract-changing `resume-current-story` sets `Plan:` to `🟠 PLAN CHANGES REQUESTED` after the contract edits are blended and validation passes, because fresh `/openspec-story-plan-review` must independently approve the changed contract before implementation resumes.
   - if contract feedback cannot be fully blended, set `Plan:` to `🟠 PLAN CHANGES REQUESTED` and make `/openspec-story-plan-resume` the next action.
 - Write `## Plan Review Log` in `story.md` only for `queue-planning-feedback`; `/openspec-story-plan-review` remains the owner of independent review verdicts and the only command that may set `Plan:` to `🟢 PLAN APPROVED`.
-- Write to `reviews.md` (standalone artifact) only for schema-compatible implementation-review feedback that should drive immediate story resume or PR rework.
+- Do not write implementation/PR feedback findings to a standalone file. For `resume-current-story`, present findings to the operator and, when notebook tools are available, optionally write a compact sourced note to `openspec-feedback-<initiative_slug>-<story_slug>`.
 
 Draft the acknowledgement plan:
 
@@ -198,7 +197,7 @@ Draft the acknowledgement plan:
 | Feedback ID | Source | Disposition | Target | Planned edit | Rationale |
 |---|---|---|---|---|---|
 | FB-001 | PR #42 comment IC_... | queue-planning-feedback | <story-slug> | Plan Review Log + Plan lane | Same story, planning contract needs rework. |
-| FB-002 | PR #42 review PRRC_... | resume-current-story | <story-slug> | reviews.md | Implementation misses existing A2. |
+| FB-002 | PR #42 review PRRC_... | resume-current-story | <story-slug> | operator findings + optional notebook | Implementation misses existing A2. |
 | FB-003 | PR #42 comment IC_... | new-story-candidate | initiative.md | Candidate only | New audit logging outcome. |
 ```
 
@@ -274,7 +273,7 @@ For acknowledged `resume-current-story`, update `story.md → Status:` only as n
 - `🔄 IN PROGRESS` → unchanged.
 - `⛔ BLOCKED`, TODO, missing, or unknown status → stop and revise the disposition or ask the operator for the owning lifecycle command; do not guess.
 
-Record the before/after status in the feedback-derived `reviews.md` entry.
+Report the before/after status to the operator and include it in the optional feedback notebook note when one is written.
 
 For contract-changing `resume-current-story`, also append a concise replanning checkpoint to `progress.md → ## Progress Timeline` before `/openspec-story-resume` runs:
 
@@ -325,53 +324,11 @@ Keep story-body edits as the durable contract change. If the amendment changes a
 - FB-001: amended `Acceptance`, `Verification`, and affected `Design Element Trace` rows from <source>. See initiative log.
 ```
 
-For `resume-current-story`, append to `reviews.md` (the standalone review artifact in the change workspace) using the implementation-review schema. Keep the feedback provenance fields and include the canonical traceability/evidence fields so later resume and review sessions can reconstruct what was checked:
+For `resume-current-story`, do **not** write feedback findings back to the change workspace as a review file. Instead:
 
-```md
-- <UTC ISO timestamp> Review feedback absorbed from PR
-  - Source: <source URL or source ID>
-  - Feedback ID: FB-###
-  - Decision: request_changes
-  - Approval gate: fail
-  - Product verdict: approve | request_changes | reject | not_assessed
-  - Technical verdict: approve | request_changes | reject | not_assessed
-  - Multipass review: not_triggered
-  - Prior review concerns: not_assessable
-  - Plan lane at review time: <value or absent>
-  - Initiative contract drift: none | present
-  - Status transition: <current status> → <new status; `🔄 IN PROGRESS` when reopening, otherwise unchanged>
-  - Sections reviewed: <story sections checked against the feedback, or n/a>
-  - Original intent checked: <issues/PRs/Jira/tickets/initiative sources or none found/inaccessible>
-  - Traceability: forward <complete|gaps>; backward <complete|gaps>
-  - Design trace: complete|gaps|not applicable; rendered evidence: complete|gaps|not applicable
-  - Code surfaces searched: <paths/patterns/entrypoints or none beyond feedback scope>
-  - Risk / miss category: <category or none>
-  - Risk lenses reviewed: <activated lenses and exclusions, or none material>
-  - Finding closure required: <disposition + fix proof + regression/side-effect check>
-  - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
-  - Files reviewed: <paths or n/a>
-  - Hypothesis triage:
-    - suspicious surface: <feedback source/code/API/flow>; tentative issue: <possible failure from the feedback>; next proof target: <source/test/proof to check>
-  - Key findings:
-    - <finding summary> Sources: `<source URL, source ID, or path:line>`
-
-      <details open>
-      <summary><b>SEVERITY_LABEL</b> severity · <b>LIKELIHOOD_LABEL</b> likelihood</summary>
-
-      **Why:** <operator-facing reason>
-
-      **Assumptions / Preconditions:** <required conditions, or `None.`>
-
-      **Downgrade Factors:** <confidence/impact reducers, or `None.`>
-
-      **Code Trail:** <grounded path from cited evidence to conclusion>
-
-      **Reproduction:** <brief reproduction narrative, or `Not applicable.`>
-
-      </details>
-  - Debt Friction: none | <decision + short title>
-  - Next action: <one concrete resume/rework action>
-```
+1. Present concise, sourced findings to the operator, including Feedback ID, source, affected story, status transition, sections checked, risk / miss category, key finding(s), and next action.
+2. Optionally, when notebook tools are available and the operator wants durable memory, write a compact sourced note to notebook page `openspec-feedback-<initiative_slug>-<story_slug>`. The notebook note is supplemental and must not outrank `story.md`'s contract or `Status:` header.
+3. Update `story.md → Status:` to `🔄 IN PROGRESS` when the acknowledged feedback requires rework and the status reopen rule above allows it.
 
 If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, design sources, design element obligations, supported branches, input-boundary shape assumptions, fail-open risks, or activated risk lenses, fully blend those changes before recommending `/openspec-story-resume`:
 
@@ -391,7 +348,7 @@ If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, de
 
 When contract/proof edits are fully blended, `/openspec-story-plan-review <initiative> <story-slug>` is mandatory before `/openspec-story-resume`. If plan review requests changes, the story re-enters the plan-converge loop through `/openspec-story-plan-resume` until `Plan:` returns to `🟢 PLAN APPROVED`.
 
-Do not delete or rewrite older `reviews.md` entries. Do not update `## PR State` in `progress.md` here; recommend `/openspec-pr` only when PR metadata or merge evidence itself needs refresh. Actionable PR feedback is absorbed here as review/contract coordination; when the acknowledged disposition is `resume-current-story`, this command records the reopen to `🔄 IN PROGRESS` so `/openspec-story-resume` can own the code changes.
+Legacy `reviews.md` files in existing workspaces are tolerated but not authoritative; do not read or rewrite them for feedback authority. Do not update `## PR State` in `progress.md` here; recommend `/openspec-pr` only when PR metadata or merge evidence itself needs refresh. Actionable PR feedback is absorbed here as contract/status coordination; when the acknowledged disposition is `resume-current-story`, this command records the reopen to `🔄 IN PROGRESS` so `/openspec-story-resume` can own the code changes.
 
 For `new-story-candidate`, append or create this initiative-level section in `initiative.md`:
 
@@ -427,7 +384,7 @@ For every disposition, append one canonical row to `<initiative>/initiative.md` 
 
 | ID | Source Type | Source ID | Source URL | Source Path | Content Hash | Created | Updated | Excerpt | Disposition | Target | Changed | Status |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| FB-001 | github_pr_review_comment | PRRC_... | https://... | n/a | n/a | 2026-04-28T10:40:00Z | 2026-04-28T11:05:00Z | "short excerpt" | resume-current-story | <story-slug> | reviews.md; miss-category=platform/API failure | absorbed |
+| FB-001 | github_pr_review_comment | PRRC_... | https://... | n/a | n/a | 2026-04-28T10:40:00Z | 2026-04-28T11:05:00Z | "short excerpt" | resume-current-story | <story-slug> | operator findings; optional notebook; miss-category=platform/API failure | absorbed |
 | FB-002 | manual | manual:sha256-1a2b3c4d5e6f:1 | n/a | docs/review-notes.md | sha256:1a2b3c4d5e6f... | n/a | n/a | "short excerpt" | queue-planning-feedback | <story-slug> | Plan Review Log | absorbed |
 ```
 
@@ -442,6 +399,7 @@ Report:
 - disposition and target for each item
 - any items skipped or left ambiguous
 - any story status reopen performed, or none
+- optional notebook page written for resume-current-story findings, or none
 - recurring risk / miss categories observed, or none
 - exact next command when relevant, such as `/openspec-story-plan-review`, `/openspec-story-resume`, `/openspec-pr`, or `/openspec-story-plan`
 

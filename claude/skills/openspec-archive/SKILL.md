@@ -1,6 +1,6 @@
 ---
 name: openspec-archive
-description: Archive a locally completed OpenSpec change workspace after pre-flight checks (review approved, tasks done, PR merged or explicitly waived). Thin wrapper over /opsx:archive.
+description: Archive a locally completed OpenSpec change workspace after pre-flight checks (Status DONE, tasks done, PR merged or explicitly waived). Thin wrapper over /opsx:archive.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug>"
 allowed-tools: Read Grep Glob Edit Bash(gh pr view:*) Bash(date -u:*)
@@ -19,7 +19,6 @@ Argument: `$ARGUMENTS` — `<initiative-slug> <story-slug>`. Both are required. 
 - `<initiative_file>` = `<initiative_dir>/initiative.md`.
 - `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>`.
 - `<progress_file>` = `<change_dir>/progress.md`.
-- `<reviews_file>` = `<change_dir>/reviews.md`.
 - `<tasks_file>` = `<change_dir>/tasks.md`.
 - `<blocked_file>` = `<change_dir>/blocked.md`.
 
@@ -44,7 +43,7 @@ This command is a coordination-only transition. It never touches source code, te
 
 ## Phase 2 — Pre-flight checks
 
-Run all four checks in order. Stop at the first failure and report exactly what must be resolved before archiving.
+Run all three checks in order. Stop at the first failure and report exactly what must be resolved before archiving.
 
 ### Check A — blocked.md gate
 
@@ -61,18 +60,7 @@ Read `<progress_file>` and look for the `## PR State` section. Extract the `- PR
 - If GitHub confirms the PR is merged but `mergeCommit.oid` or `mergedAt` is missing, abort with the same resync hint; archive requires both a non-placeholder merge commit and a non-placeholder merged timestamp.
 - If GitHub confirms merged with complete evidence, refresh/populate `## PR State` in `<progress_file>` so `- PR status: merged`, `- Merge commit:` (from `mergeCommit.oid`), `- Merged at:` (from `mergedAt`), and `- Last synced:` reflect the live response before continuing.
 
-### Check C — Review approval
-
-Read `<reviews_file>`. If it does not exist, abort with: `No completed review found. Run /openspec-story-review <initiative-slug> <story-slug> to get a final review before archiving.` Find the latest review entry (the last entry in the file, since reviews are append-only). For the latest entry, read both the `Decision:` field and the `Approval gate:` field. The review check passes only when the latest entry records both `Decision: approve` and `Approval gate: pass`.
-
-- If `Decision: approve` and `Approval gate: pass`, the review check passes. Continue to Check D.
-- If `Decision: approve` but `Approval gate:` is missing or any value other than `pass`, abort with: `Latest review approves but its approval gate is not pass. Rerun /openspec-story-review <initiative-slug> <story-slug> so approval evidence is complete before archiving.`
-- If `Decision: request_changes`, abort with: `Latest review requests changes. Run /openspec-story-resume to address findings, then /openspec-story-review before re-archiving.`
-- If `Decision: blocked`, abort with: `Story is blocked by review. Resolve blocker and re-review before archiving.`
-- If `Decision: not_reviewable`, abort with: `Latest review found the story not reviewable. Fix reviewability issues and re-review before archiving.`
-- If `Decision:` is missing, abort with: `No completed review found. Run /openspec-story-review <initiative-slug> <story-slug> to get a final review before archiving.`
-
-### Check D — Tasks completeness
+### Check C — Tasks completeness
 
 If `<tasks_file>` does not exist, abort with: `tasks.md is required implementation evidence for archiving. Restore or create openspec/changes/<story-slug>/tasks.md and ensure every task is checked or explicitly skipped/deferred with a note.`
 
@@ -91,13 +79,12 @@ If any valid unchecked tasks remain:
 
 ### All pre-flights pass
 
-If all four checks pass, print a summary gate report:
+If all three checks pass, print a summary gate report:
 
 ```
 Pre-flight checks passed for <story-slug>:
 - [x] blocked.md: not present
 - [x] PR State: merged (or confirmed no-PR)
-- [x] Review: approved and approval gate passed
 - [x] Tasks: tasks.md present with valid checked/skipped/deferred task evidence
 Proceeding to archive...
 ```

@@ -1,6 +1,6 @@
 ---
 name: openspec-story-review
-description: Review one implemented OpenSpec change workspace from a fresh, oblivious session against its OpenSpec artifacts and live repo evidence. Read-only for code; updates only the change workspace's reviews.md and story.md Status header.
+description: Review one implemented OpenSpec change workspace from a fresh, oblivious session against its OpenSpec artifacts and live repo evidence. Read-only for code; updates only the change workspace's story.md Status header and optionally persists findings to the notebook.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug> [WORKTREE=\"<basename>=<path>\"]..."
 allowed-tools: Read Edit Grep Glob Task Bash(git status:*) Bash(git diff:*) Bash(git log:*) Bash(git show:*) Bash(git rev-parse:*) Bash(git worktree:*) Bash(basename:*) Bash(gh issue view:*) Bash(gh pr view:*) Bash(jira issue view:*)
@@ -8,21 +8,22 @@ allowed-tools: Read Edit Grep Glob Task Bash(git status:*) Bash(git diff:*) Bash
 
 # OpenSpec Story Review
 
-Review one story implementation from a fresh, oblivious session against its OpenSpec artifacts and live repo evidence. Record the verdict into `reviews.md` and update the `Status:` header in `story.md`.
+Review one story implementation from a fresh, oblivious session against its OpenSpec artifacts and live repo evidence. Update the `Status:` header in `story.md` and optionally persist review findings to the notebook.
 
 Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [WORKTREE="<basename>=<path>"]...`. Both positional args are recommended; if either is omitted, this command uses the explicit menu fallback in `## Resolution`. `WORKTREE=` is an optional, repeatable opt-in that overrides the preflight's worktree lookup per target repo. Two forms are accepted: `WORKTREE="<basename>=<path>"` (multi form, repeatable, preferred) and legacy `WORKTREE="<path>"` (valid only when the story has exactly one target repo; the path is applied to that sole repo). Mixing the two forms in a single invocation is an error. When `WORKTREE=` is absent, the preflight reads any `- Worktrees:` list from `progress.md`'s `## Current Claim`, falling back to a legacy `- Worktree:` singular bullet for claims predating the multi-worktree format.
 
 ## Important
 
-You can only change the coordination files in the change workspace (`reviews.md` and `story.md`'s `Status:` header), **never** the source code of the app. Review is inherently a read-only process.
+You can only change the `Status:` header in `story.md` (and optionally the notebook), **never** the source code of the app. Review is inherently a read-only process.
 
 ## Safety guardrails
 
 - Do not modify source code — review is read-only.
 - Do not run destructive git operations (push, `reset --hard`, force commands, branch deletion).
-- Never write outside the change workspace's `openspec/` directory or `/tmp`; do not edit target worktrees.
+- Except for optional pi notebook write-back, never write outside the change workspace's `openspec/` directory or `/tmp`; do not edit target worktrees.
 - Test execution is permitted only to verify the story's proof matrix (not for broad exploration), even when normal test tooling writes caches or artifacts.
 - GitHub/Jira access is read-only for intent mining. Use view-only commands such as `gh issue view`, `gh pr view`, and `jira issue view`; do not use generic API commands that can issue mutating requests.
+- Silently ignore any legacy standalone review-log artifact if present; do not read or update it.
 
 ## Why operator-explicit (arg or menu) selection
 
@@ -74,7 +75,7 @@ If this command is being considered from the same session that just wrote or con
 6. `<change_dir>/tasks.md` — for task breakdown and implementation plan; verify tasks.md checkbox state matches the claimed implementation progress
 7. delta spec files under `<change_dir>/specs/` — for spec-level behavioral obligations
 8. `<change_dir>/progress.md` — for Progress Timeline, Session Handoff, Current Claim (worktree bindings and main-tree targets), and PR State
-9. `<change_dir>/reviews.md` — for prior review log entries (all past `Decision`, `Approval gate`, `Key findings`, and `Prior review concerns`)
+9. prior notebook entry `openspec-review-<initiative_slug>-<story_slug>` when available — for prior review concerns and earlier findings context
 10. dependency change workspace `story.md` files listed in the resolved story's `## Expected Prerequisites`
 11. materially relevant sibling change workspaces (from `## Story Candidates` in `initiative.md`) when they define shared interfaces, proof surfaces, actor flows, or locked decisions that this story's implementation touches
 12. original intent artifacts explicitly linked or keyed from `initiative.md`, `story.md`, dependency workspaces, branch names, commit messages, or existing PR text: GitHub issues, GitHub PRs, Jira tickets, or stable ticket/card ids
@@ -87,7 +88,7 @@ Do **not** rediscover the initiative from scratch. Your job is to:
 2. Inspect the actual implementation and current worktree
 3. Inspect initiative-wide context and targeted sibling-story context when they materially constrain the story
 4. Review the implementation against the story spec, initiative context, original intent when explicitly available, and surrounding architecture
-5. Record the review result into `reviews.md` and update the `Status:` header in `story.md`
+5. Update the `Status:` header in `story.md` and optionally persist review findings to the notebook page `openspec-review-<initiative_slug>-<story_slug>`.
 
 ## Review readiness check
 
@@ -120,7 +121,7 @@ If you must ABORT:
 
 After reading `progress.md`'s `## Current Claim`, build `<project_root_map>` from what the claim recorded plus any explicit overrides. This command **never creates** a worktree; it only reuses what the implementer recorded or what the operator passed explicitly.
 
-**Invariant**: `<workspace_root>` = `<cwd>`, always, and remains the root-repo worktree discovery base. `<openspec_root>` is the transient artifact anchor resolved in `## Resolution`; all reads/writes under `openspec/...` anchor at `<openspec_root>`, not necessarily `<workspace_root>`. The review verdict write-back to `reviews.md` and the `Status:` header write-back to `story.md` also anchor at `<openspec_root>/openspec/changes/<story-slug>/`. Review remains read-only for code and never creates worktrees.
+**Invariant**: `<workspace_root>` = `<cwd>`, always, and remains the root-repo worktree discovery base. `<openspec_root>` is the transient artifact anchor resolved in `## Resolution`; all reads/writes under `openspec/...` anchor at `<openspec_root>`, not necessarily `<workspace_root>`. The `Status:` header write-back to `story.md` anchors at `<openspec_root>/openspec/changes/<story-slug>/`. Review remains read-only for code and never creates worktrees.
 
 1. **Read `Worktrees:` from `## Current Claim` in `progress.md`**. Parse `progress.md` for a `- Worktrees:` bullet under `## Current Claim`. For each child bullet of the form `- <basename>: <path>`, record `<recorded_worktree_map>[<basename>]` = `<path>` (normalized absolute). If no `- Worktrees:` bullet exists, `<recorded_worktree_map>` is empty.
 
@@ -159,7 +160,7 @@ After reading `progress.md`'s `## Current Claim`, build `<project_root_map>` fro
    - Else (`<main_tree_targets>` is non-empty but does NOT include `<basename>`): this repo was not declared as a main-tree target and has no recorded worktree. If clean, proceed silently. If dirty, warn: "`<basename>` is dirty and was not recorded as a main-tree target or worktree — the dirty state may include unrelated changes. Review proceeds but findings should be checked carefully."
 
 8. **Done**. `<project_root_map>` is set. All downstream resolution uses these rules:
-   - `<initiative_file>`, `<story_file>`, `progress.md`, `reviews.md`, `blocked.md`, and anything under `openspec/...` → read/write at `<openspec_root>/openspec/...`. The review verdict write-back to `reviews.md` also lands at this anchor.
+   - `<initiative_file>`, `<story_file>`, `progress.md`, `blocked.md`, and anything under `openspec/...` → read/write at `<openspec_root>/openspec/...`.
    - Code at `projects/<name>/foo/bar` → if `<project_root_map>` has `<name>`, route to `<project_root_map>[<name>]/foo/bar`; else route to `<workspace_root>/projects/<name>/foo/bar`.
    - Code in the root repo outside `openspec/...` and outside `projects/<name>/...` → if `<project_root_map>` has `basename(<openspec_root>)` or `basename(<workspace_root>)`, route the same relative path to that mapped root; else if a consumed root-repo alias key exists in `<project_root_map>` and its value resolves to `<openspec_root>` or `<workspace_root>`, route through that mapped root; else use `<openspec_root>/<relative-path>` when `<openspec_root>` is the active root checkout, otherwise `<workspace_root>/<relative-path>`.
    - Git commands targeting repo `<name>`: `git -C <project_root_map>[<name>] ...`. For root-repo git commands, use the mapped `basename(<openspec_root>)` or `basename(<workspace_root>)` key when present, otherwise use the consumed root-repo alias key whose mapped value resolves to `<openspec_root>` or `<workspace_root>`, otherwise use `<openspec_root>` when it is the active root checkout or `<workspace_root>`.
@@ -191,7 +192,7 @@ After this boundary check passes, perform normal evidence discovery from the art
 
 Use the approval gate below as the canonical pass/fail contract; this section defines what evidence must be inspected before applying that gate.
 
-- Read the latest entry in `<change_dir>/reviews.md` before source inspection (the last entry in the append-only file) and carry every prior concern into the review as `resolved`, `still_open`, `superseded`, or `not_assessable`.
+- Since there is no append-only review log, read prior concerns directly from story contract sections (`## Acceptance`, `## Discovery Notes`, `## Locked Decisions`, and related implementation notes) and from the prior notebook page `openspec-review-<initiative_slug>-<story_slug>` before source inspection when notebook tools are available. Carry every prior concern into the review as `resolved`, `still_open`, `superseded`, or `not_assessable`. If notebook tools are unavailable, state that prior concerns are not assessable.
 - Treat every relevant story-spec section as a review claim. Purpose, Triggering Need, Scope, Out of Scope, Discovery Notes, Critical Files, Implementation Notes, and Locked Decisions can all create implementation obligations or exclusions; do not validate only Acceptance and Verification.
 - Build an implementation trace map before approval:
   - forward trace: initiative context/original issue/ticket/intent -> story Purpose/Scope/Scenarios/Acceptance -> final Verification proof rows -> changed code/tests/config/runtime surfaces
@@ -205,7 +206,7 @@ Use the approval gate below as the canonical pass/fail contract; this section de
 - Treat external or local technical docs as contract hints, not implementation proof. If a story claims an exact route, model family, auth mode, metadata label, or dispatch path, verify repo code or tests prove that exact behavior.
 - Treat normative design sources as extraction inputs to the story contract, not as a free-form implementation checklist. Mapped `### Design Element Trace` rows are review claims. Also inspect normative design sources enough to catch obvious unmapped visible elements/states; classify those as planning-contract extraction gaps routed to `/openspec-story-plan-converge` or `/openspec-feedback`, not direct implementation failures unless the element is mapped in Acceptance/trace.
 - If a story touches surfaces owned by dependency stories, inspect the relevant dependency proof rows and ensure prior accepted contracts still hold.
-- If progress logs, review logs, or code structure reveal duplicated live owners for one behavior, include each owner in the review plan; do not approve a story that updates or proves only one side without an explicit exclusion.
+- If progress logs, prior notebook concerns, story contract sections, or code structure reveal duplicated live owners for one behavior, include each owner in the review plan; do not approve a story that updates or proves only one side without an explicit exclusion.
 
 ## Multipass review mode
 
@@ -283,7 +284,7 @@ Rules:
 - Do not treat triage bullets as final proof. Findings still require the detailed finding card and `Sources: path:line` contract below.
 - Synthesis may summarize and dedupe triage from focused passes, but must not perform new broad investigation.
 
-Every concrete issue under `Gate Findings`, `Product Assessment`, `Technical Assessment`, or `Initiative Contract Drift` must use this detailed finding card format in both the final review output and the `reviews.md` write-back:
+Every concrete issue under `Gate Findings`, `Product Assessment`, `Technical Assessment`, or `Initiative Contract Drift` must use this detailed finding card format in the final review output and optionally the notebook write-back:
 
 ```md
 - <finding summary> Sources: `path:line`
@@ -313,7 +314,7 @@ Keep `Why` in plain operator-facing language. Prefer `Not Assessed` over fake pr
 1. Use code search and direct reading to understand the story's implementation and impacted surfaces. Record the owner-discovery searches you performed (`Code surfaces searched`) including domain terms, callsites/routes, existing tests, duplicate owners, generated/config/runtime surfaces, and any areas intentionally not searched.
 2. Use `git -C <project_root_map>[<basename>] status`, `git -C <project_root_map>[<basename>] diff`, and targeted file reads to inspect what was actually changed. When the story spans multiple repos, run status/diff per repo (iterating over `<project_root_map>` in sorted basename order) and group findings per-repo in the review write-back. Each `<basename>` resolves to either an implementer's worktree (most common) or the main tree at `<workspace_root>/projects/<basename>` (clean main-tree fallback case from the preflight).
 3. Read all relevant story-spec sections and treat each section as a claim: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, and Discovery Notes when present.
-4. Read any existing entries in `<change_dir>/reviews.md` before deciding. If prior review runs requested changes or recorded blockers, explicitly verify whether each concern is resolved, still open, superseded by later story changes, or not assessable from current evidence.
+4. Read prior concerns directly from the story contract sections (`## Acceptance`, `## Discovery Notes`, `## Locked Decisions`, and related implementation notes) and from the prior notebook page `openspec-review-<initiative_slug>-<story_slug>` when notebook tools are available. If prior review concerns are available, explicitly verify whether each concern is resolved, still open, superseded by later story changes, or not assessable from current evidence. If notebook tools are unavailable, state that prior concerns are not assessable.
 5. Before approving implementation, verify the `Plan:` header field in `<story_file>` is `🟢 PLAN APPROVED`. If `Plan:` is `🟡 PLAN DRAFT`, `🟣 PLAN IN REVIEW`, `🟠 PLAN CHANGES REQUESTED`, or `⛔ PLAN BLOCKED`, the implementation cannot be approved; record a `request_changes` verdict with next action `/openspec-story-plan-converge <initiative-slug> <story-slug>`.
 6. Check for `<change_dir>/blocked.md` — if this explicit blocker gate file exists, record a `blocked` verdict. Do not auto-resolve or remove the file.
 7. Mine original intent only from explicit anchors: ticket/PR URLs, Jira keys, issue numbers, branch names, commit messages, `initiative.md` Story Candidates and External Resources, dependency workspace `story.md` files, PR bodies, or story prose. Use read-only commands such as `gh issue view`, `gh pr view`, `jira issue view`, `git log`, and `git show` when available and relevant. If an external source cannot be accessed, record the missing source and do not invent its content.
@@ -346,7 +347,7 @@ Keep `Why` in plain operator-facing language. Prefer `Not Assessed` over fake pr
 
 ## Critical checks
 
-Before approving, run these grouped checks. Use the canonical approval gate in `## Review log write-back` for the exact pass/fail contract; this section organizes the investigation that feeds that gate.
+Before approving, run these grouped checks. Use the canonical approval gate in `## Approval gate contract` for the exact pass/fail contract; this section organizes the investigation that feeds that gate.
 
 ### 1. Product and story contract
 
@@ -384,7 +385,7 @@ Before approving, run these grouped checks. Use the canonical approval gate in `
 
 ### 5. Evidence quality, finding closure, and debt
 
-- Were prior review findings and feedback fixes closed with disposition, fix proof, and regression/side-effect verification rather than prose acknowledgement only?
+- Were prior review concerns from the story contract or notebook, when available, closed with disposition, fix proof, and regression/side-effect verification rather than prose acknowledgement only?
 - Are evidence-quality categories explicit, with no unknown or provisional evidence affecting acceptance, route ownership, ticket intent, contract drift, or proof credibility?
 - Was multipass review completed when triggered, with every acceptance item and named variant mapped to a focused-pass result or explicit exclusion?
 - If any `Debt Friction` entry used `fix-now`, did cleanup stay within its `Scope Justification`, remain enabling for this story, and have verification? If not, request changes or split the debt into follow-up work.
@@ -392,9 +393,9 @@ Before approving, run these grouped checks. Use the canonical approval gate in `
 
 ## Status transitions
 
-Before transitioning to `✅ DONE`, check `progress.md`'s `## Current Claim` -> `- Worktrees:` for uncommitted changes. Review is read-only for source: do **not** run `git add`, `git commit`, or otherwise mutate the target repo from this skill. If any review-target worktree is dirty, approval is allowed only when the dirty state is the implementation being reviewed and the review log names the reviewed worktree/diff; otherwise request changes or block with a cleanup/explicit-worktree instruction. If the change workspace has no `progress.md` or no `## Current Claim` section (review-only session), skip.
+Before transitioning to `✅ DONE`, check `progress.md`'s `## Current Claim` -> `- Worktrees:` for uncommitted changes. Review is read-only for source: do **not** run `git add`, `git commit`, or otherwise mutate the target repo from this skill. If any review-target worktree is dirty, approval is allowed only when the dirty state is the implementation being reviewed and the final review output (and optional notebook entry, if written) names the reviewed worktree/diff; otherwise request changes or block with a cleanup/explicit-worktree instruction. If the change workspace has no `progress.md` or no `## Current Claim` section (review-only session), skip.
 
-You may update only the `Status:` header field in `story.md` and append to `reviews.md` as part of the review. Use this policy:
+You may update only the `Status:` header field in `story.md` as part of the review. Use this policy:
 
 - if review starts on a story whose `Status:` is not `🟣 IN REVIEW` or `✅ DONE`, treat it as `not_reviewable` and leave `Status:` unchanged; review does not promote `🔄 IN PROGRESS` to `🟣 IN REVIEW`
 - if review passes with no blocking findings, mark it `Status: ✅ DONE`
@@ -402,56 +403,29 @@ You may update only the `Status:` header field in `story.md` and append to `revi
 - if review cannot complete because of an external blocker, mark it `Status: ⛔ BLOCKED`
 - if the story is already `Status: ✅ DONE`, do not reopen it from this command solely because PR delivery is pending; use `/openspec-pr <initiative-slug> <story-slug>` for PR metadata/evidence and `/openspec-feedback` for actionable PR feedback.
 
-## Review log write-back
+## Notebook write-back (optional)
 
-Append a new entry to `<change_dir>/reviews.md`. `reviews.md` is a standalone artifact with append-only numbered entries using the same field schema as the existing ADD Review Log. If `reviews.md` does not exist, create it with a top-level `# Review Log` heading and append the first entry.
+The operator MAY persist review findings to the pi notebook page `openspec-review-<initiative_slug>-<story_slug>` for cross-session memory. This is optional and supplemental; it is not authoritative for downstream skills. The `Status:` header in `story.md` is the only durable signal downstream skills need.
 
-Each entry uses this schema:
+When writing the notebook entry, use a compact structured format:
 
 ```md
-- <UTC ISO timestamp> Review run by fresh oblivious maintainer session
-  - Decision: approve | request_changes | blocked | not_reviewable
-  - Approval gate: pass | fail
-  - Product verdict: approve | request_changes | reject | not_assessed
-  - Technical verdict: approve | request_changes | reject | not_assessed
-  - Multipass review: not_triggered | completed | incomplete
-  - Prior review concerns: none | resolved | still_open | superseded | not_assessable
-  - Plan lane at review time: <value or absent>
-  - Initiative contract drift: none | present
-  - Status transition: <from> -> <to>
-  - Sections reviewed: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes
-  - Original intent checked: <issues/PRs/Jira/tickets/initiative sources or none found/inaccessible>
-  - Traceability: forward <complete|gaps>; backward <complete|gaps>
-  - Design trace: complete|gaps|not applicable; rendered evidence: complete|gaps|not applicable
-  - Code surfaces searched: <paths/patterns/entrypoints or none beyond changed files>
-  - Risk lenses reviewed: <activated lenses and exclusions, or none material>
-  - Finding closure: <disposition + fix proof + regression/side-effect check, or none>
-  - Evidence quality: confirmed <short>; inferred <short|none>; unknown <short|none>; provisional <short|none>
-  - Files reviewed: <paths>
-  - Hypothesis triage:
-    - suspicious surface: <file/API/flow>; tentative issue: <possible failure>; next proof target: <source/test/proof to check>
-  - Key findings:
-    - <finding summary> Sources: `<path:line>`
+# OpenSpec review: <initiative_slug>/<story_slug>
 
-      <details open>
-      <summary><b>SEVERITY_LABEL</b> severity · <b>LIKELIHOOD_LABEL</b> likelihood</summary>
-
-      **Why:** <operator-facing reason>
-
-      **Assumptions / Preconditions:** <required conditions, or `None.`>
-
-      **Downgrade Factors:** <confidence/impact reducers, or `None.`>
-
-      **Code Trail:** <grounded path from cited evidence to conclusion>
-
-      **Reproduction:** <brief reproduction narrative, or `Not applicable.`>
-
-      </details>
-  - Debt Friction: none | <decision + short title>
-  - Next action: <one concrete recommendation>
+- Timestamp: <UTC ISO timestamp>
+- Decision: approve | request_changes | blocked | not_reviewable
+- Approval gate: pass | fail
+- Product verdict: approve | request_changes | reject | not_assessed
+- Technical verdict: approve | request_changes | reject | not_assessed
+- Prior review concerns: none | resolved | still_open | superseded | not_assessable
+- Key findings:
+  - <finding summary> Sources: `<path:line>`
+- Next action: <one concrete recommendation>
 ```
 
-If a `# Review Log` heading does not exist, create it at the top of `reviews.md`. Append the new review entry below it.
+Include the detailed finding card format for each key finding when useful for operator memory. If notebook tools are unavailable, such as in a non-pi runtime, the review is still valid as console output plus the `Status:` header update.
+
+## Approval gate contract
 
 Approval is not allowed if the proof contract is still unresolved. A story is only eligible for approval when:
 - every acceptance id remains covered
@@ -469,13 +443,13 @@ Approval is not allowed if the proof contract is still unresolved. A story is on
 - rendered-surface evidence exists for visibility, placement, navigation, copy, responsive, and interaction-state design obligations unless the story records an explicit exception or narrower proof boundary
 - obvious unmapped visible elements/states from normative design sources have been routed as planning-contract gaps rather than silently ignored
 - required input-boundary shape risk rows are covered by real-boundary evidence, explicitly excluded, or recorded as unknown with mitigation
-- any apparent proof drift was logged when it happened
+- any apparent proof drift is recorded in the story contract, progress timeline, or final review output
 - the story file records either the focused red seam that was used or an explicit written exception with the alternative proof path
 - any relevant initiative context or sibling-story obligation touched by this story remains satisfied, or the intentional drift is explicitly recorded and reflected in the review verdict
 - forward and backward traceability are complete, or every traceability gap is safely scoped out and does not affect acceptance, proof, ownership, or contract fidelity
 - evidence quality is explicit, with no unknown or provisional evidence affecting acceptance, route ownership, ticket intent, contract drift, or proof credibility
 - activated risk lenses are reviewed at their owning boundary, or explicitly excluded with rationale
-- prior findings and feedback fixes have disposition, fix proof, and regression/side-effect verification
+- prior concerns from the story contract and notebook, when available, have disposition, fix proof, and regression/side-effect verification
 
 ## Classification rules
 
@@ -501,7 +475,7 @@ Start with gate findings and issue lists, ordered by severity, with file referen
 **Grouping**: [brief grouping logic]
 **Initiative Context Used**: [initiative.md, dependency stories, sibling stories reviewed, handoff/progress sections]
 **Original Intent Used**: [issues/PRs/Jira/tickets/initiative sources inspected, none found, or inaccessible]
-**Prior Review Log Check**: [none, or prior concerns checked with resolved/still open/superseded/not assessable status]
+**Prior Review Concerns**: [none, notebook unavailable/not assessable, or prior concerns checked with resolved/still open/superseded/not assessable status]
 **Traceability**: [forward complete/gaps; backward complete/gaps]
 **Design Trace**: [complete | gaps | not applicable; rendered evidence complete | gaps | not applicable]
 **Code Surfaces Searched**: [paths/patterns/entrypoints/domain terms searched]

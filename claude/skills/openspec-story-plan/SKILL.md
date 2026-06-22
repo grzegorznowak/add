@@ -8,7 +8,7 @@ allowed-tools: Read Grep Glob Write Bash(git status:*) Bash(git log:*)
 
 # OpenSpec Story Plan
 
-Create a new OpenSpec change workspace for an existing initiative by interviewing the operator through the story spec sections, validating the proof contract, and writing all planning artifacts into `openspec/changes/<story-slug>/`. This command writes proposal.md, story.md, design.md, tasks.md, and delta specs; runtime artifacts (progress.md, reviews.md, blocked.md) are created by the commands that own them.
+Create a new OpenSpec change workspace for an existing initiative by interviewing the operator through the story spec sections, validating the proof contract, and writing all planning artifacts into `openspec/changes/<story-slug>/`. This command writes proposal.md, story.md, design.md, tasks.md, and delta specs; runtime artifacts (progress.md, blocked.md) are created by the commands that own them.
 
 Argument: `$ARGUMENTS` — optional `[INITIATIVE="<slug>"]`. If provided, resolve that initiative directly. If omitted, list available initiatives under `<workspace_root>/openspec/initiatives/` and ask the operator to pick one.
 
@@ -16,7 +16,7 @@ Argument: `$ARGUMENTS` — optional `[INITIATIVE="<slug>"]`. If provided, resolv
 
 This command writes planning artifacts under `openspec/changes/<story-slug>/` after an explicit checkpoint confirmation. It never touches:
 - source code (product files, tests, configs)
-- runtime artifacts (progress.md, reviews.md, blocked.md)
+- runtime artifacts (progress.md, blocked.md)
 - existing change workspaces
 - non-OpenSpec coordination artifacts outside `openspec/`
 
@@ -223,7 +223,7 @@ Re-verify that `<story-slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` and that `<wo
 1. Create `<workspace_root>/openspec/changes/<story-slug>/`.
 2. Write proposal.md, story.md, design.md, tasks.md; the written `story.md` must include the validated convergence scaffold (`Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, empty `## Plan Review Log`).
 3. Create `specs/` subdirectory if any delta specs exist and write them.
-4. Never seed runtime artifacts: progress.md, reviews.md, blocked.md.
+4. Never seed runtime artifacts: progress.md, blocked.md.
 
 ## Final response
 

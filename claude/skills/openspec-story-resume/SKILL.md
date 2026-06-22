@@ -23,13 +23,12 @@ This skill defers to the following artifacts, in priority order. Notebook contex
 2. **progress.md `## Current Claim`** — The most recent claim details, including assigned worktrees.
 3. **progress.md `## Progress Timeline`** — Sequential implementation log (newest first).
 4. **progress.md `## Session Handoff`** — Exit state from the most recent session.
-5. **reviews.md** — Implementation review history (append-only; the latest review is the last entry in the file).
-6. **story.md content** — Purpose, acceptance criteria, verification sections, Plan header.
-7. **proposal.md** — The original proposal rationale and scope.
-8. **design.md** — Technical design decisions.
-9. **tasks.md** — Task checklist for implementation tracking.
-10. **blocked.md** — Blocked state signal file (existence = blocked).
-11. **initiative.md** — Parent initiative context.
+5. **story.md content** — Purpose, acceptance criteria, verification sections, Plan header, Discovery Notes, and Locked Decisions.
+6. **proposal.md** — The original proposal rationale and scope.
+7. **design.md** — Technical design decisions.
+8. **tasks.md** — Task checklist for implementation tracking.
+9. **blocked.md** — Blocked state signal file (existence = blocked).
+10. **initiative.md** — Parent initiative context.
 
 ## Phase 0 — Resolution
 
@@ -65,17 +64,17 @@ Before any implementation begins, read these files from the resolved change work
 3. **`design.md`** — Understand architecture decisions, if present.
 4. **`tasks.md`** — Extract the task checklist for implementation tracking.
 5. **`progress.md`** — Extract `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `## PR State`.
-6. **`reviews.md`** — Extract most recent review entry and any unresolved feedback.
-7. Check for `blocked.md` existence — if present, the change is blocked; treat as a blocking signal.
+6. Check for `blocked.md` existence — if present, the change is blocked; treat as a blocking signal.
 
 ### 0.3 Determine Resume Intent
 
 Prioritize the resume intent from these sources (in order):
 
-1. **Latest `reviews.md` entry** — Use the last append-only review entry. If there is unresolved review feedback, that is the primary resume intent.
-2. **`progress.md → ## Session Handoff`** — The handoff from the most recent session.
-3. **`progress.md → ## Progress Timeline`** (newest entry) — What was last done.
-4. **`story.md → ## Purpose / ## Acceptance Criteria`** — The original intent, used as fallback.
+1. **`story.md` contract** — Read Acceptance, Discovery Notes, Locked Decisions, and related contract sections directly for issues identified or work that remains. The `Status:` header is the only durable lifecycle gate.
+2. **Notebook review findings (supplemental)** — If available, check notebook page `openspec-review-<initiative_slug>-<story_slug>` for prior review findings, then verify any relevant finding against `story.md` and repo evidence before acting.
+3. **`progress.md → ## Session Handoff`** — The handoff from the most recent session.
+4. **`progress.md → ## Progress Timeline`** (newest entry) — What was last done.
+5. **`story.md → ## Purpose / ## Acceptance Criteria`** — The original intent, used as fallback.
 
 Report the resolved resume intent to the operator before proceeding.
 
@@ -332,8 +331,9 @@ If a blocker was encountered:
 - **Missing `design.md`**: Proceed without it; note the absence.
 - **Missing `tasks.md`**: Create a minimal `tasks.md` from `story.md → ## Acceptance Criteria` items; ask the operator to confirm.
 - **Missing `progress.md`**: Create it with `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `## PR State` sections.
-- **Missing `reviews.md`**: Treat as no reviews yet; proceed normally.
 - **Missing `story.md`**: Halt — this is a required artifact.
+
+Legacy `reviews.md` files in existing workspaces are tolerated but not authoritative; the contract and notebook take precedence.
 
 ### Status Inconsistencies
 

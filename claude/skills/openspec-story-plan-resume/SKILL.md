@@ -18,7 +18,6 @@ This command may edit the change workspace's spec sections in `story.md`, the `s
 - Source code, tests, configs
 - `story.md` implementation `Status:` header field except the narrow missing/legacy TODO scaffold normalization above; never rewrite active, in-review, done, blocked, blank, or unknown status values
 - Runtime sections in `progress.md` (`## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `## PR State`, `## Unresolved Debt Friction`)
-- Runtime artifact `reviews.md` (implementation review log)
 - Runtime artifact `blocked.md` (no write; reads to abort when it exists)
 - Completed `Status: ✅ DONE` stories (no in-place contract rework; route new feedback through `/openspec-feedback` as a new candidate, initiative-level decision, defer/reject entry, or an explicit lifecycle reopen decision)
 - Any file outside the resolved change workspace at `openspec/changes/<story-slug>/`
@@ -61,7 +60,7 @@ Before entering the assessment, abort fast if:
 - The change workspace has no scaffold marker from `/openspec-story-plan` — say "this change workspace was not scaffolded by /openspec-story-plan; cannot resume planning. Required artifacts: proposal.md, story.md, design.md, tasks.md."
 - The story file has no repairable planning work and no scaffold normalization queued while the planning lane is `🟢 PLAN APPROVED` — say "this story is fully planned and approved; no plan-resume work is needed."
 
-Runtime sections do not block this command. When runtime artifacts exist (`progress.md`, `reviews.md`), operate in **contract rework mode**: edit only planning spec sections, `## Plan Review Log`, and narrow story scaffold normalization in `story.md`; never edit `progress.md`, `reviews.md`, source, tests, PR tracking, or implementation `Status:` beyond adding a missing `⚪ TODO` status or normalizing legacy `⬜ TODO` to `⚪ TODO`.
+Runtime sections do not block this command. When runtime artifact `progress.md` exists, operate in **contract rework mode**: edit only planning spec sections, `## Plan Review Log`, and narrow story scaffold normalization in `story.md`; never edit `progress.md`, source, tests, PR tracking, or implementation `Status:` beyond adding a missing `⚪ TODO` status or normalizing legacy `⬜ TODO` to `⚪ TODO`.
 
 A required spec section is structurally complete when:
 - `## Purpose` — exists, non-empty, describes an observable user-visible outcome (not vague improvement or activity).

@@ -17,7 +17,6 @@ openspec/
 │   ├── tasks.md
 │   ├── specs/**/*.md
 │   ├── progress.md
-│   ├── reviews.md
 │   └── blocked.md
 └── changes/archive/<story-slug>/
 ```
@@ -60,7 +59,7 @@ bodies into the initiative file.
 ## Change workspace planning artifacts
 
 `/openspec-story-plan` creates planning artifacts only. It does not create
-`progress.md`, `reviews.md`, or `blocked.md`.
+`progress.md` or `blocked.md`.
 
 ### `proposal.md`
 
@@ -348,7 +347,7 @@ Where to write it:
   `## Locked Decisions` as appropriate;
 - plan review: `story.md → ## Plan Review Log`;
 - implementation: `progress.md → ## Progress Timeline`;
-- implementation review: `reviews.md`.
+- implementation review: updates story.md Status header (notebook optional).
 
 ## Runtime artifacts
 
@@ -382,24 +381,6 @@ sections:
 Omit `- Worktrees:` entirely when no worktrees are used. New claims should not
 write singular `- Worktree:`; review/resume may still read the older shape for
 compatibility.
-
-### `reviews.md`
-
-Append-only implementation review history. `/openspec-story-review` owns normal
-entries; `/openspec-feedback` may append schema-compatible feedback entries when
-external feedback should drive implementation rework.
-
-A useful review entry records:
-
-- decision and approval gate;
-- product and technical verdicts;
-- prior finding closure;
-- Plan lane at review time;
-- traceability and evidence quality;
-- code surfaces searched;
-- risk lenses reviewed;
-- finding cards with source anchors;
-- next action.
 
 ### `blocked.md`
 
@@ -455,7 +436,7 @@ summaries, operational notes, or prior chat context.
   disposition.
 - Treat an unmerged PR as authority to reopen or downgrade a locally DONE story;
   route actionable PR feedback through `/openspec-feedback` for classification.
-- Archive a story with `blocked.md`, incomplete tasks, missing review approval,
+- Archive a story with `blocked.md`, non-DONE Status, incomplete tasks,
   or unresolved PR/no-PR evidence.
 - Treat notebook pages, chat summaries, or old handoffs as stronger authority
   than current OpenSpec artifacts and live repo evidence.

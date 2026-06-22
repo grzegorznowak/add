@@ -20,16 +20,14 @@ Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [MAX_CYCLES=5] [WORKT
 - `<initiative_file>` = `<initiative_dir>/initiative.md`.
 - `<change_dir>` = `<openspec_root>/openspec/changes/<story-slug>`.
 - `<story_file>` = `<change_dir>/story.md`.
-- `<reviews_file>` = `<change_dir>/reviews.md`.
 - `<progress_file>` = `<change_dir>/progress.md`.
 - `<blocked_file>` = `<change_dir>/blocked.md`.
 
 There is no `MASTER.md` and no tracker table. All status is self-contained in the change workspace artifacts:
 
-- The `Status:` header field in `<story_file>` is the authoritative implementation status.
+- The `Status:` header field in `<story_file>` is the authoritative implementation status and the only durable completion signal used by this converger.
 - The `Plan:` header field in `<story_file>` is the authoritative planning lane.
 - The `## Current Claim` section in `<progress_file>` records active implementation state and worktree bindings.
-- The `## Review Log` equivalent for implementation reviews is the standalone `<reviews_file>` artifact.
 
 ## Workflow
 1. Resolve the requested initiative and change workspace through `openspec/initiatives/<slug>/initiative.md` and `openspec/changes/<story-slug>/story.md`.
@@ -72,13 +70,12 @@ Allowed starting states:
 - `Status: 🔄 IN PROGRESS` only when `Plan:` is `🟢 PLAN APPROVED`.
 - `Status: 🟣 IN REVIEW` only when `Plan:` is `🟢 PLAN APPROVED`; this is a successful implementation-convergence stop, not a route to review inside this command.
 - `Status: ⛔ BLOCKED` only when `Plan:` is `🟢 PLAN APPROVED` and `<blocked_file>` is absent; this means the explicit gate file was removed and `/openspec-story-resume` must normalize the stale status back to `🔄 IN PROGRESS` before work continues.
-- `Status: ✅ DONE` only when durable evidence shows independent completion authority: the latest relevant `<reviews_file>` entry records `Decision: approve`, `Approval gate: pass`, and risk-lens/finding-closure evidence. This is an already-complete early return; convergence must not create or pursue `✅ DONE` itself.
+- `Status: ✅ DONE` is an already-complete early return. Convergence routes by the `story.md` `Status:` header and must not create or pursue `✅ DONE` itself.
 
 Reject with a precise next action:
 
 - Any non-DONE story whose `Plan:` header field exists and is not `🟢 PLAN APPROVED`: use `/openspec-story-plan-converge <initiative> <story-slug>`.
 - `Status:` absent, `⬜ TODO`, or `⚪ TODO` with `## Current Claim` already present in `<progress_file>`: status drift; ask the operator to resolve before converging.
-- `Status: ✅ DONE` without durable review approval with `Approval gate: pass`: status drift; ask the operator to restore `Status: 🟣 IN REVIEW` and run `/openspec-story-review <initiative> <story-slug>` from a completely fresh, oblivious session.
 - `Status: ⛔ BLOCKED` while `<blocked_file>` exists: blocked stories need operator unblocking before convergence.
 - `<blocked_file>` exists at `<change_dir>/blocked.md`: convergence is refused while an explicit gate file exists. The operator may edit it to record resolution notes, but must remove `blocked.md` to unblock. Once the file is removed, stale `Status: ⛔ BLOCKED` is resumable and routes to `/openspec-story-resume` for normalization.
 
@@ -94,7 +91,7 @@ Before each subagent launch, build the command line from the current status in t
 - `Status: 🔄 IN PROGRESS`: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🟣 IN REVIEW`: do not launch claim, resume, or review. Stop successfully with result `IN_REVIEW` and route the operator to a fresh, oblivious `/openspec-story-review <initiative> <story-slug> [WORKTREE=...]` session.
 - `Status: ⛔ BLOCKED` with no `<blocked_file>` present and plan-approved: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]` to normalize the resolved blocker and continue.
-- `Status: ✅ DONE`: do not launch claim, resume, or review. Re-check the durable completion authority from the eligibility gate; if present, stop with result `DONE`. If the evidence is absent or incomplete, stop as status drift and route to a fresh, oblivious `/openspec-story-review <initiative> <story-slug>` session instead of continuing the loop.
+- `Status: ✅ DONE`: do not launch claim, resume, or review. Stop with result `DONE` based on the authoritative `story.md` `Status:` header.
 
 For each cycle:
 
@@ -129,7 +126,7 @@ For each cycle:
    - Run this refresh after every claim pass, and after any resume pass whose reported anchors are missing or whose spot-check would otherwise read stale paths.
    - Inspect explicit `WORKTREE="<basename>=<path>"` arguments first. If exactly one path is a git checkout containing both `<path>/openspec/initiatives/<initiative>/initiative.md` and `<path>/openspec/changes/<story-slug>/story.md`, it is operator-authoritative for `<openspec_root>`; set `<openspec_root>` to it and recompute artifact paths before any spot-check. If multiple explicit paths qualify, ask the operator which checkout is active and halt; never guess. Target-repo overrides that lack those artifacts are ignored for OpenSpec-root discovery.
    - If no explicit path qualifies, inspect root-repo worktrees with `git -C <workspace_root> worktree list --porcelain`. Find worktree entries on branch `refs/heads/<initiative>/<story-slug>` and consider a candidate active OpenSpec root only when both `<candidate>/openspec/initiatives/<initiative>/initiative.md` and `<candidate>/openspec/changes/<story-slug>/story.md` exist.
-   - If exactly one candidate qualifies and differs from `<openspec_root>`, set `<openspec_root>` to that candidate and immediately recompute `<initiative_dir>`, `<initiative_file>`, `<change_dir>`, `<story_file>`, `<reviews_file>`, `<progress_file>`, and `<blocked_file>` from the new root. Record a neutral operational note: `OpenSpec artifacts moved to root worktree <candidate>; convergence continued from that checkout.` Do not read or route from the old artifact paths after this point. This reroot also applies when `<workspace_root>` still has matching but stale artifacts.
+   - If exactly one candidate qualifies and differs from `<openspec_root>`, set `<openspec_root>` to that candidate and immediately recompute `<initiative_dir>`, `<initiative_file>`, `<change_dir>`, `<story_file>`, `<progress_file>`, and `<blocked_file>` from the new root. Record a neutral operational note: `OpenSpec artifacts moved to root worktree <candidate>; convergence continued from that checkout.` Do not read or route from the old artifact paths after this point. This reroot also applies when `<workspace_root>` still has matching but stale artifacts.
    - If multiple candidates qualify, stop and ask the operator which checkout is the active OpenSpec root; include the candidate paths. Do not guess.
    - If no candidate qualifies and the current `<story_file>` or `<progress_file>` is missing after a claim pass, stop with: `OpenSpec artifacts may have moved to a root worktree, but convergence could not locate them. Rerun from the checkout containing openspec/changes/<story-slug>/story.md, or pass WORKTREE="<basename>=<path>" from that checkout.`
 
@@ -137,7 +134,7 @@ For each cycle:
 9. If a claim or resume pass leaves the story at `Status: 🟣 IN REVIEW`, stop with result `IN_REVIEW`. Do not launch a review pass in the same cycle.
 10. If a claim or resume pass leaves the story at `Status: 🔄 IN PROGRESS`, continue only when the cycle budget remains and the no-progress gate does not fire.
 11. If any pass moves the story to `Status: ⛔ BLOCKED`, stop.
-12. If any implementation pass moves the story to `Status: ✅ DONE`, treat that as status drift unless a bounded spot-check confirms durable independent review authority in `<reviews_file>` as described in the eligibility gate. If DONE lacks that evidence, stop and route to fresh oblivious `/openspec-story-review` instead of accepting subagent chat output. If DONE has that evidence, stop with result `DONE` but note that this command did not create the completion authority.
+12. If any implementation pass moves the story to `Status: ✅ DONE`, stop with result `DONE` based on the refreshed `story.md` `Status:` header, but note that this command did not create the completion authority.
 13. If `<blocked_file>` appears in `<change_dir>` at any point during the convergence run, stop immediately.
 14. Run the no-progress gate before starting the next cycle.
 
@@ -147,7 +144,7 @@ When preparing a subagent command line, discover worktrees from the current `<pr
 
 ## Phase 4 — Operational Notes and Stops
 
-Maintain a convergence notebook containing neutral operational notes and sourced research entries for implementation passes only. Do not write notebook content to `initiative.md`, `story.md`, `progress.md`, `reviews.md`, `blocked.md`, or any coordination file as a duplicate source of lifecycle, proof, or review authority.
+Maintain a convergence notebook containing neutral operational notes and sourced research entries for implementation passes only. Do not write notebook content to `initiative.md`, `story.md`, `progress.md`, `blocked.md`, or any coordination file as a duplicate source of lifecycle, proof, or review authority.
 
 Record neutral operational facts only:
 
@@ -199,7 +196,7 @@ Recommend a WIP checkpoint only when stopping at `MAX_CYCLES`, operator input, o
 
 When the final authoritative status is `🟣 IN REVIEW`, treat implementation convergence as complete. The next lifecycle step is `/openspec-story-review`, but it must be run by the operator from a completely fresh, oblivious session rooted at the current `<openspec_root>` if it differs from the launch checkout. `/openspec-pr` may be a later delivery helper only after review marks the story `Status: ✅ DONE`.
 
-When the final authoritative status is `✅ DONE`, treat the story as already locally complete due to independent review authority that existed outside this convergence loop. `/openspec-pr` may be a later delivery helper before archive, but it is not the next lifecycle step.
+When the final authoritative status is `✅ DONE`, treat the story as already locally complete. `/openspec-pr` may be a later delivery helper before archive, but it is not the next lifecycle step.
 
 ## Phase 6 — Final Response
 
