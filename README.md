@@ -36,7 +36,6 @@ openspec/
     ├── tasks.md
     ├── specs/**/*.md
     ├── progress.md      # created by implementation commands
-    ├── reviews.md       # created by implementation review / feedback
     └── blocked.md       # existence is an explicit blocker gate
 ```
 
@@ -49,7 +48,7 @@ openspec/
   draft, in review, approved, needs changes, or blocked.
 - **Implementation status** — `story.md`'s `Status:` header records local
   execution: TODO, in progress, in review, done, or blocked.
-- **Runtime evidence** — `progress.md`, `reviews.md`, `tasks.md`, and optional
+- **Runtime evidence** — `progress.md`, `tasks.md`, and optional
   `blocked.md` preserve handoff, proof, review findings, PR delivery metadata,
   and blockers.
 
@@ -82,7 +81,7 @@ reasoning; it is read-only and never performs lifecycle transitions.
 5. **Review independently** — `/openspec-story-review` is read-only for product
    code and must run from a completely fresh, oblivious session with no
    implementation-loop notebook, summary, operational notes, or prior chat
-   context. It writes `reviews.md` and the `Status:` header, marking `✅ DONE`
+   context. It updates the `Status:` header, marking `✅ DONE`
    only when the implementation, tests, tasks, and OpenSpec contract line up.
 6. **Converge implementation** — `/openspec-story-converge` orchestrates fresh
    claim/resume implementation sessions for one change until the story reaches
@@ -122,7 +121,7 @@ schemas, proof matrices, Debt Friction, and runtime section conventions.
 | `/openspec-story-plan-converge` | Loop fresh plan-review and plan-resume passes until the Plan lane resolves. |
 | `/openspec-story-claim` | Claim one approved TODO story and begin red-first implementation. |
 | `/openspec-story-resume` | Continue implementation, resolve blockers, or address review/feedback routed back to the story. |
-| `/openspec-story-review` | Independently review implementation from a fresh, oblivious session and update `reviews.md` plus `story.md → Status:`. |
+| `/openspec-story-review` | Independently review implementation from a fresh, oblivious session and update `story.md → Status:` (notebook optional). |
 | `/openspec-story-converge` | Loop fresh claim/resume implementation passes until `🟣 IN REVIEW` or stop, then instruct the operator to run review separately. |
 | `/openspec-pr` | Manage optional GitHub PR delivery metadata/evidence in `progress.md → ## PR State`. |
 | `/openspec-feedback` | Classify and absorb structured feedback, including acknowledged story reopens, into the right OpenSpec artifacts. |

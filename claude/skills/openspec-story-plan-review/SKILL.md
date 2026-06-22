@@ -20,7 +20,7 @@ This command only edits the resolved `story.md` file's `## Plan Review Log` sect
 - the files listed in the story's `## Critical Files`
 - any spec section of `story.md` (`## Purpose`, `## Actors`, `## Triggering Need`, `## Expected Prerequisites`, `## Scope`, `## Out of Scope`, `## Scenarios / Behavior Examples`, `## Acceptance`, `## Verification`, `## Discovery Notes`, `## Critical Files`, `## Implementation Notes`, `## Locked Decisions`)
 - supporting planning artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/`)
-- runtime artifacts (`progress.md`, `reviews.md`, `blocked.md`)
+- runtime artifacts (`progress.md`, `blocked.md`)
 - the implementation `Status:` header field on `story.md` (`⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `✅ DONE`, `⛔ BLOCKED`)
 
 It may check whether `<change_dir>/blocked.md` exists during resolution, solely to honor the explicit block gate before writing a review lane transition. It must not read, create, edit, or remove `blocked.md`.
@@ -85,7 +85,7 @@ Resolve the planning lane before review:
 
 - If the `Plan:` header field exists in `story.md`, use that value as the planning-lane authority.
 - If the `Plan:` header field is missing, infer legacy planning state from the latest effective `## Plan Review Log` entry: the last appended review entry after applying any later addressed-entry references. Map `approve` -> `🟢 PLAN APPROVED`; unresolved `request_changes` or `not_reviewable` -> `🟠 PLAN CHANGES REQUESTED`; `blocked` -> `⛔ PLAN BLOCKED`; no entry -> `🟡 PLAN DRAFT`.
-- If runtime artifacts exist (`progress.md`, `reviews.md`), enter **contract-review mode**. In this mode, validate only the story contract and proof plan; do not assess implementation completeness, do not read `progress.md` as proof that the contract is correct, and do not change implementation `Status:`.
+- If runtime artifacts exist (`progress.md`), enter **contract-review mode**. In this mode, validate only the story contract and proof plan; do not assess implementation completeness, do not read `progress.md` as proof that the contract is correct, and do not change implementation `Status:`.
 - If runtime artifacts do not exist, enter normal pre-implementation plan-review mode.
 
 Remember the pre-review `Plan:` value, then set the `Plan:` header field in `story.md` to `🟣 PLAN IN REVIEW` before the full review begins. The final verdict in this command must overwrite it with `🟢 PLAN APPROVED`, `🟠 PLAN CHANGES REQUESTED`, `⛔ PLAN BLOCKED`, or the remembered pre-review value for an unrecoverable `not_reviewable` verdict unless the command aborts before write-back.

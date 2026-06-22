@@ -19,7 +19,7 @@ Argument: `$ARGUMENTS` — `<initiative-slug> <story-slug>`. Both are required. 
 - `<initiative_file>` = `<initiative_dir>/initiative.md`.
 - `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>`.
 - `<progress_file>` = `<change_dir>/progress.md`.
-- `<reviews_file>` = `<change_dir>/reviews.md`.
+- The `Status:` header in `story.md` is the archival gate signal.
 - `<tasks_file>` = `<change_dir>/tasks.md`.
 - `<blocked_file>` = `<change_dir>/blocked.md`.
 
@@ -63,14 +63,7 @@ Read `<progress_file>` and look for the `## PR State` section. Extract the `- PR
 
 ### Check C — Review approval
 
-Read `<reviews_file>`. If it does not exist, abort with: `No completed review found. Run /openspec-story-review <initiative-slug> <story-slug> to get a final review before archiving.` Find the latest review entry (the last entry in the file, since reviews are append-only). For the latest entry, read both the `Decision:` field and the `Approval gate:` field. The review check passes only when the latest entry records both `Decision: approve` and `Approval gate: pass`.
-
-- If `Decision: approve` and `Approval gate: pass`, the review check passes. Continue to Check D.
-- If `Decision: approve` but `Approval gate:` is missing or any value other than `pass`, abort with: `Latest review approves but its approval gate is not pass. Rerun /openspec-story-review <initiative-slug> <story-slug> so approval evidence is complete before archiving.`
-- If `Decision: request_changes`, abort with: `Latest review requests changes. Run /openspec-story-resume to address findings, then /openspec-story-review before re-archiving.`
-- If `Decision: blocked`, abort with: `Story is blocked by review. Resolve blocker and re-review before archiving.`
-- If `Decision: not_reviewable`, abort with: `Latest review found the story not reviewable. Fix reviewability issues and re-review before archiving.`
-- If `Decision:` is missing, abort with: `No completed review found. Run /openspec-story-review <initiative-slug> <story-slug> to get a final review before archiving.`
+Use the `Status:` header already read from `<change_dir>/story.md` as the local review gate. The review check passes only when `Status: ✅ DONE`; Phase 1 aborts before pre-flight checks for any other status. Continue to Check D.
 
 ### Check D — Tasks completeness
 

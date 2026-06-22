@@ -20,7 +20,7 @@ Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [MAX_CYCLES=5] [WORKT
 - `<initiative_file>` = `<initiative_dir>/initiative.md`.
 - `<change_dir>` = `<openspec_root>/openspec/changes/<story-slug>`.
 - `<story_file>` = `<change_dir>/story.md`.
-- `<reviews_file>` = `<change_dir>/reviews.md`.
+- The `Status:` header in `story.md` is the convergence gate signal.
 - `<progress_file>` = `<change_dir>/progress.md`.
 - `<blocked_file>` = `<change_dir>/blocked.md`.
 
@@ -147,7 +147,7 @@ When preparing a subagent command line, discover worktrees from the current `<pr
 
 ## Phase 4 — Operational Notes and Stops
 
-Maintain a convergence notebook containing neutral operational notes and sourced research entries for implementation passes only. Do not write notebook content to `initiative.md`, `story.md`, `progress.md`, `reviews.md`, `blocked.md`, or any coordination file as a duplicate source of lifecycle, proof, or review authority.
+Maintain a convergence notebook containing neutral operational notes and sourced research entries for implementation passes only. Do not write notebook content to `initiative.md`, `story.md`, `progress.md`, `blocked.md`, or any coordination file as a duplicate source of lifecycle, proof, or review authority.
 
 Record neutral operational facts only:
 

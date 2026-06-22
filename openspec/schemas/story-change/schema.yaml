@@ -1,10 +1,12 @@
 name: story-change
-version: 1
+version: 2
 description: >
-  ADD story-change schema. Each change workspace contains planning artifacts
-  (proposal, story, design, tasks, delta specs), runtime artifacts (progress,
-  reviews), and an explicit blocker gate (blocked). Implementation is gated on
-  completed planning artifacts and tracked via tasks.md checkboxes.
+  ADD story-change schema v2. Each change workspace contains planning artifacts
+  (proposal, story, design, tasks, delta specs), a runtime artifact (progress),
+  and an explicit blocker gate (blocked). Implementation review updates the
+  story.md Status: header and optionally writes findings to the notebook; there
+  is no standalone reviews.md artifact. Implementation is gated on completed
+  planning artifacts and tracked via tasks.md checkboxes.
 
 artifacts:
   - id: proposal
@@ -59,17 +61,6 @@ artifacts:
       /openspec-story-resume, and /openspec-pr. Excluded from PR bodies
       (implementation diary, not product contract).
     template: progress.md
-
-  - id: reviews
-    generates: reviews.md
-    description: >
-      Standalone review log artifact. Append-only numbered entries with the
-      same field schema as the existing ADD Review Log (Decision, Approval gate,
-      Product/Technical verdict, Key findings, Hypothesis triage, etc.).
-      Written by /openspec-story-review. Read by /openspec-story-converge
-      (implementation converge loop reads the latest entry's Decision,
-      Approval gate, risk-lens coverage, and finding-closure evidence).
-    template: reviews.md
 
   - id: blocked
     generates: blocked.md

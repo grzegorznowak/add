@@ -33,7 +33,7 @@ If a PR reviewer requests changes, do not downgrade the story here. Route action
 - `<story_file>` = `<change_dir>/story.md`.
 - `<progress_file>` = `<change_dir>/progress.md`.
 - `<proposal_file>` = `<change_dir>/proposal.md`.
-- `<reviews_file>` = `<change_dir>/reviews.md`.
+- `<review_evidence>` = `story.md` Status header and, optionally, notebook `openspec-review-<initiative_slug>-<story_slug>`.
 
 There is no `MASTER.md`, no tracker table, and no PR lifecycle status. All status is self-contained in the change workspace artifacts:
 
@@ -155,7 +155,7 @@ Suppress anything that describes *how* the code was implemented rather than *wha
 - `## Current Claim` (session-local metadata)
 - `## Progress Timeline` (implementation diary with timestamps)
 - `## Session Handoff` (inter-session handoff notes)
-- `## Review Log` / `reviews.md` (prior review round notes)
+- `Status:` header in `story.md` (prior review approval signal)
 - `design.md` content (architecture decisions, rationale, internal module structure)
 - `tasks.md` content (task checklists, implementation ordering)
 - `progress.md` content (runtime tracking)
@@ -225,7 +225,7 @@ For original ticket/card links:
 
 Do not paste sections verbatim if they contain internal terminology. Rephrase into reviewer-facing language. A reviewer who has never seen the change workspace should understand the PR body.
 
-**Exclusion enforcement for PR body generation**: never include content from `design.md`, `tasks.md`, `progress.md`, or `reviews.md` in the PR body. These files may be read only for this command's PR metadata, entry-condition, and approval-evidence gates. If a section of `story.md` is implementation-facing (`## Discovery Notes`, `## Locked Decisions`, `## Implementation Notes`, `## Critical Files`, `## Acceptance Proof Matrix`, `## Test Architecture Plan`), exclude it from the PR body.
+**Exclusion enforcement for PR body generation**: never include content from `design.md`, `tasks.md`, or `progress.md` in the PR body. These files may be read only for this command's PR metadata, entry-condition, and approval-evidence gates. If a section of `story.md` is implementation-facing (`## Discovery Notes`, `## Locked Decisions`, `## Implementation Notes`, `## Critical Files`, `## Acceptance Proof Matrix`, `## Test Architecture Plan`), exclude it from the PR body.
 
 ## PR creation mode
 
@@ -321,7 +321,7 @@ There is no `MASTER.md` and no tracker table in this flow. PR evidence is writte
 3. **Never touch product code in this flow.** It is a coordination-only PR delivery helper (except for the optional `gh pr create` call in open mode).
 4. **Never skip the progress.md write-back when a PR is opened, attached, or refreshed.** The PR URL is the durable link between the change workspace and the GitHub review.
 5. **Never leave `Last synced` stale across PR metadata refreshes.**
-6. **Never paste `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `design.md`, `tasks.md`, `reviews.md`, or `progress.md` content into the PR body.** Those sections are implementation diary, not product contract.
+6. **Never paste `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `design.md`, `tasks.md`, or `progress.md` content into the PR body.** Those sections are implementation diary, not product contract.
 7. **Never silently pick among multiple locally DONE stories.** Ask the operator to pass the story explicitly.
 8. **Never absorb PR feedback here.** Route actionable feedback through `/openspec-feedback`.
 9. **Never treat cached local PR metadata as merged archive evidence when live `gh` data is available.** Archive performs its own authoritative preflight.

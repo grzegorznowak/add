@@ -17,7 +17,6 @@ openspec/
 │   ├── tasks.md
 │   ├── specs/**/*.md
 │   ├── progress.md
-│   ├── reviews.md
 │   └── blocked.md
 └── changes/archive/<story-slug>/
 ```
@@ -31,7 +30,7 @@ openspec/
 - `story.md → Status:` is the authoritative implementation status.
 - `blocked.md` is an explicit lifecycle gate. If it exists, implementation and
   archive commands stop until the blocker is resolved and the file is removed.
-- `progress.md` and `reviews.md` hold runtime evidence; they are not planning
+- `progress.md` holds runtime evidence; it is not a planning
   inputs seeded by `/openspec-story-plan`.
 
 There is no central tracker table in the active workflow. Commands discover
@@ -196,7 +195,7 @@ or touches product code.
 The plan is proof-first. The story contract must name observable acceptance
 criteria, verification commands, a Test Architecture Plan, and an Acceptance
 Proof Matrix before implementation begins. Runtime files such as `progress.md`,
-`reviews.md`, and `blocked.md` are intentionally left to the commands that own
+and `blocked.md` are intentionally left to the commands that own
 them.
 
 ### 3. Plan review and repair
@@ -264,7 +263,6 @@ code. It must run from a completely fresh session with no implementation-loop
 notebook, summary, operational notes, or prior chat context. It may write only
 the change workspace review/status artifacts it owns, chiefly:
 
-- `reviews.md`
 - `story.md → Status:`
 
 Review checks the story contract, implementation, tests, task completion,
@@ -317,7 +315,7 @@ Supported operations:
 | PR or reviewer requests changes | Route through `/openspec-feedback` for classification; `/openspec-pr` does not mutate story status directly. |
 
 PR bodies are product-facing. They must not paste implementation diary content
-from `progress.md`, `reviews.md`, `tasks.md`, or internal planning sections.
+from `progress.md`, `tasks.md`, or internal planning sections.
 
 ### 8. Feedback absorption
 
@@ -334,7 +332,7 @@ Canonical dispositions:
 |---|---|
 | `queue-planning-feedback` | `story.md → ## Plan Review Log` and Plan lane downgrade. |
 | `amend-existing-story` | Story/design contract edits plus Plan lane downgrade. |
-| `resume-current-story` | `reviews.md`, optional contract edits, optional reopen to `🔄 IN PROGRESS`, and next resume/plan-review action. |
+| `resume-current-story` | `story.md` Status header update to `🔄 IN PROGRESS`, optional contract edits, and next resume/plan-review action. |
 | `new-story-candidate` | Initiative candidate section for future `/openspec-story-plan`. |
 | `initiative-level-decision` | Initiative decision notes plus absorption log. |
 | `defer-or-reject` | Initiative absorption log only. |
