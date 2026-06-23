@@ -162,8 +162,8 @@ Classify each actionable feedback item into exactly one disposition:
 | Disposition | Use when | Target |
 |---|---|---|
 | `queue-planning-feedback` | Feedback clarifies a story that is still in planning, or should re-enter planning review before implementation continues. | `story.md` → `## Plan Review Log`, `Plan:` lane. |
-| `amend-existing-story` | Rare direct amendment explicitly acknowledged by the operator outside a planning or implementation feedback cycle. | `story.md` contract sections (+ `design.md` when needed), `Plan:` lane invalidation when the contract changes. |
-| `resume-current-story` | Implemented work misses the current story or PR review requests rework for it. | `story.md` Status header (set to `🔄 IN PROGRESS`), optional notebook `openspec-feedback-<initiative_slug>-<story_slug>`, `story.md` contract edits when needed, `progress.md` replanning checkpoint when contract changes, `Plan:` lane invalidation when the contract changes. |
+| `amend-existing-story` | Rare direct amendment explicitly acknowledged by the operator outside a planning or implementation feedback cycle. | `story.md` contract sections (+ `design.md` when needed), `Plan:` lane invalidation when the contract changes, notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required — carries FB-### and source evidence for dedup). |
+| `resume-current-story` | Implemented work misses the current story or PR review requests rework for it. | `story.md` Status header (set to `🔄 IN PROGRESS`), notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required — carries FB-### and source evidence for dedup), `story.md` contract edits when needed, `progress.md` replanning checkpoint when contract changes, `Plan:` lane invalidation when the contract changes. |
 | `new-story-candidate` | Feedback introduces a new outcome, dependency, rollout concern, or hardening task. | Initiative candidate section. |
 | `initiative-level-decision` | Feedback changes an initiative policy, architectural choice, or cross-story rule. | Initiative decision notes. |
 | `defer-or-reject` | Feedback is out of scope, duplicate, non-actionable, or intentionally declined. | No durable artifact write needed (operator may re-feed if reconsidered). |
@@ -189,7 +189,7 @@ Status and lane rules:
   - contract-changing `resume-current-story` sets `Plan:` to `🟠 PLAN CHANGES REQUESTED` after the contract edits are blended and validation passes, because fresh `/openspec-story-plan-review` must independently approve the changed contract before implementation resumes.
   - if contract feedback cannot be fully blended, set `Plan:` to `🟠 PLAN CHANGES REQUESTED` and make `/openspec-story-plan-resume` the next action.
 - Write `## Plan Review Log` in `story.md` only for `queue-planning-feedback`; `/openspec-story-plan-review` remains the owner of independent review verdicts and the only command that may set `Plan:` to `🟢 PLAN APPROVED`.
-- Update `story.md` Status header to `🔄 IN PROGRESS` and optionally persist findings to notebook `openspec-feedback-<initiative_slug>-<story_slug>` for implementation-review feedback that should drive immediate story resume or PR rework.
+- Update `story.md` Status header to `🔄 IN PROGRESS` and persist findings to notebook `openspec-feedback-<initiative_slug>-<story_slug>` for implementation-review feedback that should drive immediate story resume or PR rework (required — the notebook entry carries FB-### and source ID for dedup).
 
 Draft the acknowledgement plan. The plan must target only the coordination documents listed above and must never include `reviews.md` rows (there is no standalone reviews.md artifact; review findings route through story.md Status and optional notebook).
 
@@ -319,9 +319,9 @@ For `amend-existing-story`, edit only these story sections inside `story.md`:
 
 Also edit `design.md` when the amendment changes `### Design Sources` anchors/statuses or `### Design Element Trace` rows that live there rather than in `story.md`.
 
-Keep story-body edits as the durable contract change. If the amendment changes any contract/proof section, update the `Plan:` header field in `story.md` to `🟠 PLAN CHANGES REQUESTED` and make `/openspec-story-plan-review` the next action.
+Keep story-body edits as the durable contract change. If the amendment changes any contract/proof section, update the `Plan:` header field in `story.md` to `🟠 PLAN CHANGES REQUESTED` and make `/openspec-story-plan-review` the next action. Also persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required for `amend-existing-story` — the notebook carries FB-### and source evidence for dedup).
 
-For `resume-current-story`, optionally persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` using a compact format. Keep the feedback provenance fields and include the canonical traceability/evidence fields so later resume and review sessions can reconstruct what was checked:
+For `resume-current-story`, persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required — carries FB-### and source evidence for dedup). Use this compact format:
 
 ```md
 - <UTC ISO timestamp> Review feedback absorbed from PR

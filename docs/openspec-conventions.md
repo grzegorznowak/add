@@ -49,7 +49,6 @@ source_of_truth: internal | external
 
 Operational sections are created on first use by `/openspec-feedback`:
 
-- `## Feedback Absorption Log`
 - `## Feedback-Derived Story Candidates`
 - `## Feedback-Derived Decisions`
 
@@ -96,7 +95,6 @@ The planning body should contain these sections when applicable:
 | `## Implementation Notes` | Execution brief, red-first guidance, phases, and known exceptions. |
 | `## Locked Decisions` | Decisions made during planning and rejected alternatives. |
 | `## Plan Review Log` | Seeded as an empty section by the story template and `/openspec-story-plan`; entries are created/appended only by plan review, planning feedback, or plan-resume addressed-entry repair. |
-| `## Feedback Absorption Log` | Optional story-local receipt for feedback edits. |
 
 Legacy or malformed stories missing `Plan:`, `Status:`, or the empty `## Plan Review Log`
 anchor are normalized by `/openspec-story-plan-resume`; it may add missing

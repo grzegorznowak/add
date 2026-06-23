@@ -331,11 +331,11 @@ Canonical dispositions:
 | Disposition | Destination |
 |---|---|
 | `queue-planning-feedback` | `story.md → ## Plan Review Log` and Plan lane downgrade. |
-| `amend-existing-story` | Story/design contract edits plus Plan lane downgrade. |
-| `resume-current-story` | `story.md` Status header update to `🔄 IN PROGRESS`, optional contract edits, and next resume/plan-review action. |
+| `amend-existing-story` | Story/design contract edits, Plan lane downgrade, and notebook `openspec-feedback-*`. |
+| `resume-current-story` | `story.md` Status header update to `🔄 IN PROGRESS`, notebook `openspec-feedback-*`, optional contract edits, and next resume/plan-review action. |
 | `new-story-candidate` | Initiative candidate section for future `/openspec-story-plan`. |
-| `initiative-level-decision` | Initiative decision notes plus absorption log. |
-| `defer-or-reject` | Initiative absorption log only. |
+| `initiative-level-decision` | Initiative decision notes. |
+| `defer-or-reject` | No durable artifact write needed (operator may re-feed if reconsidered). |
 
 Contract-changing feedback must pass fresh `/openspec-story-plan-review` before
 implementation continues.
