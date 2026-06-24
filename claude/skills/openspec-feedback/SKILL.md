@@ -2,7 +2,7 @@
 name: openspec-feedback
 description: Absorb structured review/tool, PR, or reviewer feedback into an OpenSpec initiative by routing it to story edits, review rework, story candidates, or initiative-level decisions. Use when feedback needs to be incorporated without bloating or drifting stories.
 disable-model-invocation: true
-argument-hint: "<initiative-slug> [--pr <pr-url>] [--latest|--all] [--since <source-id>] [feedback-or-file]"
+argument-hint: "<initiative-slug> [--pr <pr-url>] [feedback-or-file]"
 allowed-tools: Read Edit Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*) Bash(printf:*) Bash(sha256sum:*) Bash(shasum:*)
 ---
 
@@ -10,7 +10,7 @@ allowed-tools: Read Edit Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -
 
 Absorb structured feedback into one OpenSpec initiative without turning PR reviews or tool output into messy story prose. This command classifies each feedback item first, shows a lightweight acknowledgement plan, then applies the smallest coordination-doc edits needed to preserve story intent, feedback provenance, and the story's planning lane.
 
-Argument: `$ARGUMENTS` — `<initiative_slug> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]`. The initiative slug is required by argument or explicit menu selection. PR mode defaults to the latest unabsorbed actionable feedback item.
+Argument: `$ARGUMENTS` — `<initiative_slug> [--pr <pr_url>] [feedback_or_file]`. The initiative slug is required by argument or explicit menu selection. PR mode processes all actionable feedback items from the PR.
 
 ## Important
 
@@ -49,7 +49,6 @@ Feedback often spans several stories. Selecting a story before classification re
    - Accept an initiative slug matching a directory under `<cwd>/openspec/initiatives/`.
    - Accept `INITIATIVE=<slug>` as an equivalent selector.
    - Accept `--pr <url>`, `PR_URL=<url>`, or a bare GitHub PR URL as PR pointer mode.
-   - Accept `--latest` (default), `--all`, and `--since <source_id>`.
    - Treat remaining text as feedback payload unless it resolves to a readable file path.
 2. Resolve the initiative:
    - If an initiative slug was provided, validate it matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` before resolving any path. If it fails, abort with: `invalid initiative slug; use lowercase hyphenated slug characters only`.
@@ -93,10 +92,8 @@ In PR pointer mode:
    - sources already reflected in existing artifact state: FB-### entries in tasks.md, progress.md replanning checkpoints, Feedback-Derived Story Candidates, Feedback-Derived Decisions, story.md Status transitions, or `openspec-feedback-*` notebook entries (use `notebook_read` for each candidate story target)
    - empty comments and empty review bodies, unless the review state itself is the only signal and it requests changes
    - non-actionable acknowledgements such as "thanks", "LGTM", "done", or "rebase only"
-6. Select feedback:
-   - `--latest`: choose the newest unabsorbed actionable item by `updated_at`, using `created_at` as a tie-breaker.
-   - `--all`: process every unabsorbed actionable item.
-   - `--since <source_id>`: find that source referenced in existing artifacts (tasks.md, progress.md, story.md, initiative.md, notebooks via `notebook_read`). Compare feedback item timestamps from the PR source (GitHub `created_at`/`updated_at`) or manual payload to the source's original timestamp recorded in the artifact; process only items strictly later. Stop if the source ID cannot be found in any artifact.
+
+Continue to Phase 2 with all remaining actionable items.
 
 If `gh` is unavailable or the PR cannot be queried, stop and ask the operator to paste the relevant feedback. Do not scrape GitHub with ad-hoc unauthenticated requests.
 
