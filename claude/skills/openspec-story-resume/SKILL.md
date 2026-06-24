@@ -23,7 +23,7 @@ This skill defers to the following artifacts, in priority order. Notebook contex
 2. **progress.md `## Current Claim`** — The most recent claim details, including assigned worktrees.
 3. **progress.md `## Progress Timeline`** — Sequential implementation log (newest first).
 4. **progress.md `## Session Handoff`** — Exit state from the most recent session.
-5. **story.md Status header and contract** — Implementation review results are reflected in the Story Status and contract sections (Acceptance, Discovery Notes, Locked Decisions). Optionally check notebook `openspec-review-<initiative_slug>-<story_slug>` for prior review findings.
+5. **story.md Status header and contract** — Implementation review results are reflected in the Story Status and contract sections (Acceptance, Discovery Notes, Locked Decisions). Optionally check notebook `openspec-review-<initiative_slug>-<story_slug>` for prior review findings and `openspec-feedback-<initiative_slug>-<story_slug>` for absorbed feedback evidence.
 6. **story.md content** — Purpose, acceptance criteria, verification sections, Plan header.
 7. **proposal.md** — The original proposal rationale and scope.
 8. **design.md** — Technical design decisions.
@@ -65,7 +65,7 @@ Before any implementation begins, read these files from the resolved change work
 3. **`design.md`** — Understand architecture decisions, if present.
 4. **`tasks.md`** — Extract the task checklist for implementation tracking.
 5. **`progress.md`** — Extract `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `## PR State`.
-6. **`story.md`** — Check Status header and contract sections for review findings and unresolved feedback. Optionally read notebook `openspec-review-<initiative_slug>-<story_slug>`.
+6. **`story.md`** — Check Status header and contract sections for review findings and unresolved feedback. Also read notebook `openspec-review-<initiative_slug>-<story_slug>` for prior review concerns and `openspec-feedback-<initiative_slug>-<story_slug>` for absorbed feedback evidence.
 7. Check for `blocked.md` existence — if present, the change is blocked; treat as a blocking signal.
 
 ### 0.3 Determine Resume Intent

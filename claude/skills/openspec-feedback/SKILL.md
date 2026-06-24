@@ -96,7 +96,7 @@ In PR pointer mode:
 6. Select feedback:
    - `--latest`: choose the newest unabsorbed actionable item by `updated_at`, using `created_at` as a tie-breaker.
    - `--all`: process every unabsorbed actionable item.
-   - `--since <source_id>`: find that source referenced in existing artifacts (tasks.md, progress.md, story.md, initiative.md), then process unabsorbed actionable items created or updated after that source's timestamp. Stop if the source ID cannot be found in any artifact.
+   - `--since <source_id>`: find that source referenced in existing artifacts (tasks.md, progress.md, story.md, initiative.md, notebooks). Compare feedback item timestamps from the PR source (GitHub `created_at`/`updated_at`) or manual payload to the source's original timestamp recorded in the artifact; process only items strictly later. Stop if the source ID cannot be found in any artifact.
 
 If `gh` is unavailable or the PR cannot be queried, stop and ask the operator to paste the relevant feedback. Do not scrape GitHub with ad-hoc unauthenticated requests.
 
@@ -199,7 +199,7 @@ Draft the acknowledgement plan. The plan must target only the coordination docum
 | Feedback ID | Source | Disposition | Target | Planned edit | Rationale |
 |---|---|---|---|---|---|
 | FB-001 | PR #42 comment IC_... | queue-planning-feedback | <story-slug> | Plan Review Log + Plan lane | Same story, planning contract needs rework. |
-| FB-002 | PR #42 review PRRC_... | resume-current-story | <story-slug> | story.md Status + opt. notebook `openspec-feedback-*` | Implementation misses existing A2. |
+| FB-002 | PR #42 review PRRC_... | resume-current-story | <story-slug> | story.md Status + notebook `openspec-feedback-*` | Implementation misses existing A2. |
 | FB-003 | PR #42 comment IC_... | new-story-candidate | initiative.md | Candidate only | New audit logging outcome. |
 ```
 

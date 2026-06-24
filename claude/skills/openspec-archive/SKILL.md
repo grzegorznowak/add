@@ -132,7 +132,7 @@ After successful archiving, update `<initiative_file>`:
    - **Archived**: `<story-slug>` was archived on <YYYY-MM-DD>.
    ```
 
-5. Do not modify any other section of the initiative file. Do not add to `## Feedback Absorption Log`, `## Feedback-Derived Story Candidates`, `## Feedback-Derived Decisions`, or any other section. Do not change the `source_of_truth` flag or the `## Goal / Context` section.
+5. Do not modify any other section of the initiative file. Do not add to `## Feedback-Derived Story Candidates`, `## Feedback-Derived Decisions`, or any other section. Do not change the `source_of_truth` flag or the `## Goal / Context` section.
 
 ## Rules
 

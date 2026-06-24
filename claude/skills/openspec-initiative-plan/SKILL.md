@@ -105,7 +105,7 @@ source_of_truth: <internal | external>
 - <optional label>: <url>
 ```
 
-Do not seed `## Feedback Absorption Log`, `## Feedback-Derived Story Candidates`, or `## Feedback-Derived Decisions` — those are created by `/openspec-feedback` on first use.
+Do not seed `## Feedback-Derived Story Candidates` or `## Feedback-Derived Decisions` — those are created by `/openspec-feedback` on first use.
 
 ## Checkpoint
 
