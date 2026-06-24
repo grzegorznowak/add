@@ -93,10 +93,11 @@ reasoning; it is read-only and never performs lifecycle transitions.
    owning story status. Merged PR evidence supports archive; requested changes
    are absorbed through `/openspec-feedback`.
 8. **Absorb feedback** — `/openspec-feedback` routes PR, reviewer, tool, or
-   operator feedback to the initiative log, plan review log, implementation
-   review log, story candidates, or initiative-level decisions without touching
-   product code. When acknowledged feedback invalidates local completion, it can
-   reopen the story to `🔄 IN PROGRESS` so `/openspec-story-resume` owns the fix.
+   operator feedback to the Plan Review Log, story contract, progress.md
+   checkpoint, feedback notebook, story candidates, or initiative-level
+   decisions without touching product code. When acknowledged feedback
+   invalidates local completion, it can reopen the story to `🔄 IN PROGRESS`
+   so `/openspec-story-resume` owns the fix.
 9. **Archive completed changes** — `/openspec-archive` preflights DONE status,
    task completion, review approval, blocker absence, and PR/no-PR evidence,
    then delegates spec sync and the workspace move to OpenSpec's built-in

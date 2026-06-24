@@ -3,7 +3,7 @@ name: openspec-feedback
 description: Absorb structured review/tool, PR, or reviewer feedback into an OpenSpec initiative by routing it to story edits, review rework, story candidates, or initiative-level decisions. Use when feedback needs to be incorporated without bloating or drifting stories.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> [--pr <pr-url>] [feedback-or-file]"
-allowed-tools: Read Edit Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*) Bash(printf:*) Bash(sha256sum:*) Bash(shasum:*)
+allowed-tools: Read Edit Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*) Bash(printf:*) Bash(sha256sum:*) Bash(shasum:*) notebook_index notebook_read notebook_write
 ---
 
 # OpenSpec Feedback
