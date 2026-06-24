@@ -316,9 +316,9 @@ For `amend-existing-story`, edit only these story sections inside `story.md`:
 
 Also edit `design.md` when the amendment changes `### Design Sources` anchors/statuses or `### Design Element Trace` rows that live there rather than in `story.md`.
 
-Keep story-body edits as the durable contract change. If the amendment changes any contract/proof section, update the `Plan:` header field in `story.md` to `🟠 PLAN CHANGES REQUESTED` and make `/openspec-story-plan-review` the next action. Also persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required for `amend-existing-story` — the notebook carries FB-### and source evidence for dedup).
+Keep story-body edits as the durable contract change. If the amendment changes any contract/proof section, update the `Plan:` header field in `story.md` to `🟠 PLAN CHANGES REQUESTED` and make `/openspec-story-plan-review` the next action. Also persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required for `amend-existing-story` — the notebook carries FB-### and source evidence for dedup). If `notebook_write` is not available, abort: "notebook_write is required for feedback traceability; run this skill from a pi session with notebook support."
 
-For `resume-current-story`, persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required — carries FB-### and source evidence for dedup). Use this compact format:
+For `resume-current-story`, persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required — carries FB-### and source evidence for dedup). If `notebook_write` is not available, abort: "notebook_write is required for feedback traceability; run this skill from a pi session with notebook support." Use this compact format:
 
 ```md
 - <UTC ISO timestamp> Review feedback absorbed from PR
