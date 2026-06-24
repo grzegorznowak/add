@@ -37,7 +37,7 @@ Feedback often spans several stories. Selecting a story before classification re
 
 `## Feedback-Derived Story Candidates` and `## Feedback-Derived Decisions` in `initiative.md` answer: "where did this feedback go and why?"
 
-`story.md` Status header and contract sections answer: "what is wrong with this story implementation and what must be fixed?" Optional notebook `openspec-feedback-<initiative_slug>-<story_slug>` stores the RAW review findings.
+`story.md` Status header and contract sections answer: "what is wrong with this story implementation and what must be fixed?" Notebook `openspec-feedback-<initiative_slug>-<story_slug>` stores RAW review findings (required for `amend-existing-story` and `resume-current-story`; not used for other dispositions).
 
 `## Plan Review Log` in `story.md` answers: "what planning contract concerns must be resolved before implementation continues?"
 
@@ -89,7 +89,7 @@ In PR pointer mode:
    - body text
    - review state, path, line, and diff hunk when available
 5. Exclude:
-   - sources already reflected in existing artifact state: FB-### entries in tasks.md, progress.md replanning checkpoints, Feedback-Derived Story Candidates, Feedback-Derived Decisions, story.md Status transitions, or `openspec-feedback-<initiative_slug>-*` notebook entries (use `notebook_index` plus `notebook_read` to scan all initiative feedback notebooks)
+   - sources already reflected in existing artifact state: FB-### entries in tasks.md, progress.md replanning checkpoints, Plan Review Log entries, Feedback-Derived Story Candidates, Feedback-Derived Decisions, story.md Status transitions, or `openspec-feedback-<initiative_slug>-*` notebook entries (use `notebook_index` plus `notebook_read` to scan all initiative feedback notebooks)
    - empty comments and empty review bodies, unless the review state itself is the only signal and it requests changes
    - non-actionable acknowledgements such as "thanks", "LGTM", "done", or "rebase only"
 

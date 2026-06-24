@@ -158,7 +158,7 @@ codex_args() {
       body_repl='s/\$ARGUMENTS/the INITIATIVE, STORY, SPEC, and --all selectors/g'
       ;;
     openspec-feedback)
-      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]/'
+      arg_line='s/^Argument:.*/Argument: INITIATIVE=<slug> [--pr <pr_url>] [feedback_or_file]/'
       body_repl='s/\$ARGUMENTS/the INITIATIVE, feedback flags, and feedback payload named variables/g'
       ;;
     openspec-story-claim)
