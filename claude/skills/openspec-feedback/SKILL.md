@@ -59,7 +59,7 @@ Feedback often spans several stories. Selecting a story before classification re
    - `AGENTS.md`, then `CLAUDE.md` as fallback when present.
    - `<initiative>/initiative.md`.
    - Existing `## Feedback-Derived Story Candidates` and `## Feedback-Derived Decisions` in `<initiative>/initiative.md`.
-   - Existing FB-### references in `tasks.md` (reopened/resumed tasks), `progress.md` (replanning checkpoints), and `story.md` (Status transitions). Also use `notebook_read` to check `openspec-feedback-<initiative_slug>-<story_slug>` for each story that is a known or candidate target — the notebook stores required FB-### and source evidence for `amend-existing-story` and `resume-current-story` dispositions. Use all of these to identify already-absorbed feedback instead of a central log.
+   - Existing FB-### references in `tasks.md` (reopened/resumed tasks), `progress.md` (replanning checkpoints), and `story.md` (Status transitions). Also use `notebook_index` plus `notebook_read` to scan all `openspec-feedback-<initiative_slug>-*` pages — these initiative-wide feedback notebooks store required FB-### and source evidence for `amend-existing-story` and `resume-current-story` dispositions. Use all of these to identify already-absorbed feedback instead of a central log.
 4. Determine intake mode:
    - **PR pointer mode** when a PR URL is present.
    - **Payload mode** when pasted feedback or a feedback file is present.
@@ -89,7 +89,7 @@ In PR pointer mode:
    - body text
    - review state, path, line, and diff hunk when available
 5. Exclude:
-   - sources already reflected in existing artifact state: FB-### entries in tasks.md, progress.md replanning checkpoints, Feedback-Derived Story Candidates, Feedback-Derived Decisions, story.md Status transitions, or `openspec-feedback-*` notebook entries (use `notebook_read` for each candidate story target)
+   - sources already reflected in existing artifact state: FB-### entries in tasks.md, progress.md replanning checkpoints, Feedback-Derived Story Candidates, Feedback-Derived Decisions, story.md Status transitions, or `openspec-feedback-<initiative_slug>-*` notebook entries (use `notebook_index` plus `notebook_read` to scan all initiative feedback notebooks)
    - empty comments and empty review bodies, unless the review state itself is the only signal and it requests changes
    - non-actionable acknowledgements such as "thanks", "LGTM", "done", or "rebase only"
 
@@ -113,7 +113,7 @@ Allocate feedback IDs from the initiative namespace:
 FB-001, FB-002, ...
 ```
 
-Continue after the highest existing `FB-###` found in any coordination artifact (initiative.md, story.md, tasks.md, progress.md, notebook `openspec-feedback-*` via `notebook_read`). For each item, build this working record:
+Continue after the highest existing `FB-###` found in any coordination artifact (initiative.md, story.md, tasks.md, progress.md, notebook `openspec-feedback-<initiative_slug>-*` (all initiative feedback notebooks via `notebook_index` + `notebook_read`)). For each item, build this working record:
 
 ```md
 - Feedback ID: FB-###

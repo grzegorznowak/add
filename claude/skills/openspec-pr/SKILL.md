@@ -39,7 +39,7 @@ There is no `MASTER.md`, no tracker table, and no PR lifecycle status. All statu
 
 - The `Status:` header field in `<story_file>` is the authoritative implementation status and is not changed by this command.
 - The `Plan:` header field in `<story_file>` is the authoritative planning lane.
-- The latest relevant `<reviews_file>` approval is local completion authority.
+- `Status: ✅ DONE` in `<story_file>` is local completion authority.
 - The `## Current Claim` section in `<progress_file>` records implementation state and worktree bindings.
 - The `## PR State` section in `<progress_file>` is the sole PR metadata/evidence location.
 - The `## Progress Timeline` section in `<progress_file>` records milestone bullets.
@@ -122,7 +122,7 @@ Once the story is resolved, abort fast unless its current status is `✅ DONE` a
 Also require:
 
 - `Plan:` header field is `🟢 PLAN APPROVED`. If not, report the current Plan value, state that PR delivery requires plan approval first, take no PR action, and let the operator choose the next lifecycle step.
-- The latest relevant `<reviews_file>` entry records both `Decision: approve` and `Approval gate: pass`. If not, report that durable local review approval is missing, take no PR action, and let the operator choose the next lifecycle step.
+- Treat `Status: ✅ DONE` in `<story_file>` as durable local review approval; do not require or read a standalone review file. If the status is not `✅ DONE`, report that durable local review approval is missing, take no PR action, and let the operator choose the next lifecycle step.
 
 Abort for TODO, IN REVIEW, IN PROGRESS, BLOCKED, missing, or unknown implementation status with a lifecycle-state notice, not a route to another command. Do not normalize or mutate `story.md → Status:` from this command.
 
