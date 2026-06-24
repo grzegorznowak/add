@@ -67,7 +67,7 @@ If this command is being considered from the same session that just wrote or con
 ## Read first
 
 1. the main repo `AGENTS.md` for the repo the implementation touches
-2. `<initiative_dir>/initiative.md` — for Goal/Context, Story Candidates, Decisions & Constraints, External Resources, and Feedback Absorption Log context
+2. `<initiative_dir>/initiative.md` — for Goal/Context, Story Candidates, Decisions & Constraints, External Resources, and Feedback-Derived Story Candidates / Decisions context
 3. the resolved `<story_file>` — every section (Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, Discovery Notes)
 4. `<change_dir>/proposal.md` — for Goal/Context and Decisions & Constraints
 5. `<change_dir>/design.md` — for technical design context, architecture decisions, and implementation strategy

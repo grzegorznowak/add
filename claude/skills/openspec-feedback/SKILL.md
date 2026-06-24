@@ -2,28 +2,28 @@
 name: openspec-feedback
 description: Absorb structured review/tool, PR, or reviewer feedback into an OpenSpec initiative by routing it to story edits, review rework, story candidates, or initiative-level decisions. Use when feedback needs to be incorporated without bloating or drifting stories.
 disable-model-invocation: true
-argument-hint: "<initiative-slug> [--pr <pr-url>] [--latest|--all] [--since <source-id>] [feedback-or-file]"
-allowed-tools: Read Edit Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*) Bash(printf:*) Bash(sha256sum:*) Bash(shasum:*)
+argument-hint: "<initiative-slug> [--pr <pr-url>] [feedback-or-file]"
+allowed-tools: Read Edit Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*) Bash(printf:*) Bash(sha256sum:*) Bash(shasum:*) notebook_index notebook_read notebook_write
 ---
 
 # OpenSpec Feedback
 
 Absorb structured feedback into one OpenSpec initiative without turning PR reviews or tool output into messy story prose. This command classifies each feedback item first, shows a lightweight acknowledgement plan, then applies the smallest coordination-doc edits needed to preserve story intent, feedback provenance, and the story's planning lane.
 
-Argument: `$ARGUMENTS` — `<initiative_slug> [--pr <pr_url>] [--latest|--all] [--since <source_id>] [feedback_or_file]`. The initiative slug is required by argument or explicit menu selection. PR mode defaults to the latest unabsorbed actionable feedback item.
+Argument: `$ARGUMENTS` — `<initiative_slug> [--pr <pr_url>] [feedback_or_file]`. The initiative slug is required by argument or explicit menu selection. PR mode processes all actionable feedback items from the PR.
 
 ## Important
 
 This command may edit coordination documents only:
 
-- `<initiative>/initiative.md` (Feedback Absorption Log, Feedback-Derived Story Candidates, Feedback-Derived Decisions)
+- `<initiative>/initiative.md` (Feedback-Derived Story Candidates, Feedback-Derived Decisions)
 - non-archived change workspace artifacts under `openspec/changes/<story-slug>/`:
-  - `story.md` (contract sections, Plan lane, story-local receipt, Plan Review Log)
+  - `story.md` (contract sections, Plan lane, Plan Review Log)
   - `design.md` (when design sources or element trace are affected)
   - `story.md` Status header and contract sections (review findings reflected in contract)
   - `progress.md` (replanning checkpoints when contract changes during resume)
 
-It never touches product source code, tests, configs, archived change workspaces, `CONTRACT.md`, worktrees, branches, or GitHub PR bodies. It never creates a full new change workspace and never advances or approves implementation status. Its only allowed `story.md → Status:` write is an explicitly acknowledged `resume-current-story` reopen to `🔄 IN PROGRESS` so implementation can resume after local/PR feedback. New work discovered from feedback becomes a feedback-derived story candidate in the initiative; `/openspec-story-plan` owns full story planning.
+It never touches product source code, tests, configs, archived change workspaces, `CONTRACT.md`, worktrees, branches, GitHub PR bodies, or `reviews.md` (legacy artifact; review findings are durable only in story.md Status header and optional notebook feeds). It never creates a full new change workspace and never advances or approves implementation status. Its only allowed `story.md → Status:` write is an explicitly acknowledged `resume-current-story` reopen to `🔄 IN PROGRESS` so implementation can resume after local/PR feedback. New work discovered from feedback becomes a feedback-derived story candidate in the initiative; `/openspec-story-plan` owns full story planning.
 
 There is no dry-run mode. Normal operation is:
 
@@ -35,9 +35,9 @@ classify feedback -> show absorption plan -> operator acknowledgement -> apply e
 
 Feedback often spans several stories. Selecting a story before classification recreates the failure mode this command exists to avoid. The initiative is the routing boundary; each feedback item is then classified into the right destination.
 
-`## Feedback Absorption Log` in `initiative.md` answers: "where did this feedback go and why?"
+`## Feedback-Derived Story Candidates` and `## Feedback-Derived Decisions` in `initiative.md` answer: "where did this feedback go and why?"
 
-`story.md` Status header and contract sections answer: "what is wrong with this story implementation and what must be fixed?" Optional notebook `openspec-review-<initiative_slug>-<story_slug>` stores the RAW review findings.
+`story.md` Status header and contract sections answer: "what is wrong with this story implementation and what must be fixed?" Notebook `openspec-feedback-<initiative_slug>-<story_slug>` stores RAW review findings (required for `amend-existing-story` and `resume-current-story`; not used for other dispositions).
 
 `## Plan Review Log` in `story.md` answers: "what planning contract concerns must be resolved before implementation continues?"
 
@@ -49,7 +49,6 @@ Feedback often spans several stories. Selecting a story before classification re
    - Accept an initiative slug matching a directory under `<cwd>/openspec/initiatives/`.
    - Accept `INITIATIVE=<slug>` as an equivalent selector.
    - Accept `--pr <url>`, `PR_URL=<url>`, or a bare GitHub PR URL as PR pointer mode.
-   - Accept `--latest` (default), `--all`, and `--since <source_id>`.
    - Treat remaining text as feedback payload unless it resolves to a readable file path.
 2. Resolve the initiative:
    - If an initiative slug was provided, validate it matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` before resolving any path. If it fails, abort with: `invalid initiative slug; use lowercase hyphenated slug characters only`.
@@ -59,7 +58,8 @@ Feedback often spans several stories. Selecting a story before classification re
 3. Read the project guidance before making recommendations:
    - `AGENTS.md`, then `CLAUDE.md` as fallback when present.
    - `<initiative>/initiative.md`.
-   - Existing `## Feedback Absorption Log`, if present, to collect already-absorbed source IDs.
+   - Existing `## Feedback-Derived Story Candidates` and `## Feedback-Derived Decisions` in `<initiative>/initiative.md`.
+   - Existing FB-### references in `tasks.md` (reopened/resumed tasks), `progress.md` (replanning checkpoints), and `story.md` (Status transitions). Also use `notebook_index` plus `notebook_read` to scan all `openspec-feedback-<initiative_slug>-*` pages — these initiative-wide feedback notebooks store required FB-### and source evidence for `amend-existing-story` and `resume-current-story` dispositions. Use all of these to identify already-absorbed feedback instead of a central log.
 4. Determine intake mode:
    - **PR pointer mode** when a PR URL is present.
    - **Payload mode** when pasted feedback or a feedback file is present.
@@ -89,13 +89,11 @@ In PR pointer mode:
    - body text
    - review state, path, line, and diff hunk when available
 5. Exclude:
-   - sources already present in the initiative `Feedback Absorption Log`
+   - sources already reflected in existing artifact state: FB-### entries in tasks.md, progress.md replanning checkpoints, Plan Review Log entries, Feedback-Derived Story Candidates, Feedback-Derived Decisions, story.md Status transitions, or `openspec-feedback-<initiative_slug>-*` notebook entries (use `notebook_index` plus `notebook_read` to scan all initiative feedback notebooks)
    - empty comments and empty review bodies, unless the review state itself is the only signal and it requests changes
    - non-actionable acknowledgements such as "thanks", "LGTM", "done", or "rebase only"
-6. Select feedback:
-   - `--latest`: choose the newest unabsorbed actionable item by `updated_at`, using `created_at` as a tie-breaker.
-   - `--all`: process every unabsorbed actionable item.
-   - `--since <source_id>`: find that source in the absorption log, then process unabsorbed actionable items updated after that source's recorded updated timestamp. Stop if the source ID is unknown.
+
+Continue to Phase 2 with all remaining actionable items.
 
 If `gh` is unavailable or the PR cannot be queried, stop and ask the operator to paste the relevant feedback. Do not scrape GitHub with ad-hoc unauthenticated requests.
 
@@ -105,7 +103,7 @@ In payload mode:
 2. Otherwise treat the remaining argument or pasted text as the feedback payload and set `Source path` to `manual-paste`.
 3. Split the payload into feedback items by explicit IDs, headings, bullets, review comments, or clear topic boundaries.
 4. For each item, compute a stable `Content hash` as `sha256:<hex>` over the item's normalized text (trim surrounding whitespace, normalize CRLF to LF, preserve internal wording). Use an allowed hash command such as `printf %s '<normalized-item-text>' | sha256sum` (or `shasum -a 256`) so the hash is reproducible. Use a synthetic source id of `manual:<hash-prefix>:<ordinal>` (for example `manual:sha256-1a2b3c4d5e6f:1`) unless the payload already includes a stable source URL or ID. Do not use timestamps as the only manual/file source identity.
-5. Preserve a short, safe excerpt from the item as `Evidence` and in the initiative absorption log so dedupe/audit can reconstruct what was absorbed without pasting the full payload.
+5. Preserve a short, safe excerpt from the item as `Evidence` so dedupe/audit can reconstruct what was absorbed without pasting the full payload.
 
 ## Phase 2 — Normalize feedback items
 
@@ -115,7 +113,7 @@ Allocate feedback IDs from the initiative namespace:
 FB-001, FB-002, ...
 ```
 
-Continue after the highest existing `FB-###` in the initiative `Feedback Absorption Log`. For each item, build this working record:
+Continue after the highest existing `FB-###` found in any coordination artifact (initiative.md, story.md, tasks.md, progress.md, notebook `openspec-feedback-<initiative_slug>-*` (all initiative feedback notebooks via `notebook_index` + `notebook_read`)). For each item, build this working record:
 
 ```md
 - Feedback ID: FB-###
@@ -160,12 +158,12 @@ Classify each actionable feedback item into exactly one disposition:
 
 | Disposition | Use when | Target |
 |---|---|---|
-| `queue-planning-feedback` | Feedback clarifies a story that is still in planning, or should re-enter planning review before implementation continues. | `story.md` → `## Plan Review Log`, `Plan:` lane, plus initiative absorption log. |
-| `amend-existing-story` | Rare direct amendment explicitly acknowledged by the operator outside a planning or implementation feedback cycle. | `story.md` contract sections (+ `design.md` when needed), `Plan:` lane invalidation when the contract changes, story-local receipt, initiative absorption log. |
-| `resume-current-story` | Implemented work misses the current story or PR review requests rework for it. | `story.md` Status header (set to `🔄 IN PROGRESS`), optional notebook `openspec-review-<initiative_slug>-<story_slug>`, `story.md` contract edits when needed, `progress.md` replanning checkpoint when contract changes, `Plan:` lane invalidation when the contract changes, story-local receipt, initiative absorption log. |
-| `new-story-candidate` | Feedback introduces a new outcome, dependency, rollout concern, or hardening task. | Initiative candidate section plus absorption log. |
-| `initiative-level-decision` | Feedback changes an initiative policy, architectural choice, or cross-story rule. | Initiative decision notes plus absorption log. |
-| `defer-or-reject` | Feedback is out of scope, duplicate, non-actionable, or intentionally declined. | Initiative absorption log only. |
+| `queue-planning-feedback` | Feedback clarifies a story that is still in planning, or should re-enter planning review before implementation continues. | `story.md` → `## Plan Review Log`, `Plan:` lane. |
+| `amend-existing-story` | Rare direct amendment explicitly acknowledged by the operator outside a planning or implementation feedback cycle. | `story.md` contract sections (+ `design.md` when needed), `Plan:` lane invalidation when the contract changes, notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required — carries FB-### and source evidence for dedup). |
+| `resume-current-story` | Implemented work misses the current story or PR review requests rework for it. | `story.md` Status header (set to `🔄 IN PROGRESS`), notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required — carries FB-### and source evidence for dedup), `story.md` contract edits when needed, `progress.md` replanning checkpoint when contract changes, `Plan:` lane invalidation when the contract changes. |
+| `new-story-candidate` | Feedback introduces a new outcome, dependency, rollout concern, or hardening task. | Initiative candidate section. |
+| `initiative-level-decision` | Feedback changes an initiative policy, architectural choice, or cross-story rule. | Initiative decision notes. |
+| `defer-or-reject` | Feedback is out of scope, duplicate, non-actionable, or intentionally declined. | No durable artifact write needed (operator may re-feed if reconsidered). |
 
 Read only the change workspace artifacts needed to classify plausible targets. Prefer explicit evidence from:
 
@@ -188,9 +186,9 @@ Status and lane rules:
   - contract-changing `resume-current-story` sets `Plan:` to `🟠 PLAN CHANGES REQUESTED` after the contract edits are blended and validation passes, because fresh `/openspec-story-plan-review` must independently approve the changed contract before implementation resumes.
   - if contract feedback cannot be fully blended, set `Plan:` to `🟠 PLAN CHANGES REQUESTED` and make `/openspec-story-plan-resume` the next action.
 - Write `## Plan Review Log` in `story.md` only for `queue-planning-feedback`; `/openspec-story-plan-review` remains the owner of independent review verdicts and the only command that may set `Plan:` to `🟢 PLAN APPROVED`.
-- Update `story.md` Status header to `🔄 IN PROGRESS` and optionally persist findings to notebook `openspec-feedback-<initiative_slug>-<story_slug>` for implementation-review feedback that should drive immediate story resume or PR rework.
+- Update `story.md` Status header to `🔄 IN PROGRESS` and persist findings to notebook `openspec-feedback-<initiative_slug>-<story_slug>` for implementation-review feedback that should drive immediate story resume or PR rework (required — the notebook entry carries FB-### and source ID for dedup).
 
-Draft the acknowledgement plan:
+Draft the acknowledgement plan. The plan must target only the coordination documents listed above and must never include `reviews.md` rows (there is no standalone reviews.md artifact; review findings route through story.md Status and optional notebook).
 
 ```md
 ## Proposed Feedback Absorption
@@ -198,7 +196,7 @@ Draft the acknowledgement plan:
 | Feedback ID | Source | Disposition | Target | Planned edit | Rationale |
 |---|---|---|---|---|---|
 | FB-001 | PR #42 comment IC_... | queue-planning-feedback | <story-slug> | Plan Review Log + Plan lane | Same story, planning contract needs rework. |
-| FB-002 | PR #42 review PRRC_... | resume-current-story | <story-slug> | story.md Status + notebook | Implementation misses existing A2. |
+| FB-002 | PR #42 review PRRC_... | resume-current-story | <story-slug> | story.md Status + notebook `openspec-feedback-*` | Implementation misses existing A2. |
 | FB-003 | PR #42 comment IC_... | new-story-candidate | initiative.md | Candidate only | New audit logging outcome. |
 ```
 
@@ -266,7 +264,7 @@ After constructing story spec/proof edits and before writing, run these phases i
 - Phase B → SOFT BLOCK. Show the pre-existing commitment being removed. Operator may override with explicit acknowledgement, or revise the edits to restore the commitment.
 - Phase C → HARD BLOCK. Operator must update `## Implementation Notes` with a corrected seam, then retry.
 
-After all phases pass, proceed to write the edits to disk. Then add the story-local receipt and initiative-level entry.
+After all phases pass, proceed to write the edits to disk.
 
 For acknowledged `resume-current-story`, update `story.md → Status:` only as needed to make implementation resumable:
 
@@ -318,14 +316,9 @@ For `amend-existing-story`, edit only these story sections inside `story.md`:
 
 Also edit `design.md` when the amendment changes `### Design Sources` anchors/statuses or `### Design Element Trace` rows that live there rather than in `story.md`.
 
-Keep story-body edits as the durable contract change. If the amendment changes any contract/proof section, update the `Plan:` header field in `story.md` to `🟠 PLAN CHANGES REQUESTED` and make `/openspec-story-plan-review` the next action. Then add a tiny story-local receipt in `story.md`:
+Keep story-body edits as the durable contract change. If the amendment changes any contract/proof section, update the `Plan:` header field in `story.md` to `🟠 PLAN CHANGES REQUESTED` and make `/openspec-story-plan-review` the next action. Also persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required for `amend-existing-story` — the notebook carries FB-### and source evidence for dedup). If `notebook_write` is not available, abort: "notebook_write is required for feedback traceability; run this skill from a pi session with notebook support."
 
-```md
-## Feedback Absorption Log
-- FB-001: amended `Acceptance`, `Verification`, and affected `Design Element Trace` rows from <source>. See initiative log.
-```
-
-For `resume-current-story`, optionally persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` using a compact format. Keep the feedback provenance fields and include the canonical traceability/evidence fields so later resume and review sessions can reconstruct what was checked:
+For `resume-current-story`, persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required — carries FB-### and source evidence for dedup). If `notebook_write` is not available, abort: "notebook_write is required for feedback traceability; run this skill from a pi session with notebook support." Use this compact format:
 
 ```md
 - <UTC ISO timestamp> Review feedback absorbed from PR
@@ -419,19 +412,6 @@ For `initiative-level-decision`, append to an existing initiative decision secti
 - Rationale: <why this belongs at initiative level>
 - Applies to: <stories or initiative-wide>
 ```
-
-For every disposition, append one canonical row to `<initiative>/initiative.md` under `## Feedback Absorption Log`:
-
-```md
-## Feedback Absorption Log
-
-| ID | Source Type | Source ID | Source URL | Source Path | Content Hash | Created | Updated | Excerpt | Disposition | Target | Changed | Status |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| FB-001 | github_pr_review_comment | PRRC_... | https://... | n/a | n/a | 2026-04-28T10:40:00Z | 2026-04-28T11:05:00Z | "short excerpt" | resume-current-story | <story-slug> | story.md Status + notebook; miss-category=platform/API failure | absorbed |
-| FB-002 | manual | manual:sha256-1a2b3c4d5e6f:1 | n/a | docs/review-notes.md | sha256:1a2b3c4d5e6f... | n/a | n/a | "short excerpt" | queue-planning-feedback | <story-slug> | Plan Review Log | absorbed |
-```
-
-Preserve existing rows, including older 10-column rows. When the section already has the older column shape, either extend the header once before adding new rows or append a clearly marked v2 table below the existing rows. If the section does not exist, add it after `## External Resources` unless a local initiative convention clearly places operational logs elsewhere.
 
 ## Phase 6 — Final response
 

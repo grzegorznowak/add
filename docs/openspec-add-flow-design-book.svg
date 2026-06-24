@@ -241,10 +241,9 @@
 
   <rect class="panel" x="1300" y="2765" width="465" height="130" />
   <text class="body-strong" x="1340" y="2807">Feedback routing sections</text>
-  <text class="small" x="1340" y="2837">## Feedback Absorption Log</text>
-  <text class="tiny" x="1360" y="2859">Idempotency table; prevents duplicate absorption</text>
+  <text class="small" x="1340" y="2837">## Feedback-Derived Decisions</text>
+  <text class="tiny" x="1360" y="2859">Initiative-level feedback decisions</text>
   <text class="small" x="1340" y="2885">## Feedback-Derived Story Candidates</text>
-  <text class="small" x="1340" y="2909">## Feedback-Derived Decisions</text>
 
   <rect class="panel" x="1820" y="2765" width="425" height="130" />
   <text class="body-strong" x="1860" y="2807">Two-phase lifecycle</text>

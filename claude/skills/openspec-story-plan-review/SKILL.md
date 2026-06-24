@@ -60,7 +60,7 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
 ## Read first
 
 1. the main repo `AGENTS.md` for the repo the plan will touch
-2. `<initiative_dir>/initiative.md` — for Goal/Context, Story Candidates, Decisions & Constraints, External Resources, and Feedback Absorption Log context
+2. `<initiative_dir>/initiative.md` — for Goal/Context, Story Candidates, Decisions & Constraints, External Resources, and Feedback-Derived Story Candidates / Decisions context
 3. the resolved `<story_file>` — every section
 4. `<change_dir>/proposal.md` — for Goal/Context and Decisions & Constraints
 5. `<change_dir>/design.md` — for technical design context, architecture decisions, and implementation strategy
