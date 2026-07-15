@@ -39,8 +39,13 @@ This command is a coordination-only transition. It never touches source code, te
    - If `<change_dir>` is missing, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
    - If already archived, abort with: `story <story-slug> is already archived at openspec/changes/archive/<story-slug>/`.
    - If missing in both locations, abort with: `change workspace not found: openspec/changes/<story-slug>/`.
-5. Read `<change_dir>/story.md`. Confirm that the `Status:` header field exists and is `✅ DONE`. If not `✅ DONE`, abort with the current status and: `Only locally DONE stories can be archived. Current status: <status>. Run /openspec-story-review from a fresh oblivious session when status is 🟣 IN REVIEW; otherwise run /openspec-story-converge to finish implementation readiness. Use /openspec-pr only to record PR delivery evidence after local completion.`
-6. Read `<initiative_file>` for the post-archive update context.
+5. Read `<change_dir>/story.md`, then check `<blocked_file>` before offering any wrapper/direct route. If `blocked.md` exists, abort with the singular operator action to resolve the blocker and remove the file.
+6. Read the authoritative `Status:` and `Plan:` header fields.
+   - If `Status: 🟣 IN REVIEW`, abort with one route only even when `Plan:` contradicts it: note the Plan drift for review, open a completely fresh, oblivious session with no parent/converger notebook, implementation summary, operational notes, or prior chat context, then run `/openspec-story-review <initiative-slug> <story-slug>`. The wrapper never launches review.
+   - If `Status: ✅ DONE` and `Plan:` is anything other than unambiguous `🟢 PLAN APPROVED`, abort with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner.
+   - Otherwise, if the non-DONE story's `Plan:` is not `🟢 PLAN APPROVED`, route planning repair before any claim/resume choice. For DRAFT or PLAN IN REVIEW, use direct `/openspec-story-plan-review <initiative-slug> <story-slug>` only when all required planning artifacts/sections exist, scaffold anchors are unambiguous, and no unresolved Plan Review Log finding remains; otherwise use direct `/openspec-story-plan-resume <initiative-slug> <story-slug>`. For PLAN CHANGES REQUESTED, unresolved findings route to direct plan-resume; fully blended findings with a structurally reviewable scaffold route to direct plan-review. PLAN BLOCKED and malformed/ambiguous lanes remain singular operator/repair routes. Do not offer implementation choices until planning is approved.
+   - Then require `Status: ✅ DONE`. For TODO, offer the implementation Converge wrapper and Non-looped claim pass. For IN PROGRESS, offer the implementation Converge wrapper and Non-looped resume pass. Keep BLOCKED, missing, malformed/ambiguous, and unknown states singular. Use `/openspec-pr` only after local completion.
+7. Read `<initiative_file>` for the post-archive update context.
 
 ## Phase 2 — Pre-flight checks
 
@@ -52,7 +57,7 @@ If `<blocked_file>` exists at `<change_dir>/blocked.md`, abort with: `Story has 
 
 ### Check B — PR State (PR must be merged)
 
-Read `<progress_file>` and look for the `## PR State` section. Extract the `- PR URL:` value, trimming whitespace. If the section is absent, the `- PR URL:` line is absent, or the value is blank/placeholder (`<empty>`, `—`, `none`, or a template `<...>` value), this means there is no durable PR binding. Ask the operator: `No PR State found for <story-slug>. Archive without a PR? [y/N]`. If the operator declines, abort with: `Archive deferred. Run /openspec-pr to create or attach a PR, or re-run /openspec-archive and confirm no-PR-archive.`
+Read `<progress_file>` and look for the `## PR State` section. Extract the `- PR URL:` value, trimming whitespace. If the section is absent, the `- PR URL:` line is absent, or the value is blank/placeholder (`<empty>`, `—`, `none`, or a template `<...>` value), this means there is no durable PR binding. Ask the operator: `No PR State found for <story-slug>. Archive without a PR? [y/N]`. If the operator declines, abort with the singular route: `Archive deferred. Run /openspec-pr <initiative-slug> <story-slug> to create or attach a PR.`
 
 **If `## PR State` has a non-empty `- PR URL:` value:**
 
@@ -67,20 +72,20 @@ Use the `Status:` header already read from `<change_dir>/story.md` as the local 
 
 ### Check D — Tasks completeness
 
-If `<tasks_file>` does not exist, abort with: `tasks.md is required implementation evidence for archiving. Restore or create openspec/changes/<story-slug>/tasks.md and ensure every task is checked or explicitly skipped/deferred with a note.`
+If `<tasks_file>` does not exist, abort with: `Status: ✅ DONE contradicts missing tasks.md implementation evidence. Reconcile this in a completely fresh /openspec-story-review <initiative-slug> <story-slug> session.` Do not route to claim or resume.
 
-Read `<tasks_file>`. If it is empty or whitespace-only, abort with: `tasks.md is empty. Add the implementation task checklist and complete or explicitly skip/defer each task before archiving.`
+Read `<tasks_file>`. If it is empty or whitespace-only, abort with: `Status: ✅ DONE contradicts empty tasks.md implementation evidence. Reconcile this in a completely fresh /openspec-story-review <initiative-slug> <story-slug> session.` Do not route to claim or resume.
 
 Validate the task checklist shape before checking completion:
 
 - Collect valid checkbox task lines matching `- [ ] <task description>` or `- [x] <task description>` / `- [X] <task description>` with a non-empty description.
-- Treat malformed checkbox-like task lines as a hard error, including `- []`, `- [x]` with no description, or any `- [<marker>]` marker other than space, `x`, or `X`. Abort with: `tasks.md contains malformed task checkbox lines:<list>. Use '- [ ] <task>' for incomplete tasks or '- [x] <task>' for completed/skipped/deferred tasks with a note.`
-- If no valid checkbox task lines exist, abort with: `tasks.md contains no valid task checkbox evidence. Add implementation tasks and complete or explicitly skip/defer each one before archiving.`
+- Treat malformed checkbox-like task lines as a hard DONE/evidence contradiction, including `- []`, `- [x]` with no description, or any `- [<marker>]` marker other than space, `x`, or `X`. List the malformed lines and route only to a completely fresh `/openspec-story-review <initiative-slug> <story-slug>` session; never claim or resume.
+- If no valid checkbox task lines exist, report the DONE/evidence contradiction and route only to a completely fresh `/openspec-story-review <initiative-slug> <story-slug>` session.
 
 If any valid unchecked tasks remain:
 
 - List each unchecked task as `- [ ] <task description>`.
-- Abort with: `<n> unchecked task(s) remain in tasks.md:<list>. Complete all tasks before archiving, or mark them as explicitly skipped/deferred with a note.`
+- Abort because `Status: ✅ DONE` contradicts task evidence. Route only to a completely fresh `/openspec-story-review <initiative-slug> <story-slug>` session so review owns reconciliation; never claim or resume.
 
 ### All pre-flights pass
 
@@ -152,4 +157,14 @@ State:
 - Which pre-flight checks passed.
 - Whether the post-archive initiative update was applied.
 - The updated `initiative.md` path.
-- Suggested next action: None. The story is archived and complete.
+
+End every success or abort response with exactly one selected route:
+
+```markdown
+Suggested next action: <scalar recovery route or None; leave empty only for a dual route>
+- Converge wrapper: <command; dual routes only>
+- Non-looped pass: <state-correct command; dual routes only>
+Choose one; do not run both.
+```
+
+For scalar routes, put the value on the label line and omit the three dual-route lines. For a valid TODO/IN PROGRESS implementation choice only, leave the label empty and render the Converge wrapper line, the state-correct Non-looped pass line, and `Choose one; do not run both.` immediately after it. On successful archive, use `None. The story is archived and complete.` DONE with non-approved Plan uses only the operator action to investigate/reconcile the contradictory durable state and names no lifecycle owner. Keep blocked, malformed/ambiguous, Plan repair for non-DONE stories, PR resync, no-PR decision, archive failure, DONE/evidence contradiction, and terminal routes singular. IN REVIEW uses only the fresh oblivious review route.

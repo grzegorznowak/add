@@ -22,6 +22,8 @@
 #   17. Generated Codex OpenSpec skills preserve every auxiliary argument contract.
 #   18. Pi OpenSpec fragments do not persist review/proof/lifecycle authority to notebooks.
 #   19. OpenSpec skills do not require the removed research-event response section.
+#   20. Active OpenSpec workflow outputs use the canonical suggested-next-action label.
+#   21. Pi story convergence cannot dispatch an implementation review.
 #
 # Exit codes:
 #   0 — clean
@@ -89,6 +91,26 @@ declare -a UNSUPPORTED_CODEX_SKILLS=(
   epic_story_review
   openspec_story_pr
   openspec_epic_plan
+)
+
+# Output-shape classifications. Active OpenSpec workflows are derived from
+# CLAUDE_NAMES below; these lists must partition that derived set exactly.
+declare -a DUAL_CAPABLE_OPENSPEC_SKILLS=(
+  openspec-archive
+  openspec-feedback
+  openspec-next-action
+  openspec-pr
+  openspec-story-claim
+  openspec-story-converge
+  openspec-story-plan
+  openspec-story-plan-converge
+  openspec-story-plan-resume
+  openspec-story-plan-review
+  openspec-story-resume
+  openspec-story-review
+)
+declare -a SCALAR_ONLY_OPENSPEC_SKILLS=(
+  openspec-initiative-plan
 )
 
 is_supported_active_skill() {
@@ -199,6 +221,106 @@ extract_phase_headings() {
   grep -E '^## Phase [0-9]+ ' "$file" | sed 's/[[:space:]]*$//' || true
 }
 
+# Extract the final-response/output instructions through the end of the skill.
+extract_final_output_contract() {
+  local file="$1"
+  awk '
+    {
+      heading = tolower($0)
+      if (heading ~ /^## final response[[:space:]]*$/ ||
+          heading ~ /^## phase [0-9]+ — final response[[:space:]]*$/ ||
+          heading ~ /^## status and output[[:space:]]*$/ ||
+          heading ~ /^## output format[[:space:]]*$/) {
+        found = 1
+      }
+      if (found) print
+    }
+    END { exit found ? 0 : 1 }
+  ' "$file"
+}
+
+check_suggested_next_action_contract() {
+  local label="$1" file="$2" dual_capable="$3" contract
+  local suggested_count empty_count converge_count pass_count choice_count dual_block_count
+  if ! contract="$(extract_final_output_contract "$file")"; then
+    fail "$label: missing final-response/output contract section"
+    return
+  fi
+
+  suggested_count="$(grep -Ec '^Suggested next action:' <<<"$contract" || true)"
+  if [[ "$suggested_count" -eq 1 ]]; then
+    ok "$label: declares exactly one anchored Suggested next action: line"
+  else
+    fail "$label: final-response/output contract must contain exactly one unformatted line beginning 'Suggested next action:' (found $suggested_count)"
+  fi
+
+  if grep -Eiq 'Suggested[[:space:]]+next[[:space:]]+step' <<<"$contract"; then
+    fail "$label: final-response/output contract uses competing 'Suggested next step:' label"
+  fi
+  if grep -Eq '^#{1,6}[[:space:]]+Next[[:space:]]+Action([[:space:]]*:)?[[:space:]]*$|^[[:space:]]*([-*][[:space:]]+)?(\*\*Next[[:space:]]+Action(:)?\*\*([[:space:]]*:)?|Next[[:space:]]+Action[[:space:]]*:)([[:space:]].*)?$' <<<"$contract"; then
+    fail "$label: final-response/output contract uses a competing markdown/plain Next Action heading or field"
+  fi
+
+  empty_count="$(grep -Ec '^Suggested next action:[[:space:]]*$' <<<"$contract" || true)"
+  converge_count="$(grep -Ec '^- Converge wrapper:' <<<"$contract" || true)"
+  pass_count="$(grep -Ec '^- Non-looped pass:' <<<"$contract" || true)"
+  choice_count="$(grep -Fxc 'Choose one; do not run both.' <<<"$contract" || true)"
+  dual_block_count="$(awk '
+    /^Suggested next action:/ { state = 1; next }
+    state == 1 && /^- Converge wrapper:/ { state = 2; next }
+    state == 2 && /^- Non-looped pass:/ { state = 3; next }
+    state == 3 && $0 == "Choose one; do not run both." { blocks++; state = 0; next }
+    { state = 0 }
+    END { print blocks + 0 }
+  ' <<<"$contract")"
+
+  if [[ "$dual_capable" == true ]]; then
+    if [[ "$converge_count" -ne 1 || "$pass_count" -ne 1 || "$choice_count" -ne 1 || "$dual_block_count" -ne 1 ]]; then
+      fail "$label: dual-capable contract requires exactly one contiguous ordered block of anchored 'Suggested next action:', '- Converge wrapper:', '- Non-looped pass:', and 'Choose one; do not run both.' lines (markers: $converge_count/$pass_count/$choice_count; blocks: $dual_block_count)"
+    else
+      ok "$label: dual-route block is complete, contiguous, and ordered"
+    fi
+  elif [[ "$converge_count" -ne 0 || "$pass_count" -ne 0 || "$choice_count" -ne 0 || "$dual_block_count" -ne 0 ]]; then
+    fail "$label: scalar-only contract contains an unexpected full or partial dual-route block (markers: $converge_count/$pass_count/$choice_count; blocks: $dual_block_count)"
+  fi
+
+  if [[ "$empty_count" -gt 0 && "$dual_block_count" -ne 1 ]]; then
+    fail "$label: empty Suggested next action: placeholder is allowed only as the first line of a contiguous complete dual-route block"
+  fi
+}
+
+check_pi_story_converge_dispatch() {
+  local file="$1" line prompt_body
+  local prompt_count=0 story_dispatch_count=0 exact_count=0 invalid_dispatch_count=0
+  local expected='"You are executing the openspec-story-<claim|resume> workflow for openspec/<initiative_slug>/<story_slug>. Treat this as the pi-native equivalent of /openspec-story-<claim|resume> <initiative_slug> <story_slug>.'
+
+  if [[ ! -f "$file" ]]; then
+    fail "$file: missing Pi story convergence dispatch contract"
+    return
+  fi
+
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^[[:space:]]*prompt[[:space:]]*:[[:space:]]*(.*)$ ]]; then
+      prompt_body="${BASH_REMATCH[1]}"
+      prompt_count=$((prompt_count + 1))
+      if [[ "$prompt_body" == *openspec-story-* ]]; then
+        story_dispatch_count=$((story_dispatch_count + 1))
+        if [[ "$prompt_body" == "$expected" ]]; then
+          exact_count=$((exact_count + 1))
+        else
+          invalid_dispatch_count=$((invalid_dispatch_count + 1))
+        fi
+      fi
+    fi
+  done < "$file"
+
+  if [[ "$exact_count" -eq 1 && "$invalid_dispatch_count" -eq 0 ]]; then
+    ok "$file: every Pi spawn prompt uses only the exact <claim|resume> story dispatch"
+  else
+    fail "$file: Pi story convergence must contain exactly one exact <claim|resume> dispatch and no other story-workflow spawn prompt (prompt keys: $prompt_count; story dispatches: $story_dispatch_count; exact allowed: $exact_count; rejected: $invalid_dispatch_count)"
+  fi
+}
+
 echo "lint: claude/skills/"
 declare -a CLAUDE_NAMES=()
 if [[ ! -d "$CLAUDE_SKILLS" ]]; then
@@ -235,6 +357,28 @@ else
     fi
   done
 fi
+
+declare -a OPENSPEC_WORKFLOW_SKILLS=()
+for skill_name in "${CLAUDE_NAMES[@]:-}"; do
+  [[ "$skill_name" == openspec-* ]] && OPENSPEC_WORKFLOW_SKILLS+=("$skill_name")
+done
+
+# Keep the output-shape manifest honest: every listed name must be active, and
+# every active OpenSpec workflow must have exactly one shape classification.
+for skill_name in "${DUAL_CAPABLE_OPENSPEC_SKILLS[@]}" "${SCALAR_ONLY_OPENSPEC_SKILLS[@]}"; do
+  if ! in_array "$skill_name" "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; then
+    fail "OpenSpec output-shape manifest names non-active workflow '$skill_name'"
+  fi
+done
+for skill_name in "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; do
+  [[ -z "$skill_name" ]] && continue
+  shape_count=0
+  in_array "$skill_name" "${DUAL_CAPABLE_OPENSPEC_SKILLS[@]}" && shape_count=$((shape_count + 1))
+  in_array "$skill_name" "${SCALAR_ONLY_OPENSPEC_SKILLS[@]}" && shape_count=$((shape_count + 1))
+  if [[ "$shape_count" -ne 1 ]]; then
+    fail "active OpenSpec workflow '$skill_name' must have exactly one output-shape classification (found $shape_count)"
+  fi
+done
 
 echo
 echo "lint: pi-fragments/"
@@ -444,6 +588,21 @@ for cn in "${CLAUDE_NAMES[@]:-}"; do
     fail "claude skill '$cn' has no generated pi counterpart"
   fi
 done
+
+echo
+echo "lint: OpenSpec suggested-next-action output contract"
+for skill_name in "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; do
+  [[ -z "$skill_name" ]] && continue
+  codex_name="$(hyphen_to_underscore "$skill_name")"
+  dual_capable=false
+  in_array "$skill_name" "${DUAL_CAPABLE_OPENSPEC_SKILLS[@]}" && dual_capable=true
+  check_suggested_next_action_contract "claude: $skill_name" "$CLAUDE_SKILLS/$skill_name/SKILL.md" "$dual_capable"
+  check_suggested_next_action_contract "codex: $codex_name" "$CODEX_SKILLS/$codex_name/SKILL.md" "$dual_capable"
+  check_suggested_next_action_contract "pi: $skill_name" "$PI_SKILLS/$skill_name/SKILL.md" "$dual_capable"
+done
+
+check_pi_story_converge_dispatch "$PI_FRAGMENTS/openspec-story-converge.md"
+check_pi_story_converge_dispatch "$PI_SKILLS/openspec-story-converge/SKILL.md"
 
 echo
 echo "lint: phase-heading parity (claude ↔ codex)"

@@ -403,6 +403,40 @@ has been removed. A resolved blocker may leave historical notes in
   that lacks an independent approve log.
 - Commands should print resolved context before high-blast-radius writes.
 
+## Suggested next action output
+
+Every active OpenSpec workflow response contains exactly one of these forms:
+
+```text
+Suggested next action: <exact command | operator action | wait | None>
+```
+
+```text
+Suggested next action:
+- Converge wrapper: <exact command | operator action | wait | None>
+- Non-looped pass: <exact command | operator action | wait | None>
+Choose one; do not run both.
+```
+
+Use the scalar form when there is one valid route. Use the dual block only when
+the current state permits either the iterative wrapper or one state-owning
+direct pass. The two routes delegate the same owner commands, so they are
+alternatives for the same transition, not sequential instructions. Use an exact
+command with resolved arguments when possible, an explicit operator action when
+human choice or intervention is required, `wait` for an external dependency, or
+`None` when the workflow is complete. Do not emit a competing `Next Action` or
+`Suggested next step` field.
+
+Planning convergence runs fresh plan-review/plan-resume passes until approval or
+a documented stop. A non-looped planning pass runs only the state-correct direct
+command; plan-resume cannot approve its own repair, so repaired plans still need
+a fresh plan review. Implementation convergence runs fresh claim/resume passes
+until `🟣 IN REVIEW` or a documented stop and never launches implementation
+review. A non-looped implementation pass runs one claim or resume and may leave
+the story `🔄 IN PROGRESS`. Once it reaches `🟣 IN REVIEW`, the only review route
+is `/openspec-story-review` in a completely fresh, oblivious session without
+implementation-loop notebook, summary, operational-note, or prior-chat context.
+
 ## Pi notebook conventions
 
 Pi fragments may use `spawn` and notebook pages to carry sourced research or

@@ -382,6 +382,37 @@ commands inside their documented convergence loops. Implementation convergence
 stops at `🟣 IN REVIEW` and does not invoke `/openspec-story-review`. Neither
 looper bypasses command authority.
 
+## Suggested next action routing
+
+Final responses expose routing through one canonical field. A single route is:
+
+```text
+Suggested next action: <exact command | operator action | wait | None>
+```
+
+When the current state genuinely permits either iterative convergence or one
+direct owner pass, the response instead uses:
+
+```text
+Suggested next action:
+- Converge wrapper: <exact command | operator action | wait | None>
+- Non-looped pass: <exact command | operator action | wait | None>
+Choose one; do not run both.
+```
+
+The planning wrapper owns repeated fresh plan-review/plan-resume dispatch; a
+non-looped pass performs only the state-correct direct command, and any repair
+must still receive a fresh plan review before approval. The implementation
+wrapper owns repeated fresh claim/resume dispatch and stops at `🟣 IN REVIEW`;
+a non-looped pass is one claim or resume and may stop in `🔄 IN PROGRESS`.
+Neither route authorizes implementation review. At `🟣 IN REVIEW`, use only a
+fresh, oblivious `/openspec-story-review` session with no implementation-loop
+notebook, summary, operational notes, or prior chat context.
+
+Use an exact command when executable routing is known, an operator action when
+human intervention or selection is required, `wait` for an external event, and
+`None` when no further action remains.
+
 ## Rules of thumb
 
 1. Treat `story.md → Plan:` and `story.md → Status:` as the lane/status source

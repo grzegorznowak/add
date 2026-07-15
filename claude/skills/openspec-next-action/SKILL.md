@@ -81,7 +81,7 @@ Evidence to extract:
 
 Do not perform deep review. If the quick evidence is missing, stale, or conflicting, route to the owner command rather than trying to settle the verdict here.
 
-## Phase 3 — Choose the Next Action
+## Phase 3 — Choose the Route
 
 Apply these rules in order.
 
@@ -100,30 +100,49 @@ Apply these rules in order.
 | State | Recommendation |
 |---|---|
 | Story workspace missing | `/openspec-story-plan INITIATIVE=<initiative>` |
-| Story is under `openspec/changes/archive/` | `None` for active lifecycle; use `/openspec-feedback <initiative>` for new input or plan a new story |
+| Story is under `openspec/changes/archive/` | `None` for the selected terminal lifecycle; mention new feedback/planning only as a caveat, not as a competing suggestion |
 | `blocked.md` exists | Operator decision: resolve/remove `blocked.md`; then rerun `/openspec-next-action` |
 | `Status: ⛔ BLOCKED` and no `blocked.md` | `/openspec-story-resume <initiative> <story-slug>` |
-| `Plan: ⛔ PLAN BLOCKED` | Operator decision: resolve planning blocker, then `/openspec-story-plan-converge <initiative> <story-slug>` |
+| `Plan: ⛔ PLAN BLOCKED` | Operator decision: resolve the planning blocker; then rerun `/openspec-next-action <initiative> <story-slug>` |
+
+### IN REVIEW repair-or-review precedence
+
+After the archived/missing/`blocked.md` gates above, inspect bounded readiness evidence before routing an active story at `Status: 🟣 IN REVIEW`:
+
+- If the named deficiency is implementation or proof incompleteness (for example unchecked in-scope tasks, provisional/missing proof rows, missing implementation mapping, or an incomplete handoff), recommend only `/openspec-story-resume <initiative> <story-slug>` to repair it. State that a completely fresh, oblivious review happens only after implementation/proof repair is complete.
+- If the named deficiency is a missing anchor, incomplete/non-reviewable planning scaffold, or other contract shape that plan-converge rejects, recommend only `/openspec-story-plan-resume <initiative> <story-slug>`. If the workspace itself is absent, use only `/openspec-story-plan INITIATIVE=<initiative>`. State that fresh implementation review happens only after contract repair and any resulting implementation repair.
+- If the scaffold is complete/reviewable and durable evidence identifies an unresolved contract finding that `/openspec-story-plan-converge` can actually orchestrate, offer the planning wrapper plus state-correct Non-looped plan-resume/review choice.
+- If the named missing evidence is external and neither implementation nor planning can produce it, give one concrete operator action to obtain, attach, or explicitly resolve that evidence; then rerun this router. Fresh review happens only after that action.
+- Only when no repair condition is present, review has not yet run against the current ready evidence, and all review prerequisites are satisfied, recommend one action: open a completely fresh, oblivious session and run `/openspec-story-review <initiative> <story-slug>`.
+
+Do not blindly self-loop IN REVIEW back to review merely because the status was preserved by an aborted review.
+
+### DONE planning-contradiction gate
+
+After the review-handoff precedence, check `Status:` before offering planning repair. If authoritative `Status: ✅ DONE` is paired with any `Plan:` value other than `🟢 PLAN APPROVED` (including missing, malformed, or ambiguous Plan state), do not recommend a planning command: plan review/resume reject completed stories. Preserve PR/archive safety with exactly one scalar route: `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before PR delivery or archive; then rerun /openspec-next-action <initiative> <story-slug>.` Do not name or invent a lifecycle owner for that reconciliation.
 
 ### Story scaffold normalization
 
-If an active story is not `Status: ✅ DONE`, scaffold normalization runs before planning or implementation routing so approved stories with malformed anchors are repaired before claim/resume/review decisions.
+For other active, non-DONE stories, scaffold normalization runs before planning or implementation routing so malformed anchors are repaired before claim/resume decisions.
 
 | State | Recommendation |
 |---|---|
-| Missing scaffold anchors (`Plan:`, `Status:`, `## Plan Review Log`), malformed scaffold anchors, or legacy `Status: ⬜ TODO` | `/openspec-story-plan-resume <initiative> <story-slug>` |
+| Repairable incomplete scaffold (for example an unambiguous absent `Plan:`, `Status:`, or `## Plan Review Log` anchor, missing planning artifacts/sections, or legacy `Status: ⬜ TODO`) where `/openspec-story-plan-resume` can safely identify and restore the contract shape | `/openspec-story-plan-resume <initiative> <story-slug>` only; plan-converge rejects a non-reviewable scaffold |
+| Duplicated, conflicting, malformed, or ambiguous lifecycle anchors, or scaffold damage that is not safely repairable/resolvable by plan-resume | Singular operator repair/selection action; do not offer the wrapper |
 
-### Planning lane before implementation
+### Planning lane before implementation, PR, or archive
 
-If `Status:` is not `✅ DONE` and `Plan:` is not `🟢 PLAN APPROVED`, planning owns the next action.
+For any other active, non-DONE story, a non-approved `Plan:` lane is repaired before claim or resume routing. A scaffold is **structurally reviewable** only when all required planning artifacts and sections exist, the Plan/Status/log anchors are unambiguous, and no unresolved plan-review finding remains.
 
 | Plan lane / scaffold | Recommendation |
 |---|---|
-| Missing core planning files or malformed planning scaffold beyond header/log normalization | `/openspec-story-plan-resume <initiative> <story-slug>` |
-| `Plan:` unset or `🟡 PLAN DRAFT` | `/openspec-story-plan-review <initiative> <story-slug>` when scaffold exists; otherwise `/openspec-story-plan-resume <initiative> <story-slug>` |
-| `Plan: 🟣 PLAN IN REVIEW` | `/openspec-story-plan-review <initiative> <story-slug>` |
-| `Plan: 🟠 PLAN CHANGES REQUESTED` | `/openspec-story-plan-resume <initiative> <story-slug>` |
-| Repeated plan review/resume uncertainty | `/openspec-story-plan-converge <initiative> <story-slug>` |
+| Repairable missing core planning files or structurally incomplete/non-reviewable contract that plan-resume can safely restore | `/openspec-story-plan-resume <initiative> <story-slug>` only; do not offer plan-converge until the scaffold is complete/reviewable |
+| Unresolvable or malformed/ambiguous planning state | Singular operator repair/selection action; do not offer the wrapper |
+| `Plan: 🟡 PLAN DRAFT` or `Plan: 🟣 PLAN IN REVIEW`, structurally reviewable | Planning workflow choice: Converge wrapper `/openspec-story-plan-converge <initiative> <story-slug>`; Non-looped pass `/openspec-story-plan-review <initiative> <story-slug>` |
+| `Plan: 🟡 PLAN DRAFT` or `Plan: 🟣 PLAN IN REVIEW`, repairably incomplete/non-reviewable | `/openspec-story-plan-resume <initiative> <story-slug>` only |
+| `Plan: 🟠 PLAN CHANGES REQUESTED` with unresolved findings | Planning workflow choice: Converge wrapper `/openspec-story-plan-converge <initiative> <story-slug>`; Non-looped pass `/openspec-story-plan-resume <initiative> <story-slug>` |
+| `Plan: 🟠 PLAN CHANGES REQUESTED`, all findings addressed/blended and structurally reviewable | Planning workflow choice: Converge wrapper `/openspec-story-plan-converge <initiative> <story-slug>`; Non-looped pass `/openspec-story-plan-review <initiative> <story-slug>` |
+| Repeated plan review/resume uncertainty in a valid planning lane | The same state-correct wrapper/Non-looped workflow choice; identify the wrapper as iterative, not as an additional pass |
 
 ### Implementation, PR delivery, and archive after plan approval
 
@@ -131,18 +150,18 @@ Plan-approved means exactly `Plan: 🟢 PLAN APPROVED`.
 
 | Status | Recommendation |
 |---|---|
-| Missing, unset, `⬜ TODO`, or `⚪ TODO` | `/openspec-story-claim <initiative> <story-slug>` |
-| `🔄 IN PROGRESS` | `/openspec-story-resume <initiative> <story-slug>` |
-| `🟣 IN REVIEW` | Open a completely fresh, oblivious session with no implementation/converger notebook, summary, operational notes, or prior chat context, then run `/openspec-story-review <initiative> <story-slug>` |
-| `✅ DONE` with no `blocked.md` | `/openspec-archive <initiative> <story-slug>` when quick archive gates look satisfied; otherwise route to the owner command named in the missing gate |
+| `⚪ TODO` after scaffold normalization | Operator decision — choose one workflow: **Converge wrapper:** `/openspec-story-converge <initiative> <story-slug>`; **Non-looped pass:** `/openspec-story-claim <initiative> <story-slug>` |
+| `🔄 IN PROGRESS` | Operator decision — choose one workflow: **Converge wrapper:** `/openspec-story-converge <initiative> <story-slug>`; **Non-looped pass:** `/openspec-story-resume <initiative> <story-slug>` |
+| `🟣 IN REVIEW` | Use the repair-or-review precedence above; fresh review is singular only when no repair condition exists and prerequisites are satisfied |
+| `✅ DONE` with no `blocked.md` | `/openspec-archive <initiative> <story-slug>` when quick archive gates look satisfied; otherwise use the singular evidence-owner route below |
 | Unknown status value | Operator decision: inspect `story.md` and normalize through the owning command; do not guess |
 
 Quick archive-gate routing for `✅ DONE`:
 
 - If `## PR State` shows requested changes or actionable unabsorbed PR feedback, recommend `/openspec-feedback <initiative> --pr <pr-url>`.
-- If `## PR State` shows an unmerged PR without requested changes, recommend `/openspec-pr <initiative> <story-slug>` to refresh delivery evidence, or wait for PR review before archiving.
-- If latest implementation review approval is missing or unclear, recommend `/openspec-story-review <initiative> <story-slug>`.
-- If tasks are obviously unchecked, recommend `/openspec-story-resume <initiative> <story-slug>` or `/openspec-story-review <initiative> <story-slug>` depending on whether the gap is implementation work or review/status drift.
+- If `## PR State` shows an open PR without requested changes and the evidence is fresh/complete, recommend waiting for PR review. If that evidence is stale or incomplete, recommend only `/openspec-pr <initiative> <story-slug>` to refresh it.
+- If latest implementation review approval is missing or unclear, recommend a completely fresh `/openspec-story-review <initiative> <story-slug>` session.
+- If `Status: ✅ DONE` contradicts unchecked tasks or incomplete/stale implementation evidence, recommend only a completely fresh `/openspec-story-review <initiative> <story-slug>` session so review owns reconciliation. Never route this contradiction to claim or resume.
 - Otherwise recommend `/openspec-archive <initiative> <story-slug>` and note that archive performs the authoritative preflight and may ask for no-PR confirmation.
 
 ## Phase 4 — Multi-Story Output
@@ -164,7 +183,10 @@ When `--all` is supplied:
 Return only this compact report. Include every section; use `None.` or `unavailable` when a field does not apply.
 
 ```markdown
-**Next Action**: <single exact command, operator decision, wait decision, or None>
+Suggested next action: <scalar route, or leave empty only for a dual route>
+- Converge wrapper: <command; dual routes only>
+- Non-looped pass: <state-correct command; dual routes only>
+Choose one; do not run both.
 **Confidence**: high | medium | low
 **Context**: initiative=<slug|unavailable>; story=<slug|unavailable>; spec=<path|unavailable>
 **State**: Plan=<value|unavailable>; Status=<value|unavailable>; Blocked=<yes|no|unavailable>; Location=<active|archived|missing|initiative|spec>
@@ -178,9 +200,11 @@ Return only this compact report. Include every section; use `None.` or `unavaila
 - None.
 
 ## All Candidates
-| Story | Plan | Status | Gate | Recommended Next Action |
+| Story | Plan | Status | Gate | Suggested Action |
 |---|---|---|---|---|
 | <only when --all or ambiguity requires listing> |
 ```
 
-When the next action is an operator decision, make the decision prompt concrete, for example: `rerun with INITIATIVE=<slug> STORY=<story-slug>`, `resolve/remove openspec/changes/<story>/blocked.md`, or `choose whether this locally DONE story needs PR delivery evidence before archive`.
+For a scalar route, put the selected value on the `Suggested next action:` line and omit the three dual-route lines. For a planning or implementation workflow decision, leave that label empty and render immediately `- Converge wrapper: <command>`, `- Non-looped pass: <state-correct command>`, and `Choose one; do not run both.` The Converge wrapper delegates the direct review/resume or claim/resume passes. Never offer that choice for blocked, malformed/ambiguous, incomplete/non-reviewable scaffold, missing-workspace, PR, archive, wait, or terminal routes. For IN REVIEW, use a scalar repair owner when a named deficiency exists; use the planning dual route only for a complete/reviewable scaffold and a change plan-converge can orchestrate. Recommend a fresh oblivious `/openspec-story-review` only when review has not yet run against the current evidence and all prerequisites are satisfied; the wrapper never launches implementation review.
+
+For other operator decisions, make the prompt concrete, for example: `rerun with INITIATIVE=<slug> STORY=<story-slug>` or `resolve/remove openspec/changes/<story>/blocked.md`. Select PR, archive, wait, and terminal suggestions from current evidence rather than presenting them as a multi-route choice.

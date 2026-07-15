@@ -61,6 +61,28 @@ Use `/openspec-next-action` at any point to inspect the current or selected
 OpenSpec initiative/change/spec state and get the next recommended command with
 reasoning; it is read-only and never performs lifecycle transitions.
 
+Every workflow response reports either one route:
+
+```text
+Suggested next action: <exact command | operator action | wait | None>
+```
+
+or, when both routes are valid, an explicit alternative:
+
+```text
+Suggested next action:
+- Converge wrapper: <exact command | operator action | wait | None>
+- Non-looped pass: <exact command | operator action | wait | None>
+Choose one; do not run both.
+```
+
+A converge wrapper repeatedly launches fresh state-owning passes; a non-looped
+pass runs one direct command and returns control to the operator. Planning
+convergence alternates review and repair until approval or a stop. Implementation
+convergence runs claim/resume only until `🟣 IN REVIEW` or a stop; it never runs
+review. Implementation review remains a separate, completely fresh and
+oblivious `/openspec-story-review` session.
+
 1. **Plan an initiative** — `/openspec-initiative-plan` creates
    `openspec/initiatives/<slug>/initiative.md` as the initiative-level planning
    counterpart to `/openspec-story-plan`.

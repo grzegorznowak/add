@@ -131,4 +131,5 @@ State:
 - Path of the created file
 - Initiative slug and human title
 - Source of truth setting
-- Suggested next step: `/openspec-story-plan INITIATIVE=<slug>` to create the first change workspace
+
+Suggested next action: `/openspec-story-plan INITIATIVE=<slug>` to create the first change workspace

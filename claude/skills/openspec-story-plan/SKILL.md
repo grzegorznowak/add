@@ -231,4 +231,10 @@ State:
 - Change workspace path created
 - Artifacts written
 - Validation summary, including the `story.md` scaffold anchors
-- Suggested next action: `/openspec-story-plan-converge <initiative> <story-slug>` to converge the plan, or `/openspec-story-plan-review <initiative> <story-slug>` for a single review pass
+
+Suggested next action:
+- Converge wrapper: `/openspec-story-plan-converge <initiative> <story-slug>`
+- Non-looped pass: `/openspec-story-plan-review <initiative> <story-slug>`
+Choose one; do not run both.
+
+The Converge wrapper delegates the direct review/resume passes.

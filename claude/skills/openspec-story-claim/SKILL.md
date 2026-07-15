@@ -51,26 +51,34 @@ When launched by a converger, you may receive a `Notebook references from parent
 If `<story_slug>` was provided:
 - use `openspec/changes/` as the scan root
 - look for a directory `openspec/changes/<story_slug>/` containing `story.md`
-- if found, read `story.md` to extract the `Status:` header
+- if found, check `blocked.md` first; only when absent read `story.md` to extract `Status:` and then `Plan:`
 - if not found, check `openspec/changes/archive/<story_slug>/`; if found there, stop and report that the story is archived
-- if not found in either location, stop and report the unresolved slug plus list available change workspace names under `openspec/changes/`
+- if not found in either location, stop and report the unresolved slug plus list available change workspace names under `openspec/changes/`; if the requested workspace is genuinely absent rather than relocated, route singularly to `/openspec-story-plan INITIATIVE=<initiative_slug>`
 
-If `<story_slug>` was not provided, preserve the original discovery behavior: scan all directories under `openspec/changes/` for `story.md` files. For each, read the `Status:` header. Select the first story that is all of:
+If `<story_slug>` was not provided, preserve the original discovery behavior: scan all directories under `openspec/changes/` for `story.md` files. For each, check `blocked.md` before reading lifecycle headers; record blocked workspaces as ineligible. Then read `Status:` before `Plan:` so IN REVIEW is never treated as a planning/claimability route. Select the first story that is all of:
 - **unclaimed**: `Status:` is `⬜ TODO` or `⚪ TODO` or the header is absent
 - **plan-approved**: `Plan:` is `🟢 PLAN APPROVED`
 - **ready**: every prerequisite listed in `story.md → ## Expected Prerequisites` is satisfied (the referenced change workspace's `story.md` has `Status: ✅ DONE`)
 - **concrete**: the change workspace exists and contains `story.md`
 
-After a story is selected by either path, verify it is all of:
-- **unclaimed**: `Status:` is `⬜ TODO`, `⚪ TODO`, or absent
-- **plan-approved**: `Plan:` is `🟢 PLAN APPROVED`
-- **ready**: every prerequisite listed in `## Expected Prerequisites` has `Status: ✅ DONE` in the referenced change workspace
-- **concrete**: the change workspace directory exists and contains `story.md`
-- **not blocked**: `blocked.md` does not exist in the change workspace
+After a story is selected by either path, apply these gates in order before Plan or claimability checks:
+
+1. Check the selected change workspace for `blocked.md`. If it exists, stop first with the singular operator action to resolve the blocker and remove the file; do not offer wrapper/direct choices.
+2. Read authoritative `Status:`. If it is `🟣 IN REVIEW`, do not blindly route back to review. Inspect bounded readiness evidence: implementation/proof incompleteness routes singularly to `/openspec-story-resume <initiative_slug> <story_slug>`; a missing anchor or incomplete/non-reviewable planning scaffold routes singularly to `/openspec-story-plan-resume <initiative_slug> <story_slug>` (or `/openspec-story-plan INITIATIVE=<initiative_slug>` when the workspace is absent); unresolved external evidence routes to one concrete operator action. Say that fresh review happens only after the named repair. Only when review has not yet run against the current evidence and all prerequisites are satisfied, stop with exactly one fresh, oblivious `/openspec-story-review <initiative_slug> <story_slug>` route. The implementation wrapper never launches review.
+3. If `Status: ✅ DONE` is paired with any non-approved, missing, malformed, or ambiguous `Plan:` state, stop with exactly `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning, claim, or resume commands and do not invent a lifecycle owner.
+4. Only then verify that the story is all of:
+   - **unclaimed**: `Status:` is `⬜ TODO`, `⚪ TODO`, or absent
+   - **plan-approved**: `Plan:` is `🟢 PLAN APPROVED`
+   - **ready**: every prerequisite listed in `## Expected Prerequisites` has `Status: ✅ DONE` in the referenced change workspace
+   - **concrete**: the change workspace directory exists and contains `story.md`
 
 If no such story exists, or the targeted story is not claimable:
 - do not guess or switch stories
-- stop after a concise report listing: no-ready-story reason, plan lane if present, blocked stories, and the next story that must complete first. If the plan is not approved, the next action is `/openspec-story-plan-converge <initiative_slug> <story_slug>` or `/openspec-story-plan-review <initiative_slug> <story_slug>` depending on whether edits are still needed.
+- preserve the blocked and IN REVIEW precedence above
+- otherwise stop after a concise report listing: no-ready-story reason, plan lane if present, blocked stories, and the next story that must complete first
+- if a non-DONE story has a valid but repairably incomplete/non-reviewable planning scaffold that `/openspec-story-plan-resume` can safely restore, including an unambiguously absent Plan/Status/log anchor, route singularly to `/openspec-story-plan-resume <initiative_slug> <story_slug>`; plan-converge rejects that entry shape
+- if a non-DONE story's plan is complete and structurally reviewable with no unresolved finding, offer the planning Converge wrapper plus Non-looped plan-review; PLAN CHANGES REQUESTED with unresolved findings may use the wrapper plus Non-looped plan-resume only when the complete scaffold is one plan-converge can actually orchestrate
+- keep prerequisite, missing-workspace, and malformed/ambiguous or unresolvable scaffold recovery routes singular
 
 ### Prerequisite Resolution
 
@@ -237,7 +245,7 @@ Before the first patch:
 4. Build a TAP map: each `TAP-*` row's acceptance slice, layer/scope, owning suite/file, boundary, assertions/observability, fixture/data strategy, CI lane/command, fallback plan, and split/merge rationale. Use it to choose the smallest credible red seam while preserving planned test organization.
 5. Build an activated-risk map from story + source inspection. Note material lenses such as async/event-loop behavior, concurrency, process/resource lifecycle, platform/OS APIs, filesystem/network/subprocess I/O, permissions/security, persistence, retries/timeouts, generated artifacts, prompt/template fail-open behavior, external services, and naming-sensitive invariants; record `none material` when appropriate.
 6. Run a Debt Friction check: record it only when there is a story-local causal link from current story action to concrete evidence, delivery impact, and explicit decision.
-7. If source inspection proves the TAP or contract materially wrong, follow the row's fallback plan only when it stays within scope; otherwise record the blocker and route to `/openspec-story-plan-converge` or `/openspec-feedback`. Do not silently replan inside claim.
+7. If source inspection proves the TAP or contract materially wrong, follow the row's fallback plan only when it stays within scope; otherwise record the blocker and route to `/openspec-feedback`, singular story-plan-resume for an incomplete/non-reviewable scaffold, or `/openspec-story-plan-converge` only when the scaffold is complete/reviewable and the current Plan/log lane can be orchestrated. Do not silently replan inside claim.
 
 - Default to red-first: make that focused seam fail, implement until it passes, then broaden verification.
 - Do not jump straight to broad suites or code-first implementation if a smaller focused seam is available.
@@ -245,7 +253,7 @@ Before the first patch:
 - Prefer code changes over restating plans
 - If you discover an initiative-wide architectural contradiction, update `initiative.md` minimally and note it in `progress.md → ## Progress Timeline`
 - If you discover non-material evidence drift where the contract is still correct but the actual proof command/name changed, update only the concrete evidence row in `## Verification` and record why in `## Progress Timeline` before continuing.
-- If implementation reveals variant-level proof needs, acceptance gaps, branch coverage gaps, input-boundary shape risk, activated risk lenses, or material contract drift not captured in the story, stop implementation work. Record a concise blocker in `## Progress Timeline`, set or ask to set the `Plan:` header to `🟠 PLAN CHANGES REQUESTED` when available, and route the story to `/openspec-feedback` or `/openspec-story-plan-converge`. Do not perform replanning inside `/openspec-story-claim`.
+- If implementation reveals variant-level proof needs, acceptance gaps, branch coverage gaps, input-boundary shape risk, activated risk lenses, or material contract drift not captured in the story, stop implementation work. Record a concise blocker in `## Progress Timeline`, set or ask to set the `Plan:` header to `🟠 PLAN CHANGES REQUESTED` when available, and route the story to `/openspec-feedback`, singular story-plan-resume for an incomplete/non-reviewable scaffold, or `/openspec-story-plan-converge` only when the complete/reviewable Plan/log lane can be orchestrated. Do not perform replanning inside `/openspec-story-claim`.
 - If red-first is not feasible, record an explicit written exception in `## Progress Timeline` before proceeding. Name the reason, the alternative proof seam, and the verification path you will use instead.
 - If Debt Friction exists, record it in `## Progress Timeline` using the `docs/openspec-conventions.md` shape. Use `fix-now` only for enabling cleanup directly required to make this story correct, testable, reviewable, or safely maintainable; include `Scope Justification`. Use `split-story`, `defer-explicitly`, or `block` for debt that is non-enabling, too large, too non-local, or proof-blocking.
 - Before moving to `🟣 IN REVIEW`, run a reviewer-mindset self-check over every activated risk lens: compare risky choices with existing repo idioms; check async paths for blocking sync calls; check external/OS/API operations for sibling failure modes such as not-found, permission denied, timeout/cancellation, already-complete, unsupported, and partial failure; verify tests assert observable behavior rather than private choreography unless the mechanic is contractual; verify sensitive names/comments do not overstate identity, ownership, lifecycle, or safety invariants; and confirm every review finding or discovered risk has disposition, fix proof, and regression/side-effect verification.
@@ -346,4 +354,10 @@ State:
 - files changed
 - whether the initiative or story was updated
 - notebook context used or updated, if material: referenced entries verified with direct-read/search anchors, stale referenced entries or absent needed facts with correction anchors, and notebook pages written for new sourced research; if notebook tools were unavailable, include compact sourced notes in the relevant final section instead
-- the exact next action for the next fresh session; when the next action is review, explicitly tell the operator to run `/openspec-story-review <initiative-slug> <story-slug>` from a completely fresh, oblivious session with no parent notebook, implementation summary, operational notes, or prior chat context
+
+Suggested next action: <scalar route; leave empty only for a dual route>
+- Converge wrapper: <command; dual routes only>
+- Non-looped pass: <state-correct command; dual routes only>
+Choose one; do not run both.
+
+Derive the route from final authoritative `Plan:` and `Status:` plus the named gate evidence. For a scalar route, put its value on the label line and omit the three dual-route lines. For a dual route, leave the label empty and render those lines immediately after it. IN PROGRESS uses the implementation wrapper/Non-looped resume choice. IN REVIEW routes to the singular repair owner when a named deficiency exists and says fresh review happens only after repair; use a completely fresh, oblivious `/openspec-story-review` handoff only when review has not yet run and prerequisites are satisfied. The wrapper never launches review. DONE with non-approved Plan uses only the operator action to investigate/reconcile contradictory durable state and names no lifecycle owner. Keep blocked, incomplete/non-reviewable scaffold, malformed/ambiguous, missing-workspace, prerequisite, other DONE, PR, archive, wait, and terminal routes singular.

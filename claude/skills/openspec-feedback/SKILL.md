@@ -184,11 +184,11 @@ Status and lane rules:
   - `queue-planning-feedback` sets `Plan:` to `🟠 PLAN CHANGES REQUESTED`.
   - contract-changing `amend-existing-story` sets `Plan:` to `🟠 PLAN CHANGES REQUESTED` after the contract edits are blended and validation passes, because fresh `/openspec-story-plan-review` must independently approve the changed contract before implementation resumes.
   - contract-changing `resume-current-story` sets `Plan:` to `🟠 PLAN CHANGES REQUESTED` after the contract edits are blended and validation passes, because fresh `/openspec-story-plan-review` must independently approve the changed contract before implementation resumes.
-  - if contract feedback cannot be fully blended, set `Plan:` to `🟠 PLAN CHANGES REQUESTED` and make `/openspec-story-plan-resume` the next action.
+  - if contract feedback cannot be fully blended, set `Plan:` to `🟠 PLAN CHANGES REQUESTED` and offer **Converge wrapper:** `/openspec-story-plan-converge <initiative> <story-slug>` or **Non-looped pass:** `/openspec-story-plan-resume <initiative> <story-slug>`. Say to choose one and not run both because the wrapper delegates direct review/resume passes.
 - Write `## Plan Review Log` in `story.md` only for `queue-planning-feedback`; `/openspec-story-plan-review` remains the owner of independent review verdicts and the only command that may set `Plan:` to `🟢 PLAN APPROVED`.
 - Update `story.md` Status header to `🔄 IN PROGRESS` and persist findings to notebook `openspec-feedback-<initiative_slug>-<story_slug>` for implementation-review feedback that should drive immediate story resume or PR rework (required — the notebook entry carries FB-### and source ID for dedup).
 
-Draft the acknowledgement plan. The plan must target only the coordination documents listed above and must never include `reviews.md` rows (there is no standalone reviews.md artifact; review findings route through story.md Status and optional notebook).
+Draft the acknowledgement plan. The plan must target only the coordination documents listed above and must never include `reviews.md` rows (there is no standalone reviews.md artifact; review findings route through story.md Status and optional notebook). A batch may classify and absorb multiple explicit targets, but it must not arbitrarily select one target's follow-up as the batch next action. If more than one actionable target remains after absorption, the final route is one scalar operator decision asking which target to advance first and listing every target type with a stable identifier; do not emit a wrapper/direct choice. Use `story:<story-slug> [FB-###,...]` for story targets, `initiative:<initiative-slug> [FB-###,...]` for initiative decisions, and `candidate:<initiative-slug>/feedback:<FB-###>` for new-story candidates that do not yet have a story slug.
 
 ```md
 ## Proposed Feedback Absorption
@@ -282,7 +282,7 @@ For contract-changing `resume-current-story`, also append a concise replanning c
   - Contract sections updated: <Actors, Scenarios / Behavior Examples, Acceptance, Verification, Surface / Branch Proof Matrix, Design Sources, Design Element Trace, Input Boundary Shape Risk, Risk Lens Inventory, etc.>
   - Risk / miss category: <category or none>
   - Plan lane: <from> → <to>
-  - Required next action: `/openspec-story-plan-review <initiative> <story-slug>`
+  - Required next action: </openspec-story-plan-review only when fully blended, structurally reviewable, and no unresolved finding remains; otherwise /openspec-story-plan-resume>
 ```
 
 For `queue-planning-feedback`, append or create `## Plan Review Log` in `story.md` with a request-changes entry and update the `Plan:` header field to `🟠 PLAN CHANGES REQUESTED`. Do not edit story spec sections in this disposition.
@@ -316,7 +316,7 @@ For `amend-existing-story`, edit only these story sections inside `story.md`:
 
 Also edit `design.md` when the amendment changes `### Design Sources` anchors/statuses or `### Design Element Trace` rows that live there rather than in `story.md`.
 
-Keep story-body edits as the durable contract change. If the amendment changes any contract/proof section, update the `Plan:` header field in `story.md` to `🟠 PLAN CHANGES REQUESTED` and make `/openspec-story-plan-review` the next action. Also persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required for `amend-existing-story` — the notebook carries FB-### and source evidence for dedup). If `notebook_write` is not available, abort: "notebook_write is required for feedback traceability; run this skill from a pi session with notebook support."
+Keep story-body edits as the durable contract change. If the amendment changes any contract/proof section, update the `Plan:` header field in `story.md` to `🟠 PLAN CHANGES REQUESTED`. Offer the planning Converge wrapper plus Non-looped fresh `/openspec-story-plan-review` only when the amendment is fully blended, the resulting scaffold is structurally reviewable, and no unresolved finding remains. Otherwise offer the wrapper plus Non-looped `/openspec-story-plan-resume` when the remaining repair is safely resolvable; malformed, ambiguous, or unresolvable states remain singular. Also persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required for `amend-existing-story` — the notebook carries FB-### and source evidence for dedup). If `notebook_write` is not available, abort: "notebook_write is required for feedback traceability; run this skill from a pi session with notebook support."
 
 For `resume-current-story`, persist to notebook `openspec-feedback-<initiative_slug>-<story_slug>` (required — carries FB-### and source evidence for dedup). If `notebook_write` is not available, abort: "notebook_write is required for feedback traceability; run this skill from a pi session with notebook support." Use this compact format:
 
@@ -380,9 +380,9 @@ If feedback changes actors, scenarios, acceptance boundaries, proof surfaces, de
 - update or add `### Risk Lens Inventory` when feedback exposes async/event-loop, platform/API, external I/O, permissions/security, resource lifecycle, retries/timeouts, semantic invariant, or other domain risks not already covered
 - append the replanning checkpoint to `progress.md → ## Progress Timeline`
 - apply the `resume-current-story` status reopen rule above
-- set `Plan:` header field in `story.md` to `🟠 PLAN CHANGES REQUESTED` after the validation gate passes and make `/openspec-story-plan-review` the next action; this command cannot approve its own contract edits
+- set `Plan:` header field in `story.md` to `🟠 PLAN CHANGES REQUESTED` after the validation gate passes; offer the planning wrapper plus Non-looped fresh plan-review only when all edits are fully blended, structurally reviewable, and leave no unresolved finding, otherwise use the wrapper plus Non-looped plan-resume when safely repairable; this command cannot approve its own contract edits
 
-When contract/proof edits are fully blended, `/openspec-story-plan-review <initiative> <story-slug>` is mandatory before `/openspec-story-resume`. If plan review requests changes, the story re-enters the plan-converge loop through `/openspec-story-plan-resume` until `Plan:` returns to `🟢 PLAN APPROVED`.
+When contract/proof edits are fully blended, structurally reviewable, and have no unresolved finding, `/openspec-story-plan-review <initiative> <story-slug>` is mandatory before `/openspec-story-resume`. Otherwise `/openspec-story-plan-resume` owns the next non-looped repair pass (with the planning wrapper alternative when the state is valid and safely repairable). If plan review requests changes, the story re-enters the plan-converge loop through `/openspec-story-plan-resume` until `Plan:` returns to `🟢 PLAN APPROVED`.
 
 Do not update `## PR State` in `progress.md` here; recommend `/openspec-pr` only when PR metadata or merge evidence itself needs refresh. Actionable PR feedback is absorbed here as review/contract coordination; when the acknowledged disposition is `resume-current-story`, this command updates `story.md` Status to `🔄 IN PROGRESS` so `/openspec-story-resume` can own the code changes. Legacy review artifacts in existing workspaces are tolerated but not authoritative; do not read or rewrite them for feedback authority.
 
@@ -423,9 +423,26 @@ Report:
 - any items skipped or left ambiguous
 - any story status reopen performed, or none
 - recurring risk / miss categories observed, or none
-- exact next command when relevant, such as `/openspec-story-plan-review`, `/openspec-story-resume`, `/openspec-pr`, or `/openspec-story-plan`
+- the exact singular route or applicable planning/implementation workflow choice selected from final authoritative state
 
-When `amend-existing-story` touched any contract/proof section, include in the response:
-"Required next: run `/openspec-story-plan-review <initiative> <story-slug>` from a fresh session to re-validate the amended plan."
+End the response with exactly one block selected from the acknowledged disposition and authoritative final state:
+
+```markdown
+Suggested next action: <scalar route; leave empty only for a dual route>
+- Converge wrapper: <command; dual routes only>
+- Non-looped pass: <state-correct command; dual routes only>
+Choose one; do not run both.
+```
+
+For a scalar route, put its value on the label line and omit the three dual-route lines. For a dual route, leave the label empty and render those three lines immediately after it.
+
+- Before any wrapper/direct route, check `blocked.md` for every actionable story target. If any exists, use only the scalar operator action to resolve/remove the named blocker file(s); this hard gate takes precedence over all lane choices.
+- For planning entry/re-entry, use the planning Converge wrapper plus Non-looped `/openspec-story-plan-review <initiative> <story-slug>` only when contract changes are fully blended, no unresolved Plan Review Log finding remains, and the scaffold is structurally reviewable. If unresolved findings or repairs remain, use Non-looped `/openspec-story-plan-resume <initiative> <story-slug>` instead.
+- For `resume-current-story` with Plan approved and Status IN PROGRESS, offer **Converge wrapper:** `/openspec-story-converge <initiative> <story-slug>` and **Non-looped pass:** `/openspec-story-resume <initiative> <story-slug>`. Say to choose one and not run both because the wrapper delegates direct claim/resume passes.
+- If authoritative Status is IN REVIEW, give only a fresh oblivious `/openspec-story-review` handoff; the wrapper never launches review.
+- Keep `new-story-candidate`, `initiative-level-decision`, `defer-or-reject`, blocked, malformed/ambiguous, PR, archive, wait, and terminal routes singular.
+- If the acknowledged batch leaves multiple actionable targets of any type, use only `Operator decision: choose which target to advance first: <typed-stable-target-list>.` The list must include every actionable target using `story:<story-slug> [FB-###,...]`, `initiative:<initiative-slug> [FB-###,...]`, or `candidate:<initiative-slug>/feedback:<FB-###>` as applicable. Never select one based on item order, recency, or status, and never append a wrapper/direct choice.
+
+When `amend-existing-story` touched any contract/proof section, the Non-looped pass is fresh `/openspec-story-plan-review <initiative> <story-slug>` only if the amendment is fully blended, structurally reviewable, and has no unresolved finding. Otherwise use `/openspec-story-plan-resume <initiative> <story-slug>` when safely repairable, with the planning wrapper alternative; malformed/ambiguous/unresolvable state remains singular.
 
 Keep the response short. Do not paste long feedback bodies; link or cite source IDs instead.

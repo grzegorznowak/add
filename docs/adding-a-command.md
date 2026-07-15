@@ -93,7 +93,27 @@ Argument: `$ARGUMENTS` — <what the user passes>.
   context, document hard stops and no-progress gates, and avoid persuasive
   verdict framing. Oblivious review commands must not receive carried notebook,
   operational, summary, or prior-chat context.
-- End with `## Final response` describing the operator-facing result.
+- End with `## Final response` describing the operator-facing result. Every
+  active OpenSpec workflow command must include exactly one canonical
+  next-action form:
+
+  ```text
+  Suggested next action: <exact command | operator action | wait | None>
+  ```
+
+  or, only when both workflow routes are valid:
+
+  ```text
+  Suggested next action:
+  - Converge wrapper: <exact command | operator action | wait | None>
+  - Non-looped pass: <exact command | operator action | wait | None>
+  Choose one; do not run both.
+  ```
+
+  Resolve command arguments where possible. Use an operator action for a choice
+  or manual intervention, `wait` when progress depends on an external event,
+  and `None` when no workflow action remains. Do not introduce competing
+  `Next Action` or `Suggested next step` fields.
 
 ## Pi fragments and notebooks
 
