@@ -15,7 +15,7 @@ Launch each base-selected fresh pass with `spawn`. Include the owning workflow s
 
 ```
 spawn({
-  prompt: "You are executing the openspec-story-<claim|resume|review> workflow for openspec/<initiative_slug>/<story_slug>. Treat this as the pi-native equivalent of /openspec-story-<claim|resume|review> <initiative_slug> <story_slug>.
+  prompt: "You are executing the openspec-story-<claim|resume> workflow for openspec/<initiative_slug>/<story_slug>. Treat this as the pi-native equivalent of /openspec-story-<claim|resume> <initiative_slug> <story_slug>.
   Retrieve notebook pages: 'openspec-research-<initiative_slug>-<story_slug>' (sourced research, verify with direct reads/search) and 'openspec-ops-<initiative_slug>-<story_slug>' (neutral operational notes).
   Write new sourced research to notebook page 'openspec-research-<initiative_slug>-<story_slug>'. Report blockers, repeated failures, or recurring acceptance/proof/review hotspots so the converger can update notebook page 'openspec-ops-<initiative_slug>-<story_slug>'.
   WORKTREE=\"<basename>=<path>\" ...",

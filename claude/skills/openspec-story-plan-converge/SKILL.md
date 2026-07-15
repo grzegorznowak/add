@@ -49,20 +49,24 @@ There is no `MASTER.md`, no tracker table, no step/number row, and no implementa
    - If missing, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
    - If archived, abort with: `story is archived; move it back to openspec/changes/ first`.
    - If missing in both, abort with: `change workspace not found — run /openspec-story-plan first`.
-6. Read `<story_file>`.
+6. Check `<change_dir>/blocked.md` before reading lifecycle fields or scaffold routing. If it exists, abort with the singular operator action to resolve the blocker and remove the file; do not offer wrapper/direct choices.
+7. Read `<story_file>`.
    - If `story.md` is missing or unreadable, abort with: `story.md is missing from change workspace`.
-   - Confirm the `Plan:` header field, `Status:` header field, and `## Plan Review Log` section are present. `Plan:` and `## Plan Review Log` may be default-valued or empty; new `/openspec-story-plan` output starts with `Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, and an empty log section.
-   - If any scaffold anchor is missing, abort with: `story.md is missing the /openspec-story-plan convergence scaffold — run /openspec-story-plan-resume <initiative> <story-slug> to repair missing Plan:, Status:, or ## Plan Review Log anchors, then rerun /openspec-story-plan-converge <initiative> <story-slug>`.
+   - Read `Status:` first. If it is `✅ DONE`, defer all Plan/scaffold routing to the DONE gate in Phase 2; never recommend plan-resume/review for a completed story.
+   - For every other status, including `🟣 IN REVIEW`, confirm the `Plan:` header field, `Status:` header field, and `## Plan Review Log` section are present. `Plan:` and `## Plan Review Log` may be default-valued or empty; new `/openspec-story-plan` output starts with `Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, and an empty log section.
+   - If any scaffold anchor is missing, abort with the singular recovery route: `story.md is missing the /openspec-story-plan convergence scaffold — run /openspec-story-plan-resume <initiative> <story-slug> to repair missing Plan:, Status:, or ## Plan Review Log anchors.` Re-check authoritative state after repair; do not pre-offer a wrapper choice for missing, incomplete, malformed, or non-reviewable scaffold.
+   - If `Status: 🟣 IN REVIEW` and the scaffold is complete/reviewable, continue to Phase 2 so a named contract deficiency can be routed to plan-resume or orchestrated only when this converger can actually handle the current Plan/log lane. Do not infer a fresh implementation review from Status alone.
 
 ## Phase 2 — Eligibility Gate
 
-Before starting the loop, abort with a clear next action if any condition is true:
+Before starting the loop, abort with a clear next action if any condition is true, in this order:
 
-- The implementation `Status:` header field in `story.md` is `✅ DONE`: completed stories are not contract-reviewed or contract-reworked in place. Route new feedback through `/openspec-feedback` as a candidate, initiative-level decision, defer/reject entry, or explicit lifecycle reopen decision.
-- The `Plan:` header field is `🟢 PLAN APPROVED` and there are no unresolved `## Plan Review Log` findings **and** the `## Plan Review Log` contains at least one entry with `Verdict: approve` (or a legacy equivalent) from an independent `/openspec-story-plan-review` pass: stop successfully; planning is already complete.
+- A `blocked.md` file exists at `<change_dir>/blocked.md`: enforce the Phase 1 hard singular operator-action gate; never offer wrapper/direct choices first.
+- The implementation `Status:` header is `🟣 IN REVIEW`: if a named contract deficiency or unresolved Plan Review Log finding exists and the scaffold is complete/reviewable, enter the state-correct resume/review loop this command can orchestrate. A missing/incomplete/non-reviewable scaffold routes singularly to `/openspec-story-plan-resume <initiative> <story-slug>`. An implementation/proof deficiency routes singularly to `/openspec-story-resume <initiative> <story-slug>`, and unresolved external evidence routes to one concrete operator action. Say fresh implementation review happens only after repair. Use the singular fresh, oblivious `/openspec-story-review <initiative> <story-slug>` handoff only when review has not yet run against the current ready evidence and no repair condition exists.
+- The implementation `Status:` header field in `story.md` is `✅ DONE`: completed stories are not contract-reviewed or contract-reworked in place. If `Plan:` is anything other than unambiguous `🟢 PLAN APPROVED`, stop with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. If Plan is approved but bounded task/evidence state contradicts DONE, route only to a completely fresh, oblivious `/openspec-story-review <initiative> <story-slug>` session; never resume. Otherwise route new feedback through `/openspec-feedback` as a candidate, initiative-level decision, defer/reject entry, or explicit lifecycle reopen decision.
+- The `Plan:` header field is `🟢 PLAN APPROVED` and there are no unresolved `## Plan Review Log` findings **and** the `## Plan Review Log` contains at least one entry with `Verdict: approve` (or a legacy equivalent) from an independent `/openspec-story-plan-review` pass: stop successfully; planning is already complete. Route by authoritative implementation `Status:` using the implementation choice below for TODO/IN PROGRESS, the singular fresh oblivious review route for IN REVIEW, and singular state-owner routes otherwise.
 - The `Plan:` header field is `🟢 PLAN APPROVED` but `## Plan Review Log` is empty or lacks an approve entry: treat as orphaned approval. Set `Plan:` to `🟠 PLAN CHANGES REQUESTED` and route through the normal review cycle.
 - The `Plan:` header field is `⛔ PLAN BLOCKED`: stop with blocked status. The operator must resolve the blocker before convergence can proceed.
-- A `blocked.md` file exists at `<change_dir>/blocked.md`: stop immediately. Convergence is refused while an explicit gate file exists. The operator may edit it to record resolution notes, but must remove `blocked.md` to unblock.
 - The story is missing the `/openspec-story-plan` scaffold shape expected by `/openspec-story-plan-review` (no `proposal.md`, no `story.md` with required spec sections and Plan/Status/log anchors, or no `design.md` / `tasks.md`): stop with the owner next action, usually `/openspec-story-plan-resume <initiative> <story-slug>` for repairable story scaffold drift, or `/openspec-story-plan INITIATIVE=<initiative>` when the change workspace itself was never scaffolded.
 - The story is so malformed that `/openspec-story-plan-resume` cannot identify spec sections to continue.
 
@@ -74,7 +78,7 @@ Run at most `MAX_CYCLES` cycles. A planning cycle is one opportunity to get the 
 
 For each cycle:
 
-1. Re-read `<initiative_file>` and `<story_file>` before choosing the next pass.
+1. Re-read `<initiative_file>` and `<story_file>` and recheck `<change_dir>/blocked.md` before choosing the next pass. If the blocker file exists, stop with the singular operator action before launching a child.
 2. Before any fresh subagent launch in this phase, build the task prompt in this order: notebook context when present, operational context when present, then the exact slash command as the final line.
 3. If a newer unaddressed plan-review finding exists (a `request_changes` or `not_reviewable` entry in `## Plan Review Log` without a matching addressed entry), prepare and launch a fresh subagent whose task prompt ends with:
 
@@ -83,7 +87,7 @@ For each cycle:
    ```
 
    The resume child routes to Mode A (unresolved-review-entry absorption) automatically. If this resume pass asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that pass only.
-4. Else if required spec sections are missing or structurally incomplete and there is no newer unaddressed plan-review finding, prepare and launch a fresh resume subagent the same way (Mode B — missing-section completion).
+4. Else if required spec sections are missing or structurally incomplete and there is no newer unaddressed plan-review finding, prepare and launch a fresh resume subagent the same way (Mode B — missing-section completion). Immediately after any resume child launched by step 3 or 4 finishes, recheck `<change_dir>/blocked.md` before accepting its result, launching review, or continuing. If the file exists, stop with the singular operator action.
 5. When no unaddressed findings remain and the story is ready for review, prepare and launch a fresh subagent whose task prompt ends with the exact slash command:
 
    ```text
@@ -113,8 +117,16 @@ For each cycle:
    ```
 
 8. Require subagents to write new sourced research directly to the named planning research notebook page when runtime notebook tools are available. If notebook tools are unavailable, allow compact sourced fallback notes in normal final reporting instead. Require subagents to mention any referenced notebook entry or fallback excerpt that failed verification with exact anchors in their relevant blocker, finding, or notes section. After the pass finishes, inspect the named planning research notebook page or child-reported entries as needed, then use mismatch notes to update, replace, retire, or ask about affected entries. Do not append verdicts, implementation opinions, or unanchored summaries.
-9. After the review agent finishes, treat its final response as the provisional decision. Before routing, perform a minimal authority spot-check against `<story_file>`: for example, use `rg -n '^(Plan:|## Plan Review Log|### |Verdict:)' <story_file>` to fetch the `Plan:` header, log anchors, and verdict markers, then use a bounded read only for the newest log entry body if needed. If the spot-check agrees with the agent's report, continue from those decision-bearing fields. If the anchors are missing, stale, ambiguous, or conflicting, broaden to a targeted story read or launch a focused repair/review pass.
-10. If the decision is `approve` or `Plan:` is `🟢 PLAN APPROVED`, confirm the latest story `## Plan Review Log` records activated risk lenses or explicit `none material` with the same minimal spot-check/bounded-read approach before stopping. If approval lacks that evidence, launch one fresh plan-review child focused on risk-lens coverage rather than accepting chat output alone. Then stop successfully. Do not claim or resume the story. Recommend `/openspec-story-claim <initiative> <story-slug>` or `/openspec-story-resume <initiative> <story-slug>` to begin implementation.
+9. After the review agent finishes, treat its final response as provisional and first recheck `<change_dir>/blocked.md`. If it exists, stop with the singular operator action before accepting approval, launching repair, or continuing. Then perform a minimal authority spot-check against `<story_file>`: for example, use `rg -n '^(Plan:|## Plan Review Log|### |Verdict:)' <story_file>` to fetch the `Plan:` header, log anchors, and verdict markers, then use a bounded read only for the newest log entry body if needed. If the spot-check agrees with the agent's report, continue from those decision-bearing fields. If the anchors are missing, stale, ambiguous, or conflicting, broaden to a targeted story read or launch a focused repair/review pass.
+10. If the decision is `approve` or `Plan:` is `🟢 PLAN APPROVED`, confirm the latest story `## Plan Review Log` records activated risk lenses or explicit `none material` and sufficient risk/evidence output with the same minimal spot-check/bounded-read approach. If approval lacks that evidence, launch exactly one fresh plan-review child focused on the missing risk/evidence coverage rather than accepting chat output alone.
+    - Immediately after that focused child, recheck `<change_dir>/blocked.md`. If it exists, stop with the singular operator action; do not accept approval or launch repair first.
+    - Then re-read the authoritative Plan status from the `Plan:` header, the newest review verdict/log entry in `## Plan Review Log`, blocker state (`blocked.md`, blocked Plan/verdict, and any recorded blocker), and the focused risk-evidence output from durable story/log evidence. The child's chat summary is provisional and cannot satisfy this re-read.
+    - Stop with `APPROVED` only when the refreshed `Plan:` remains `🟢 PLAN APPROVED`, the newest durable verdict remains `approve`, no blocker exists, and the previously missing risk/evidence is now sufficient.
+    - If the refreshed verdict is `request_changes` or `not_reviewable`, or `Plan:` is `🟠 PLAN CHANGES REQUESTED`, route through step 12 to a fresh plan-resume child when the scaffold remains complete/reviewable; if the finding made the scaffold non-reviewable, stop with the singular `/openspec-story-plan-resume <initiative> <story-slug>` owner route.
+    - If the refreshed verdict or `Plan:` is blocked, stop with the singular blocker-resolution route.
+    - If the focused child leaves the same risk/evidence deficiency unchanged, do not report approval and do not launch another focused review. Stop for no progress with the singular `/openspec-story-plan-resume <initiative> <story-slug>` route to repair the named deficiency; fresh plan review occurs only after repair.
+    - If the refreshed fields are missing, ambiguous, or conflict, stop with a concrete singular operator repair action rather than guessing.
+    Only after the approval conditions above pass, stop successfully. Do not claim or resume the story. Recommend `/openspec-story-claim <initiative> <story-slug>` or `/openspec-story-resume <initiative> <story-slug>` to begin implementation.
 11. If the decision is `blocked` or `Plan:` is `⛔ PLAN BLOCKED`, stop with blocked planning status.
 12. If the decision is `request_changes` or `not_reviewable`, prepare and launch a different fresh subagent whose task prompt ends with:
 
@@ -123,7 +135,7 @@ For each cycle:
     ```
 
 13. If the resume agent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that resume pass only. The next review still starts in a new fresh subagent.
-14. After the resume agent finishes, trust its report provisionally and run a minimal `Plan:` header spot-check, for example `rg -n '^Plan:' <story_file>`. Broaden to a targeted story read only if the header is missing, unexpected, ambiguous, or conflicts with the agent's report.
+14. After the resume agent finishes, trust its report only provisionally and first recheck `<change_dir>/blocked.md`. If it exists, stop with the singular operator action before launching review or continuing. Then run a minimal `Plan:` header spot-check, for example `rg -n '^Plan:' <story_file>`. Broaden to a targeted story read only if the header is missing, unexpected, ambiguous, or conflicts with the agent's report.
 15. Run the no-progress gate before starting the next cycle.
 
 ## Phase 4 — Operational Notes and Stops
@@ -190,8 +202,18 @@ Return only the compact report below. Do not include internal deliberation, anal
 - <proposed future improvement surfaced by repeated friction, including recurring risk/miss category worth automating or adding to future planning>
 - None.
 
-## Next Action
-- <single concrete command or decision>
+Suggested next action: <scalar route; leave empty only for a dual route>
+- Converge wrapper: <command; dual routes only>
+- Non-looped pass: <state-correct review/resume or claim/resume command; dual routes only>
+Choose one; do not run both.
 ```
+
+Select that block from authoritative final state. When APPROVED and implementation is TODO or IN PROGRESS, offer **Converge wrapper:** `/openspec-story-converge <initiative> <story-slug>` and **Non-looped pass:** TODO -> `/openspec-story-claim <initiative> <story-slug>`, IN PROGRESS -> `/openspec-story-resume <initiative> <story-slug>`. Say to choose one and not run both because the wrapper delegates direct claim/resume passes.
+
+For a scalar route, put its value on the label line and omit the three dual-route lines. For a dual route, leave the label empty and render those three lines immediately after it.
+
+When MAX_CYCLES leaves a valid, complete/reviewable planning lane active without an unresolved operator question/resolution failure, use the planning Converge wrapper plus Non-looped plan-review when no unresolved finding remains, or Non-looped plan-resume when findings remain and converge can orchestrate that lane. `Plan: 🟠 PLAN CHANGES REQUESTED` with unresolved findings uses plan-resume when the scaffold stays complete/reviewable; when every finding is fully blended/addressed and the scaffold is reviewable, it uses fresh plan-review. Missing anchors or any incomplete/non-reviewable scaffold always use singular `/openspec-story-plan-resume <initiative> <story-slug>` (or story-plan when the workspace is absent), never the wrapper.
+
+Generic STOPPED due to an operator question, declined decision, unresolved command/story resolution, unchanged focused risk/evidence deficiency, or other resolution failure is singular: state the exact operator or repair-owner action needed and do not also suggest rerunning the wrapper/direct pass. When implementation Status is IN REVIEW, route a named deficiency to its owner and say fresh review follows repair; use the fresh oblivious `/openspec-story-review` handoff only when review has not yet run against current ready evidence. DONE with a non-approved Plan uses only the operator action to investigate/reconcile the contradictory durable state and names no lifecycle owner. For BLOCKED, incomplete/non-reviewable scaffold, malformed/ambiguous, DONE with consistent evidence, DONE/evidence contradiction, PR, archive, wait, or terminal states, give only the state-owning singular route.
 
 Do not run `/memorize` automatically. If the nice-to-haves are valuable, the operator can decide whether to promote them later.

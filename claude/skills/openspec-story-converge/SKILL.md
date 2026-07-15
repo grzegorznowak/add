@@ -57,10 +57,11 @@ There is no `MASTER.md` and no tracker table. All status is self-contained in th
 6. Resolve `<change_dir>` = `<openspec_root>/openspec/changes/<story-slug>/`.
    - If missing, check `<openspec_root>/openspec/changes/archive/<story-slug>/`.
    - If archived, abort with: `story is archived; move it back to openspec/changes/ first`.
-   - If missing in both, ask whether the story was moved to a root repo worktree during claim. Recommend rerunning from the checkout/worktree that contains `openspec/changes/<story-slug>/story.md`, or rerunning with an explicit valid root `WORKTREE="<basename>=<path>"`. Abort with: `change workspace not found in this checkout`.
-7. Read `<story_file>` and confirm the `Status:` header field is present (it may be default-valued or unset).
+   - If missing in both, ask whether the story was moved to a root repo worktree during claim. If a checkout containing it is identified, give only the rerun-from-that-checkout or explicit-root `WORKTREE="<basename>=<path>"` operator action. If relocation is ruled out and the workspace is genuinely absent, route singularly to `/openspec-story-plan INITIATIVE=<initiative>`. Abort with: `change workspace not found in this checkout`.
+7. Check `<blocked_file>` before reading lifecycle fields or offering any wrapper/direct route. If it exists, stop with the singular operator action to resolve the blocker and remove the file.
+8. Read `<story_file>` and confirm the `Status:` header field is present (it may be default-valued or unset).
    - If `story.md` is missing or unreadable, ask the same root-worktree relocation question and abort with: `story.md is missing from change workspace`.
-8. Keep the exact `WORKTREE=` fragments for later command lines. Do not normalize or reinterpret them in the converger except for the read-only OpenSpec-root preflight above.
+9. Keep the exact `WORKTREE=` fragments for later command lines. Do not normalize or reinterpret them in the converger except for the read-only OpenSpec-root preflight above.
 
 ## Phase 2 — Eligibility Gate
 
@@ -70,17 +71,22 @@ Allowed starting states:
 
 - `Status:` is absent, unset, `⬜ TODO`, or `⚪ TODO` only when the story is plan-approved and the `## Current Claim` section in `<progress_file>` does not exist or is empty.
 - `Status: 🔄 IN PROGRESS` only when `Plan:` is `🟢 PLAN APPROVED`.
-- `Status: 🟣 IN REVIEW` only when `Plan:` is `🟢 PLAN APPROVED`; this is a successful implementation-convergence stop, not a route to review inside this command.
+- `Status: 🟣 IN REVIEW` is a successful implementation-convergence stop only when bounded readiness evidence shows no named repair issue and review has not yet run against the current evidence. An aborted review's preserved status does not override its named implementation/proof, contract, or external-evidence repair owner.
 - `Status: ⛔ BLOCKED` only when `Plan:` is `🟢 PLAN APPROVED` and `<blocked_file>` is absent; this means the explicit gate file was removed and `/openspec-story-resume` must normalize the stale status back to `🔄 IN PROGRESS` before work continues.
-- `Status: ✅ DONE` means the story is already complete because `Status: ✅ DONE` in `story.md` is independent completion authority. This is an already-complete early return; convergence must not create or pursue `✅ DONE` itself.
+- `Status: ✅ DONE` is independent completion authority, but only a DONE story whose `Plan:` is `🟢 PLAN APPROVED` and whose bounded task/proof evidence is consistent may take the already-complete early return. Convergence must not create or pursue `✅ DONE` itself.
 
-Reject with a precise next action:
+Reject with a precise next action, in this order:
 
-- Any non-DONE story whose `Plan:` header field exists and is not `🟢 PLAN APPROVED`: use `/openspec-story-plan-converge <initiative> <story-slug>`.
+- If `<blocked_file>` exists, stop at that singular operator-action gate. Do not evaluate or offer wrapper/direct choices until the operator resolves the blocker and removes the file.
+- If `Status: 🟣 IN REVIEW`, inspect bounded readiness evidence. A named implementation/proof incompleteness routes singularly to `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`; a missing anchor or incomplete/non-reviewable contract scaffold routes singularly to `/openspec-story-plan-resume <initiative> <story-slug>` (or story-plan when the workspace is absent); unresolved external evidence routes to one concrete operator action. Say fresh review happens only after repair. Use the singular fresh, oblivious story-review handoff only when review has not yet run against the current evidence and all prerequisites are satisfied.
+- If `Status: ✅ DONE` is paired with any non-approved, missing, malformed, or ambiguous `Plan:`, stop with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner.
+- A non-DONE story with `Plan:` at `🟡 PLAN DRAFT` or `🟣 PLAN IN REVIEW`: offer the planning Converge wrapper plus Non-looped plan-review when the full planning scaffold is structurally reviewable; when the scaffold is incomplete/non-reviewable but `/openspec-story-plan-resume` can safely identify and repair it, route singularly to plan-resume.
+- A non-DONE story with an unambiguously absent Plan/Status/log anchor or other safely repairable incomplete/non-reviewable planning scaffold: route singularly to `/openspec-story-plan-resume <initiative> <story-slug>`; plan-converge rejects that entry shape.
+- A non-DONE story with `Plan: 🟠 PLAN CHANGES REQUESTED`: unresolved findings use the planning Converge wrapper plus Non-looped plan-resume only when the scaffold is complete/reviewable and plan-converge can orchestrate it; repairable scaffold gaps route singularly to plan-resume. When all findings are fully blended/addressed and the scaffold is structurally reviewable, route to the wrapper plus Non-looped plan-review.
+- A non-DONE story with `Plan: ⛔ PLAN BLOCKED`, duplicated/conflicting/malformed/ambiguous/unknown Plan state, or scaffold damage that plan-resume cannot safely resolve: give only the state-owning blocker or concrete operator repair action; do not offer a wrapper/direct choice.
 - `Status:` absent, `⬜ TODO`, or `⚪ TODO` with `## Current Claim` already present in `<progress_file>`: status drift; ask the operator to resolve before converging.
 - Conflicting, malformed, or ambiguous `Status:` headers: status drift; ask the operator to resolve the `story.md` header before converging.
-- `Status: ⛔ BLOCKED` while `<blocked_file>` exists: blocked stories need operator unblocking before convergence.
-- `<blocked_file>` exists at `<change_dir>/blocked.md`: convergence is refused while an explicit gate file exists. The operator may edit it to record resolution notes, but must remove `blocked.md` to unblock. Once the file is removed, stale `Status: ⛔ BLOCKED` is resumable and routes to `/openspec-story-resume` for normalization.
+- `Status: ⛔ BLOCKED` with no `<blocked_file>` is stale status and routes singularly to `/openspec-story-resume` for normalization.
 
 Plan-approved means `Plan:` is `🟢 PLAN APPROVED`. No other source is consulted for the plan state.
 
@@ -92,14 +98,14 @@ Before each subagent launch, build the command line from the current status in t
 
 - `Status:` absent/unset, `⬜ TODO`, or `⚪ TODO` and plan-approved: `/openspec-story-claim <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🔄 IN PROGRESS`: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`.
-- `Status: 🟣 IN REVIEW`: do not launch claim, resume, or review. Stop successfully with result `IN_REVIEW` and route the operator to a fresh, oblivious `/openspec-story-review <initiative> <story-slug> [WORKTREE=...]` session.
+- `Status: 🟣 IN REVIEW`: do not launch review. Apply the IN REVIEW repair-or-review gate above. For named implementation/proof incompleteness, stop with the singular resume owner; for contract or external evidence use its singular owner. Only a ready story not yet reviewed against current evidence stops successfully with result `IN_REVIEW` and the fresh, oblivious review route.
 - `Status: ⛔ BLOCKED` with no `<blocked_file>` present and plan-approved: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]` to normalize the resolved blocker and continue.
-- `Status: ✅ DONE`: do not launch claim, resume, or review. Stop with result `DONE` because the `story.md` Status header is completion authority.
+- `Status: ✅ DONE`: do not launch claim or resume. If `Plan:` is not unambiguously `🟢 PLAN APPROVED`, use the singular operator reconciliation action above. Otherwise spot-check bounded task/proof evidence. If it is consistent, stop with result `DONE` because the `story.md` Status header is completion authority. If tasks are unchecked or implementation evidence is stale/incomplete, stop with a singular fresh, oblivious `/openspec-story-review` route to reconcile the evidence contradiction; never resume.
 
 For each cycle:
 
-1. Re-read `<story_file>` and `<progress_file>` from the current `<openspec_root>` before choosing the next pass.
-2. If the current status is `🟣 IN REVIEW`, execute the successful review-handoff branch above before building a slash command. If the current status is `✅ DONE`, execute the DONE early-return branch above before building a slash command. Otherwise build the exact slash command line for the chosen claim or resume pass.
+1. Re-read `<story_file>` and `<progress_file>` from the current `<openspec_root>` before choosing the next pass, and recheck `<blocked_file>` before all status/Plan routing. If it exists, stop at the singular operator-action gate.
+2. If the current status is `🟣 IN REVIEW`, execute the repair-or-review branch above before building a slash command; never infer fresh review from status alone. If the current status is `✅ DONE`, execute the DONE Plan/evidence checks above before building a slash command. Otherwise build the exact slash command line for the chosen claim or resume pass.
 3. If notebook-backed context is available, do not inline entire notebook pages or broad notebook dumps. Pass only compact notebook references, selectors, and the reason/scope for consulting them before the implementation command under this heading:
 
    ```text
@@ -134,11 +140,11 @@ For each cycle:
    - If no candidate qualifies and the current `<story_file>` or `<progress_file>` is missing after a claim pass, stop with: `OpenSpec artifacts may have moved to a root worktree, but convergence could not locate them. Rerun from the checkout containing openspec/changes/<story-slug>/story.md, or pass WORKTREE="<basename>=<path>" from that checkout.`
 
    Before routing or stopping, perform a minimal authority spot-check of only the decision-bearing fields and anchors at the refreshed `<openspec_root>`: for example, use `rg -n '^(Status:|Plan:)' <story_file>` for lifecycle headers and `rg -n '^(### |Status:)' <progress_file>` only when progress state matters. Use bounded reads only for the newest relevant progress or handoff entry body. If those spot-checks agree with the agent's report, continue from the canonical fields. If anchors are missing, stale, ambiguous, or conflicting, broaden to targeted reads of the affected file(s) or stop with a concrete operator repair action; do not launch `/openspec-story-review` from this skill.
-9. If a claim or resume pass leaves the story at `Status: 🟣 IN REVIEW`, stop with result `IN_REVIEW`. Do not launch a review pass in the same cycle.
-10. If a claim or resume pass leaves the story at `Status: 🔄 IN PROGRESS`, continue only when the cycle budget remains and the no-progress gate does not fire.
-11. If any pass moves the story to `Status: ⛔ BLOCKED`, stop.
-12. If any implementation pass moves the story to `Status: ✅ DONE`, run a bounded spot-check confirming the refreshed `story.md` header is `Status: ✅ DONE`, then stop with result `DONE` and note that this command did not create the completion authority.
-13. If `<blocked_file>` appears in `<change_dir>` at any point during the convergence run, stop immediately.
+9. After every claim or resume pass and artifact-root refresh, recheck `<blocked_file>` before accepting IN REVIEW, DONE, or any continuation. If it exists, stop immediately with the singular operator action to resolve the blocker and remove the file.
+10. If the pass leaves the story at `Status: 🟣 IN REVIEW`, stop with result `IN_REVIEW`. Do not launch a review pass in the same cycle.
+11. If the pass leaves the story at `Status: 🔄 IN PROGRESS`, continue only when the cycle budget remains and the no-progress gate does not fire.
+12. If any pass moves the story to `Status: ⛔ BLOCKED`, stop.
+13. If any implementation pass moves the story to `Status: ✅ DONE`, apply the same entry checks: require unambiguous `Plan: 🟢 PLAN APPROVED`, then bounded-check task completion and current implementation/proof evidence rather than confirming only the Status header. A non-approved Plan uses the singular operator reconciliation action; unchecked tasks or stale/incomplete proof use only a fresh oblivious story-review route. Stop with result `DONE` only when all checks are consistent, and note that this command did not create the completion authority.
 14. Run the no-progress gate before starting the next cycle.
 
 ### Worktree Discovery
@@ -197,7 +203,7 @@ Recommend a ready-for-review checkpoint when:
 
 Recommend a WIP checkpoint only when stopping at `MAX_CYCLES`, operator input, or no-progress with useful completed changes. Do not recommend a commit when the story blocked before meaningful implementation or no code/test/config changes exist.
 
-When the final authoritative status is `🟣 IN REVIEW`, treat implementation convergence as complete. The next lifecycle step is `/openspec-story-review`, but it must be run by the operator from a completely fresh, oblivious session rooted at the current `<openspec_root>` if it differs from the launch checkout. `/openspec-pr` may be a later delivery helper only after review marks the story `Status: ✅ DONE`.
+When the final authoritative status is `🟣 IN REVIEW`, treat implementation convergence as complete only when bounded readiness evidence has no named repair deficiency and review has not yet run against the current evidence. Then the next lifecycle step is `/openspec-story-review`, run by the operator from a completely fresh, oblivious session rooted at the current `<openspec_root>` if it differs from the launch checkout. If an aborted review preserved IN REVIEW, route to its named repair owner instead and state that fresh review happens only after repair. `/openspec-pr` may be a later delivery helper only after review marks the story `Status: ✅ DONE`.
 
 When the final authoritative status is `✅ DONE`, treat the story as already locally complete due to independent review authority that existed outside this convergence loop. `/openspec-pr` may be a later delivery helper before archive, but it is not the next lifecycle step.
 
@@ -238,8 +244,18 @@ Return only the compact report below. Do not include internal deliberation, anal
 - <proposed future improvement surfaced by repeated friction, including recurring risk/miss category worth automating or adding to future planning>
 - None.
 
-## Next Action
-- <single concrete command or decision. When result is IN_REVIEW: open a completely fresh, oblivious session rooted at the current OpenSpec root with no parent/converger notebook references, implementation summaries, operational notes, or prior chat context, then run `/openspec-story-review <initiative> <story-slug> [WORKTREE=...]`. When result is DONE: `None. Story is already ✅ DONE.`>
+Suggested next action: <scalar route; leave empty only for a dual route>
+- Converge wrapper: <command; dual routes only>
+- Non-looped pass: <state-correct claim/resume command; dual routes only>
+Choose one; do not run both.
 ```
+
+Select that block from authoritative final state plus named gate evidence. When result is IN_REVIEW and no repair issue exists, give only this route: open a completely fresh, oblivious session rooted at the current OpenSpec root with no parent/converger notebook references, implementation summaries, operational notes, or prior chat context, then run `/openspec-story-review <initiative> <story-slug> [WORKTREE=...]`. Use it only when review has not yet run against the current ready evidence. If an aborted review preserved IN REVIEW, give only the named implementation/proof, contract, or external-evidence repair owner and say fresh review happens after repair. The wrapper never launches review.
+
+For a scalar route, put its value on the label line and omit the three dual-route lines. For a dual route, leave the label empty and render those three lines immediately after it.
+
+When MAX_CYCLES leaves Status IN PROGRESS, or a clean actionable incomplete lane remains with no unresolved operator question or resolution failure, use the implementation Converge wrapper and Non-looped resume grammar above. Generic STOPPED due to an operator question, declined decision, unresolved command/worktree/root selection, or other resolution failure is singular: state the exact operator action needed and do not also suggest rerunning the wrapper/direct pass.
+
+When result is DONE with approved Plan and consistent task/evidence state, use `None. Story is already ✅ DONE.` A DONE/non-approved-Plan contradiction uses only the operator reconciliation action and names no lifecycle owner. A DONE/task-or-evidence contradiction uses only a completely fresh, oblivious `/openspec-story-review` route. For BLOCKED, planning-gate, malformed/ambiguous, PR, archive, wait, or terminal routes, give only the state-owning route.
 
 Do not run `/memorize` automatically. If the nice-to-haves are valuable, the operator can decide whether to promote them later.

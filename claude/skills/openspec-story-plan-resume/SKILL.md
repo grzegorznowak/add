@@ -41,17 +41,18 @@ Plan resume must come from an explicit operator choice. Auto-inferring resumes p
    - If missing in both locations, abort with: `change workspace not found: openspec/changes/<story-slug>/ — run /openspec-story-plan first`.
 7. Resolve `<story_file>` = `<change_dir>/story.md`.
    - If the file does not exist, abort with the exact missing path.
-8. Derive the implementation lifecycle status from the `Status:` header field in `<story_file>` and note whether scaffold normalization is needed.
+8. Check for `<change_dir>/blocked.md` before any lifecycle choice. If it exists, abort with the singular operator action to resolve the blocker and remove the file; do not offer wrapper/direct choices.
+9. Derive the implementation lifecycle status from the `Status:` header field in `<story_file>` and note whether scaffold normalization is needed.
    - If the `Status:` header field is missing, queue scaffold normalization to add `Status: ⚪ TODO`.
    - If it is exactly `⬜ TODO`, queue scaffold normalization to replace it with `⚪ TODO`.
-   - If it is `✅ DONE`, abort with: "completed stories are not contract-reworked in place; route new feedback through `/openspec-feedback` as a candidate, initiative-level decision, defer/reject entry, or explicit lifecycle reopen decision."
-   - If it is any active, in-review, blocked, blank, or unknown value, do not rewrite it during scaffold normalization.
-9. Derive the planning lane from the `Plan:` header field in `<story_file>` and note whether scaffold normalization is needed.
+   - If it is `🟣 IN REVIEW`, abort with only a completely fresh, oblivious `/openspec-story-review <initiative-slug> <story-slug>` route even when Plan contradicts it; note Plan drift for review.
+   - If it is `✅ DONE`, inspect the durable `Plan:` value only to detect contradiction, not to enter planning. If Plan is anything other than unambiguous `🟢 PLAN APPROVED`, abort with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. If Plan is approved but bounded task/evidence state contradicts DONE, route only to a completely fresh, oblivious `/openspec-story-review`; otherwise route new feedback through `/openspec-feedback` as a candidate, initiative-level decision, defer/reject entry, or explicit lifecycle reopen decision.
+   - If it is any active, blocked, blank, or unknown value, do not rewrite it during scaffold normalization.
+10. Derive the planning lane from the `Plan:` header field in `<story_file>` and note whether scaffold normalization is needed.
    - If the `Plan:` header field is missing, queue scaffold normalization to add `Plan: 🟡 PLAN DRAFT`; use `🟡 PLAN DRAFT` as the effective planning lane for this resume pass.
    - If `## Plan Review Log` is missing, queue scaffold normalization to add an empty `## Plan Review Log` section.
-10. If the planning lane is `🟢 PLAN APPROVED`, every required spec section is structurally complete, and no scaffold normalization is queued, abort: "this story's plan is already approved; no plan-resume work is needed."
-11. If the planning lane is `⛔ PLAN BLOCKED`, abort: "this story's plan is blocked; the operator must decide how to unblock before plan-resume can continue."
-12. If `blocked.md` exists at `<change_dir>/blocked.md`, abort: "blocked.md gate file exists; the operator may edit it to record resolution notes, but must remove it before plan-resume can continue."
+11. If the planning lane is `🟢 PLAN APPROVED`, every required spec section is structurally complete, and no scaffold normalization is queued, abort: "this story's plan is already approved; no plan-resume work is needed."
+12. If the planning lane is `⛔ PLAN BLOCKED`, abort: "this story's plan is blocked; the operator must decide how to unblock before plan-resume can continue."
 
 ## Plan readiness check
 
@@ -111,7 +112,7 @@ After reading, determine which mode applies:
 - **Mode A — Feedback absorption**: Required when any entry in `## Plan Review Log` has verdict `request_changes` or `not_reviewable` AND no subsequent "addressed" entry follows it. Entries may come from `/openspec-story-plan-review` or planning feedback routed by `/openspec-feedback`. Process pending entries in chronological order (oldest first). After Mode A completes, stop. If planning continuation is still needed, the operator re-runs `/openspec-story-plan-resume <initiative-slug> <story-slug>`.
 - **Mode B — Planning continuation**: Required when Mode A does not apply (no pending entries) AND one or more required spec sections are missing or structurally incomplete.
 
-If only Mode 0 applied and the story is otherwise structurally complete, stop with the next action `/openspec-story-plan-review <initiative-slug> <story-slug>` or rerun `/openspec-story-plan-converge <initiative-slug> <story-slug>` if this repair was requested by converge. If neither mode applies and the `Plan:` header field is `🟢 PLAN APPROVED`, abort with the "fully planned and approved" message from the readiness check. If neither mode applies and the `Plan:` header field is `🟡 PLAN DRAFT` or `🟣 PLAN IN REVIEW`, stop with: "the story contract is structurally complete; run `/openspec-story-plan-review <initiative-slug> <story-slug>` for the next planning step." If neither mode applies and the `Plan:` header field is `🟠 PLAN CHANGES REQUESTED`, stop with the unresolved plan-review finding that still needs an addressed entry, or ask the operator to run `/openspec-story-plan-review <initiative-slug> <story-slug>` if no such finding exists.
+If only Mode 0 applied and the story is otherwise structurally complete, stop with a planning workflow choice: Converge wrapper `/openspec-story-plan-converge <initiative-slug> <story-slug>` or Non-looped pass `/openspec-story-plan-review <initiative-slug> <story-slug>`. If neither mode applies and the `Plan:` header field is `🟢 PLAN APPROVED`, abort with the "fully planned and approved" message from the readiness check and route by authoritative implementation status. If neither mode applies and the `Plan:` header field is `🟡 PLAN DRAFT` or `🟣 PLAN IN REVIEW`, stop with the same Converge wrapper or Non-looped plan-review choice. If neither mode applies and the `Plan:` header field is `🟠 PLAN CHANGES REQUESTED`, stop with the unresolved plan-review finding that still needs an addressed entry and offer Converge wrapper or the state-correct Non-looped pass `/openspec-story-plan-resume <initiative-slug> <story-slug>`; if no unresolved finding exists, use the Non-looped pass `/openspec-story-plan-review <initiative-slug> <story-slug>`. For every two-path choice, say to choose one and not run both because the wrapper delegates the direct review/resume passes.
 
 ## Mode A — Feedback absorption
 
@@ -292,4 +293,10 @@ If validation passes and any spec or proof section changed, set the `Plan:` head
 - sections edited (across all changed artifacts: story.md, proposal.md, design.md, tasks.md, specs/)
 - whether re-validation passed
 - notebook context used or updated, if material: referenced entries verified with direct-read/search anchors, stale referenced entries or absent needed facts with correction anchors, and notebook pages written for new sourced research; if notebook tools were unavailable, include compact sourced notes in the relevant final section instead
-- the exact next action: `/openspec-story-plan-review <initiative-slug> <story-slug>` for a fresh contract review; after `Plan:` becomes `🟢 PLAN APPROVED`, use `/openspec-story-claim <initiative-slug> <story-slug>` if implementation `Status:` is `⚪ TODO`, or `/openspec-story-resume <initiative-slug> <story-slug>` if implementation has already started
+
+Suggested next action: <scalar route; leave empty only for a dual route>
+- Converge wrapper: <command; dual routes only>
+- Non-looped pass: <state-correct command; dual routes only>
+Choose one; do not run both.
+
+Derive the route from final authoritative `Plan:` and `Status:`. For a scalar route, put its value on the label line and omit the three dual-route lines. For a dual route, leave the label empty and render those lines immediately after it. While planning remains active, unresolved findings/repairs use Non-looped plan-resume; only a structurally reviewable plan with every finding blended/addressed uses Non-looped fresh plan-review. After approval, TODO/IN PROGRESS may use the implementation wrapper plus claim/resume. IN REVIEW uses only fresh oblivious story-review. DONE with non-approved Plan uses only the operator action to investigate/reconcile the contradictory durable state and names no lifecycle owner. Keep blocked, malformed/ambiguous, other DONE, PR, archive, wait, and terminal routes singular.

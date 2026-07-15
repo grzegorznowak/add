@@ -63,7 +63,7 @@ Parse `$ARGUMENTS` first. Treat any of the three slots that is empty as a reques
 1. List `<workspace_root>/openspec/initiatives/*/` directories that contain an `initiative.md`.
 2. An initiative is eligible if its `initiative.md` exists and at least one corresponding non-archived change workspace exists under `<workspace_root>/openspec/changes/<change-slug>/` whose `<story_file>` has `Status: ✅ DONE`.
 3. If exactly one eligible initiative exists, use it. Print: `inferred initiative: <slug> (single eligible initiative)`.
-4. If zero eligible initiatives exist, abort with: `no locally DONE initiative found under openspec/initiatives/. PR delivery requires a non-archived story at Status: ✅ DONE with durable local review approval; no PR action was taken. Operator must choose the next lifecycle step.`
+4. If zero eligible initiatives exist, do not infer one. Collect non-DONE initiative/story pairs as diagnostics only. If exactly one diagnostic candidate exists, list `<initiative>/<story> | <Status> | <title>` and emit its state-correct route from the DONE-only qualification rules below. If multiple exist, list all and use the singular `Operator decision: select a lifecycle target by stable <initiative>/<story> identifier; none is eligible PR context.` If none exist, require initiative/story correction. Abort before PR inference in every case.
 5. If multiple eligible initiatives exist, abort with the list and: `multiple eligible initiatives; pass <initiative> explicitly to disambiguate.`
 
 ### Pass 2 — Story inference (when `<story>` is empty)
@@ -71,15 +71,28 @@ Parse `$ARGUMENTS` first. Treat any of the three slots that is empty as a reques
 After the initiative is known, list all change workspace directories under `<workspace_root>/openspec/changes/` (excluding `archive/`). For each, read the `Status:` header field in `<story_file>` and collect every story whose status is `✅ DONE`.
 
 1. If exactly one story matches, use it. Print: `inferred story: <story-slug> — <title> (status: ✅ DONE)`.
-2. If zero stories match, emit a specific lifecycle-state notice based on the initiative's change workspaces. Do not route to another command from `/openspec-pr`; notify and let the operator choose the next lifecycle step.
-   - if exactly one story is `🟣 IN REVIEW`, say: `story <story-slug> — <title> is Status: 🟣 IN REVIEW, not ✅ DONE. PR delivery requires durable local review approval from a fresh, oblivious review session first; no PR action was taken. Operator must choose the next lifecycle step.`
-   - if any story is `🔄 IN PROGRESS`, say: `no locally DONE story found; at least one story is Status: 🔄 IN PROGRESS. PR delivery requires Status: ✅ DONE with durable local review approval; no PR action was taken. Operator must choose the next lifecycle step.`
-   - otherwise say: `no locally DONE story found. PR delivery requires Status: ✅ DONE with durable local review approval; no PR action was taken. Operator must choose the next lifecycle step.`
+2. If zero stories match, collect every non-archived non-DONE story for the initiative as diagnostics only; none is a resolvable PR target.
+   - If multiple non-DONE stories exist, list each as `<story-slug> | <Status> | <title>` and abort with the singular `Operator decision: select a lifecycle target by stable story slug; no candidate is eligible for PR delivery.` Do not select one merely because only one candidate is IN REVIEW or IN PROGRESS.
+   - If exactly one non-DONE story exists, print it as `diagnostic only: <story-slug> | <Status> | <title>`, apply the state-correct diagnostic routing below, and abort before PR inference. Never call it inferred or resolved PR context.
+   - If no non-DONE story exists, report that no active story was found and require explicit story/initiative correction as the singular operator route.
 3. If multiple stories match the eligible set, list each candidate as `<story-slug> | ✅ DONE | <title>` and abort with: `multiple locally DONE stories are eligible; pass <story> explicitly to disambiguate.`
+
+### DONE-only story qualification and diagnostic routing
+
+Before Pass 3, read the explicitly selected or DONE-inferred workspace and qualify it. A story becomes resolved PR context only after all of these checks pass: it is active/non-archived, has no `blocked.md`, has authoritative `Status: ✅ DONE`, has unambiguous `Plan: 🟢 PLAN APPROVED`, and bounded task/implementation approval evidence does not contradict DONE.
+
+An explicit or diagnostic non-DONE candidate is never resolved PR context and never reaches PR inference. Route it without mutation in this order:
+
+1. `blocked.md` -> one scalar operator action to resolve the blocker and remove the file.
+2. `Status: 🟣 IN REVIEW` -> one fresh, oblivious `/openspec-story-review <initiative> <story-slug>` route even when Plan contradicts it; the wrapper never launches review.
+3. For another non-DONE status, inspect Plan. A safely repairable incomplete scaffold may use the planning Converge wrapper plus Non-looped plan-resume; a structurally reviewable DRAFT/PLAN IN REVIEW lane with no unresolved finding may use the wrapper plus Non-looped plan-review; CHANGES REQUESTED uses plan-resume while findings/repairs remain and plan-review only when fully blended and reviewable. PLAN BLOCKED, malformed/ambiguous/unresolvable Plan, and unknown state remain singular.
+4. With approved Plan, TODO may use the implementation wrapper plus Non-looped claim and IN PROGRESS may use that wrapper plus Non-looped resume. BLOCKED, missing, malformed/ambiguous, and unknown statuses remain singular.
+
+For a DONE candidate, any non-approved, missing, malformed, or ambiguous Plan is a contradictory durable state. Abort with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before PR delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. If Plan is approved but bounded tasks or implementation approval evidence contradicts DONE, route only to a completely fresh, oblivious story-review session. Only a DONE candidate passing these checks is `<resolved_story>`.
 
 ### Pass 3 — PR inference (when `<pr_url_or_OPEN=true>` is empty)
 
-After the story is resolved, decide whether this is an attach (existing PR) or open (new PR) operation. Walk the inference chain in order:
+After the DONE story is resolved, decide whether this is an attach (existing PR) or open (new PR) operation. Walk the inference chain in order:
 
 1. **PR State section.** Read `<progress_file>` and look for a `## PR State` section. If it exists and has a `- PR URL:` line with a non-empty URL, that is the existing PR. Use attach mode in refresh form. Print: `inferred PR (from PR State): <url>`. Skip the rest of the chain.
 
@@ -87,8 +100,8 @@ After the story is resolved, decide whether this is an attach (existing PR) or o
 
 3. **Branch-based PR lookup.**
    - Inside the detected project repo, run `git rev-parse --abbrev-ref HEAD` to get the current branch.
-   - If the branch is the repo's default branch, skip to step 4 (operating directly on `main`/`master` is not how PRs are opened).
-   - Otherwise run `gh pr list --head <branch> --state all --json url,number,headRefName,title,state,mergedAt,mergeCommit,closedAt,reviewDecision,latestReviews` from inside the project repo. Use all states so this helper can discover already merged or closed PRs instead of opening duplicates.
+   - If the branch is the repo's default branch, abort before OPEN mode with the scalar route `Operator action: check out or create and push the story feature branch, then rerun /openspec-pr <initiative> <story-slug> OPEN=true.` Operating directly on `main`/`master` is not how PRs are opened; do not also offer another route.
+   - Otherwise run `gh pr list --head <branch> --state all --json url,number,headRefName,title,state,isDraft,mergedAt,mergeCommit,closedAt,reviewDecision,latestReviews` from inside the project repo. Use all states so this helper can discover already merged or closed PRs instead of opening duplicates.
    - If exactly one PR is returned, print `inferred PR (from current branch <branch>): <url> (state: <state>)` and **ask the user to confirm** before attaching. The branch may legitimately host work unrelated to this story.
      - If the inferred PR is merged, attach/refresh it with the live merged metadata; do not open a duplicate PR.
      - If the inferred PR is closed but not merged, report that closed-unmerged PR and do not silently open a duplicate. Ask whether to attach the closed PR for audit metadata or explicitly proceed with replacement OPEN mode; if the user does not choose replacement OPEN mode, abort without write-back.
@@ -115,16 +128,11 @@ Resolved context:
 
 Print this even when everything was passed explicitly — the printout is the contract the user approves before any PR/body update runs.
 
-### Entry-condition check
+### Entry-condition recheck
 
-Once the story is resolved, abort fast unless its current status is `✅ DONE` and the change workspace is not archived.
+Immediately before any PR/body/progress mutation, re-read the already resolved story and repeat the DONE-only qualification. If it is archived, `blocked.md` appeared, Status is no longer DONE, Plan is no longer unambiguously approved, or bounded completion evidence now conflicts, abort without PR action using the same single diagnostic route above. Never print a resolved-context block whose status is not `✅ DONE`.
 
-Also require:
-
-- `Plan:` header field is `🟢 PLAN APPROVED`. If not, report the current Plan value, state that PR delivery requires plan approval first, take no PR action, and let the operator choose the next lifecycle step.
-- Treat `Status: ✅ DONE` in `<story_file>` as durable local review approval; do not require or read a standalone review file. If the status is not `✅ DONE`, report that durable local review approval is missing, take no PR action, and let the operator choose the next lifecycle step.
-
-Abort for TODO, IN REVIEW, IN PROGRESS, BLOCKED, missing, or unknown implementation status with a lifecycle-state notice, not a route to another command. Do not normalize or mutate `story.md → Status:` from this command.
+Do not normalize or mutate `story.md → Status:` from this command.
 
 ### Known limitations
 
@@ -232,7 +240,7 @@ Do not paste sections verbatim if they contain internal terminology. Rephrase in
 **Attach mode (default)** — a PR URL is provided:
 - The user has already opened the PR
 - Verify the URL is well-formed (`https://github.com/<org>/<repo>/pull/<n>`)
-- Call `gh pr view <PR_URL> --json number,title,headRefName,state,url,body,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` to enrich metadata and read the current body, review decision, merged state, and merge commit.
+- Call `gh pr view <PR_URL> --json number,title,headRefName,state,url,body,isDraft,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` to enrich metadata and read the current body, review decision, merged state, and merge commit.
 - **Update the PR body to the generated product description** via `gh pr edit <PR_URL> --body-file <tmpfile>`
   - If the existing body already contains substantial content authored by the user, show a diff and ask confirmation before overwriting. Offer to prepend/append instead of replacing.
   - If the existing body is empty or auto-generated (e.g. commit messages), replace silently.
@@ -244,9 +252,9 @@ Do not paste sections verbatim if they contain internal terminology. Rephrase in
 - Generate the PR body (see template above) and write it to a tempfile
 - Call `gh pr create --title "<story title>" --body-file <tmpfile>`
 - Capture the returned URL
-- Immediately call `gh pr view <returned-url> --json number,title,headRefName,state,url,body,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` to populate the same durable metadata fields used by attach/refresh mode.
-- If the current branch is the default branch, abort. For a `✅ DONE` story, leave `story.md`, `progress.md`, and `## PR State` untouched.
-- If `gh` fails or is unavailable, abort fast and ask the user to open the PR manually and rerun in attach mode. For a `✅ DONE` story, leave `story.md`, `progress.md`, and `## PR State` untouched.
+- Immediately call `gh pr view <returned-url> --json number,title,headRefName,state,url,body,isDraft,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` to populate the same durable metadata fields used by attach/refresh mode.
+- If the current branch is the default branch, abort with only `Operator action: check out or create and push the story feature branch, then rerun /openspec-pr <initiative> <story-slug> OPEN=true.` For a `✅ DONE` story, leave `story.md`, `progress.md`, and `## PR State` untouched.
+- If `gh` fails or is unavailable, abort with only `Operator action: open the PR manually, then rerun /openspec-pr <initiative> <story-slug> <pr-url> in attach mode.` Include the failure, and for a `✅ DONE` story leave `story.md`, `progress.md`, and `## PR State` untouched.
 
 In both modes, **never** force-push, **never** bypass hooks, **never** rewrite history without explicit user confirmation.
 
@@ -298,13 +306,13 @@ Do not write lifecycle transition language in the timeline. This command records
 
 ### story.md Status header
 
-Never update the `Status:` header field in `<story_file>` from this command. If the entry-condition check no longer sees `Status: ✅ DONE`, abort before writing PR metadata and route to the owning lifecycle command.
+Never update the `Status:` header field in `<story_file>` from this command. If the entry-condition recheck no longer sees `Status: ✅ DONE`, abort before writing PR metadata and apply the non-DONE diagnostic routing above; do not retain or print it as resolved PR context.
 
 ## Refresh existing PR metadata
 
 If `## PR State` already has a PR URL, refresh it:
 
-- Re-query `gh pr view --json number,title,headRefName,state,url,body,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` if available and update `## PR State → PR status`, `Review decision`, `Merge commit`, `Merged at`, and `Last synced`.
+- Re-query `gh pr view --json number,title,headRefName,state,url,body,isDraft,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` if available and update `## PR State → PR status`, `Review decision`, `Merge commit`, `Merged at`, and `Last synced`.
 - If `PR status` is `merged` and both `Merge commit:` and `Merged at:` are populated, report that archive PR evidence is complete.
 - If `PR status` is `merged` but merge commit or merged-at evidence is missing, report the missing durable evidence and tell the user to rerun `/openspec-pr` with `gh` available or provide the missing evidence explicitly before archive.
 - If `PR status` is `changes_requested` or reviewer comments request changes, do not update `story.md → Status:`. Tell the user to run `/openspec-feedback <initiative> --pr <PR URL>` so the feedback can be classified into story rework, planning changes, a follow-up story, initiative decision, or defer/reject.
@@ -335,8 +343,28 @@ State:
 - whether merge evidence is complete for archive
 - that `story.md → Status:` was left unchanged
 - whether `gh` enrichment/body update was used
-- exactly what the user should do next:
-  - wait on PR review
-  - run `/openspec-feedback <initiative> --pr <url>` to absorb PR feedback
-  - rerun `/openspec-pr` with the same PR URL to refresh PR metadata
-  - rerun `/openspec-archive` once local DONE, task, review, and PR/no-PR gates are ready
+- one branch-specific final suggestion selected from the durable/live PR evidence; never list all branches together
+
+End every success or abort response with:
+
+```markdown
+Suggested next action: <scalar route; leave empty only for a lifecycle dual route>
+- Converge wrapper: <command; lifecycle dual routes only>
+- Non-looped pass: <state-correct command; lifecycle dual routes only>
+Choose one; do not run both.
+```
+
+For a scalar route, put its value on the label line and omit the three dual-route lines. Lifecycle entry failures that legitimately offer wrapper/direct routes leave the label empty and render those three lines immediately after it.
+
+For an eligible locally DONE story, select exactly one exhaustive PR route from current durable/live evidence, in precedence order:
+- stale, unavailable, incomplete, or conflicting PR/merge evidence -> `/openspec-pr <initiative> <story-slug> <url>` to refresh the same PR record
+- merged with complete merge commit and merged-at evidence -> `/openspec-archive <initiative> <story-slug>`
+- closed without merge -> `Operator decision: choose whether to reopen the closed PR or explicitly create/attach a replacement PR.`
+- requested changes or actionable reviewer feedback -> `/openspec-feedback <initiative> --pr <url>`
+- open draft (`isDraft: true`) -> `Operator decision: keep the PR in draft or mark it ready for review.`
+- open, non-draft, approved but unmerged -> `Wait: PR approved and awaiting merge.`
+- open, non-draft, clean/no-requested-changes and not yet approved -> `Wait for PR review.`
+
+Also use one scalar route for each open-mode failure: default branch -> check out/create and push the story feature branch, then rerun with `OPEN=true`; `gh` unavailable/create failure -> open manually, then rerun with the explicit PR URL in attach mode; operator declines OPEN with no existing PR -> pass an existing PR URL or explicitly rerun with `OPEN=true`. Do not combine these routes.
+
+`isDraft` refines only the open-PR next-action message; it does not alter PR status authority or `story.md → Status:`. Non-DONE candidates are diagnostic only, never resolved context. DONE with non-approved Plan uses only the operator contradiction-reconciliation action. Entry-condition failures use only the state-dependent routing defined above.

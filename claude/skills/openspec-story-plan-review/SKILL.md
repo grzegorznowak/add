@@ -54,8 +54,9 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
    - If missing in both locations, abort with: `change workspace not found: openspec/changes/<story-slug>/ — run /openspec-story-plan first`.
 7. Set `<story_file>` = `<change_dir>/story.md`.
    - If `<story_file>` does not exist, abort with the exact missing path.
-8. If `<change_dir>/blocked.md` exists, abort with: `blocked.md gate file exists; the operator may edit it to record resolution notes, but must remove it before plan review can continue.`
-9. Use `<story_file>` as the only plan review target. There is no `MASTER.md` in this flow; the `Plan:` header field in `story.md` is the authoritative planning lane and the `## Plan Review Log` section is the review history.
+8. If `<change_dir>/blocked.md` exists, abort with: `blocked.md gate file exists; the operator may edit it to record resolution notes, but must remove it before plan review can continue.` This is a singular operator-action gate; do not offer wrapper/direct choices.
+9. Read authoritative `Status:`. If it is `🟣 IN REVIEW`, abort plan review with only a completely fresh, oblivious `/openspec-story-review <initiative-slug> <story-slug>` route even when Plan contradicts it; note Plan drift for implementation review.
+10. Use `<story_file>` as the only plan review target. There is no `MASTER.md` in this flow; the `Plan:` header field in `story.md` is the authoritative planning lane and the `## Plan Review Log` section is the review history.
 
 ## Read first
 
@@ -75,9 +76,9 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
 
 Before doing the full plan review, abort fast with a concise reason if any of these hold:
 
-- the implementation `Status:` header in `story.md` is `✅ DONE` — say "completed stories are not contract-reviewed in place; route new feedback through `/openspec-feedback` as a candidate or explicit reopen decision"
-- the change workspace has no scaffold marker from `/openspec-story-plan` — say "story was not scaffolded by /openspec-story-plan; plan review assumes that shape. Required artifacts: proposal.md, story.md, design.md, tasks.md"
-- the story file is missing `## Purpose`, `## Acceptance`, or `## Verification` — say which section is missing
+- the implementation `Status:` header in `story.md` is `✅ DONE` — inspect `Plan:` only to detect contradiction. If Plan is anything other than unambiguous `🟢 PLAN APPROVED`, stop with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. If Plan is approved, say "completed stories are not contract-reviewed in place; route new feedback through `/openspec-feedback` as a candidate or explicit reopen decision".
+- the change workspace has no scaffold marker from `/openspec-story-plan` — say "story was not scaffolded by /openspec-story-plan; plan review assumes that shape. Required artifacts: proposal.md, story.md, design.md, tasks.md" and use the singular scalar route `/openspec-story-plan-resume <initiative-slug> <story-slug>`; do not offer the planning Converge wrapper
+- the story file is missing `## Purpose`, `## Acceptance`, or `## Verification` — say which section is missing and use the same singular scalar `/openspec-story-plan-resume <initiative-slug> <story-slug>` route without the planning Converge wrapper
 
 Legacy compatibility: if `## Actors` and/or `## Scenarios / Behavior Examples` are fully absent, do not fail solely for that absence. If either section is present, review it for correctness and consistency with the full plan.
 
@@ -214,10 +215,10 @@ Warnings:
 
 You may update the `Plan:` header field in `story.md` as part of this review. Never change the implementation `Status:` header field on `story.md` from this command.
 
-- `approve` → set `Plan:` to `🟢 PLAN APPROVED`. If implementation `Status:` is `⬜ TODO` or `⚪ TODO`, tell the operator the next action is `/openspec-story-claim <initiative-slug> <story-slug>` from a fresh session. If implementation has already started, tell the operator the next action is `/openspec-story-resume <initiative-slug> <story-slug>` or the appropriate implementation command.
-- `request_changes` → set `Plan:` to `🟠 PLAN CHANGES REQUESTED`. Tell the operator to run `/openspec-story-plan-resume <initiative-slug> <story-slug>` to edit the specific spec sections you named, then re-run `/openspec-story-plan-review <initiative-slug> <story-slug>` from a fresh session. For a ground-up rewrite before implementation starts, recommend deleting the change workspace and re-running `/openspec-story-plan`.
-- `blocked` → set `Plan:` to `⛔ PLAN BLOCKED`. Use this only when the plan is unsalvageable as written and the operator needs to pause on this story (e.g., the plan depends on an upstream story that does not exist, or a `## Locked Decision` directly contradicts the architecture and the plan cannot be minimally amended).
-- `not_reviewable` → set `Plan:` to `🟠 PLAN CHANGES REQUESTED` if missing context can be repaired in the story contract. If missing context cannot be repaired in the story contract, restore the pre-review `Plan:` value from before this command wrote `🟣 PLAN IN REVIEW` and say what context is missing. Never leave the final lane at `🟣 PLAN IN REVIEW` for a completed `not_reviewable` verdict.
+- `approve` → set `Plan:` to `🟢 PLAN APPROVED`. Route from authoritative implementation `Status:`. For `⬜ TODO` or `⚪ TODO`, offer the Converge wrapper `/openspec-story-converge <initiative-slug> <story-slug>` or the Non-looped pass `/openspec-story-claim <initiative-slug> <story-slug>`. For `🔄 IN PROGRESS`, offer the same wrapper or the Non-looped pass `/openspec-story-resume <initiative-slug> <story-slug>`. Tell the operator to choose one and not run both because the wrapper delegates the direct claim/resume passes. For `🟣 IN REVIEW`, give only the fresh oblivious `/openspec-story-review` handoff; for `✅ DONE`, blocked, missing, malformed, or ambiguous state, give only the state-owning route.
+- `request_changes` → set `Plan:` to `🟠 PLAN CHANGES REQUESTED`. Offer the Converge wrapper `/openspec-story-plan-converge <initiative-slug> <story-slug>` or the Non-looped pass `/openspec-story-plan-resume <initiative-slug> <story-slug>` to edit the specific spec sections named; tell the operator to choose one and not run both because the wrapper delegates the direct review/resume passes. After a Non-looped resume, re-check `Plan:` and run a fresh `/openspec-story-plan-review` when reviewable. For a ground-up rewrite before implementation starts, recommend deleting the change workspace and re-running `/openspec-story-plan` as the singular route.
+- `blocked` → set `Plan:` to `⛔ PLAN BLOCKED`. Use this only when the plan is unsalvageable as written and the operator needs to pause on this story (e.g., the plan depends on an upstream story that does not exist, or a `## Locked Decision` directly contradicts the architecture and the plan cannot be minimally amended). Blocked routing is singular; do not offer a wrapper/direct choice.
+- `not_reviewable` → set `Plan:` to `🟠 PLAN CHANGES REQUESTED` if missing context can be repaired in an otherwise reviewable story contract, then offer the same planning wrapper/Non-looped resume choice as `request_changes`. A missing or incomplete scaffold stops before review and gets only the singular `/openspec-story-plan-resume <initiative-slug> <story-slug>` route, never the planning Converge wrapper. If missing context cannot be repaired in the story contract, restore the pre-review `Plan:` value from before this command wrote `🟣 PLAN IN REVIEW` and say what context is missing as the singular route. Never leave the final lane at `🟣 PLAN IN REVIEW` for a completed `not_reviewable` verdict.
 
 **Explicit prohibitions:** never move a story's `Plan:` header into `⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `✅ DONE`, or implementation `⛔ BLOCKED` from this command. Those transitions are owned by `/openspec-story-claim`, `/openspec-story-resume`, and `/openspec-story-review`.
 
@@ -280,8 +281,14 @@ Start with findings, ordered by severity, with section references.
 **Status Transition**
 - [unchanged: <status> -> <status>]
 
-**Next Action**
-- [single concrete next step, e.g. "/openspec-story-claim <initiative-slug> <story-slug>" or "edit <sections> in <story_file> and re-run /openspec-story-plan-review <initiative-slug> <story-slug> from a fresh session"]
+Suggested next action: <scalar route; leave empty only for a dual route>
+- Converge wrapper: <command; dual routes only>
+- Non-looped pass: <state-correct command; dual routes only>
+Choose one; do not run both.
 ```
 
-If there are no findings, say that explicitly.
+For a scalar route, put its value on the label line and omit the three dual-route lines. For a dual route, leave the label empty and render those lines immediately after it. A non-reviewable STOP caused by a missing or incomplete scaffold uses only the scalar `/openspec-story-plan-resume <initiative-slug> <story-slug>` route; never offer `/openspec-story-plan-converge` there. Only for a reviewable scaffold may planning entry/re-entry use a dual route: `🟡 PLAN DRAFT` uses the planning Converge wrapper plus the Non-looped `/openspec-story-plan-review`, while `🟠 PLAN CHANGES REQUESTED` uses the planning Converge wrapper plus the Non-looped `/openspec-story-plan-resume`.
+
+For implementation entry/re-entry, use **Converge wrapper:** `/openspec-story-converge <initiative-slug> <story-slug>` and **Non-looped pass:** TODO -> `/openspec-story-claim`, IN PROGRESS -> `/openspec-story-resume`; say to choose one and not run both because the wrapper delegates direct claim/resume passes.
+
+When Status is IN REVIEW, give only this route: open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>`; the wrapper never launches review. DONE with non-approved Plan uses only the operator action to investigate/reconcile the contradictory durable state and names no lifecycle owner. If there are no findings, say that explicitly.
