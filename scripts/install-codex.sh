@@ -218,9 +218,13 @@ codex_args() {
 }
 
 declare -a UNSUPPORTED_CODEX_SKILLS=(
+  epic_claim
   epic_feedback
+  epic_new_story
   epic_plan
   epic_pr
+  epic_resume
+  epic_review
   epic_squash
   epic_story_claim
   epic_story_converge
@@ -231,21 +235,56 @@ declare -a UNSUPPORTED_CODEX_SKILLS=(
   epic_story_pr
   epic_story_resume
   epic_story_review
+  epic_story_save
   openspec_story_pr
   openspec_epic_plan
 )
 
 frontmatter_name() {
   local file="$1"
+  # Pruning is destructive, so accept only one top-level YAML name key whose
+  # value is a simple scalar. YAML permits whitespace before ':' and quoted
+  # keys; count those spellings together rather than letting the first win.
   awk '
-    NR == 1 && /^---[[:space:]]*$/ { fm = 1; next }
-    NR == 1 { exit }
-    fm && /^---[[:space:]]*$/ { exit }
-    fm && /^name:[[:space:]]*/ {
-      sub(/^name:[[:space:]]*/, "")
-      gsub(/^["'"'"']|["'"'"']$/, "")
-      print
-      exit
+    function trim(value) {
+      sub(/^[[:space:]]+/, "", value)
+      sub(/[[:space:]]+$/, "", value)
+      return value
+    }
+    NR == 1 {
+      if ($0 !~ /^---[[:space:]]*$/) exit 2
+      fm = 1
+      next
+    }
+    fm && /^---[[:space:]]*$/ { closed = 1; exit }
+    fm {
+      line = $0
+      if (line ~ /^[[:space:]]+/) {
+        sub(/^[[:space:]]+/, "", line)
+        if (line ~ /^(name|"name|\047name)([[:space:]:"\047]|$)/) bad = 1
+        next
+      }
+      if (line ~ /^(name|"name"|\047name\047)[[:space:]]*:/) {
+        key = line
+        sub(/:.*/, "", key)
+        key = trim(key)
+        rest = line
+        sub(/^[^:]*:/, "", rest)
+        rest = trim(rest)
+        count++
+        if (rest ~ /^[A-Za-z0-9_-]+$/) value = rest
+        else if (rest ~ /^"[A-Za-z0-9_-]+"$/ || rest ~ /^\047[A-Za-z0-9_-]+\047$/)
+          value = substr(rest, 2, length(rest) - 2)
+        else bad = 1
+        next
+      }
+      # A name-like token with broken quoting/delimiter is not safely
+      # distinguishable from a malformed name key, so fail closed.
+      if (line ~ /^(name|"name|\047name)([[:space:]:"\047]|$)/) bad = 1
+    }
+    END {
+      if (!closed || count != 1 || bad || value == "") exit 2
+      print value
     }
   ' "$file"
 }
@@ -270,7 +309,10 @@ prune_unsupported_codex() {
       continue
     fi
 
-    actual="$(frontmatter_name "$skill_md")"
+    if ! actual="$(frontmatter_name "$skill_md")"; then
+      printf 'warn: skip  %s (frontmatter must contain exactly one well-formed scalar name key matching %s)\n' "$dir" "$name" >&2
+      continue
+    fi
     if [[ "$actual" != "$name" ]]; then
       printf 'warn: skip  %s (frontmatter name is %s, expected %s)\n' "$dir" "${actual:-<missing>}" "$name" >&2
       continue

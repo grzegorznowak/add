@@ -2,7 +2,7 @@
 
 Use Pi runtime tools (`spawn`, `notebook_write`, `notebook_read`, and `notebook_index`) for fresh planning child-agent launches and sourced notebook orientation. Follow the base skill's canonical Plan-lane, notebook-authority, and convergence-routing rules.
 
-After story resolution, use the canonical `<initiative_slug>` and `<story_slug>` in every Pi notebook page name and child prompt.
+After story resolution, use the canonical `<initiative_slug>` and `<story_slug>` in every Pi notebook page name and child prompt. Include the transient resolved `<openspec_root>` as checkout orientation only; each child must re-run the base skill's branch-over-launch root validation before reading or writing, and no child may persist that root in an artifact.
 
 ### Notebook pages
 Maintain two notebook pages for the planning run:
@@ -15,9 +15,12 @@ Launch each base-selected planning pass with `spawn`. Include the owning workflo
 
 ```
 spawn({
-  prompt: "You are executing the openspec-story-plan-<review|resume> workflow for openspec/<initiative_slug>/<story_slug>. Treat this as the pi-native equivalent of /openspec-story-plan-<review|resume> <initiative_slug> <story_slug>.
-  Retrieve notebook pages: 'openspec-plan-research-<initiative_slug>-<story_slug>' (sourced research, verify with direct reads/search) and 'openspec-plan-ops-<initiative_slug>-<story_slug>' (neutral operational notes).
-  Write new sourced research to notebook page 'openspec-plan-research-<initiative_slug>-<story_slug>'. Report blockers, repeated failures, or recurring TAP/proof/spec-section hotspots so the converger can update notebook page 'openspec-plan-ops-<initiative_slug>-<story_slug>'.",
+  prompt: [
+    "You are executing the openspec-story-plan-<review|resume> workflow for openspec/<initiative_slug>/<story_slug>. The parent resolved transient OpenSpec root '<openspec_root>'; use it as checkout orientation only, independently re-run the owning workflow's root validation, and never persist it.",
+    "Retrieve notebook pages: 'openspec-plan-research-<initiative_slug>-<story_slug>' (sourced research, verify with direct reads/search) and 'openspec-plan-ops-<initiative_slug>-<story_slug>' (neutral operational notes).",
+    "Write new sourced research to notebook page 'openspec-plan-research-<initiative_slug>-<story_slug>'. Report blockers, repeated failures, or recurring TAP/proof/spec-section hotspots so the converger can update notebook page 'openspec-plan-ops-<initiative_slug>-<story_slug>'. Execute the selected owning workflow independently. The next array element is the exact final prompt line with no leading whitespace.",
+    "/openspec-story-plan-<review|resume> <initiative_slug> <story_slug>"
+  ].join("\n"),
   thinking: "high"
 })
 ```

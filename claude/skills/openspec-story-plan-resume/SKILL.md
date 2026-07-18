@@ -3,7 +3,7 @@ name: openspec-story-plan-resume
 description: Pick up an OpenSpec change's planning contract — incorporate plan review feedback, complete unfinished spec sections, repair malformed story-plan scaffold anchors, or all three. Leaves implementation status unchanged except narrow TODO scaffold normalization and the Plan lane ready for review.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug>"
-allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*)
+allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash(git worktree:*)
 ---
 
 # OpenSpec Story Plan Resume
@@ -14,7 +14,7 @@ Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug>`. Pass both positiona
 
 ## Important
 
-This command may edit the change workspace's spec sections in `story.md`, the `story.md` file's `## Plan Review Log`, `proposal.md`, `design.md`, `tasks.md`, and delta spec files under `specs/`. It also owns narrow scaffold normalization for malformed story-plan output: add missing `Plan: 🟡 PLAN DRAFT`, add missing `Status: ⚪ TODO`, normalize legacy `Status: ⬜ TODO` to `Status: ⚪ TODO`, and add a missing empty `## Plan Review Log` section. It never touches:
+This command may edit the change workspace's spec sections in `story.md`, the `story.md` file's `## Plan Review Log`, `proposal.md`, `design.md`, `tasks.md`, and delta spec files under `specs/`. It also owns narrow scaffold normalization for malformed story-plan output: add missing `Plan: 🟡 PLAN DRAFT`, add missing `Status: ⚪ TODO`, normalize legacy `Status: ⬜ TODO` to `Status: ⚪ TODO`, and add a missing empty `## Plan Review Log` section. It never backfills a missing legacy `Initiative:` header or persists an `OpenSpec root:` field. It never touches:
 - Source code, tests, configs
 - `story.md` implementation `Status:` header field except the narrow missing/legacy TODO scaffold normalization above; never rewrite active, in-review, done, blocked, blank, or unknown status values
 - Runtime sections in `progress.md` (`## Current Claim`, `## Progress Timeline`, `## Session Handoff`, `## PR State`, `## Unresolved Debt Friction`)
@@ -31,35 +31,37 @@ Plan resume must come from an explicit operator choice. Auto-inferring resumes p
 
 1. Parse `$ARGUMENTS` into `<initiative-slug>` and `<story-slug>` (both positional, in that order).
 2. Validate both slugs before resolving paths. Each must match `^[a-z0-9]+(?:-[a-z0-9]+)*$`; if either fails, abort with: `invalid slug; use lowercase hyphenated slug characters only`.
-3. Set `<workspace_root>` = `<cwd>`.
-4. Resolve `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative-slug>`.
-   - If `<initiative_dir>` does not exist, abort with: `initiative not found: openspec/initiatives/<initiative-slug>/ — run /openspec-initiative-plan first`.
-5. Read `<initiative_dir>/initiative.md` for context.
-6. Resolve `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>/`.
-   - If `<change_dir>` does not exist, check `<workspace_root>/openspec/changes/archive/<story-slug>/`.
-   - If archived, abort with: `story is archived under openspec/changes/archive/; move it back to openspec/changes/ first`.
-   - If missing in both locations, abort with: `change workspace not found: openspec/changes/<story-slug>/ — run /openspec-story-plan first`.
-7. Resolve `<story_file>` = `<change_dir>/story.md`.
-   - If the file does not exist, abort with the exact missing path.
-8. Check for `<change_dir>/blocked.md` before any lifecycle choice. If it exists, abort with the singular operator action to resolve the blocker and remove the file; do not offer wrapper/direct choices.
-9. Derive the implementation lifecycle status from the `Status:` header field in `<story_file>` and note whether scaffold normalization is needed.
+3. Set `<workspace_root>` = `<cwd>` and `<openspec_root>` = `<workspace_root>`. `<workspace_root>` remains the worktree-discovery base; `<openspec_root>` is a transient artifact anchor only and is never written to an artifact.
+4. Before lifecycle checks, run `git worktree list --porcelain` from `<workspace_root>`. This planning command accepts no `WORKTREE=` selector, so inspect registered worktrees other than `<workspace_root>` on `refs/heads/<initiative-slug>/<story-slug>` and require both `openspec/initiatives/<initiative-slug>/initiative.md` and `openspec/changes/<story-slug>/story.md`. Exactly one qualifying branch worktree outranks launch even when launch has stale matching artifacts; multiple qualifying branch worktrees halt for operator selection. Only when no branch worktree qualifies, fall back to `<workspace_root>` and require both artifacts there. Ignore unrelated/non-branch worktree copies and never pick an arbitrary matching root. Recompute all artifact paths from `<openspec_root>`.
+5. Resolve `<initiative_dir>` = `<openspec_root>/openspec/initiatives/<initiative-slug>` and `<initiative_file>` = `<initiative_dir>/initiative.md`.
+   - If either is missing, abort with the exact missing path and the `/openspec-initiative-plan` recovery.
+6. Resolve `<change_dir>` = `<openspec_root>/openspec/changes/<story-slug>/`.
+   - If absent, check `<openspec_root>/openspec/changes/archive/<story-slug>/`; if archived, halt and require moving it back first.
+   - If absent from both after worktree discovery, first rule out relocation, then abort with the singular creation route `/openspec-story-plan INITIATIVE=<initiative-slug>`. Plan resume repairs existing workspaces only; it never creates a missing story workspace.
+7. Resolve `<story_file>` = `<change_dir>/story.md`. If it is missing, halt with the exact path and require the operator to restore `story.md` from version control or backup; do not create a replacement contract inside an already-colliding workspace.
+8. Validate the durable initiative binding before lifecycle choices or edits:
+   - Inventory the complete top-level header region before the first `## ` heading for every unindented `Initiative` or Initiative-like field line. Exactly one present line is valid only when its whole line matches `^Initiative: ([a-z0-9]+(?:-[a-z0-9]+)*)$`. Duplicate canonical headers, an empty value, whitespace before the colon (for example `Initiative : foo`), a non-canonical value, or any other malformed Initiative-like line halts without editing and reports every offending line. Never reinterpret malformed present input as zero-header legacy.
+   - The one valid header must equal `<initiative-slug>`. On an Initiative mismatch, halt and report both values; do not proceed.
+   - This command's two required positional slugs are an operator-explicit initiative+story pair. Only zero Initiative or Initiative-like lines is legacy. For that case, scan active `<openspec_root>/openspec/initiatives/*/initiative.md` files for exact `<story-slug>` associations in `## Story Candidates`. With no associations, the explicit pair may target the legacy story because the selected initiative file exists. With candidate evidence, continue only when exactly one association exists and it equals `<initiative-slug>`; a different or multiple association conflicts and halts. Print a compatibility warning and never backfill the header. An auto-defaulted or menu-selected initiative alone would not authorize this zero-reference fallback.
+9. Check for `<change_dir>/blocked.md` before any lifecycle choice. If it exists, abort with the singular operator action to resolve the blocker and remove the file; do not offer wrapper/direct choices.
+10. Derive the implementation lifecycle status from the `Status:` header field in `<story_file>` and note whether scaffold normalization is needed.
    - If the `Status:` header field is missing, queue scaffold normalization to add `Status: ⚪ TODO`.
    - If it is exactly `⬜ TODO`, queue scaffold normalization to replace it with `⚪ TODO`.
    - If it is `🟣 IN REVIEW`, abort with only a completely fresh, oblivious `/openspec-story-review <initiative-slug> <story-slug>` route even when Plan contradicts it; note Plan drift for review.
-   - If it is `✅ DONE`, inspect the durable `Plan:` value only to detect contradiction, not to enter planning. If Plan is anything other than unambiguous `🟢 PLAN APPROVED`, abort with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. If Plan is approved but bounded task/evidence state contradicts DONE, route only to a completely fresh, oblivious `/openspec-story-review`; otherwise route new feedback through `/openspec-feedback` as a candidate, initiative-level decision, defer/reject entry, or explicit lifecycle reopen decision.
+   - If it is `✅ DONE`, inventory all `<change_dir>/progress.md → ## Implementation Review Receipt` headings. When any receipt is present, require exactly one section/body with every canonical required field exactly once, `Decision: APPROVE`, `Approval gate: PASS`, and a `Status transition` ending in `✅ DONE`; duplicate, truncated, malformed, contradictory, stale, or non-approving content routes only to `Open a completely fresh, oblivious session and run /openspec-story-review <initiative-slug> <story-slug>.` Receipt absence is legacy compatibility only for a true unbound pre-v3 story with zero Initiative or Initiative-like header lines and zero receipt sections: warn and do not synthesize one. A bound modern DONE story without a receipt routes to the same fresh oblivious review, never legacy compatibility. After that receipt gate, inspect the durable `Plan:` value only to detect contradiction, not to enter planning. If Plan is anything other than unambiguous `🟢 PLAN APPROVED`, abort with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. If the receipt qualifies but bounded task/evidence state contradicts DONE, use that same executable fresh-review route; otherwise route new feedback through `/openspec-feedback` as a candidate, initiative-level decision, defer/reject entry, or explicit lifecycle reopen decision.
    - If it is any active, blocked, blank, or unknown value, do not rewrite it during scaffold normalization.
-10. Derive the planning lane from the `Plan:` header field in `<story_file>` and note whether scaffold normalization is needed.
+11. Derive the planning lane from the `Plan:` header field in `<story_file>` and note whether scaffold normalization is needed.
    - If the `Plan:` header field is missing, queue scaffold normalization to add `Plan: 🟡 PLAN DRAFT`; use `🟡 PLAN DRAFT` as the effective planning lane for this resume pass.
    - If `## Plan Review Log` is missing, queue scaffold normalization to add an empty `## Plan Review Log` section.
-11. If the planning lane is `🟢 PLAN APPROVED`, every required spec section is structurally complete, and no scaffold normalization is queued, abort: "this story's plan is already approved; no plan-resume work is needed."
-12. If the planning lane is `⛔ PLAN BLOCKED`, abort: "this story's plan is blocked; the operator must decide how to unblock before plan-resume can continue."
+12. If the planning lane is `🟢 PLAN APPROVED`, every required spec section is structurally complete, and no scaffold normalization is queued, abort: "this story's plan is already approved; no plan-resume work is needed."
+13. If the planning lane is `⛔ PLAN BLOCKED`, abort: "this story's plan is blocked; the operator must decide how to unblock before plan-resume can continue."
 
 ## Plan readiness check
 
 Before entering the assessment, abort fast if:
 
 - The `story.md` file contains a `## Session Handoff` equivalent section (in a runtime section it shouldn't contain; the canonical session handoff is in `progress.md`) while the implementation `Status:` header is still `⚪ TODO` — say "this story file appears to contain session handoff state but its status is ⚪ TODO. This suggests implementation work may have been started and interrupted. Fix the implementation status or remove the stale runtime section before plan-resume."
-- The change workspace has no scaffold marker from `/openspec-story-plan` — say "this change workspace was not scaffolded by /openspec-story-plan; cannot resume planning. Required artifacts: proposal.md, story.md, design.md, tasks.md."
+- The existing workspace's `story.md` has no recognizable story spec sections and the support artifacts cannot provide a repair basis — stop with the singular operator action to restore the planning artifacts from version control/backup or remove the invalid workspace before rerunning `/openspec-story-plan INITIATIVE=<initiative-slug>`. Missing `Plan:`, missing `Status:`, legacy `Status: ⬜ TODO`, missing `## Plan Review Log`, or missing support artifacts with a recognizable story contract remain repairable here.
 - The story file has no repairable planning work and no scaffold normalization queued while the planning lane is `🟢 PLAN APPROVED` — say "this story is fully planned and approved; no plan-resume work is needed."
 
 Runtime sections do not block this command. When runtime artifacts exist (`progress.md`), operate in **contract rework mode**: edit only planning spec sections, `## Plan Review Log`, and narrow story scaffold normalization in `story.md`; never edit `progress.md`, source, tests, PR tracking, or implementation `Status:` beyond adding a missing `⚪ TODO` status or normalizing legacy `⬜ TODO` to `⚪ TODO`.

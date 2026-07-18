@@ -70,9 +70,13 @@ agent_selected() {
 }
 
 declare -a UNSUPPORTED_SKILLS=(
+  epic-claim
   epic-feedback
+  epic-new-story
   epic-plan
   epic-pr
+  epic-resume
+  epic-review
   epic-squash
   epic-story-claim
   epic-story-converge
@@ -83,6 +87,7 @@ declare -a UNSUPPORTED_SKILLS=(
   epic-story-pr
   epic-story-resume
   epic-story-review
+  epic-story-save
   openspec-story-pr
   openspec-epic-plan
 )

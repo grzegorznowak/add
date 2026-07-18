@@ -25,6 +25,36 @@ Slug rules for initiatives and stories: lowercase letters, digits, and single
 hyphens only (`^[a-z0-9]+(?:-[a-z0-9]+)*$`). Commands must validate slugs before
 constructing paths from operator input, feedback, URLs, or inferred text.
 
+`<openspec_root>` is an invocation-local resolver variable, not a durable field.
+For commands that accept `WORKTREE=`, inspect explicit values first: exactly one
+value containing both the selected initiative and story artifacts is
+operator-authoritative, while several qualifying explicit values halt. If none
+qualifies, inspect registered worktrees on
+`refs/heads/<initiative>/<story>`: exactly one qualifying branch worktree wins
+even when the launch checkout has a matching, possibly stale copy; several
+qualifying branch worktrees halt. Use the launch checkout only when no such
+branch candidate exists and the launch checkout contains the pair. Recompute
+all coordination paths after selection and never merge evidence across roots.
+
+A feedback batch separately resolves one root containing the selected initiative
+and every targeted active story before acknowledgement or writes; every item
+and receipt uses that root's one initiative ledger. For an initiative-only batch,
+a unique explicit qualifying checkout wins; otherwise exactly one registered
+worktree on `refs/heads/<initiative>/*` containing the initiative wins over the
+launch checkout. Multiple qualifying explicit or initiative-branch worktrees
+halt; launch is fallback only when no branch qualifies and it contains the
+initiative. No qualifying root also halts. A batch never splits ledgers. Never
+persist an `OpenSpec root:` or other absolute artifact-root field in
+`initiative.md`, `story.md`, `progress.md`, `blocked.md`, or a receipt. Per-repo worktree paths in
+`progress.md → ## Current Claim` remain execution bindings, not artifact
+authority.
+
+Archive discovery follows the same unique active-root preference, but the
+rootless `/opsx:archive` adapter redesign is deferred. When archive discovers
+that the active pair is outside its launch checkout, it halts and tells the
+operator to rerun `/openspec-archive` from that active checkout; it does not
+mutate a remote root.
+
 ## `initiative.md`
 
 Created by `/openspec-initiative-plan`. Minimum shape:
@@ -47,10 +77,49 @@ source_of_truth: internal | external
 - <label>: <url>
 ```
 
-Operational sections are created on first use by `/openspec-feedback`:
+Operational sections are created on first use by `/openspec-feedback`; initial
+initiative planning does not seed them:
 
 - `## Feedback-Derived Story Candidates`
 - `## Feedback-Derived Decisions`
+- `## Feedback Receipts`
+
+`## Feedback Receipts` is the portable append-only deduplication and routing
+ledger. Every acknowledged disposition, including defer/reject, gets exactly
+one compact entry keyed by deterministic `Source ID` plus `Source hash`. GitHub
+objects use their stable object identity. For a manual/file item, decode valid
+UTF-8, convert CRLF to LF, trim only outer Unicode whitespace, preserve all
+remaining content, and hash the complete normalized UTF-8 bytes with SHA-256
+(no added delimiter or terminal LF). Both `Source hash` and
+`Source ID: manual:sha256:<full-hex>` use that full content hash—never an ordinal,
+path, label, timestamp, truncation, or runtime value. Identical normalized
+content intentionally deduplicates to one identity regardless of input order:
+
+```md
+## Feedback Receipts
+
+### FB-### — <short summary>
+- Source ID: <stable source id>
+- Source hash: sha256:<hex>
+- Disposition: <queue-planning-feedback | amend-existing-story | resume-current-story | new-story-candidate | initiative-level-decision | defer-or-reject>
+- Target: <story:<story-slug> | candidate:<initiative>/feedback:<FB-###> | initiative:<initiative>>
+- Acknowledged reason / rationale: <why the operator accepted this routing>
+- Changed artifacts: <OpenSpec-relative paths; receipt-only for defer/reject>
+- Next owner: <owning command, operator action, wait, or None>
+```
+
+Only `/openspec-feedback` creates or appends this section. One invocation reads,
+allocates IDs from, deduplicates against, and writes exactly one selected
+initiative ledger, even when the batch targets several stories. With no story
+target, it resolves the unique active initiative worktree using the explicit,
+initiative-branch-over-launch precedence before touching the ledger; ambiguity
+halts. For each item, feedback applies its acknowledged owned edits before publishing the receipt. An
+interruption therefore cannot advertise unapplied edits: a retry reuses the
+same deterministic source identity, does not repeat an already completed owned
+edit, and may append the one missing receipt after acknowledgement. Notebook
+mirrors may be used for orientation when a runtime supports them, but the
+workflow never requires or invokes notebook APIs; mirrors never replace this
+ledger or participate in deduplication/lifecycle authority.
 
 External resources are links or anchors. Do not paste long ticket, PR, or design
 bodies into the initiative file.
@@ -63,19 +132,28 @@ bodies into the initiative file.
 ### `proposal.md`
 
 OpenSpec proposal for the change: why the change exists, what behavior/specs it
-will affect, and the high-level scope.
+will affect, and the high-level scope. Created by `/openspec-story-plan` and
+repaired or completed by `/openspec-story-plan-resume`.
 
 ### `story.md`
 
-The story is the operator/reviewer contract. The header contains both lifecycle
-lanes:
+The story is the operator/reviewer contract. Every new story has exactly one
+initiative binding and both lifecycle fields as top-level header fields, never
+`##` sections:
 
 ```md
 # <Story Title>
 
 Plan: 🟡 PLAN DRAFT
 Status: ⚪ TODO
+Initiative: <initiative-slug>
 ```
+
+`Initiative:` must match `^[a-z0-9]+(?:-[a-z0-9]+)*$` and the selected existing
+`openspec/initiatives/<initiative-slug>/initiative.md`. `Status:` is the only
+canonical implementation-status header; an `## Status` section is not an
+equivalent. `## Acceptance` is the canonical contract heading; do not rename it
+`## Acceptance Criteria`.
 
 The planning body should contain these sections when applicable:
 
@@ -96,12 +174,69 @@ The planning body should contain these sections when applicable:
 | `## Locked Decisions` | Decisions made during planning and rejected alternatives. |
 | `## Plan Review Log` | Seeded as an empty section by the story template and `/openspec-story-plan`; entries are created/appended only by plan review, planning feedback, or plan-resume addressed-entry repair. |
 
-Legacy or malformed stories missing `Plan:`, `Status:`, or the empty `## Plan Review Log`
-anchor are normalized by `/openspec-story-plan-resume`; it may add missing
-`Plan: 🟡 PLAN DRAFT`, add missing `Status: ⚪ TODO`, normalize exact legacy
-`Status: ⬜ TODO` to `Status: ⚪ TODO`, and add the empty log section, but it
-must not rewrite active, in-review, done, blocked, blank, or unknown status
-values.
+The valid top-level `Initiative:` header is authoritative for story discovery,
+menus, and routing. Parsers inventory the full top-level header region before
+consuming a value. Legacy absence means zero unindented `Initiative` or
+Initiative-like field lines. Exactly one whole-line canonical header is valid;
+duplicates, `Initiative :`, an empty value, a non-canonical value, or any other
+present malformed Initiative-like field halt. A malformed present line never
+counts as absence. Commands enumerate active change workspaces by the exact
+binding; `initiative.md → ## Story Candidates` is not the primary index for new
+stories.
+
+Legacy stories without an `Initiative:` header are compatibility inputs, not a
+second schema—but only when the inventory also contains zero Initiative-like
+lines. The inventory count must be zero; a malformed present field never counts
+as absence. Use one bounded rule everywhere. Accept an absent binding only when
+either:
+
+1. the operator explicitly supplies or selects the initiative **and the story as
+   a pair**, the initiative exists, and no exact `## Story Candidates` evidence
+   associates that story with a different or multiple initiatives; or
+2. discovery finds exactly one initiative whose `## Story Candidates` section
+   exactly associates the story slug, and that existing initiative becomes the
+   resolved binding.
+
+An auto-defaulted initiative or an initiative-only menu choice is not an
+operator-explicit initiative/story pair. Until the story is also explicitly
+selected, a zero-association legacy story cannot use that fallback; discovery
+requires the unique exact association in rule 2. Every accepted legacy case
+warns that the durable binding is absent, and no discovery, routing, review,
+claim, resume, feedback, PR, or archive command backfills it.
+
+Duplicate top-level `Initiative:` headers—or one empty, malformed, or mismatched
+Initiative-like field—are hard conflicts, never legacy input. Presence is decided
+before validity, so malformed syntax cannot fall through to the zero-line legacy
+case. A different or multiple exact candidate association is conflicting evidence
+and halts. Zero candidate evidence also halts whenever neither an explicit pair
+nor rule 2 applies. Never guess from general prose.
+
+Legacy or malformed stories missing `Plan:`, `Status:`, or the empty
+`## Plan Review Log` anchor are normalized by `/openspec-story-plan-resume`; it
+may add missing `Plan: 🟡 PLAN DRAFT`, add missing `Status: ⚪ TODO`, normalize
+exact legacy `Status: ⬜ TODO` to `Status: ⚪ TODO`, and add the empty log
+section, but it must not rewrite active, in-review, done, blocked, blank, or
+unknown status values. `/openspec-story-claim` owns the ready TODO-to-IN-PROGRESS
+Status write. `/openspec-story-resume` owns authorized implementation continuation
+Status writes, including return to IN REVIEW. `/openspec-feedback` owns only an
+acknowledged reopen to IN PROGRESS, and `/openspec-story-review` owns completed
+review verdict Status writes.
+
+#### Prerequisite qualification
+
+Resolve an active prerequisite before an archived fallback; an existing active
+copy always wins. It must have exactly one unambiguous `Status: ✅ DONE` and no
+sibling `blocked.md`. A modern, bound prerequisite additionally requires exactly
+one well-formed current receipt: every required receipt field occurs exactly
+once, Decision is APPROVE, Approval gate is PASS, Status transition ends in
+`✅ DONE`, and no later authorized reopen/resume/unblock/proof evidence
+contradicts it. Prerequisite qualification deliberately does **not** recompute
+`review-identity-v1`; implementation identity is a delivery/archive gate, not a
+dependency gate. Any present receipt on an unbound story must pass the same
+current-receipt checks. Only an unbound pre-v3 DONE prerequisite with zero
+Initiative or Initiative-like lines and zero receipt sections may pass through
+the bounded legacy rule, always with a compatibility warning and never a
+backfill.
 
 #### Actors
 
@@ -142,21 +277,29 @@ Rules:
 ### `design.md`
 
 Use `design.md` for design context, UI/UX sources, architecture notes, and
-traceability that would bloat `story.md`. If a design source is normative, the
-story/design pair must include durable anchors and a trace from source elements
-to Scenario, Acceptance, and Verification proof.
+traceability that would bloat `story.md`. It is created by
+`/openspec-story-plan`, repaired/completed by `/openspec-story-plan-resume`, and
+may receive acknowledged contract-changing edits from `/openspec-feedback`. If
+a design source is normative, the story/design pair must include durable anchors
+and a trace from source elements to Scenario, Acceptance, and Verification proof.
 
 ### `tasks.md`
 
-Tasks are the execution checklist. `/openspec-story-review` and
-`/openspec-archive` expect completed in-scope tasks before approval/archive.
-Keep tasks tied to acceptance/proof rather than generic activity.
+Tasks are the execution checklist. They are created by `/openspec-story-plan`,
+repaired/completed by `/openspec-story-plan-resume`, maintained during
+implementation by `/openspec-story-claim` and `/openspec-story-resume`, and may
+receive acknowledged task/proof-alignment edits from `/openspec-feedback`.
+`/openspec-story-review` and `/openspec-archive` expect completed in-scope tasks
+before approval/archive. Keep tasks tied to acceptance/proof rather than generic
+activity.
 
 ### `specs/**/*.md`
 
-Delta specs follow OpenSpec conventions for the project. `/openspec-archive`
-delegates spec synchronization and the workspace move to OpenSpec's built-in
-`/opsx:archive <story-slug>` command after completion gates pass.
+Delta specs follow OpenSpec conventions for the project. They are created by
+`/openspec-story-plan` and repaired/completed by
+`/openspec-story-plan-resume`. `/openspec-archive` delegates spec synchronization
+and the workspace move to OpenSpec's built-in `/opsx:archive <story-slug>`
+command after completion gates pass.
 
 ## Verification contract
 
@@ -345,22 +488,121 @@ Where to write it:
   `## Locked Decisions` as appropriate;
 - plan review: `story.md → ## Plan Review Log`;
 - implementation: `progress.md → ## Progress Timeline`;
-- implementation review: updates `story.md` Status header (notebook optional).
+- implementation review: for BLOCKED, creates/updates `blocked.md` first; then
+  publishes the single current `progress.md → ## Implementation Review Receipt`
+  and its transition entry together in one validated `progress.md` write; then
+  writes top-level `story.md → Status:` last and performs no later writes.
 
 ## Runtime artifacts
 
 ### `progress.md`
 
-Created by `/openspec-story-claim` or `/openspec-story-resume`. Standard
-sections:
+Created on the first runtime write, normally by `/openspec-story-claim` or
+`/openspec-story-resume`; `/openspec-story-review` may create the minimal review
+receipt section when progress is otherwise absent. Standard sections:
 
 - `## Current Claim` — current implementation owner, scope, write surfaces,
   worktree bindings, and status.
-- `## Progress Timeline` — concise timestamped milestones, red-first evidence,
-  proof updates, replanning checkpoints, Debt Friction, and PR metadata updates.
+- `## Progress Timeline` — append-only concise timestamped milestones,
+  red-first evidence, proof updates, Debt Friction, review status transitions,
+  and PR metadata updates. It is written by `/openspec-story-claim`,
+  `/openspec-story-resume`, `/openspec-story-review`, and `/openspec-pr`.
+  `/openspec-feedback` appends an FB-tagged absorption checkpoint for every
+  acknowledged `amend-existing-story` or `resume-current-story` mutation;
+  direct amendments, status-only reopens, unchanged Status, and unchanged
+  contract sections are not exceptions (record unchanged fields as `none`).
+- `## Implementation Review Receipt` — exactly one heading and one compact
+  current completed-verdict body, written only by `/openspec-story-review`. Its
+  body records Reviewed at, Decision, Approval gate, Status transition, Evidence
+  reviewed, Identity method, Identity digest, Identity bases, Identity paths,
+  Findings, Proof, and Next owner. Review replaces that body rather than
+  appending receipt history; the timeline carries history.
 - `## Session Handoff` — latest exit state and next action for a fresh session.
 - `## PR State` — sole durable PR metadata/evidence location, owned by
-  `/openspec-pr`; it does not own implementation status transitions.
+  `/openspec-pr`; in addition to PR metadata it records the implementation digest
+  verified by PR and its verification timestamp. It does not own implementation
+  status transitions.
+
+`story.md → Status:` controls all non-DONE routing. An earlier receipt may remain
+as historical evidence after an authorized claim/resume/feedback write changes
+Status away from DONE; it is superseded for routing until the next completed
+review replaces it. For `Status: ✅ DONE`, a present receipt must be exactly one
+well-formed current body with `Decision: APPROVE`, `Approval gate: PASS`, a DONE
+transition, and the complete `review-identity-v1` fields. Duplicate
+headings/bodies, malformed fields, REQUEST CHANGES/BLOCKED/FAIL, stale or
+contradictory evidence block delivery/archive. A bound story with exactly one
+valid `Initiative:` header must have that receipt; planning readers and writers
+apply this same bound-DONE rule and must not treat a missing receipt as legacy.
+The only no-receipt compatibility case is an unbound pre-v3 DONE story—zero
+Initiative or Initiative-like lines and zero receipt sections—accepted by the
+bounded legacy binding rule, with a warning and no synthetic backfill.
+
+The canonical implementation identity is the story-scoped
+`review-identity-v1` manifest. The receipt stores its method and digest plus two
+compact UTF-8 JSON arrays: `Identity bases` is an array of
+`{"repo":"<basename>","base":"<review-base>"}` objects sorted by the UTF-8
+bytes of `repo`; `Identity paths` is an array of
+`{"repo":"<basename>","path":"<relative-path>"}` objects sorted by the UTF-8
+bytes of `repo`, then `path`. Emit standard JSON string escaping and no
+insignificant whitespace; use `[]` for an empty list. Each repository basename
+and each `(repo,path)` pair occurs exactly once. `base` is the full immutable Git
+commit object ID used to delimit that repository's story scope; paths are
+resolved relative to the repository root. `Evidence reviewed` stores proof
+context, not an alternative identity.
+
+For each listed path, emit exactly one UTF-8 row with four fields and no header:
+
+```text
+<repo>\t<path>\t<type>\t<lowercase-64-hex-sha256>\n
+```
+
+`repo` is the receipt's repository basename and `path` is the `/`-separated path
+relative to that repository's root. `type` is exactly one of
+`file`, `executable`, `symlink`, or `deleted`; unsupported special files prevent
+a completed verdict. The row digest is SHA-256 of the exact reviewed file bytes,
+the link-target bytes for `symlink`, or the zero-byte string for `deleted`.
+Repository names and paths containing TAB, LF, or CR are invalid and prevent a
+completed verdict. Encode all rows as UTF-8, sort the complete encoded row bytes
+bytewise, concatenate
+them without a header or extra separators, require LF termination on every row,
+and SHA-256 that exact byte sequence. The empty path list hashes the zero-byte
+manifest. Record the result as `Identity digest: sha256:<lowercase-hex>`.
+
+The path list is the exact story-scoped implementation/config/test/runtime set
+reviewed across the recorded bases, including relevant tracked, modified,
+deleted, type-changed, and non-ignored untracked paths. It excludes VCS metadata
+and the selected story's review-owned coordination files themselves:
+`story.md`, `progress.md`, and `blocked.md`. It does not broadly exclude
+`openspec/`, unrelated story-authored contract/proof files, or a selected source
+path merely because it is dirty/untracked. Because those three coordination
+files are outside the identity, BLOCKED publication and the one receipt/timeline
+progress write followed by Status-last do not change the digest.
+
+PR resolves the recorded bases and paths, recomputes `review-identity-v1`, and
+requires an exact receipt-digest match **before any PR, PR-body, or progress
+write**. The same PR write records `Verified implementation digest` and
+`Verified at` in `## PR State`. For a merged PR, archive trusts that durable PR
+verification only when its verified digest exactly equals the current receipt
+digest and the PR evidence is current/merged; archive does not recompute in that
+route. Archive recomputes the manifest only for the explicit no-PR route, before
+archive writes/delegation.
+
+Review builds and validates the completed verdict in memory. For BLOCKED it
+writes `blocked.md` first. It then writes the normalized receipt and required
+concise timeline transition together in the same validated `progress.md` write,
+re-reads that result, and writes top-level Status last. It performs no later
+writes—not to the timeline, receipt, blocker, notebook, or any other artifact.
+A receipt/progress failure therefore cannot advertise DONE/BLOCKED; a Status
+failure leaves contradictory durable evidence that fails closed and must be
+reported for repair. Pre-verdict/NOT REVIEWABLE aborts write none of these.
+
+A malformed or duplicated receipt section blocks DONE qualification, PR, and
+archive, but it need not remain permanently malformed. When the story otherwise
+qualifies for a fresh oblivious review, that review performs the full substantive
+assessment, carries forward each recoverable concern, and replaces the malformed
+or duplicate receipt span with exactly one well-formed current body before
+writing Status last. It must not select a "latest" old body, synthesize an
+approval without review, or run a receipt-only cleanup pass.
 
 `## Current Claim` uses plural worktree bindings when needed:
 
@@ -382,18 +624,24 @@ compatibility.
 
 ### `blocked.md`
 
-Existence means the story is blocked. Commands should halt on the file, report
-its contents, and avoid treating stale status text as a blocker after the file
-has been removed. A resolved blocker may leave historical notes in
-`progress.md`; the hard gate is the file.
+Existence means the story is blocked. `/openspec-story-claim`,
+`/openspec-story-resume`, and `/openspec-story-review` may create or update it;
+review must do so before writing top-level `Status: ⛔ BLOCKED`. Commands halt
+on the file and report its contents. After the operator removes it,
+`/openspec-story-resume` may normalize stale blocked status and record history
+in `progress.md`; the hard gate is the file.
 
 ## Argument and selection rules
 
 - Creation, review, feedback, and converger commands require operator-explicit
-  targets through arguments or menus. A menu is an explicit choice, not silent
-  inference.
+  targets through arguments or menus. A menu choice is explicit for the value it
+  selects, but an initiative-only menu choice or auto-default is not an explicit
+  initiative/story pair for the missing-`Initiative:` legacy fallback.
+- Story discovery and menus enumerate active workspaces by their valid exact
+  top-level `Initiative:` binding. They consult exact `## Story Candidates`
+  references only for the bounded missing-header legacy rule above.
 - Claim/resume/PR commands may discover eligible work when that is their job,
-  but explicit arguments always win.
+  but explicit arguments always win and do not override a conflicting binding.
 - Loopers (`/openspec-story-plan-converge`, `/openspec-story-converge`) target
   exactly one operator-selected story and delegate normal writes to lifecycle
   commands. Implementation convergence delegates only claim/resume passes and
@@ -468,7 +716,19 @@ summaries, operational notes, or prior chat context.
   disposition.
 - Treat an unmerged PR as authority to reopen or downgrade a locally DONE story;
   route actionable PR feedback through `/openspec-feedback` for classification.
-- Archive a story with `blocked.md`, incomplete tasks, missing review approval,
-  or unresolved PR/no-PR evidence.
+- Let an old receipt override an authoritative non-DONE Status; authorized later
+  work may supersede that receipt until the next completed review replaces it.
+- Archive or deliver a DONE story when its receipt is missing for a bound story,
+  duplicated, non-approving, malformed, identity-unverified for the applicable
+  PR/no-PR route, or otherwise contradicts current evidence. Only an unbound
+  pre-v3 DONE with no receipt gets compatibility when every other gate passes;
+  warn and never invent a receipt.
+- Accept a modern prerequisite that has `blocked.md` or a missing, malformed,
+  superseded, contradictory, or non-approving current receipt. Prerequisite
+  readers validate current receipt authority but do not recompute identity. An
+  unbound pre-v3 DONE may satisfy the gate only with the same explicit
+  compatibility warning.
+- Archive a story with `blocked.md`, incomplete tasks, missing valid review
+  approval (subject to that pre-v3 exception), or unresolved PR/no-PR evidence.
 - Treat notebook pages, chat summaries, or old handoffs as stronger authority
   than current OpenSpec artifacts and live repo evidence.

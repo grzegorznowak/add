@@ -3,7 +3,7 @@ name: openspec-initiative-plan
 description: Interview-driven OpenSpec initiative planning — creates openspec/initiatives/<slug>/initiative.md with goal, context, story candidates, decisions, constraints, and external resources. Use when starting a new body of work that needs an OpenSpec-backed initiative before any change workspaces can be drafted.
 disable-model-invocation: true
 argument-hint: '[SLUG="<slug>"]'
-allowed-tools: Read Grep Glob Write Bash(git status:*) Bash(git log:*)
+allowed-tools: Read Grep Glob Write Bash(mkdir -p:*) Bash(git status:*) Bash(git log:*)
 ---
 
 # OpenSpec Initiative Plan
@@ -51,7 +51,7 @@ Walk the operator through each section below in order. For every question:
 (Skip if `SLUG` was passed as an argument — validate it against the slug rule below, then use it as the slug and confirm the human title in the drafting step.)
 
 Ask for:
-- A short hyphenated slug (directory name) — e.g. `auth-service`, `telemetry-v2`. Must match `[a-z0-9][a-z0-9-]+` — reject slugs with path separators (`/`, `..`), spaces, or non-slug characters.
+- A short hyphenated slug (directory name) — e.g. `auth-service`, `telemetry-v2`. It must match the canonical slug regex `^[a-z0-9]+(?:-[a-z0-9]+)*$` — reject leading/trailing or repeated hyphens, path separators (`/`, `..`), spaces, and non-slug characters.
 - A human-readable title — e.g. "Auth service refactor", "Telemetry v2 pipeline".
 
 Probe existing initiatives for collisions. If the proposed slug matches an existing one, push back.
@@ -105,7 +105,7 @@ source_of_truth: <internal | external>
 - <optional label>: <url>
 ```
 
-Do not seed `## Feedback-Derived Story Candidates` or `## Feedback-Derived Decisions` — those are created by `/openspec-feedback` on first use.
+Do not seed `## Feedback-Derived Story Candidates` or `## Feedback-Derived Decisions` — those are created by `/openspec-feedback` on first use. Also do not seed an empty operational feedback-receipt ledger; `/openspec-feedback` owns creating that durable receipt section on first use.
 
 ## Checkpoint
 
