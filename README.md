@@ -35,7 +35,7 @@ openspec/
     ├── design.md
     ├── tasks.md
     ├── specs/**/*.md
-    ├── progress.md      # created by implementation commands
+    ├── progress.md      # runtime evidence; review may create the current receipt
     └── blocked.md       # existence is an explicit blocker gate
 ```
 
@@ -43,14 +43,18 @@ openspec/
   goal, constraints, decisions, resources, story candidates, and feedback logs.
 - **Change workspace** — one story-sized OpenSpec change under
   `openspec/changes/<story-slug>/` with proposal, story contract, design notes,
-  task checklist, and spec deltas.
+  task checklist, and spec deltas. Every present top-level
+  `Initiative: <initiative-slug>` header occurs exactly once; it is required for
+  new stories, while bounded pre-v3 compatibility requires zero Initiative or
+  Initiative-like lines. A malformed present field is a conflict, never absence.
+  That field, not prose or an `## Initiative` section, is the durable association.
 - **Plan lane** — `story.md`'s `Plan:` header records whether the contract is
   draft, in review, approved, needs changes, or blocked.
 - **Implementation status** — `story.md`'s `Status:` header records local
   execution: TODO, in progress, in review, done, or blocked.
 - **Runtime evidence** — `progress.md`, `tasks.md`, and optional
-  `blocked.md` preserve handoff, proof, review findings, PR delivery metadata,
-  and blockers.
+  `blocked.md` preserve handoff, proof, the single current implementation-review
+  receipt, PR delivery metadata, and blockers.
 
 There is no central tracker table in the active workflow. Fresh sessions resume
 from the OpenSpec artifacts themselves.
@@ -87,24 +91,39 @@ oblivious `/openspec-story-review` session.
    `openspec/initiatives/<slug>/initiative.md` as the initiative-level planning
    counterpart to `/openspec-story-plan`.
 2. **Plan a story-sized change** — `/openspec-story-plan INITIATIVE=<slug>`
-   interviews the operator and writes the change workspace planning artifacts.
-   It does not seed implementation runtime files.
+   interviews the operator and writes the change workspace planning artifacts,
+   including the required top-level `story.md → Initiative: <slug>` binding. It
+   does not seed implementation runtime files.
 3. **Converge the plan** — `/openspec-story-plan-review` independently checks
    the story contract, proof matrix, design trace, and repo reality;
    `/openspec-story-plan-resume` repairs planning gaps;
    `/openspec-story-plan-converge` loops fresh review/resume passes until the
-   Plan lane is approved, blocked, or stopped.
+   Plan lane is approved, blocked, or stopped. Planning readers apply the same
+   bound-DONE rule: a bound DONE story needs one well-formed current
+   APPROVE/PASS receipt and is never treated as receipt-absent legacy.
 4. **Implement red-first** — `/openspec-story-claim` claims a plan-approved,
-   ready TODO story, including satisfied `## Expected Prerequisites`, writes
-   `progress.md`, chooses the smallest credible failing seam, turns it green,
-   records proof, and hands off. `/openspec-story-resume` continues in-progress
+   ready TODO story. A bound DONE prerequisite must have exact DONE Status, no
+   blocker, and one well-formed current APPROVE/PASS receipt with a DONE
+   transition and no later contradiction. Dependency readers do not recompute
+   implementation identity. Only an unbound pre-v3 DONE prerequisite with zero
+   Initiative-like lines and no receipt gets a warning-only exception. Claim
+   writes `progress.md`, chooses the smallest
+   credible failing seam, turns it green, records proof, and hands off. `/openspec-story-resume` continues in-progress
    work or applies review/feedback that `/openspec-feedback` routed back to the
    story.
 5. **Review independently** — `/openspec-story-review` is read-only for product
    code and must run from a completely fresh, oblivious session with no
    implementation-loop notebook, summary, operational notes, or prior chat
-   context. It updates the `Status:` header, marking `✅ DONE`
-   only when the implementation, tests, tasks, and OpenSpec contract line up.
+   context. Every completed verdict replaces/creates the one current
+   `progress.md → ## Implementation Review Receipt`, including the deterministic
+   story-scoped `review-identity-v1` digest/base/path list. For BLOCKED it writes
+   `blocked.md` first, then writes receipt plus transition timeline together in
+   one progress write, then writes top-level `story.md → Status:` last and
+   performs no later writes. Partial writes therefore fail closed. A fresh
+   substantive review may
+   reconcile a malformed or duplicated receipt section into the one current
+   record; it never chooses an old entry as authority or performs receipt-only
+   cleanup in place of review.
 6. **Converge implementation** — `/openspec-story-converge` orchestrates fresh
    claim/resume implementation sessions for one change until the story reaches
    `🟣 IN REVIEW`, a blocker appears, no progress is made, or the cycle budget
@@ -112,18 +131,32 @@ oblivious `/openspec-story-review` session.
    oblivious session; it does not launch review itself.
 7. **PR delivery helper** — `/openspec-pr` creates, attaches, or refreshes a
    GitHub PR and records durable PR metadata/evidence in `progress.md` without
-   owning story status. Merged PR evidence supports archive; requested changes
-   are absorbed through `/openspec-feedback`.
+   owning story status. Before any write it recomputes `review-identity-v1` from
+   the receipt bases/paths and records the matching digest and verification time
+   in PR State. Merged PR evidence with matching verification supports archive;
+   requested changes are absorbed through `/openspec-feedback`.
 8. **Absorb feedback** — `/openspec-feedback` routes PR, reviewer, tool, or
-   operator feedback to the Plan Review Log, story contract, progress.md
-   checkpoint, feedback notebook, story candidates, or initiative-level
-   decisions without touching product code. When acknowledged feedback
-   invalidates local completion, it can reopen the story to `🔄 IN PROGRESS`
-   so `/openspec-story-resume` owns the fix.
+   operator feedback to the Plan Review Log, story contract, progress checkpoint,
+   story candidates, or initiative-level decisions without touching product
+   code. Every acknowledged item, including defer/reject, gets one portable
+   receipt in the selected initiative's `initiative.md → ## Feedback Receipts`.
+   Initiative-only feedback first resolves one active initiative worktree:
+   a unique initiative branch outranks launch, and ambiguity halts before the
+   ledger write. No notebook API or notebook mirror is required. Every direct
+   amendment or resume mutation also gets an FB-tagged `progress.md` checkpoint, including
+   status-only or contract-unchanged mutations. When acknowledged feedback
+   invalidates local completion, it can reopen the story to `🔄 IN PROGRESS` so
+   `/openspec-story-resume` owns the fix.
 9. **Archive completed changes** — `/openspec-archive` preflights DONE status,
-   task completion, review approval, blocker absence, and PR/no-PR evidence,
-   then delegates spec sync and the workspace move to OpenSpec's built-in
-   `/opsx:archive <story-slug>` command.
+   task completion, blocker absence, a valid current APPROVE/PASS receipt for a
+   bound story, and PR/no-PR evidence. For a merged PR it trusts PR State only
+   when its verified digest matches the current receipt; it recomputes
+   `review-identity-v1` only for the explicit no-PR route. Only an unbound pre-v3
+   DONE with zero Initiative-like lines and no receipt gets compatibility.
+   Archive then delegates spec sync and the workspace move to OpenSpec's built-in
+   `/opsx:archive <story-slug>` command. The rootless archive adapter redesign is
+   deferred: if the active artifacts are in another worktree, rerun archive from
+   that checkout rather than invoking the adapter against a remote root.
 
 See [`docs/openspec-lifecycle.md`](docs/openspec-lifecycle.md) for the full
 ASCII state machine and command authority table, and
@@ -144,9 +177,9 @@ schemas, proof matrices, Debt Friction, and runtime section conventions.
 | `/openspec-story-plan-converge` | Loop fresh plan-review and plan-resume passes until the Plan lane resolves. |
 | `/openspec-story-claim` | Claim one approved TODO story and begin red-first implementation. |
 | `/openspec-story-resume` | Continue implementation, resolve blockers, or address review/feedback routed back to the story. |
-| `/openspec-story-review` | Independently review implementation from a fresh, oblivious session and update `story.md → Status:` (notebook optional). |
+| `/openspec-story-review` | Independently review implementation from a fresh, oblivious session, publish receipt plus timeline in one progress write, then write `story.md → Status:` last with no later writes. |
 | `/openspec-story-converge` | Loop fresh claim/resume implementation passes until `🟣 IN REVIEW` or stop, then instruct the operator to run review separately. |
-| `/openspec-pr` | Manage optional GitHub PR delivery metadata/evidence in `progress.md → ## PR State`. |
+| `/openspec-pr` | Verify `review-identity-v1` before writes and manage optional GitHub PR delivery metadata/evidence in `progress.md → ## PR State`. |
 | `/openspec-feedback` | Classify and absorb structured feedback, including acknowledged story reopens, into the right OpenSpec artifacts. |
 | `/openspec-archive` | Preflight completion gates, then delegate spec sync and archive move to `/opsx:archive`. |
 
@@ -271,12 +304,32 @@ Restart opencode or run `/reload` after installing.
 
 ## Updating
 
-Claude symlinks update by `git pull`. Generated Codex/pi skills should be
-recompiled after pulling changes:
+Pull first, then update each installed runtime separately:
 
 ```bash
 cd ~/.local/share/add && git pull
-scripts/install.sh --yes --agents all
+scripts/install.sh --yes --agents claude
+scripts/install.sh --yes --agents codex --force
+scripts/install.sh --yes --agents pi --force
+```
+
+Claude skills are symlinks into the clone and therefore update with `git pull`;
+the Claude installer does not need `--force`. Codex and pi skills are generated
+copies, so a source update changes their compiled content and requires
+`--force` to refresh it. That flag also overwrites local edits or conflicting
+files and does not create a backup, so copy any runtime-local changes you want
+to keep before updating.
+
+Avoid a blanket `--agents all --force`: it grants unnecessary clobber permission
+to Claude targets while refreshing generated skills. Separate commands keep the
+Claude symlink update conservative and apply `--force` only to Codex and pi.
+
+Refresh only a project-scoped Codex installation by sending the Codex installer
+directly to that project's destination (the umbrella installer would also select
+its normal user scope):
+
+```bash
+CODEX_SKILLS_DIR=<project>/.agents/skills scripts/install-codex.sh --force
 ```
 
 If you previously installed the archived legacy workflow or the renamed

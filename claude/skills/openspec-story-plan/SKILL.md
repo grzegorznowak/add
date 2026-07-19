@@ -10,7 +10,7 @@ allowed-tools: Read Grep Glob Write Bash(git status:*) Bash(git log:*)
 
 Create a new OpenSpec change workspace for an existing initiative by interviewing the operator through the story spec sections, validating the proof contract, and writing all planning artifacts into `openspec/changes/<story-slug>/`. This command writes proposal.md, story.md, design.md, tasks.md, and delta specs; runtime artifacts (progress.md, blocked.md) are created by the commands that own them.
 
-Argument: `$ARGUMENTS` — optional `[INITIATIVE="<slug>"]`. If provided, resolve that initiative directly. If omitted, list available initiatives under `<workspace_root>/openspec/initiatives/` and ask the operator to pick one.
+Argument: `$ARGUMENTS` — optional `[INITIATIVE="<slug>"]`. If provided, resolve that initiative directly. If omitted, list available initiatives under `<openspec_root>/openspec/initiatives/` and ask the operator to pick one.
 
 ## Important
 
@@ -26,13 +26,14 @@ This command writes planning artifacts under `openspec/changes/<story-slug>/` af
 
 ## Resolution
 
-1. Parse `$ARGUMENTS` — accept only optional `INITIATIVE=<slug>` and reject unknown flags or extra tokens. If present, validate the slug before resolving any path.
-2. If `INITIATIVE` was provided:
+1. Set `<workspace_root>` = `<cwd>` and `<openspec_root>` = `<workspace_root>`. `<openspec_root>` is only the transient artifact anchor for this invocation; because this command creates a new pre-claim story, it does not discover or select an existing story worktree. Never persist an `OpenSpec root:` field in any artifact.
+2. Parse `$ARGUMENTS` — accept only optional `INITIATIVE=<slug>` and reject unknown flags or extra tokens. If present, validate the slug before resolving any path.
+3. If `INITIATIVE` was provided:
    - Validate `<slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$`; if not, abort with: `invalid initiative slug; use lowercase hyphenated slug characters only`.
-   - Resolve `<workspace_root>/openspec/initiatives/<slug>/initiative.md`.
+   - Resolve `<openspec_root>/openspec/initiatives/<slug>/initiative.md`.
    - If missing, abort with: `initiative not found; run /openspec-initiative-plan first`.
-3. If `INITIATIVE` was not provided:
-   - List every directory under `<workspace_root>/openspec/initiatives/` with an `initiative.md`.
+4. If `INITIATIVE` was not provided:
+   - List every directory under `<openspec_root>/openspec/initiatives/` with an `initiative.md`.
    - Show: `<slug> — <title>`. If none, abort with: `no initiatives found; run /openspec-initiative-plan first`.
    - Ask: `Pick an initiative (number or slug):`.
    - Set `INITIATIVE` accordingly.
@@ -40,10 +41,10 @@ This command writes planning artifacts under `openspec/changes/<story-slug>/` af
 
 ## Read first
 
-1. `<workspace_root>/AGENTS.md` first, then `CLAUDE.md` as fallback.
-2. `<workspace_root>/openspec/initiatives/<slug>/initiative.md` — for story candidates, decisions, and external resources.
-3. The change schema at `<workspace_root>/openspec/schemas/story-change/schema.yaml` — to confirm required artifact structure.
-4. Existing change workspaces under `<workspace_root>/openspec/changes/` — for naming context and collision detection.
+1. `<openspec_root>/AGENTS.md` first, then `CLAUDE.md` as fallback.
+2. `<openspec_root>/openspec/initiatives/<slug>/initiative.md` — for story candidates, decisions, and external resources.
+3. The change schema at `<openspec_root>/openspec/schemas/story-change/schema.yaml` — to confirm required artifact structure.
+4. Existing change workspaces under `<openspec_root>/openspec/changes/` — for naming context and collision detection.
 5. The most recent active change workspace — to learn conventions and tone.
 
 ## Source-of-truth hierarchy
@@ -165,6 +166,7 @@ Full story contract matching the `openspec/schemas/story-change/templates/story.
 ```md
 Plan: 🟡 PLAN DRAFT
 Status: ⚪ TODO
+Initiative: <initiative-slug>
 ```
 
 Include `## Plan Review Log` as an empty section seeded from the template. Do not append plan-review, planning-feedback, or addressed-entry log entries during initial planning. Do not create `<TODO: ...>` placeholders.
@@ -195,7 +197,8 @@ Before the checkpoint:
    - Acceptance Proof Matrix has required columns, covers every `A<n>`
    - Every `Proof Maturity` is `final` or `provisional`; provisional rows have non-blank `Open Detail`
    - Conditional subsections present when the story risk surface requires them
-   - `story.md` preserves the convergence-required scaffold anchors: `Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, and an empty `## Plan Review Log` section
+   - `story.md` preserves the convergence-required scaffold anchors: `Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, `Initiative: <initiative-slug>` with the selected initiative slug substituted exactly once, and an empty `## Plan Review Log` section
+   - The top-level `Initiative:` header is well formed, appears exactly once, and matches the selected initiative; never persist an `OpenSpec root:` field
    - No `<TODO: ...>` placeholders in any spec section
 3. Validate prerequisites resolve to real existing change workspaces or are explicitly external.
 4. Validate tasks.md has at least one task per phase that has content.
@@ -205,10 +208,10 @@ Abort or continue the interview if validation fails.
 ## Checkpoint
 
 Show the operator:
-- Change workspace path: `<workspace_root>/openspec/changes/<story-slug>/`
+- Change workspace path: `<openspec_root>/openspec/changes/<story-slug>/`
 - Artifacts to be created: proposal.md, story.md, design.md, tasks.md, specs/**/*.md
 - Acceptance/proof validation summary
-- Story scaffold validation: `Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, and an empty `## Plan Review Log`
+- Story scaffold validation: `Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, exactly one `Initiative: <initiative-slug>` header bound to the selected initiative, and an empty `## Plan Review Log`
 - The full drafted content of each artifact
 - Initiative reference: `<slug>`
 
@@ -216,12 +219,12 @@ Show the operator:
 
 ## Collision check
 
-Re-verify that `<story-slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` and that `<workspace_root>/openspec/changes/<story-slug>/` does not exist. If the slug is invalid or the workspace exists, abort with recovery hints.
+Re-verify that `<story-slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` and that `<openspec_root>/openspec/changes/<story-slug>/` does not exist. Re-validate that the drafted `story.md` has exactly one well-formed top-level `Initiative:` header equal to the selected initiative slug. If the slug or binding is invalid, or the workspace exists, abort with recovery hints.
 
 ## Write
 
-1. Create `<workspace_root>/openspec/changes/<story-slug>/`.
-2. Write proposal.md, story.md, design.md, tasks.md; the written `story.md` must include the validated convergence scaffold (`Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, empty `## Plan Review Log`).
+1. Create `<openspec_root>/openspec/changes/<story-slug>/`.
+2. Write proposal.md, story.md, design.md, tasks.md; the written `story.md` must include the validated convergence scaffold (`Plan: 🟡 PLAN DRAFT`, `Status: ⚪ TODO`, exactly one top-level `Initiative: <initiative-slug>` with the selected slug substituted, and empty `## Plan Review Log`). Do not write any persisted OpenSpec-root field.
 3. Create `specs/` subdirectory if any delta specs exist and write them.
 4. Never seed runtime artifacts: progress.md, blocked.md.
 
@@ -230,7 +233,7 @@ Re-verify that `<story-slug>` matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` and that `<wo
 State:
 - Change workspace path created
 - Artifacts written
-- Validation summary, including the `story.md` scaffold anchors
+- Validation summary, including the `story.md` scaffold anchors and durable initiative binding
 
 Suggested next action:
 - Converge wrapper: `/openspec-story-plan-converge <initiative> <story-slug>`

@@ -1,5 +1,9 @@
 # Design: <change-slug>
 
+<!-- Created by `/openspec-story-plan`; repaired/completed by
+     `/openspec-story-plan-resume`; contract-changing design updates may be
+     written by `/openspec-feedback`. -->
+
 ## Architecture Overview
 <!-- High-level architecture, component relationships, data flow. -->
 

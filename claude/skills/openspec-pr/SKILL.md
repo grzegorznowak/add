@@ -3,7 +3,7 @@ name: openspec-pr
 description: Open, attach, or refresh optional GitHub PR delivery metadata/evidence for one OpenSpec story. Does not change story Status.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug> [pr-url|OPEN=true]"
-allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(git rev-parse:*) Bash(gh pr list:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*) Bash(curl:*)
+allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(git rev-parse:*) Bash(git worktree:*) Bash(git diff:*) Bash(git ls-files:*) Bash(git hash-object:*) Bash(sha256sum:*) Bash(shasum:*) Bash(gh pr list:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*) Bash(curl:*)
 ---
 
 # OpenSpec PR
@@ -26,10 +26,11 @@ If a PR reviewer requests changes, do not downgrade the story here. Route action
 
 ## Resolution Model
 
-- `<workspace_root>` = `<cwd>`.
-- `<initiative_dir>` = `<workspace_root>/openspec/initiatives/<initiative>`.
+- `<workspace_root>` = `<cwd>` and remains the launch checkout/worktree-discovery base.
+- `<openspec_root>` = the transient active coordination artifact anchor resolved in Phase 0; never persist an `OpenSpec root:` field.
+- `<initiative_dir>` = `<openspec_root>/openspec/initiatives/<initiative>`.
 - `<initiative_file>` = `<initiative_dir>/initiative.md`.
-- `<change_dir>` = `<workspace_root>/openspec/changes/<story-slug>`.
+- `<change_dir>` = `<openspec_root>/openspec/changes/<story-slug>`.
 - `<story_file>` = `<change_dir>/story.md`.
 - `<progress_file>` = `<change_dir>/progress.md`.
 - `<proposal_file>` = `<change_dir>/proposal.md`.
@@ -39,7 +40,8 @@ There is no `MASTER.md`, no tracker table, and no PR lifecycle status. All statu
 
 - The `Status:` header field in `<story_file>` is the authoritative implementation status and is not changed by this command.
 - The `Plan:` header field in `<story_file>` is the authoritative planning lane.
-- `Status: ✅ DONE` in `<story_file>` is local completion authority.
+- `story.md → Initiative:` is the authoritative initiative association. Inventory the top-level header region before the first `## ` heading for every unindented `Initiative` or Initiative-like field line. Exactly one present line is valid only when its whole line matches `^Initiative: ([a-z0-9]+(?:-[a-z0-9]+)*)$`; duplicate, empty, whitespace-before-colon, non-canonical, or otherwise malformed Initiative-like lines are hard conflicts, never legacy absence.
+- `Status: ✅ DONE` in `<story_file>` is local completion authority. A modern bound story requires exactly one complete canonical `progress.md → ## Implementation Review Receipt`; receipt absence is compatible only for a true pre-v3 story with zero Initiative or Initiative-like lines and zero receipt sections.
 - The `## Current Claim` section in `<progress_file>` records implementation state and worktree bindings.
 - The `## PR State` section in `<progress_file>` is the sole PR metadata/evidence location.
 - The `## Progress Timeline` section in `<progress_file>` records milestone bullets.
@@ -56,19 +58,28 @@ There is no `MASTER.md`, no tracker table, and no PR lifecycle status. All statu
 
 This flow accepts three positional inputs in `$ARGUMENTS` — `<initiative>`, `<story>`, and `<pr_url_or_OPEN=true>` — and runs three independent inference passes for any of them that is missing. **Explicit values always win and skip their corresponding inference pass.** The goal is convenience without silently selecting completed history from a crowded workspace.
 
-Parse `$ARGUMENTS` first. Treat any of the three slots that is empty as a request to infer.
+Parse `$ARGUMENTS` first. Treat any of the three slots that is empty as a request to infer. Validate every explicit or inferred initiative/story slug against `^[a-z0-9]+(?:-[a-z0-9]+)*$` before path construction. Record `<explicit_pair>` as true only when the operator supplied both initiative and story positional arguments in this invocation; an inferred/defaulted selector or initiative alone does not make an explicit pair. This command accepts no `WORKTREE=` selector.
+
+### Transient OpenSpec-root and initiative-binding preflight
+
+1. Set `<workspace_root>=<cwd>` and initially set `<openspec_root>=<workspace_root>`. `<openspec_root>` is transient runtime state only.
+2. Build candidate roots from `<workspace_root>` plus `git worktree list --porcelain`. For a known initiative/story pair, a root qualifies only when it contains both `<root>/openspec/initiatives/<initiative>/initiative.md` and `<root>/openspec/changes/<story>/story.md`. For missing selectors, collect bounded eligible pairs from those same artifact families and validate binding as steps 3–4 require; do not associate a story merely because an initiative file contains similar prose.
+3. Inventory each candidate story's complete top-level header region before the first `## ` heading for every unindented `Initiative` or Initiative-like field line. Exactly one present line is valid only when its whole line matches `^Initiative: ([a-z0-9]+(?:-[a-z0-9]+)*)$`. Duplicate canonical headers, an empty value, whitespace before the colon (for example `Initiative : foo`), a non-canonical value, or any other malformed Initiative-like line halts and reports every offending line; never treat malformed present input as header absence. For the selected story, an explicit/inferred initiative conflict is an Initiative mismatch: halt, report both values and candidate root, and do not proceed. During broad initiative/story discovery, filter a well-formed story bound to another initiative as unrelated instead of halting the PR scan; never re-associate it from prose.
+4. Only zero Initiative or Initiative-like lines is a legacy story. For that case, scan same-root initiative files for exact story-slug associations in `## Story Candidates`. Exactly one association may drive discovery and must equal any selected initiative; a different or multiple association halts. No association is accepted only for a selected story when `<explicit_pair>` is true and the selected same-root initiative file exists. An inferred/defaulted or initiative-only selector is not an explicit pair. Warn for every accepted legacy story and never backfill the header. During broad discovery and story menus, include bound stories plus uniquely associated zero-line legacy stories only; exclude zero-association legacy stories.
+5. Resolve a known pair by root precedence. Because PR accepts no `WORKTREE=` selector, inspect registered worktrees other than `<workspace_root>` on `refs/heads/<initiative>/<story>` first. Exactly one qualifying branch worktree outranks launch even when launch has matching stale artifacts; multiple qualifying branch worktrees halt for operator selection. Only when no branch worktree qualifies, fall back to `<workspace_root>` and require both artifacts there. Ignore unrelated/non-branch matching roots rather than selecting one arbitrarily. Set `<openspec_root>` and recompute every coordination path.
+6. After story/initiative inference fills a missing selector, rerun steps 3–5 with both slugs. All subsequent `openspec/...` reads and writes use `<openspec_root>`. If the launch fallback lacks the active pair, ask the operator to rerun from the checkout containing both artifacts; do not silently select a non-branch copy.
 
 ### Pass 1 — Initiative inference (when `<initiative>` is empty)
 
-1. List `<workspace_root>/openspec/initiatives/*/` directories that contain an `initiative.md`.
-2. An initiative is eligible if its `initiative.md` exists and at least one corresponding non-archived change workspace exists under `<workspace_root>/openspec/changes/<change-slug>/` whose `<story_file>` has `Status: ✅ DONE`.
+1. List initiative directories across the candidate roots that contain an `initiative.md`, deduplicating each discovered story pair with the branch-over-launch precedence above.
+2. An initiative is eligible if its `initiative.md` exists and at least one non-archived story selected by that precedence is authoritatively bound to it by `story.md → Initiative:` and has `Status: ✅ DONE`. A legacy story is discoverable only through exactly one exact same-root candidate association; zero-reference legacy stories require an operator-explicit pair and therefore never appear in this inference pass.
 3. If exactly one eligible initiative exists, use it. Print: `inferred initiative: <slug> (single eligible initiative)`.
 4. If zero eligible initiatives exist, do not infer one. Collect non-DONE initiative/story pairs as diagnostics only. If exactly one diagnostic candidate exists, list `<initiative>/<story> | <Status> | <title>` and emit its state-correct route from the DONE-only qualification rules below. If multiple exist, list all and use the singular `Operator decision: select a lifecycle target by stable <initiative>/<story> identifier; none is eligible PR context.` If none exist, require initiative/story correction. Abort before PR inference in every case.
 5. If multiple eligible initiatives exist, abort with the list and: `multiple eligible initiatives; pass <initiative> explicitly to disambiguate.`
 
 ### Pass 2 — Story inference (when `<story>` is empty)
 
-After the initiative is known, list all change workspace directories under `<workspace_root>/openspec/changes/` (excluding `archive/`). For each, read the `Status:` header field in `<story_file>` and collect every story whose status is `✅ DONE`.
+After the initiative is known, list active change workspaces across candidate roots, deduplicating each slug with branch-over-launch precedence. For each, read its authoritative `story.md → Initiative:` binding first. Include only stories bound to the selected initiative or legacy stories with exactly one same-root candidate association to it; filter well-formed stories bound to other initiatives as unrelated rather than halting. Exclude zero-reference legacy stories because an inferred story is not an explicit pair. A conflict on an explicitly selected story still halts. Then read `Status:` and collect every matching story whose status is `✅ DONE`.
 
 1. If exactly one story matches, use it. Print: `inferred story: <story-slug> — <title> (status: ✅ DONE)`.
 2. If zero stories match, collect every non-archived non-DONE story for the initiative as diagnostics only; none is a resolvable PR target.
@@ -79,7 +90,15 @@ After the initiative is known, list all change workspace directories under `<wor
 
 ### DONE-only story qualification and diagnostic routing
 
-Before Pass 3, read the explicitly selected or DONE-inferred workspace and qualify it. A story becomes resolved PR context only after all of these checks pass: it is active/non-archived, has no `blocked.md`, has authoritative `Status: ✅ DONE`, has unambiguous `Plan: 🟢 PLAN APPROVED`, and bounded task/implementation approval evidence does not contradict DONE.
+Before Pass 3, read the explicitly selected or DONE-inferred workspace and qualify it. A story becomes resolved PR context only after all of these checks pass: it is active/non-archived, its authoritative `story.md → Initiative:` binding matches, it has no `blocked.md`, it has authoritative `Status: ✅ DONE`, it has unambiguous `Plan: 🟢 PLAN APPROVED`, and bounded task/implementation approval evidence does not contradict DONE.
+
+Consume `progress.md → ## Implementation Review Receipt` as follows:
+
+- Inventory every receipt heading and body. If any receipt is present for a DONE story, require exactly one `## Implementation Review Receipt` section and exactly one occurrence of every canonical field: `Reviewed at`, `Decision`, `Approval gate`, `Status transition`, `Evidence reviewed`, `Identity method`, `Identity digest`, `Identity bases`, `Identity paths`, `Findings`, `Proof`, and `Next owner`. Require `Decision: APPROVE`, `Approval gate: PASS`, a `Status transition` ending in `✅ DONE`, `Identity method: review-identity-v1`, one canonical `sha256:<lowercase-hex>` digest, and reproducible canonical JSON bases/path arrays (`[]` is valid for an empty list). Duplicate headings/bodies/fields, omitted or extra entry-shaped fields, `REQUEST CHANGES`, `BLOCKED`, FAIL, malformed values, or contradictory content blocks PR operations and routes only to `Open a completely fresh, oblivious session and run /openspec-story-review <initiative> <story-slug>.` Never search for an older approval; fresh substantive review owns normalization to one current receipt.
+- Before displaying resolved PR context and again immediately before any `gh` mutation or `progress.md` write, recompute the story-scoped identity with canonical `review-identity-v1` using exactly the receipt-recorded `Identity bases` and `Identity paths`. Require an exact match to the receipt's `Identity digest` and resolve every recorded base/path without substitution. Missing paths, an unavailable base, unsupported/malformed identity input, or mismatch routes only to the same fresh oblivious review; this command never repairs or synthesizes receipt evidence. Save the matching digest and the last pre-mutation UTC verification timestamp in memory for PR State write-back.
+- `review-identity-v1` excludes the story's OpenSpec coordination artifacts. Therefore this command's own `## PR State` and `## Progress Timeline` writes do not change the identity and must not trigger a post-write recomputation; source/path drift remains a mismatch at the required pre-mutation recomputation.
+- A true pre-v3 legacy DONE without an implementation review receipt is compatible only when the same story has zero Initiative or Initiative-like header lines, zero receipt sections, and every other qualification passes. Print a warning that both binding and receipt evidence are absent, use the Phase 0 explicit/unique-association rules to resolve it, and backfill neither artifact. A bound modern DONE with an absent receipt routes only to the same fresh oblivious review; do not invent a synthetic receipt.
+- For every non-DONE story, authoritative `Status:` owns routing. A receipt left from an earlier completed review may be historical context but never overrides the current non-DONE lane or makes the story eligible for PR delivery.
 
 An explicit or diagnostic non-DONE candidate is never resolved PR context and never reaches PR inference. Route it without mutation in this order:
 
@@ -130,7 +149,7 @@ Print this even when everything was passed explicitly — the printout is the co
 
 ### Entry-condition recheck
 
-Immediately before any PR/body/progress mutation, re-read the already resolved story and repeat the DONE-only qualification. If it is archived, `blocked.md` appeared, Status is no longer DONE, Plan is no longer unambiguously approved, or bounded completion evidence now conflicts, abort without PR action using the same single diagnostic route above. Never print a resolved-context block whose status is not `✅ DONE`.
+Immediately before any PR/body/progress mutation, re-resolve `<openspec_root>`, re-read and inventory the already resolved story's complete top-level Initiative-like header region by the rules above, and repeat the full DONE-only qualification. Legacy receipt absence is allowed only for the exact zero-Initiative-like/zero-receipt pre-v3 case. A present receipt must be the one complete canonical APPROVE/PASS record with a transition ending in DONE, and canonical `review-identity-v1` must recompute from its recorded bases/path list to exactly its recorded digest. If the root becomes ambiguous, the story is archived, `blocked.md` appeared, Status is no longer DONE, Plan is no longer unambiguously approved, receipt evidence is malformed/missing for a bound story, or identity evidence mismatches or cannot be verified, abort without any `gh` or progress action using the same fresh-review route above. Save the matching digest and current UTC timestamp only after this final pre-mutation recheck. Never print a resolved-context block whose status is not `✅ DONE`.
 
 Do not normalize or mutate `story.md → Status:` from this command.
 
@@ -221,8 +240,10 @@ Read the following artifacts in the change workspace and map them to the PR body
 7. `story.md → ## Acceptance` → Acceptance criteria
 8. `story.md → ## Scope` → filter for contract-affecting parts only → Contract changes
 9. `story.md → ## Out of Scope` → Out of scope
-10. `story.md → ## Verification → ## Verification Commands` → filter for user-facing checks only → How to verify
-11. `specs/*.md` → Contract changes (only where behavioral deltas describe external contract surface changes; summarize in contract language, not implementation language)
+10. `story.md → ## Verification → ### Verification Commands` → filter for user-facing checks only → How to verify
+11. `story.md → ## Verification → ### Test Architecture Plan` → exclusion-only proof-planning input; never copy it into the PR body
+12. `story.md → ## Verification → ### Acceptance Proof Matrix` → use only to cross-check that acceptance wording is reviewer-verifiable; never copy receipt/proof-ledger rows into the PR body
+13. `specs/*.md` → Contract changes (only where behavioral deltas describe external contract surface changes; summarize in contract language, not implementation language)
 
 For original ticket/card links:
 - Include links only; never summarize or quote original ticket text.
@@ -233,7 +254,7 @@ For original ticket/card links:
 
 Do not paste sections verbatim if they contain internal terminology. Rephrase into reviewer-facing language. A reviewer who has never seen the change workspace should understand the PR body.
 
-**Exclusion enforcement for PR body generation**: never include content from `design.md`, `tasks.md`, or `progress.md` in the PR body. These files may be read only for this command's PR metadata, entry-condition, and approval-evidence gates. If a section of `story.md` is implementation-facing (`## Discovery Notes`, `## Locked Decisions`, `## Implementation Notes`, `## Critical Files`, `## Acceptance Proof Matrix`, `## Test Architecture Plan`), exclude it from the PR body.
+**Exclusion enforcement for PR body generation**: never include content from `design.md`, `tasks.md`, or `progress.md` in the PR body. These files may be read only for this command's PR metadata, entry-condition, and approval-evidence gates. Explicitly exclude the implementation review receipt and every feedback receipt/feedback ledger entry, even when nearby product prose is eligible. If a section of `story.md` is implementation-facing (`## Discovery Notes`, `## Locked Decisions`, `## Implementation Notes`, `## Critical Files`, `story.md → ## Verification → ### Acceptance Proof Matrix`, `story.md → ## Verification → ### Test Architecture Plan`), exclude it from the PR body.
 
 ## PR creation mode
 
@@ -275,10 +296,12 @@ Add or refresh a `## PR State` section in `<progress_file>`:
 - Review decision: <APPROVED | CHANGES_REQUESTED | REVIEW_REQUIRED | blank | unavailable>
 - Merge commit: <sha or "—">
 - Merged at: <UTC ISO timestamp or "—">
+- Verified implementation digest: <receipt Identity digest, or "—" only for accepted pre-v3 no-receipt legacy>
+- Verified at: <UTC ISO timestamp from the final pre-mutation identity verification, or "—" only for accepted pre-v3 no-receipt legacy>
 - Last synced: <UTC ISO timestamp>
 ```
 
-Do **not** create a duplicate `## PR State` section. If one already exists, update its fields in place. When refreshing an older section, add the `Review decision:` and `Merged at:` fields rather than dropping them.
+Do **not** create a duplicate `## PR State` section. If one already exists, update its fields in place. When refreshing an older section, add the `Review decision:`, `Merged at:`, `Verified implementation digest:`, and `Verified at:` fields rather than dropping them. For a modern receipt, the verified digest must exactly equal its `Identity digest`; never carry forward an older verification timestamp or digest.
 
 ### PR status derivation
 
@@ -312,7 +335,7 @@ Never update the `Status:` header field in `<story_file>` from this command. If 
 
 If `## PR State` already has a PR URL, refresh it:
 
-- Re-query `gh pr view --json number,title,headRefName,state,url,body,isDraft,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` if available and update `## PR State → PR status`, `Review decision`, `Merge commit`, `Merged at`, and `Last synced`.
+- Re-query `gh pr view --json number,title,headRefName,state,url,body,isDraft,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` if available and update `## PR State → PR status`, `Review decision`, `Merge commit`, `Merged at`, `Verified implementation digest`, `Verified at`, and `Last synced`. The identity fields come only from the final successful pre-mutation recomputation, not cached PR State.
 - If `PR status` is `merged` and both `Merge commit:` and `Merged at:` are populated, report that archive PR evidence is complete.
 - If `PR status` is `merged` but merge commit or merged-at evidence is missing, report the missing durable evidence and tell the user to rerun `/openspec-pr` with `gh` available or provide the missing evidence explicitly before archive.
 - If `PR status` is `changes_requested` or reviewer comments request changes, do not update `story.md → Status:`. Tell the user to run `/openspec-feedback <initiative> --pr <PR URL>` so the feedback can be classified into story rework, planning changes, a follow-up story, initiative decision, or defer/reject.
@@ -333,7 +356,8 @@ There is no `MASTER.md` and no tracker table in this flow. PR evidence is writte
 7. **Never silently pick among multiple locally DONE stories.** Ask the operator to pass the story explicitly.
 8. **Never absorb PR feedback here.** Route actionable feedback through `/openspec-feedback`.
 9. **Never treat cached local PR metadata as merged archive evidence when live `gh` data is available.** Archive performs its own authoritative preflight.
-10. **Never summarize or quote original tickets.** Include detected links only, and omit the section when no link is found.
+10. **Never perform PR delivery against implementation state that differs from, or cannot be reproduced by, canonical `review-identity-v1` from the receipt's recorded bases/path list.** Require the recomputed digest to equal the receipt, persist that digest and verification time in PR State, and route mismatch or unverifiable evidence to fresh substantive review. PR State/timeline coordination writes are outside identity scope and require no post-write recomputation.
+11. **Never summarize or quote original tickets.** Include detected links only, and omit the section when no link is found.
 
 ## Final response
 

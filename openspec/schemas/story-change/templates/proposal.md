@@ -1,5 +1,8 @@
 # Proposal: <change-slug>
 
+<!-- Created by `/openspec-story-plan`; repaired/completed by
+     `/openspec-story-plan-resume`. -->
+
 ## Goal / Context
 <!-- Why this change, what user-visible outcome it delivers, what problem it solves. -->
 

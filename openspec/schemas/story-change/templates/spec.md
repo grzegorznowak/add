@@ -1,5 +1,8 @@
 # Spec: <capability-name>
 
+<!-- Created by `/openspec-story-plan`; repaired/completed by
+     `/openspec-story-plan-resume`. -->
+
 ## Summary
 <!-- One-paragraph description of the capability and its behavioral contract. -->
 

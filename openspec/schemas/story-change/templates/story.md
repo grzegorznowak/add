@@ -2,6 +2,20 @@
 
 Plan: 🟡 PLAN DRAFT
 Status: ⚪ TODO
+Initiative: <initiative-slug>
+
+<!-- Plan, Status, and Initiative are top-level header fields, not `##` sections.
+     Every present Initiative header must occur exactly once. It is required for
+     every newly planned story and binds this change workspace to one initiative.
+     Legacy absence means zero Initiative or Initiative-like lines in the
+     top-level header region. Any malformed present Initiative-like field,
+     including whitespace-before-colon or an empty/non-canonical value, is a
+     hard conflict; duplicates also halt; routing never backfills the field.
+     `/openspec-story-plan-resume` repairs planning/scaffold content.
+     `/openspec-story-claim` and `/openspec-story-resume` write authorized
+     implementation Status transitions; `/openspec-feedback` may reopen Status
+     after acknowledgement; `/openspec-story-review` writes completed-verdict
+     Status only after publishing the current review receipt. -->
 
 > Story scaffolded by `/openspec-story-plan` after interactive planning.
 
@@ -19,7 +33,13 @@ Status: ⚪ TODO
 <!-- Why now, what prompted this story. -->
 
 ## Expected Prerequisites
-<!-- Bulleted list of dependency story references. -->
+<!-- Bulleted dependency story slugs. A bound DONE prerequisite requires exact
+     DONE Status, no blocked.md, and one well-formed current APPROVE/PASS review
+     receipt with a DONE transition and no later contradiction. Dependency
+     readers do not recompute the receipt's review identity. Missing, malformed,
+     stale/superseded, or non-approving receipts fail. Only unbound pre-v3 DONE
+     with zero Initiative or Initiative-like lines and zero receipt sections may
+     pass with a compatibility warning and no receipt. -->
 
 ## Scope
 <!-- What is in scope. -->
@@ -33,8 +53,9 @@ Status: ⚪ TODO
      explicitly say `Orientation only`. -->
 
 ## Acceptance
-<!-- Observable criteria a reviewer can verify. Every bullet uses a stable
-     A<n> id and covers exactly one independently provable behavior. -->
+<!-- This exact heading is canonical; do not rename it `## Acceptance Criteria`.
+     Observable criteria a reviewer can verify. Every bullet uses a stable A<n>
+     id and covers exactly one independently provable behavior. -->
 
 ## Verification
 
@@ -76,5 +97,6 @@ Status: ⚪ TODO
 <!-- What was decided during planning, plus alternatives considered and rejected. -->
 
 ## Plan Review Log
-<!-- Append-only planning review entries written by `/openspec-story-plan-review`
-     and addressed by `/openspec-story-plan-resume`. -->
+<!-- Append-only planning review entries written by `/openspec-story-plan-review`, `/openspec-feedback`;
+     addressed-entry repairs are written by `/openspec-story-plan-resume`.
+     Initial planning seeds only this empty anchor. -->

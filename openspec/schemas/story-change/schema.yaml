@@ -1,39 +1,56 @@
 name: story-change
-version: 2
+version: 3
 description: >
-  ADD story-change schema v2. Each change workspace contains planning artifacts
+  ADD story-change schema v3. Each change workspace contains planning artifacts
   (proposal, story, design, tasks, delta specs), a runtime artifact (progress),
-  and an explicit blocker gate (blocked). Implementation review updates the
-  story.md Status: header and optionally writes findings to the notebook; there
-  is no standalone reviews.md artifact. Implementation is gated on completed
-  planning artifacts and tracked via tasks.md checkboxes.
+  and an explicit blocker gate (blocked). Every present top-level Initiative:
+  header occurs exactly once; new stories require it, while bounded pre-v3
+  compatibility requires zero Initiative or Initiative-like lines. A malformed
+  present Initiative-like field is a conflict, never absence. Plan: and Status:
+  remain independent. Implementation review writes Status:, a compact durable
+  receipt with a deterministic story-scoped review-identity-v1 digest/base/path
+  list in progress.md, and blocked.md when blocked; there is no standalone
+  reviews.md artifact.
+  Implementation is gated on completed planning artifacts and tracked via
+  tasks.md checkboxes.
 
 artifacts:
   - id: proposal
     generates: proposal.md
     description: >
       Why this change, what problem it solves, goal and context. Created by
-      /openspec-story-plan during the planning interview.
+      /openspec-story-plan during the planning interview; repaired/completed by
+      /openspec-story-plan-resume.
     template: proposal.md
 
   - id: story
     generates: story.md
     description: >
-      The story contract: Purpose, Actors, Scenarios / Behavior Examples,
-      Acceptance, Verification (with Test Architecture Plan, Acceptance Proof
-      Matrix, and conditional matrices for surfaces, design trace, input
-      boundaries, fail-open checks, and risk lenses), Scope, Out of Scope,
-      Discovery Notes, Critical Files, Implementation Notes, Locked Decisions.
-      Created by /openspec-story-plan. Reviewed by /openspec-story-plan-review.
-      Repaired by /openspec-story-plan-resume.
+      The story contract. Its required, exactly-once top-level Initiative:
+      field binds the story to one initiative; Plan: and Status: are the
+      lifecycle fields. The
+      body defines Purpose, Actors, Scenarios / Behavior Examples, Acceptance,
+      Verification (including Test Architecture Plan and Acceptance Proof
+      Matrix), scope, discovery, implementation guidance, and locked decisions.
+      Created by /openspec-story-plan; Plan/log review is written by
+      /openspec-story-plan-review; planning/scaffold repair is written by
+      /openspec-story-plan-resume. /openspec-story-claim and
+      /openspec-story-resume write authorized implementation Status:
+      transitions; /openspec-feedback may write acknowledged contract/lane and
+      reopen edits; /openspec-story-review writes completed review Status:
+      verdicts after publishing the current receipt. Planning readers apply the
+      same bound-DONE rule: a bound DONE story requires one well-formed current
+      APPROVE/PASS receipt and never falls through to receipt-absent legacy
+      handling.
     template: story.md
 
   - id: design
     generates: design.md
     description: >
       Technical design decisions, architecture rationale, and implementation
-      strategy. Created by /openspec-story-plan. Excluded from PR bodies
-      (product-contract boundary per decision #6).
+      strategy. Created by /openspec-story-plan; repaired/completed by
+      /openspec-story-plan-resume; contract-changing design feedback may be
+      written by /openspec-feedback. Excluded from PR bodies.
     template: design.md
 
   - id: tasks
@@ -41,8 +58,10 @@ artifacts:
     description: >
       Implementation task checklist with checkbox tracking. Each task is a
       concrete, verifiable unit of work. Checkbox state drives progress
-      visibility via apply.tracks. Created by /openspec-story-plan, maintained
-      by /openspec-story-claim and /openspec-story-resume.
+      visibility via apply.tracks. Created by /openspec-story-plan;
+      repaired/completed by /openspec-story-plan-resume; maintained by
+      /openspec-story-claim and /openspec-story-resume; task/proof alignment may
+      be updated by /openspec-feedback.
     template: tasks.md
 
   - id: specs
@@ -50,16 +69,25 @@ artifacts:
     description: >
       Delta specs describing behavior changes. Each spec file captures the
       before/after behavioral contract for one capability domain. Created by
-      /openspec-story-plan; archived by /opsx:archive into openspec/specs/.
+      /openspec-story-plan; repaired/completed by
+      /openspec-story-plan-resume; archived by /opsx:archive into openspec/specs/.
     template: spec.md
 
   - id: progress
     generates: progress.md
     description: >
-      Progress tracking: Current Claim, Progress Timeline, Session Handoff,
-      PR State, Unresolved Debt Friction. Written by /openspec-story-claim,
-      /openspec-story-resume, and /openspec-pr. Excluded from PR bodies
-      (implementation diary, not product contract).
+      Runtime tracking: Current Claim, Progress Timeline, Session Handoff,
+      Implementation Review Receipt, PR State, and Unresolved Debt Friction.
+      Written by /openspec-story-claim and /openspec-story-resume for
+      implementation state/timeline, /openspec-feedback for acknowledged
+      replanning checkpoints, /openspec-story-review for the single compact
+      current review receipt and review transition timeline entry, and
+      /openspec-pr for PR evidence. The receipt includes the canonical
+      story-scoped review-identity-v1 digest/base/path list. PR recomputes it
+      before any write and records the matching digest/time in PR State; archive
+      trusts matching merged-PR verification and recomputes only for an explicit
+      no-PR route. Receipt history is not appended; the Progress Timeline carries
+      history. Excluded from PR bodies.
     template: progress.md
 
   - id: blocked
@@ -68,9 +96,10 @@ artifacts:
       Explicit blocker gate file. When present, lifecycle gates refuse to
       continue. The operator removes this file to unblock; editing or annotating
       it may document resolution, but the gate remains closed while the file
-      exists. Created only by commands that own explicit blocker files; a plan
-      review `blocked` verdict uses the Plan lane instead. Never auto-created
-      during normal planning.
+      exists. Created or updated by /openspec-story-claim,
+      /openspec-story-resume, and /openspec-story-review; review writes it before
+      setting Status: to BLOCKED. A plan-review blocked verdict uses the Plan
+      lane instead. Never auto-created during normal planning.
     template: blocked.md
 
 apply:
@@ -84,5 +113,10 @@ apply:
     Implement the tasks in tasks.md top-to-bottom. Check off each task as
     completed. Follow red-first discipline: choose the smallest focused seam,
     make it fail, turn it green, then broaden verification. Record progress
-    milestones in progress.md. Before claiming done, verify every acceptance
-    criterion from story.md is satisfied and every task is checked.
+    milestones in progress.md. A bound DONE prerequisite requires exact DONE
+    Status, blocker absence, and one well-formed current APPROVE/PASS receipt
+    with a DONE transition and no later contradiction; prerequisite readers do
+    not recompute review identity. Only unbound pre-v3 DONE with zero Initiative
+    or Initiative-like lines and zero receipt sections may use warned no-receipt
+    compatibility. Before claiming done, verify every acceptance criterion from
+    story.md is satisfied and every task is checked.

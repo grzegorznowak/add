@@ -10,7 +10,7 @@ allowed-tools: Read Edit Write Grep Glob Bash
 
 Pick exactly one ready, unclaimed story from an OpenSpec initiative, claim it, execute it, and leave a clean handoff for the next session.
 
-Argument: `$ARGUMENTS` — `<initiative_slug> [<story_slug>] [WORKTREE="<basename>=<path>"]...`. The initiative slug is the first bare positional token (e.g. `cure-core-review-pipeline`) and resolves to `openspec/initiatives/<slug>/initiative.md`; if omitted and there is exactly one active initiative under `openspec/initiatives/`, default to that one. The optional story slug targets one ready unclaimed change workspace; when omitted, this command selects the first ready unclaimed story. `WORKTREE=` is an optional, repeatable opt-in that forces a worktree to be created (or reused) at a specific path for a specific target repo. Two forms are accepted: `WORKTREE="<basename>=<path>"` (multi form, repeatable, preferred) and legacy `WORKTREE="<path>"` (valid only when the story has exactly one target repo; the path is applied to that sole repo). Mixing the two forms in a single invocation is an error. When `WORKTREE=` is absent, the `## Worktree preflight` section creates a worktree for any discovered target repo whose `git status --porcelain` is non-empty; clean target repos are written to directly.
+Argument: `$ARGUMENTS` — `<initiative_slug> [<story_slug>] [WORKTREE="<basename>=<path>"]...`. Initiative and story slugs must match the canonical regex `^[a-z0-9]+(?:-[a-z0-9]+)*$`; reject non-canonical positional slugs before path resolution. The initiative slug is the first bare positional token (e.g. `cure-core-review-pipeline`) and resolves to `openspec/initiatives/<slug>/initiative.md`; if omitted and there is exactly one active initiative under `openspec/initiatives/`, default to that one. The optional story slug targets one ready unclaimed change workspace; when omitted, this command selects the first ready unclaimed story. `WORKTREE=` is an optional, repeatable opt-in that forces a worktree to be created (or reused) at a specific path for a specific target repo. Two forms are accepted: `WORKTREE="<basename>=<path>"` (multi form, repeatable, preferred) and legacy `WORKTREE="<path>"` (valid only when the story has exactly one target repo; the path is applied to that sole repo). Mixing the two forms in a single invocation is an error. When `WORKTREE=` is absent, the `## Worktree preflight` section creates a worktree for any discovered target repo whose `git status --porcelain` is non-empty; clean target repos are written to directly.
 
 Do **not** try to rediscover or redefine the initiative from scratch. Do **not** claim more than one story in a single session.
 
@@ -25,12 +25,15 @@ Do **not** try to rediscover or redefine the initiative from scratch. Do **not**
 
 ## Resolution
 
-1. Parse `$ARGUMENTS` into:
+1. Parse `$ARGUMENTS`, then validate each supplied or auto-selected initiative/story slug against `^[a-z0-9]+(?:-[a-z0-9]+)*$` before interpolating it into a path; reject malformed values. Record `<explicit_pair>` as true only when the operator supplied both positional slugs in this invocation; an auto-defaulted initiative or auto-selected story does not make an explicit pair.
     - `<initiative_slug>`: the first bare positional token (falls back to the single active initiative under `openspec/initiatives/` if omitted)
     - `<story_slug>`: optional second bare positional token (story slug / change workspace name)
     - The raw list of `WORKTREE="<value>"` occurrences (parsed in `## Worktree preflight` step 5 into `<explicit_worktree_map>` and/or `<legacy_worktree>`)
-2. Set `<workspace_root>` = `<cwd>` and `<openspec_root>` = `<workspace_root>`, then resolve `<initiative_dir>` = `<openspec_root>/openspec/initiatives/<initiative_slug>`. `<openspec_root>` is the active coordination root for this claim; it starts at the launch checkout and may change only in `## Worktree preflight` step 9 when a root-repo worktree is created and the current story's OpenSpec artifacts are copied there. Do not persist an `OpenSpec root:` field.
-3. If `<initiative_dir>` does not exist, stop and report the exact missing path.
+2. Set `<workspace_root>` = `<cwd>` and `<openspec_root>` = `<workspace_root>`. `<openspec_root>` is a transient active coordination root; never persist an `OpenSpec root:` field.
+   - When `<story_slug>` is known, first inspect all explicit `WORKTREE=` values in either accepted form. A root candidate qualifies only when it is a git checkout containing both `openspec/initiatives/<initiative_slug>/initiative.md` and `openspec/changes/<story_slug>/story.md`. If exactly one explicit candidate qualifies, set `<openspec_root>` to it immediately; it is authoritative, and record its repo/worktree identity so the preflight reuses the selected checkout rather than creating over it. If multiple explicit candidates qualify, ask which checkout is active and halt; never guess.
+   - Only when no explicit candidate qualifies, inspect registered root-repo worktrees other than `<workspace_root>` from `git -C <workspace_root> worktree list --porcelain` on branch `refs/heads/<initiative_slug>/<story_slug>`. If exactly one branch worktree qualifies, set `<openspec_root>` to it even when the launch checkout contains matching but possibly stale artifacts; that unique branch worktree outranks launch. Record its registered repo/worktree identity so `## Worktree preflight` reuses it instead of attempting a later duplicate `git worktree add`. If multiple branch worktrees qualify, ask which checkout is active and halt; never guess.
+   - When `<story_slug>` is known and neither an explicit nor branch-worktree candidate qualifies, fall back to `<workspace_root>` and require both artifacts there. When `<story_slug>` is omitted, defer the full resolver, select the story only from `<workspace_root>`, then immediately run the full resolver and recompute every artifact path before lifecycle gates or writes. A root selected by this resolver is authoritative immediately and may change only if step 9 creates a new root worktree and verifies the artifact copy.
+3. Recompute `<initiative_dir>` = `<openspec_root>/openspec/initiatives/<initiative_slug>`. If `<initiative_dir>` does not exist, stop and report the exact missing path.
 4. Read first (from `<openspec_root>`):
    - the main repo `AGENTS.md` for the repo you will touch
    - `<initiative_dir>/initiative.md`
@@ -55,21 +58,28 @@ If `<story_slug>` was provided:
 - if not found, check `openspec/changes/archive/<story_slug>/`; if found there, stop and report that the story is archived
 - if not found in either location, stop and report the unresolved slug plus list available change workspace names under `openspec/changes/`; if the requested workspace is genuinely absent rather than relocated, route singularly to `/openspec-story-plan INITIATIVE=<initiative_slug>`
 
-If `<story_slug>` was not provided, preserve the original discovery behavior: scan all directories under `openspec/changes/` for `story.md` files. For each, check `blocked.md` before reading lifecycle headers; record blocked workspaces as ineligible. Then read `Status:` before `Plan:` so IN REVIEW is never treated as a planning/claimability route. Select the first story that is all of:
+If `<story_slug>` was not provided, scan all directories under `openspec/changes/` for `story.md` files. Apply the initiative-binding resolver while enumerating: include only stories explicitly bound or uniquely candidate-associated with the resolved initiative; an auto-defaulted initiative cannot admit a zero-reference legacy story. For each eligible workspace, check `blocked.md` before reading lifecycle headers; record blocked workspaces as ineligible. Then read `Status:` before `Plan:` so IN REVIEW is never treated as a planning/claimability route. Select the first story that is all of:
 - **unclaimed**: `Status:` is `⬜ TODO` or `⚪ TODO` or the header is absent
 - **plan-approved**: `Plan:` is `🟢 PLAN APPROVED`
-- **ready**: every prerequisite listed in `story.md → ## Expected Prerequisites` is satisfied (the referenced change workspace's `story.md` has `Status: ✅ DONE`)
+- **ready**: every prerequisite listed in `story.md → ## Expected Prerequisites` passes the complete `### Prerequisite Resolution` rule below; `Status: ✅ DONE` alone is insufficient
 - **concrete**: the change workspace exists and contains `story.md`
 
-After a story is selected by either path, apply these gates in order before Plan or claimability checks:
+After a story is selected by either path, rerun the transient OpenSpec-root resolver when selection filled an omitted story slug, recompute `<initiative_dir>`, `<change_dir>`, and all artifact paths from `<openspec_root>`, then validate the durable initiative binding before Plan or claimability checks:
+
+- Inventory the top-level header region before the first `## ` heading for every unindented `Initiative` field or Initiative-like field line. Exactly one present header is valid only when the whole line matches `^Initiative: ([a-z0-9]+(?:-[a-z0-9]+)*)$`. Duplicate headers, an empty value, whitespace-before-colon variants, non-canonical values, or any other malformed Initiative-like field are hard conflicts: stop before any claim/status/progress write and report every offending line. Never reinterpret malformed input as the legacy no-header case.
+- When exactly one valid `Initiative:` header is present, require its value to equal `<initiative_slug>`; a mismatch is a hard conflict and reports both values.
+- Only zero Initiative or Initiative-like header lines is a legacy story. For that case, scan active `<openspec_root>/openspec/initiatives/*/initiative.md` files for `## Story Candidates` references to this exact story slug. If exactly one initiative references it and that initiative is `<initiative_slug>`, accept that unique exact candidate association. If no initiative references it, accept only when `<explicit_pair>` is true; emit a compatibility warning and do not backfill the missing header. An auto-defaulted initiative or auto-selected story is not explicit enough for this zero-reference exception and requires exactly one candidate association with `<initiative_slug>`. Any reference by another initiative, including multiple references, is conflicting candidate evidence: halt and never guess.
+- Auto-selection is initiative-aware: enumerate active change workspaces, apply the same binding resolver to each, and select only a workspace explicitly bound or uniquely candidate-associated with the resolved initiative. Exclude zero-reference legacy workspaces from auto-selection and never select a workspace bound or candidate-associated with another initiative.
+
+Then apply these gates in order:
 
 1. Check the selected change workspace for `blocked.md`. If it exists, stop first with the singular operator action to resolve the blocker and remove the file; do not offer wrapper/direct choices.
-2. Read authoritative `Status:`. If it is `🟣 IN REVIEW`, do not blindly route back to review. Inspect bounded readiness evidence: implementation/proof incompleteness routes singularly to `/openspec-story-resume <initiative_slug> <story_slug>`; a missing anchor or incomplete/non-reviewable planning scaffold routes singularly to `/openspec-story-plan-resume <initiative_slug> <story_slug>` (or `/openspec-story-plan INITIATIVE=<initiative_slug>` when the workspace is absent); unresolved external evidence routes to one concrete operator action. Say that fresh review happens only after the named repair. Only when review has not yet run against the current evidence and all prerequisites are satisfied, stop with exactly one fresh, oblivious `/openspec-story-review <initiative_slug> <story_slug>` route. The implementation wrapper never launches review.
-3. If `Status: ✅ DONE` is paired with any non-approved, missing, malformed, or ambiguous `Plan:` state, stop with exactly `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning, claim, or resume commands and do not invent a lifecycle owner.
+2. Read authoritative `Status:`. If it is `🔄 IN PROGRESS`, or `⛔ BLOCKED` with no `blocked.md` after the blocker was removed, stop with the singular `/openspec-story-resume <initiative_slug> <story_slug>` route. An already-valid story worktree does not make an active claim claimable again. If Status is `🟣 IN REVIEW`, do not blindly route back to review. Inspect bounded readiness evidence: implementation/proof incompleteness routes singularly to `/openspec-story-resume <initiative_slug> <story_slug>`; a missing anchor or incomplete/non-reviewable planning scaffold routes singularly to `/openspec-story-plan-resume <initiative_slug> <story_slug>` (or `/openspec-story-plan INITIATIVE=<initiative_slug>` when the workspace is absent); unresolved external evidence routes to one concrete operator action. Say that fresh review happens only after the named repair. Only when review has not yet run against the current evidence and all prerequisites are satisfied, stop with exactly one fresh, oblivious `/openspec-story-review <initiative_slug> <story_slug>` route. The implementation wrapper never launches review.
+3. If `Status: ✅ DONE`, first require an unambiguous `Plan: 🟢 PLAN APPROVED`; otherwise stop with exactly `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` A bound story (exactly one valid `Initiative:` header) must have exactly one well-formed current receipt whose required fields occur exactly once and whose verdict is `Decision: APPROVE`, `Approval gate: PASS`, with a transition ending in `✅ DONE`. Do not recompute review identity here: it is story-scoped delivery evidence for PR, not lifecycle or prerequisite state. A duplicate, malformed, non-approving, or missing bound-story receipt routes only to a completely fresh `/openspec-story-review <initiative_slug> <story_slug>` substantive review, which owns normalization to one current receipt; do not attempt repair here. Only an unbound pre-v3 DONE story with zero Initiative headers and zero receipt sections qualifies for bounded legacy compatibility, with a warning and no backfill. A consistent DONE story is not claimable; route from its terminal/delivery evidence. Do not recommend planning, claim, or resume commands and do not invent a lifecycle owner.
 4. Only then verify that the story is all of:
    - **unclaimed**: `Status:` is `⬜ TODO`, `⚪ TODO`, or absent
    - **plan-approved**: `Plan:` is `🟢 PLAN APPROVED`
-   - **ready**: every prerequisite listed in `## Expected Prerequisites` has `Status: ✅ DONE` in the referenced change workspace
+   - **ready**: every prerequisite listed in `## Expected Prerequisites` passes the complete `### Prerequisite Resolution` rule below; `Status: ✅ DONE` alone is insufficient
    - **concrete**: the change workspace directory exists and contains `story.md`
 
 If no such story exists, or the targeted story is not claimable:
@@ -82,12 +92,15 @@ If no such story exists, or the targeted story is not claimable:
 
 ### Prerequisite Resolution
 
-To check whether an expected prerequisite is satisfied:
+Apply this complete qualification rule to every expected prerequisite; the earlier selection/readiness summaries are shorthand for this rule:
 
-1. Parse `story.md → ## Expected Prerequisites` for references to other change workspaces. Expected format: a list where each bullet names a dependency story slug.
-2. For each dependency slug, resolve `<openspec_root>/openspec/changes/<slug>/story.md`.
-3. Read the `Status:` header. The dependency is satisfied when `Status: ✅ DONE`.
-4. If any dependency is not `✅ DONE`, the story is not ready to claim.
+1. Parse `story.md → ## Expected Prerequisites` for list bullets naming dependency story slugs. Validate each slug against `^[a-z0-9]+(?:-[a-z0-9]+)*$`; malformed values are unsatisfied and must not be interpolated into paths.
+2. Resolve the active prerequisite first at `<openspec_root>/openspec/changes/<slug>/story.md`. The active prerequisite is authoritative whenever that file exists. Only when the active prerequisite file is absent, fall back to `<openspec_root>/openspec/changes/archive/<slug>/story.md`. Never let an archived DONE copy override an existing active prerequisite.
+3. In the resolved prerequisite directory, require exactly one unambiguous top-level `Status:` header whose whole line is `Status: ✅ DONE`. Missing, duplicate, malformed, or non-DONE Status is unsatisfied. Check sibling `blocked.md` before trusting DONE: its existence makes the prerequisite contradictory and unsatisfied in both active and archived locations, regardless of receipt evidence.
+4. Inventory the prerequisite's top-level header region exactly as for the selected story. Duplicate or malformed Initiative-like fields are contradictory and unsatisfied, never legacy. Exactly one valid canonical `Initiative:` header makes this a bound modern prerequisite.
+5. A bound modern prerequisite must have `progress.md` containing exactly one `## Implementation Review Receipt` heading and one current body. Every required field (`Reviewed at`, `Decision`, `Approval gate`, `Status transition`, `Evidence reviewed`, `Identity method`, `Identity digest`, `Identity bases`, `Identity paths`, `Findings`, `Proof`, and `Next owner`) must occur exactly once; require `Decision: APPROVE`, `Approval gate: PASS`, and a transition ending in `✅ DONE`. Missing, duplicate, malformed, or non-approving receipt evidence is unsatisfied. After slug resolution and modern/legacy classification, prerequisite satisfaction uses only authoritative Status, `blocked.md`, and this modern receipt verdict; never recompute or freshness-check the story-scoped review identity against mutable repository state.
+6. A prerequisite with zero Initiative or Initiative-like header lines is unbound legacy input. If any receipt section is present, it must satisfy the same single-current APPROVE/PASS verdict checks; malformed or contradictory receipt material fails. Only an unbound pre-v3 prerequisite with `Status: ✅ DONE`, no `blocked.md`, zero Initiative headers, and zero receipt sections may satisfy without a receipt: emit a compatibility warning and never synthesize or backfill one.
+7. If neither active nor archived `story.md` exists, the prerequisite is unsatisfied. Report the exact failed gate and the prerequisite owner/action; do not claim or write lifecycle state.
 
 If `## Expected Prerequisites` is absent or empty, the story has no dependencies and the readiness check for dependencies passes automatically.
 
@@ -95,7 +108,7 @@ If `## Expected Prerequisites` is absent or empty, the story has no dependencies
 
 After picking a story but before writing any claim, figure out which repos the story will write to, whether any of them are dirty outside this story's own OpenSpec coordination paths, and for each dirty target build a linked git worktree on the story-specific branch. Clean target repos are written to directly; implementation work on dirty repos happens in a clean branch isolated from whatever else was in the main tree.
 
-**Invariant**: `<workspace_root>` = `<cwd>` at launch. `<openspec_root>` starts as `<workspace_root>` and remains the active coordination root unless step 9 creates or reuses a worktree for `<workspace_root>` and successfully copies the current story's OpenSpec artifacts there. Worktrees redirect writes to `projects/<name>/...` paths and `git -C` commands for the corresponding repo. Do not persist an `OpenSpec root:` field; later commands must run from the checkout containing the active `openspec/...` artifacts (or pass explicit `WORKTREE=` selectors for target repos).
+**Invariant**: `<workspace_root>` = `<cwd>` at launch and remains the discovery base. `<openspec_root>` is the root already selected by `## Resolution`: a qualifying explicit `WORKTREE=` root wins; otherwise one unique qualifying branch worktree outranks launch; multiple branch candidates halt; only no qualifying worktree falls back to launch. The selected existing root is authoritative immediately and must be reused without copying from a possibly stale launch checkout. Step 9 may change it only by creating a new root worktree and verifying a copy from the current authoritative root. Worktrees redirect writes to `projects/<name>/...` paths and `git -C` commands for the corresponding repo. Do not persist an `OpenSpec root:` field; later commands must run from the checkout containing the active `openspec/...` artifacts (or pass explicit `WORKTREE=` selectors for target repos).
 
 1. **Set `<story_slug>` as the canonical change workspace name**. This is the directory name under `openspec/changes/`.
 
@@ -117,7 +130,7 @@ After picking a story but before writing any claim, figure out which repos the s
    - Mixing both forms (some `WORKTREE=` with `=`, some without) is an error: abort with "mix of `WORKTREE=\"path\"` and `WORKTREE=\"basename=path\"` forms is not allowed; use one or the other".
    - If `<legacy_worktree>` is set, it is only valid when exactly one `<target_repo>` was discovered. Apply it as `<explicit_worktree_map>[basename(<target_repo>)]` = `<legacy_worktree>`. Otherwise abort with "`WORKTREE=\"<path>\"` requires exactly one target repo; found N (basenames: ...). Pass `WORKTREE=\"<basename>=<path>\"` form to specify which repo".
 
-6. **Per-repo dirty check and decision**. Initialize `<project_root_map>` = `{}`, `<pending_prompt>` = `[]`, and `<story_openspec_status_map>` = `{}`. For each `<target_repo>` in `<target_repos>`, iterating in sorted order by basename for determinism:
+6. **Per-repo dirty check and decision**. Initialize `<project_root_map>` = `{}`, `<pending_prompt>` = `[]`, and `<story_openspec_status_map>` = `{}`. Also carry forward any already-valid registered worktree discovered by the OpenSpec-root resolver. For each `<target_repo>` in `<target_repos>`, iterating in sorted order by basename for determinism:
    - `<repo-basename>` = `basename <target_repo>`.
    - `<porcelain>` = `git -C <target_repo> status --porcelain`.
    - `<default-path>` = `$HOME/add-worktrees/<repo-basename>-<initiative_slug>-<story_slug>`.
@@ -127,7 +140,8 @@ After picking a story but before writing any claim, figure out which repos the s
      - For rename/copy porcelain entries containing ` -> `, classify the line as story-owned only when both the old and new path operands are under the story-owned prefixes. For quoted porcelain paths, classify by the unquoted path value. Ignore the porcelain status code otherwise: modified, staged, untracked, deleted, renamed, and copied entries are all allowed when the path scope is story-owned.
    - Else, set `<story_openspec_porcelain>` = empty and `<blocking_porcelain>` = `<porcelain>` (sub-repos do not own root `openspec/...`).
    - Record non-empty `<story_openspec_porcelain>` in `<story_openspec_status_map>[<repo-basename>]` for reporting. `<dirty_for_decision>` is true only when `<blocking_porcelain>` is non-empty.
-   - If `<explicit_worktree_map>[<repo-basename>]` is set: mark for creation with `<wt-path>` = that path, regardless of dirtiness.
+   - If `<explicit_worktree_map>[<repo-basename>]` is set: set `<wt-path>` to that path. If it is already a registered worktree of `<target_repo>` on branch `<initiative_slug>/<story_slug>`, mark it for reuse; otherwise mark it for creation, regardless of dirtiness.
+   - Else if the root resolver recorded an already-valid registered worktree for this target repo on branch `<initiative_slug>/<story_slug>`, mark that path for reuse. A TODO/unset unclaimed story may be claimed in this existing worktree; active claimed statuses have already routed to resume.
    - Else if `<dirty_for_decision>`: append `(<repo-basename>, <target_repo>, <default-path>, <blocking_porcelain>, <story_openspec_porcelain>)` to `<pending_prompt>` — decision deferred to the batched prompt in step 7.
    - Else (clean or only story-owned OpenSpec changes, no override): `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree). If `<story_openspec_porcelain>` is non-empty, report it as informational: these current-story OpenSpec changes are ignored for the worktree decision and `<repo-basename>` will still be recorded as a `Main-tree targets:` entry.
 
@@ -160,10 +174,10 @@ After picking a story but before writing any claim, figure out which repos the s
 
    After parsing, for each pending repo: either set `<project_root_map>[<repo-basename>]` = `<target_repo>` (main tree mode) and warn, or resolve `<wt-path>` and mark for creation. Keep the story-owned OpenSpec group informational only; it must not force a worktree or block direct main-tree use.
 
-8. **Create worktrees** for every repo marked for creation in step 6 or 7, iterating in sorted basename order for determinism:
-   - `mkdir -p "$(dirname <wt-path>)"`
-   - `git -C <target_repo> worktree add -b <initiative_slug>/<story_slug> <wt-path>`
-   - If it fails because the branch `<initiative_slug>/<story_slug>` already exists in `<target_repo>`, abort with: "story branch `<initiative_slug>/<story_slug>` already exists in repo `<repo-basename>`; this looks like a resumable story — run `/openspec-story-resume <initiative_slug> <story_slug>` instead". List any worktrees already created earlier in this loop as "successfully created but NOT cleaned up: <list>" so the operator can decide whether to keep them. No story.md or progress.md writes have happened yet.
+8. **Reuse or create worktrees** for every repo marked in step 6 or 7, iterating in sorted basename order for determinism:
+   - For a path marked for reuse, verify immediately before use that it still exists, is registered in `git -C <target_repo> worktree list --porcelain`, and is on branch `<initiative_slug>/<story_slug>`. On success set `<project_root_map>[<repo-basename>]` = `<wt-path>` and do not run `git worktree add`. On failure, abort before claim writes with the exact stale/mismatch detail; never silently create over it.
+   - For a path marked for creation, run `mkdir -p "$(dirname <wt-path>)"`, then `git -C <target_repo> worktree add -b <initiative_slug>/<story_slug> <wt-path>`.
+   - If creation fails because branch `<initiative_slug>/<story_slug>` already exists, recheck registered worktrees once. Reuse a unique registered worktree on that branch when valid; an unclaimed TODO/unset story may be claimed there in place. If no unique valid worktree exists, abort with the exact branch/worktree conflict and one concrete operator reconciliation action; do not misroute an unclaimed story to resume. List any worktrees already created earlier in this loop as "successfully created but NOT cleaned up: <list>". No story.md or progress.md writes have happened yet.
    - If it fails for any other reason, report the git error verbatim, list successful worktrees as "NOT cleaned up", and abort. **Do NOT auto-clean up successful worktrees** on partial failure — preserve operator choice.
    - On success: `<project_root_map>[<repo-basename>]` = `<wt-path>`.
 
@@ -172,21 +186,23 @@ After picking a story but before writing any claim, figure out which repos the s
    - `<workspace_root>` is in `<target_repos>`,
    - `<project_root_map>[basename(<workspace_root>)]` is a worktree (not `<workspace_root>` itself).
 
-   Let `<root_wt>` = `<project_root_map>[basename(<workspace_root>)]`. Copy the current story's coordination artifacts from the launch checkout into that root worktree before any `story.md` or `progress.md` write:
-   - Copy `<workspace_root>/openspec/initiatives/<initiative_slug>/` to `<root_wt>/openspec/initiatives/<initiative_slug>/`.
-   - Copy `<workspace_root>/openspec/changes/<story_slug>/` to `<root_wt>/openspec/changes/<story_slug>/`.
+   Let `<root_wt>` = `<project_root_map>[basename(<workspace_root>)]`. If the resolver already selected this same valid `<root_wt>`, reuse the authoritative artifacts there in place: verify both required files again, skip all copying and source-checkout cleanup prompts in this step, and keep `<openspec_root>=<root_wt>`. Never overwrite the active worktree artifacts with a possibly stale launch-checkout copy.
+
+   Otherwise, set `<copy_source_root>` to the current authoritative `<openspec_root>` and copy the current story's coordination artifacts from it into the newly selected root worktree before any `story.md` or `progress.md` write:
+   - Copy `<copy_source_root>/openspec/initiatives/<initiative_slug>/` to `<root_wt>/openspec/initiatives/<initiative_slug>/`.
+   - Copy `<copy_source_root>/openspec/changes/<story_slug>/` to `<root_wt>/openspec/changes/<story_slug>/`.
    - Create parent directories as needed. Copy only these two path-bounded directories; do not copy broad `openspec/`.
    - Verify the copy before continuing: `<root_wt>/openspec/initiatives/<initiative_slug>/initiative.md` and `<root_wt>/openspec/changes/<story_slug>/story.md` must exist, and recursive comparison of each copied source directory against its destination must show no missing or different files. If verification fails, abort before writing any claim and report the exact source/destination pair that failed.
 
    After verification succeeds, set `<openspec_root>` = `<root_wt>` for the rest of this claim and re-resolve `<initiative_dir>` and the selected change workspace under `<openspec_root>`. Do not write any persisted `OpenSpec root:` field; future `/openspec-story-resume`, `/openspec-story-review`, and `/openspec-story-converge` invocations should be run from `<root_wt>` (or supplied with explicit `WORKTREE="<basename>=<path>"` selectors for target repos as needed).
 
-   Then ask the operator whether to clean the copied story-owned coordination paths from the original checkout:
+   Then ask the operator whether to clean the copied story-owned coordination paths from `<copy_source_root>`:
    ```
    Copied this story's OpenSpec artifacts into the root worktree at <root_wt> and verified them.
-   Clean the copied paths from the original checkout now? Paths: openspec/initiatives/<initiative_slug>/ and openspec/changes/<story_slug>/ (yes/no)
+   Clean the copied paths from the source checkout <copy_source_root> now? Paths: openspec/initiatives/<initiative_slug>/ and openspec/changes/<story_slug>/ (yes/no)
    ```
-   - If the operator says yes: verify the copy one more time, then run only path-scoped cleanup for those two paths in `<workspace_root>` (tracked restore for tracked files, then `git -C <workspace_root> clean -fd -- openspec/initiatives/<initiative_slug> openspec/changes/<story_slug>` for untracked files). Never clean broad `openspec/`, never clean unrelated paths, and never clean before copy verification.
-   - If the operator says no: leave the original checkout unchanged and warn that the active coordination copy for this claim is `<root_wt>/openspec/...`.
+   - If the operator says yes: verify the copy one more time, then run only path-scoped cleanup for those two paths in `<copy_source_root>` (tracked restore for tracked files, then `git -C <copy_source_root> clean -fd -- openspec/initiatives/<initiative_slug> openspec/changes/<story_slug>` for untracked files). Never clean broad `openspec/`, never clean unrelated paths, and never clean before copy verification.
+   - If the operator says no: leave `<copy_source_root>` unchanged and warn that the active coordination copy for this claim is `<root_wt>/openspec/...`.
 
    Do NOT run this step against sub-repo worktrees; sub-repos do not contain root `openspec/` at all.
 
@@ -199,7 +215,9 @@ After picking a story but before writing any claim, figure out which repos the s
 
 ## Claim protocol
 
-Before deep implementation work:
+Before deep implementation work, immediately re-read the selected story's complete Initiative header region, Plan/Status, `blocked.md`, and every prerequisite's active-first story/blocked/progress evidence. Rerun the exact binding and complete `### Prerequisite Resolution` gates after the worktree preflight; any duplicate/malformed binding, blocker, changed Status/Plan, or other failed prerequisite halts before the first claim/progress write.
+
+Then:
 1. Update the `Status:` header in `story.md` from `⬜ TODO` (or `⚪ TODO`, or absent) to `🔄 IN PROGRESS`
 2. Create or update `progress.md` with these sections:
 
@@ -289,7 +307,7 @@ As tasks from `tasks.md` are completed, mark them as checked:
 - [x] Task 3: Description  ← mark completed tasks
 ```
 
-Only check off tasks that are demonstrably complete per the implementation proof. If `tasks.md` does not exist, create a minimal one from `story.md → ## Acceptance Criteria` items after confirming with the operator.
+Only check off tasks that are demonstrably complete per the implementation proof. If `tasks.md` does not exist, create a minimal one from `story.md → ## Acceptance` items after confirming with the operator.
 
 ## Parallelism guard
 
