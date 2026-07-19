@@ -1663,6 +1663,23 @@ for heading in 'Verification Commands' 'Test Architecture Plan' 'Acceptance Proo
     "story.md → ## Verification → ## $heading"
 done
 
+# PR descriptions must orient a cold reader with an evidence-backed catalyst and
+# causal boundary without displacing the product verification contract.
+check_workflow_contract \
+  "PR catalyst-first cold-reader summary" openspec-pr \
+  '`story.md → ## Triggering Need` → Summary' \
+  '`proposal.md → ## Goal / Context` → Summary' \
+  'Start with the source-supported catalyst' \
+  'State the observable before state and the user-visible after state' \
+  'If the artifacts state no catalyst, lead with the strongest source-supported Goal, Purpose, or outcome without inventing a gap, history, or causality.' \
+  'source-supported catalyst context, user-visible before/after state, and external compatibility facts belong when they remain true regardless of implementation.' \
+  'Never infer chronology or causality' \
+  'define it only from source-supported context' \
+  'Do not let the Summary replace or weaken Requirements, Acceptance criteria, Contract changes, Out of scope, or How to verify.'
+forbid_workflow_literal \
+  "PR removes outcome-only summary template" openspec-pr \
+  '<one short paragraph in product language — the user-visible outcome this PR delivers>'
+
 # Rootless archive mutation is forbidden: a remote active root produces an exact
 # cd-and-rerun handoff. Broad PR discovery filters unrelated bound stories while
 # still halting a conflict on an explicitly selected story.
