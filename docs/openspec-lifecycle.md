@@ -441,8 +441,14 @@ Supported operations:
 | PR merged | Record durable merge evidence plus matching verified digest/time for archive preflight. |
 | PR or reviewer requests changes | Route through `/openspec-feedback` for classification; `/openspec-pr` does not mutate story status directly. |
 
-PR bodies are product-facing. They must not paste implementation diary content
-from `progress.md`, `tasks.md`, or internal planning sections.
+PR bodies are product-facing and catalyst-first. Their opening orients a cold
+reader with the source-supported reason the work is needed now, explicit causal
+boundaries, and the observable before/after outcome when the eligible artifacts
+state them; it does not invent missing context. The remaining requirements,
+acceptance, contract, scope, and verification sections preserve the review
+contract. PR
+bodies must not paste implementation diary content from `progress.md`,
+`tasks.md`, or internal planning sections.
 
 ### 8. Feedback absorption
 

@@ -28,6 +28,9 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   legacy lifecycle/conventions docs.
 
 ### Changed
+- Changed `openspec-pr` descriptions to open with source-supported catalyst,
+  explicit causal boundaries, and before/after context for cold readers while
+  preserving the product verification contract.
 - Changed implementation convergence so `/openspec-story-converge` stops at
   `Status: 🟣 IN REVIEW` and instructs the operator to run
   `/openspec-story-review` from a completely fresh, oblivious session instead

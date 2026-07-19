@@ -166,7 +166,9 @@ Do not normalize or mutate `story.md → Status:` from this command.
 
 Extract **only** product-facing content from the change workspace artifacts (`proposal.md`, `story.md`, and delta specs under `specs/`):
 
+- the product-facing **Triggering Need** / **Goal / Context** (what changed, broke, or became necessary and why the work is needed now)
 - the story **Purpose** / **Goal** (what outcome the user gets)
+- concise external compatibility context when it is necessary to explain the observable breakage or migration boundary
 - role-based **Actors** when they clarify who the PR affects
 - normative **Scenarios / Behavior Examples** only when they are linked to a single acceptance id with `Covers: A<n>` and help the reviewer understand expected behavior
 - explicit **original ticket/card links** from `Triggering Need`, `Purpose`, `Scope`, `Goal / Context`, `External Resources`, or other product-facing prose, when present
@@ -193,7 +195,7 @@ Suppress anything that describes *how* the code was implemented rather than *wha
 - `## Discovery Notes`, `## Locked Decisions`, `## Implementation Notes`, `## Critical Files` from story.md (implementation-facing sections)
 - any content that would go stale if the implementation were rewritten without changing the contract
 
-**Test the inclusion boundary**: if a reviewer could hypothetically accept a completely different implementation that still passes the Acceptance criteria and preserves the Contract changes, then the piece you're considering does not belong in the PR body.
+**Test the inclusion boundary**: source-supported catalyst context, user-visible before/after state, and external compatibility facts belong when they remain true regardless of implementation. Other content does not belong if it would become stale under a completely different implementation that still passes the Acceptance criteria and preserves the Contract changes.
 
 ### PR body template
 
@@ -201,7 +203,7 @@ Generate the body using this structure. Omit any section that has no content rat
 
 ```md
 ## Summary
-<one short paragraph in product language — the user-visible outcome this PR delivers>
+<one or two short paragraphs in product language. Start with the source-supported catalyst: what happened or changed, why the work is needed now, and any explicit cause-versus-exposure distinction. Then state the user-visible before/after outcome this PR delivers. If the artifacts state no catalyst, lead with the strongest source-supported Goal, Purpose, or outcome without inventing a gap, history, or causality.>
 
 ## Original tickets
 - <optional label>: <url>
@@ -229,21 +231,31 @@ Generate the body using this structure. Omit any section that has no content rat
 
 ### Sourcing the content
 
-Read the following artifacts in the change workspace and map them to the PR body. Source order below; skip any missing artifact silently.
+Read the following artifacts in the change workspace and map them to the PR body. Skip any missing artifact silently. This mapping order does not determine the Summary's narrative order: when a catalyst is available, it still comes first.
 
-1. `proposal.md → ## Goal / Context` → Summary
+1. `proposal.md → ## Goal / Context` → Summary (catalyst, why now, and outcome when stated)
 2. `proposal.md → ## External Resources` → Original tickets (extract only explicit URLs; omit narrative descriptions)
-3. `story.md → ## Purpose` → Summary + Requirements
-4. `story.md → ## Triggering Need`, `## Purpose`, `## Scope` → Original tickets (extract only explicit URLs not already found)
-5. `story.md → ## Actors` → Requirements only when role context is product-facing
-6. `story.md → ## Scenarios / Behavior Examples` → Acceptance criteria only for normative scenarios linked with exactly one `Covers: A<n>`; omit orientation-only examples
-7. `story.md → ## Acceptance` → Acceptance criteria
-8. `story.md → ## Scope` → filter for contract-affecting parts only → Contract changes
-9. `story.md → ## Out of Scope` → Out of scope
-10. `story.md → ## Verification → ### Verification Commands` → filter for user-facing checks only → How to verify
-11. `story.md → ## Verification → ### Test Architecture Plan` → exclusion-only proof-planning input; never copy it into the PR body
-12. `story.md → ## Verification → ### Acceptance Proof Matrix` → use only to cross-check that acceptance wording is reviewer-verifiable; never copy receipt/proof-ledger rows into the PR body
-13. `specs/*.md` → Contract changes (only where behavioral deltas describe external contract surface changes; summarize in contract language, not implementation language)
+3. `story.md → ## Triggering Need` → Summary (catalyst, observable before state, and explicit causal boundaries when stated)
+4. `story.md → ## Purpose` → Summary + Requirements
+5. `story.md → ## Triggering Need`, `## Purpose`, `## Scope` → Original tickets (extract only explicit URLs not already found)
+6. `story.md → ## Actors` → Requirements only when role context is product-facing
+7. `story.md → ## Scenarios / Behavior Examples` → Acceptance criteria only for normative scenarios linked with exactly one `Covers: A<n>`; omit orientation-only examples
+8. `story.md → ## Acceptance` → Acceptance criteria
+9. `story.md → ## Scope` → filter for contract-affecting parts only → Contract changes
+10. `story.md → ## Out of Scope` → Out of scope
+11. `story.md → ## Verification → ### Verification Commands` → filter for user-facing checks only → How to verify
+12. `story.md → ## Verification → ### Test Architecture Plan` → exclusion-only proof-planning input; never copy it into the PR body
+13. `story.md → ## Verification → ### Acceptance Proof Matrix` → use only to cross-check that acceptance wording is reviewer-verifiable; never copy receipt/proof-ledger rows into the PR body
+14. `specs/*.md` → Contract changes (only where behavioral deltas describe external contract surface changes; summarize in contract language, not implementation language)
+
+### Cold-reader and causality check
+
+Before publishing, read the Summary without the title or linked artifacts:
+- Start with the source-supported catalyst when one is available, so a new reviewer can understand what changed and why the work is needed now.
+- State the observable before state and the user-visible after state when the eligible artifacts provide them.
+- Preserve explicit causal boundaries such as "exposed" versus "caused." Never infer chronology or causality that the eligible artifacts do not state.
+- Rephrase unfamiliar terminology into plain language; when an unfamiliar term is unavoidable, define it only from source-supported context.
+- Do not let the Summary replace or weaken Requirements, Acceptance criteria, Contract changes, Out of scope, or How to verify.
 
 For original ticket/card links:
 - Include links only; never summarize or quote original ticket text.
