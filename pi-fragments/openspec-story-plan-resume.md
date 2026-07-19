@@ -1,17 +1,13 @@
 ## Pi Primitives
 
-Use Pi runtime tools (`spawn`, `notebook_write`, `notebook_read`, and `notebook_index`) only as optional focused read-only planning probes and sourced notebook orientation. Follow the base skill's canonical Plan-lane, story-contract, and notebook-authority rules.
+The canonical `## Notebook mode contract` in this installed skill is the sole authority for standalone-vs-child selection, coordinator ownership, and child spawn/notebook prohibitions; this Pi fragment does not redeclare those semantics.
 
-After story resolution, use the canonical `<initiative_slug>` and `<story_slug>` in every child prompt and Pi notebook page name.
+Notebook use is optional. Only when notebook orientation or persistence is available and selected, use the canonical SKILL.md repository-key-v1 algorithm and its command-computed `<repository_key>` from the current resolved OpenSpec root; this Pi fragment does not redefine that algorithm. For a selected stable-page operation, missing/invalid origin or key drift fails closed by skipping that notebook operation, while canonical artifacts and the canonical workflow continue as authority.
 
-### Planning research
-When a spec gap needs codebase evidence, spawn a read-only child for the specific section, TAP row, prerequisite, or ownership seam:
+Pi-specific stable-page tooling uses `openspec-plan-research-<repository_key>-<initiative_slug>-<story-slug>`: selected coordinator writes are whole-page read-modify-write operations with preservation and in-page retirement/compaction, never deletion, topic, or per-run pages. Pi may automatically supply notebook page names and first-line previews; under the canonical child contract they remain untrusted non-input.
 
-```
-spawn({prompt: "For openspec/<initiative_slug>/<story_slug>, research planning gap <section/TAP/prerequisite/owner>. Checklist: relevant paths and roles; existing test layout, fixtures, markers, and CI lanes; candidate behavior-facing assertion/observable signal; fallback if the preferred seam is wrong. Write findings to notebook page 'openspec-plan-research-<initiative_slug>-<story_slug>' with path:line anchors. Do not edit files or decide Plan lane.", thinking: "medium"})
-```
+For authoritative `Status: 🟣 IN REVIEW`, use only **IN REVIEW planning-repair-only** behavior for a durably evidenced, live-verified contract/scaffold defect. **Mode C — Verified IN REVIEW targeted repair** requires `REPAIR_REF=<planning-path>#<anchor>` to resolve uniquely to current planning text that proves the exact semantic defect; the selector or prior chat alone is insufficient. Repair only that defect and minimum coupled surfaces, then require exact pre/post evidence that the defect is gone. **Mode C overrides every generic Plan-lane downgrade or output rule**, preserves `Plan: 🟢 PLAN APPROVED` and `Status: 🟣 IN REVIEW` exactly, and must explicitly retain `Status: 🟣 IN REVIEW`. Do not perform implementation work, and do not launch review or route through plan-converge/plan-review. After repair, return only the singular operator-run fresh oblivious story-review route.
 
-Retrieve findings with `notebook_read({name: "openspec-plan-research-<initiative_slug>-<story_slug>"})`. Verify material claims with direct reads/search before story edits.
+When a spec gap needs evidence, inspect only the named section/TAP/prerequisite/owner: relevant roles/paths, tests/fixtures/markers/CI, a candidate observable assertion, and fallback seam. Standalone mode may launch one focused read-only probe whose child returns findings without edits, Plan-lane decisions, or notebook writes. Converger-child mode performs the same research inline.
 
-### Pi notebook from converger
-When a converger names `openspec-plan-research-<initiative_slug>-<story_slug>`, retrieve it with `notebook_read({name: "openspec-plan-research-<initiative_slug>-<story_slug>"})`; then apply the base skill's verification and stale-reference handling rules.
+Verify findings live before story edits or parent merge. Converger context consists only of compact `Ref` / `Purpose` / `Expected anchors` / `Lookup` records whose selected content is already in the prompt; never retrieve the named pages. Treat the one separate `Neutral ops payload` as non-authoritative.

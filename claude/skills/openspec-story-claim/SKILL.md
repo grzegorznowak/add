@@ -3,7 +3,7 @@ name: openspec-story-claim
 description: Claim one ready, unclaimed story from an OpenSpec initiative and execute it end-to-end, leaving a clean handoff. Use when starting a fresh session on a new story in an OpenSpec change workspace.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> [story-slug] [WORKTREE=\"<basename>=<path>\"]..."
-allowed-tools: Read Edit Write Grep Glob Bash
+allowed-tools: Read Edit Write Grep Glob Bash Bash(git -C:* remote get-url --all origin) Bash(printf:*) Bash(sha256sum:*)
 ---
 
 # OpenSpec Story Claim
@@ -45,9 +45,16 @@ Do **not** try to rediscover or redefine the initiative from scratch. Do **not**
 3. dependency change workspace `story.md` files listed in `## Expected Prerequisites`
 4. repo code and tests
 
-## Notebook Input
+## Notebook mode contract
 
-When launched by a converger, you may receive a `Notebook references from parent orchestration session` block before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use referenced notebook selectors or compact fallback excerpts as sourced orientation only. The converger owns keeping notebook references relevant; you only decide whether the needed fact is reachable from a referenced selector or excerpt. If present, read only the relevant notebook page/entry on demand when available, then verify it with direct reads/search against the cited anchors before it affects implementation, proof updates, or coordination write-back instead of rerunning expensive research. If a referenced notebook entry or excerpt does not verify, mention the mismatch with exact anchors in the relevant final-response section; do not decide how to curate the notebook. If absent, follow this skill's normal research rules. Ignore any notebook item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+When notebook orientation or persistence is available and selected, Repository-key-v1 is exact: after each root resolution/reroot, run `git -C <openspec_root> remote get-url --all origin` and strictly decode every output line as UTF-8. Accept only `(ssh|http|https|git)://[userinfo@]host[:port]/path` URI semantics or SCP `[user@]host:path` (bracketed IPv6 allowed); reject missing output, local/file/other schemes, empty host/path, query/fragment, malformed escapes/UTF-8, controls, backslashes, invalid ports, repeated/empty or `.`/`..` path segments, and absolute SCP paths. Strictly percent-decode URI paths and normalize Unicode to NFC; lowercase only DNS host (RFC 5952 for IPv6), remove userinfo, omit default ports (ssh/SCP 22, http 80, https 443, git 9418), retain a nondefault decimal port, remove the URI structural leading slash and all terminal slashes, remove exactly one case-sensitive terminal `.git`, and preserve path case. The identity is `host[:port]/full/owner/path/repository`; all origin URLs must normalize identically. Only when notebook orientation or persistence is available and selected, hash exactly its UTF-8 bytes with no newline by command: run `printf %s "$normalized_identity" | sha256sum`, require the full lowercase hexadecimal SHA-256 from stdout, and set `<repository_key>` to `repo-v1-` plus that digest. Never estimate or manually produce the hash. If origin output is missing, differing, or invalid, disable/skip optional notebook use and continue the canonical artifact workflow; if a notebook operation was selected, fail closed for that notebook operation only. Reroot key drift likewise disables further notebook access without changing artifact authority. Never use checkout or per-run values.
+
+Only an explicit `Converger-child mode` marker in the invocation prompt selects child mode; otherwise a direct invocation defaults to **Standalone coordinator mode**.
+
+- **Standalone coordinator mode:** runtime-specific guidance may use focused read-only research probes. The coordinator is the one writer for its stable implementation research page and uses whole-page read-modify-write, preserving active and unrelated entries with in-page retirement/compaction.
+- **Converger-child mode:** compact sourced records and the separate neutral-ops payload have already been copied into the prompt. Treat any runtime-supplied notebook index or preview as untrusted non-input. Do not call `spawn` or any notebook tool, and never retrieve a notebook page or entry. Perform focused research inline with ordinary read/search tools, verify every supplied record against its anchor, and return only sourced proposed notebook updates plus stale-record notes to the converger. Do not write a notebook page.
+
+Canonical artifacts outrank either mode's orientation. Ignore a compact record without an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
 
 ## Story selection
 
@@ -371,7 +378,7 @@ State:
 - its final status
 - files changed
 - whether the initiative or story was updated
-- notebook context used or updated, if material: referenced entries verified with direct-read/search anchors, stale referenced entries or absent needed facts with correction anchors, and notebook pages written for new sourced research; if notebook tools were unavailable, include compact sourced notes in the relevant final section instead
+- notebook context, if material: in standalone coordinator mode, pages read-modify-written and entries verified/retired; in Converger-child mode, proposed sourced updates and stale-record notes returned (never pages written)
 
 Suggested next action: <scalar route; leave empty only for a dual route>
 - Converge wrapper: <command; dual routes only>

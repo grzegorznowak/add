@@ -24,7 +24,7 @@
 #   19. OpenSpec skills do not require the removed research-event response section.
 #   20. Active OpenSpec workflow outputs use the canonical suggested-next-action label.
 #   21. Approved OpenSpec lifecycle semantics survive canonical, Codex, and Pi generation.
-#   22. Pi implementation/planning convergence prompts end with their owning slash command.
+#   22. Pi convergence/review escaped spawn prompts, repository-qualified notebook families, and mutation fixtures satisfy the no-recursion/firewall protocol.
 #   23. Recognized stale install inventory is explicitly and safely prunable.
 #
 # Exit codes:
@@ -34,6 +34,7 @@
 set -uo pipefail
 
 export LC_ALL=C
+export PYTHONDONTWRITEBYTECODE=1
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_SKILLS="${REPO_ROOT}/claude/skills"
 PI_FRAGMENTS="${REPO_ROOT}/pi-fragments"
@@ -410,54 +411,6 @@ check_suggested_next_action_contract() {
   fi
 }
 
-check_pi_converge_dispatch() {
-  local label="$1" file="$2" prompt_marker="$3" final_command="$4" forbidden_command="$5"
-  local prompt_count marker_count final_count final_line prompt_block
-
-  if [[ ! -f "$file" ]]; then
-    fail "$label: missing Pi convergence dispatch contract at $file"
-    return
-  fi
-
-  prompt_count="$(grep -Ec '^[[:space:]]*prompt[[:space:]]*:' "$file" || true)"
-  prompt_block="$(awk '
-    /^[[:space:]]*prompt[[:space:]]*:/ {
-      if (in_prompt) exit
-      in_prompt = 1
-    }
-    in_prompt && /^[[:space:]]*thinking[[:space:]]*:/ { exit }
-    in_prompt { print }
-  ' "$file")"
-  marker_count="$(grep -Fc -- "$prompt_marker" <<<"$prompt_block" || true)"
-  final_count="$(grep -Fc -- "$final_command" <<<"$prompt_block" || true)"
-  final_line="$(awk '
-    {
-      line = $0
-      sub(/^[[:space:]]*prompt[[:space:]]*:[[:space:]]*/, "", line)
-      sub(/^[[:space:]]*/, "", line)
-      sub(/^[[]/, "", line)
-      sub(/^[[:space:]]*/, "", line)
-      sub(/^"/, "", line)
-      sub(/",?[[:space:]]*$/, "", line)
-      sub(/^[[:space:]]*/, "", line)
-      sub(/[[:space:]]*$/, "", line)
-      if (line == "" || line ~ /^[]][.]join[(]/) next
-      last = line
-    }
-    END { print last }
-  ' <<<"$prompt_block")"
-
-  if [[ "$prompt_count" -ne 1 || "$marker_count" -ne 1 ]]; then
-    fail "$label: Pi convergence must contain exactly one owning workflow spawn prompt (prompt keys: $prompt_count; in-prompt markers: $marker_count)"
-  elif [[ "$final_count" -ne 1 || "$final_line" != "$final_command" ]]; then
-    fail "$label: Pi convergence spawn prompt must end with exact slash command '$final_command' (occurrences: $final_count; got '${final_line:-<missing>}')"
-  elif [[ -n "$forbidden_command" ]] && grep -Fq -- "$forbidden_command" <<<"$prompt_block"; then
-    fail "$label: Pi convergence spawn contract must not dispatch $forbidden_command"
-  else
-    ok "$label: Pi convergence dispatch ends with the exact owning slash command"
-  fi
-}
-
 require_literal() {
   local label="$1" file="$2" literal="$3"
   if [[ ! -f "$file" ]]; then
@@ -633,9 +586,9 @@ check_allowed_tools_exact() {
 
 check_allowed_tool_tokenizer() {
   local valid="$TMPDIR/tokenizer-valid.md" invalid tokens case_value
-  printf '%s\n' '---' 'allowed-tools: Read Bash(git status:*) Write' '---' >"$valid"
+  printf '%s\n' '---' 'allowed-tools: Read Bash(git status:*) Bash(git -C:* remote get-url --all origin) Write' '---' >"$valid"
   if ! tokens="$(allowed_tool_tokens "$valid")" ||
-     [[ "$tokens" != $'Read\nBash(git status:*)\nWrite' ]]; then
+     [[ "$tokens" != $'Read\nBash(git status:*)\nBash(git -C:* remote get-url --all origin)\nWrite' ]]; then
     fail "allowed-tools tokenizer rejects a valid exact token sequence"
     return
   fi
@@ -1540,14 +1493,11 @@ require_workflow_literal \
   "fresh implementation review firewall" \
   openspec-story-review \
   'Do not accept parent/converger notebook references'
-forbid_literal \
-  "Pi review firewall fragment" \
-  "$PI_FRAGMENTS/openspec-story-review.md" \
-  'openspec-research-<initiative_slug>-<story_slug>'
-forbid_literal \
-  "Pi review firewall generated skill" \
-  "$PI_SKILLS/openspec-story-review/SKILL.md" \
-  'openspec-research-<initiative_slug>-<story_slug>'
+if grep -E 'openspec-(research|ops|plan-research|plan-ops|plan-review-research)-' "$PI_FRAGMENTS/openspec-story-review.md" "$PI_SKILLS/openspec-story-review/SKILL.md"; then
+  fail "Pi review firewall imports an implementation/planning notebook family"
+else
+  ok "Pi review firewall excludes all implementation/planning notebook families"
+fi
 
 # blocked.md is the hard gate: review must create/update it before writing
 # BLOCKED status, and resume may normalize stale BLOCKED only after absence.
@@ -1591,13 +1541,18 @@ check_allowed_tools_contract \
   Read Edit Grep Glob 'Bash(gh pr view:*)' 'Bash(gh api:*)' 'Bash(date -u:*)' 'Bash(printf:*)' 'Bash(sha256sum:*)' 'Bash(shasum:*)'
 check_allowed_tools_exact \
   openspec-story-plan-converge \
-  Read Edit Grep Glob Task 'Bash(git status:*)' 'Bash(git worktree list:*)'
+  Read Edit Grep Glob Task 'Bash(git status:*)' 'Bash(git worktree list:*)' 'Bash(git -C:* remote get-url --all origin)' 'Bash(printf:*)' 'Bash(sha256sum:*)'
 check_allowed_tools_exact \
   openspec-story-converge \
-  Read Grep Glob Task 'Bash(git status:*)' 'Bash(git worktree list:*)'
-check_allowed_tools_contract \
-  openspec-story-review \
-  Read Edit Write Grep Glob Task Bash
+  Read Grep Glob Task 'Bash(git status:*)' 'Bash(git worktree list:*)' 'Bash(git -C:* remote get-url --all origin)' 'Bash(printf:*)' 'Bash(sha256sum:*)'
+for skill_name in \
+  openspec-story-claim openspec-story-resume \
+  openspec-story-plan-resume openspec-story-plan-review \
+  openspec-story-review; do
+  check_allowed_tools_contract \
+    "$skill_name" \
+    'Bash(git -C:* remote get-url --all origin)' 'Bash(printf:*)' 'Bash(sha256sum:*)'
+done
 
 # Schema and template ownership must name the complete current writer set.
 for writer in /openspec-story-plan /openspec-story-plan-resume; do
@@ -1712,6 +1667,38 @@ check_workflow_contract \
   "plan-review IN REVIEW executable route" openspec-story-plan-review \
   '/openspec-story-review <initiative-slug> <story-slug>' \
   'If it is `🟣 IN REVIEW`, abort plan review'
+check_workflow_contract \
+  "plan-resume executable IN REVIEW contract repair" openspec-story-plan-resume \
+  'IN REVIEW planning-repair-only' \
+  'retain `Status: 🟣 IN REVIEW`' \
+  'Do not perform implementation work' \
+  'do not launch review or route through plan-converge/plan-review' \
+  'Mode C — Verified IN REVIEW targeted repair' \
+  'REPAIR_REF=<planning-path>#<anchor>' \
+  'Mode C overrides every generic Plan-lane downgrade or output rule' \
+  'preserves `Plan: 🟢 PLAN APPROVED` and `Status: 🟣 IN REVIEW`' \
+  'current anchor itself verifies an exact semantic planning-contract defect' \
+  'exact pre/post evidence that the defect is gone' \
+  'never launch it or route through plan-converge/plan-review.'
+check_workflow_contract \
+  "plan-converge non-looping IN REVIEW repair route" openspec-story-plan-converge \
+  'always stop before the planning loop and never launch plan-review, plan-resume, implementation work, or review' \
+  'executable direct repair route `/openspec-story-plan-resume <initiative> <story-slug>`' \
+  'include the verified current planning-artifact selector as `REPAIR_REF=<planning-path>#<anchor>`' \
+  'Before any approved Plan/log shortcut' \
+  'Only after that scaffold/artifact-shape gate passes' \
+  'Do not recommend this wrapper or plan-review for that route.'
+check_workflow_contract \
+  "review non-looping IN REVIEW planning repair route" openspec-story-review \
+  'planning-contract/scaffold-only repair that preserves authoritative `Status: 🟣 IN REVIEW`' \
+  'exact verified `REPAIR_REF=<planning-path>#<anchor>`' \
+  '/openspec-story-plan-resume <initiative-slug> <story-slug> REPAIR_REF=<verified-planning-path>#<verified-anchor>' \
+  'scalar **Suggested next action:** line' \
+  'do not route through plan-converge or plan-review'
+check_workflow_contract \
+  "converge readiness-aware IN REVIEW route" openspec-story-converge \
+  'Fresh review is the next route only when no named planning, implementation/proof, or external-evidence repair remains and no current matching review evidence blocks a new pass.' \
+  'This wrapper never launches implementation review'
 
 # A genuinely absent story routes to creation; incomplete existing workspaces
 # route to repair. These exact creation routes avoid a resume dead end.
@@ -1782,8 +1769,31 @@ bad_notebook_prompt_pattern='complete inline note''book snap''shot|whole relevan
 if grep -RInE "$bad_notebook_prompt_pattern" "$CLAUDE_SKILLS"/openspec-* "$PI_FRAGMENTS"/openspec-*.md "$CODEX_SKILLS"/openspec_* "$PI_SKILLS"/openspec-* 2>/dev/null; then
   fail "OpenSpec source, fragments, or generated skills ask for oversized notebook prompt context (matches above)"
 else
-  ok "OpenSpec notebook prompts use references or compact excerpts"
+  ok "OpenSpec notebook prompts avoid oversized carried context"
 fi
+
+require_literal \
+  "adding-a-command exact copied record shape" \
+  "$REPO_ROOT/docs/adding-a-command.md" \
+  'with exactly `Ref`, `Purpose`, `Expected anchors`, and `Lookup`'
+require_literal \
+  "adding-a-command separate neutral ops payload" \
+  "$REPO_ROOT/docs/adding-a-command.md" \
+  'plus at most one separate neutral-ops payload'
+forbid_literal \
+  "adding-a-command stale broad reference/excerpt transport" \
+  "$REPO_ROOT/docs/adding-a-command.md" \
+  'notebook page references or compact sourced excerpts'
+for converger in openspec-story-converge openspec-story-plan-converge; do
+  check_workflow_contract \
+    "$converger copied/supplied record verification label" \
+    "$converger" \
+    'Copied/supplied records verified:'
+  forbid_workflow_literal \
+    "$converger stale referenced-entry verification label" \
+    "$converger" \
+    'Referenced entries verified:'
+done
 
 echo
 echo "lint: OpenSpec removed research-event response contract"
@@ -1829,30 +1839,26 @@ for skill_name in "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; do
   check_suggested_next_action_contract "pi: $skill_name" "$PI_SKILLS/$skill_name/SKILL.md" "$dual_capable"
 done
 
-check_pi_converge_dispatch \
-  "Pi implementation convergence fragment" \
-  "$PI_FRAGMENTS/openspec-story-converge.md" \
-  "You are executing the openspec-story-<claim|resume> workflow for openspec/<initiative_slug>/<story_slug>." \
-  "/openspec-story-<claim|resume> <initiative_slug> <story_slug> [WORKTREE=...]" \
-  "/openspec-story-review"
-check_pi_converge_dispatch \
-  "generated Pi implementation convergence" \
-  "$PI_SKILLS/openspec-story-converge/SKILL.md" \
-  "You are executing the openspec-story-<claim|resume> workflow for openspec/<initiative_slug>/<story_slug>." \
-  "/openspec-story-<claim|resume> <initiative_slug> <story_slug> [WORKTREE=...]" \
-  "/openspec-story-review"
-check_pi_converge_dispatch \
-  "Pi planning convergence fragment" \
-  "$PI_FRAGMENTS/openspec-story-plan-converge.md" \
-  "You are executing the openspec-story-plan-<review|resume> workflow for openspec/<initiative_slug>/<story_slug>." \
-  "/openspec-story-plan-<review|resume> <initiative_slug> <story_slug>" \
-  "/openspec-story-review"
-check_pi_converge_dispatch \
-  "generated Pi planning convergence" \
-  "$PI_SKILLS/openspec-story-plan-converge/SKILL.md" \
-  "You are executing the openspec-story-plan-<review|resume> workflow for openspec/<initiative_slug>/<story_slug>." \
-  "/openspec-story-plan-<review|resume> <initiative_slug> <story_slug>" \
-  "/openspec-story-review"
+echo
+echo "lint: notebook protocol Python quality"
+if ruff check "$REPO_ROOT/scripts/check-notebook-protocol.py" "$REPO_ROOT/scripts/protocol_lint"; then
+  ok "notebook protocol Python passes ruff"
+else
+  FAIL=1
+fi
+if mypy --strict --cache-dir "$TMPDIR/mypy-cache" \
+  "$REPO_ROOT/scripts/check-notebook-protocol.py" "$REPO_ROOT/scripts/protocol_lint"; then
+  ok "notebook protocol Python passes mypy --strict"
+else
+  FAIL=1
+fi
+
+if "$REPO_ROOT/scripts/check-notebook-protocol.py" --self-test \
+  --repository-root "$REPO_ROOT" --codex-root "$CODEX_SKILLS" --pi-root "$PI_SKILLS"; then
+  :
+else
+  FAIL=1
+fi
 
 echo
 echo "lint: phase-heading parity (claude ↔ codex)"

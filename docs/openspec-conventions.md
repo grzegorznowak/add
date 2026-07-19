@@ -681,28 +681,69 @@ command; plan-resume cannot approve its own repair, so repaired plans still need
 a fresh plan review. Implementation convergence runs fresh claim/resume passes
 until `🟣 IN REVIEW` or a documented stop and never launches implementation
 review. A non-looped implementation pass runs one claim or resume and may leave
-the story `🔄 IN PROGRESS`. Once it reaches `🟣 IN REVIEW`, the only review route
-is `/openspec-story-review` in a completely fresh, oblivious session without
-implementation-loop notebook, summary, operational-note, or prior-chat context.
+the story `🔄 IN PROGRESS`. At `🟣 IN REVIEW`, route from bounded readiness
+evidence: a named planning, implementation/proof, or external-evidence repair
+goes to its executable owner, and fresh review follows only after repair. Use
+`/openspec-story-review` in a completely fresh, oblivious session without
+implementation-loop notebook, summary, operational-note, or prior-chat context
+only when no named repair remains and no current matching review evidence blocks
+a new pass.
 
 ## Pi notebook conventions
 
 Pi fragments may use `spawn` and notebook pages to carry sourced research or
-neutral operational notes across fresh sessions. Notebook pages are orientation,
-not lifecycle authority.
+neutral operational notes across fresh sessions. Notebook use is optional;
+non-Pi runtimes continue from canonical artifacts without deriving a repository
+key. Notebook pages are orientation, not lifecycle authority.
 
-Recommended page families:
+Canonical page families are:
 
-- `openspec-research-<initiative>-<story>`
-- `openspec-ops-<initiative>-<story>`
-- `openspec-plan-research-<initiative>-<story>`
-- `openspec-plan-ops-<initiative>-<story>`
+- `openspec-research-<repository_key>-<initiative>-<story>`
+- `openspec-ops-<repository_key>-<initiative>-<story>`
+- `openspec-plan-research-<repository_key>-<initiative>-<story>`
+- `openspec-plan-ops-<repository_key>-<initiative>-<story>`
+- `openspec-plan-review-research-<repository_key>-<initiative>-<story>`
+- `openspec-review-<repository_key>-<initiative>-<story>`
 
-Every material notebook claim must be verified with direct reads/search against
-live files before it drives an edit or status transition. Implementation review
-is the exception: `/openspec-story-review` must run from a fresh, oblivious
-session and must not receive parent/converger notebook entries, implementation
-summaries, operational notes, or prior chat context.
+Repository-key-v1 has one normative algorithm. Run `git -C <openspec_root> remote get-url --all origin` and strictly decode every output line as UTF-8.
+Accept only an absolute `ssh`, `http`, `https`, or `git` URI of the form
+`scheme://[userinfo@]host[:port]/path`, or SCP form `[user@]host:path` (including
+a bracketed IPv6 host); reject missing output, local/file paths, other schemes,
+empty host/path, query/fragment, malformed escaping/UTF-8, controls, backslashes,
+invalid ports, repeated/empty path segments, and `.` or `..` segments. Strictly
+percent-decode a URI path; an SCP path is literal UTF-8 and must be relative.
+Normalize Unicode to NFC, lowercase only the DNS host (or RFC 5952-normalize an
+IPv6 host), remove userinfo, omit the scheme default port (`ssh`/SCP 22, `http`
+80, `https` 443, `git` 9418), and retain a nondefault port as `:<decimal>`.
+Remove the URI's one structural leading slash, all terminal slashes, and exactly
+one case-sensitive terminal `.git`; preserve path case. The canonical identity
+is `host[:port]/full/owner/path/repository`. Every configured origin URL must
+normalize to exactly the same nonempty identity. Only when optional notebook orientation/persistence is available and selected,
+hash exactly that identity's UTF-8 bytes, with no newline, by running `printf %s "$normalized_identity" | sha256sum`; `<repository_key>` is `repo-v1-` plus the
+command's full lowercase hexadecimal SHA-256. Never estimate the digest.
+Missing/differing/invalid identities or reroot key drift disable or fail closed
+for that optional notebook operation; the canonical artifact workflow continues.
+Checkout-derived and per-run keys are forbidden. This preserves host/full path
+collision resistance and gives every linked worktree the same key.
+
+One coordinator writes each shared page. It reads the whole existing page,
+read-modify-writes the complete merge, preserves active/unrelated content, and
+uses in-page retirement/compaction with provenance. A convergence coordinator
+may read the whole page, but passes children only selected compact
+`Ref`/`Purpose`/`Expected anchors`/`Lookup` records and exactly one separate
+neutral-ops payload. Converger children do not call notebook tools or nested
+`spawn`; they ignore Pi's automatic page-name/preview list, research inline,
+and return proposals.
+
+Every material notebook claim must be verified live. Implementation review is
+fresh and oblivious and never consumes parent/converger notebook or chat context.
+Because current Pi spawn exposes notebook tools and automatic notebook previews,
+it does not prove an isolated review-child boundary; skip optional supplemental
+review-orientation spawning and inspect canonical artifacts/live paths directly.
+Only a runtime-established isolated boundary with independent proof may use the
+fresh token/sentinel child protocol; child self-attestation is insufficient.
+Optional review persistence is coordinator-owned and occurs before
+receipt/timeline publication and final Status.
 
 ## What active commands should not do
 

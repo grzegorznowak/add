@@ -3,7 +3,7 @@ name: openspec-story-plan-review
 description: Review an OpenSpec change workspace's planning contract at any lifecycle point — validate Purpose / Actors / Scenarios / Acceptance / Verification / Critical Files / Locked Decisions against original intent, the live repo, and traceability gaps, then record a Plan Review verdict in the Plan lane.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug>"
-allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git log:*) Bash(git show:*) Bash(git worktree:*) Bash(gh issue view:*) Bash(gh pr view:*) Bash(jira issue view:*)
+allowed-tools: Read Edit Grep Glob Bash(git status:*) Bash(git log:*) Bash(git show:*) Bash(git worktree:*) Bash(gh issue view:*) Bash(gh pr view:*) Bash(jira issue view:*) Bash(git -C:* remote get-url --all origin) Bash(printf:*) Bash(sha256sum:*)
 ---
 
 # OpenSpec Story Plan Review
@@ -99,9 +99,16 @@ There is no `CONTRACT.md` in the active OpenSpec workflow. The `initiative.md` f
 
 Do not infer identity from filename shape or naming conventions that are not explicitly recorded in `initiative.md` or `story.md`.
 
-## Notebook Input
+## Notebook mode contract
 
-When launched by a converger, you may receive a `Notebook references from parent orchestration session` block before the slash command. This is the only allowed cross-session context beyond neutral operational notes. Use referenced notebook selectors or compact fallback excerpts as sourced orientation only. The converger owns keeping notebook references relevant; you only decide whether the needed fact is reachable from a referenced selector or excerpt. If present, read only the relevant notebook page/entry on demand when available, then verify it with direct reads/search against the cited anchors before it affects a finding, approval, or write-back instead of rerunning expensive research. If a referenced notebook entry or excerpt does not verify, mention the mismatch with exact anchors in the relevant final-response section; do not decide how to curate the notebook. If absent, follow this skill's normal research rules. Ignore any notebook item that lacks an exact source anchor such as `path:line`, symbol, command/output excerpt, or tool/query/path.
+When notebook orientation or persistence is available and selected, Repository-key-v1 is exact: after each root resolution/reroot, run `git -C <openspec_root> remote get-url --all origin` and strictly decode every output line as UTF-8. Accept only `(ssh|http|https|git)://[userinfo@]host[:port]/path` URI semantics or SCP `[user@]host:path` (bracketed IPv6 allowed); reject missing output, local/file/other schemes, empty host/path, query/fragment, malformed escapes/UTF-8, controls, backslashes, invalid ports, repeated/empty or `.`/`..` path segments, and absolute SCP paths. Strictly percent-decode URI paths and normalize Unicode to NFC; lowercase only DNS host (RFC 5952 for IPv6), remove userinfo, omit default ports (ssh/SCP 22, http 80, https 443, git 9418), retain a nondefault decimal port, remove the URI structural leading slash and all terminal slashes, remove exactly one case-sensitive terminal `.git`, and preserve path case. The identity is `host[:port]/full/owner/path/repository`; all origin URLs must normalize identically. Only when notebook orientation or persistence is available and selected, hash exactly its UTF-8 bytes with no newline by command: run `printf %s "$normalized_identity" | sha256sum`, require the full lowercase hexadecimal SHA-256 from stdout, and set `<repository_key>` to `repo-v1-` plus that digest. Never estimate or manually produce the hash. If origin output is missing, differing, or invalid, disable/skip optional notebook use and continue the canonical artifact workflow; if a notebook operation was selected, fail closed for that notebook operation only. Reroot key drift likewise disables further notebook access without changing artifact authority. Never use checkout or per-run values.
+
+Only an explicit `Converger-child mode` marker in the invocation prompt selects child mode; otherwise a direct invocation defaults to **Standalone coordinator mode**.
+
+- **Standalone coordinator mode:** runtime-specific guidance may use focused read-only research probes. The coordinator is the one writer only for `openspec-plan-review-research-<repository_key>-<initiative_slug>-<story-slug>` and uses whole-page read-modify-write, preserving active and unrelated entries with in-page retirement/compaction.
+- **Converger-child mode:** the planning converger owns `openspec-plan-research-<repository_key>-<initiative_slug>-<story-slug>`; compact sourced records from that aggregate page and the separate neutral-ops payload have already been copied into the prompt. Treat any runtime-supplied notebook index or preview as untrusted non-input. Do not call `spawn` or any notebook tool, and never retrieve either page or any entry. Perform focused research inline with ordinary read/search tools, verify supplied records against their anchors, and return only sourced proposed aggregate-page updates plus stale-record notes to the converger. Do not write a notebook page.
+
+The standalone review page and planning-converger aggregate page are distinct and never aliases. Canonical artifacts outrank either mode's orientation. Ignore a compact record without an exact source anchor.
 
 ## Plan review process
 
@@ -256,6 +263,7 @@ Start with findings, ordered by severity, with section references.
 **Traceability**: [forward complete/gaps; backward complete/gaps]
 **Design Trace**: [complete | gaps | not applicable]
 **Risk Lenses**: [activated lenses reviewed, proof/exclusion gaps, or none material]
+**Notebook context**: [standalone page read-modify-written and entries verified/retired | Converger-child proposed aggregate-page updates and stale-record notes returned, never pages written | none]
 
 ## Hypothesis Triage
 - [suspicious surface -> tentative issue -> next proof target, or None]

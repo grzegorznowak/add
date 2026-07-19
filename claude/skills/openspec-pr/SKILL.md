@@ -34,7 +34,6 @@ If a PR reviewer requests changes, do not downgrade the story here. Route action
 - `<story_file>` = `<change_dir>/story.md`.
 - `<progress_file>` = `<change_dir>/progress.md`.
 - `<proposal_file>` = `<change_dir>/proposal.md`.
-- `<review_evidence>` = `story.md` Status header and, optionally, notebook `openspec-review-<initiative_slug>-<story_slug>`.
 
 There is no `MASTER.md`, no tracker table, and no PR lifecycle status. All status is self-contained in the change workspace artifacts:
 
