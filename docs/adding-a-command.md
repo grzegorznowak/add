@@ -88,11 +88,13 @@ Argument: `$ARGUMENTS` — <what the user passes>.
   red-first execution. If red-first can be infeasible, require a written
   exception path.
 - For looper/orchestrator commands, preserve delegated ownership: launch fresh
-  sessions, pass neutral operational notes plus notebook page references or
-  compact sourced excerpts only to passes whose owning skill allows carried
-  context, document hard stops and no-progress gates, and avoid persuasive
-  verdict framing. Oblivious review commands must not receive carried notebook,
-  operational, summary, or prior-chat context.
+  sessions and, only when the owning skill permits optional carried context,
+  copy bounded sourced records containing exactly `Ref`, `Purpose`, `Expected
+  anchors`, and `Lookup` (selected content, not a retrieval instruction). Supply
+  non-sourced coordination separately as at most one neutral ops payload; never
+  disguise it as a sourced record. Document hard stops and no-progress gates,
+  and avoid persuasive verdict framing. Oblivious review commands must not
+  receive carried notebook, operational, summary, or prior-chat context.
 - End with `## Final response` describing the operator-facing result. Every
   active OpenSpec workflow command must include exactly one canonical
   next-action form:
@@ -121,22 +123,44 @@ Pi fragments should add runtime primitives only when the base skill needs
 pi-specific behavior:
 
 - use `spawn` for focused probes or fresh child-agent passes;
-- use notebook pages for durable, sourced research or neutral ops notes;
+- use optional notebook pages for durable, sourced research or neutral ops notes; non-Pi runtimes continue canonically without them;
 - treat notebook pages as orientation, not lifecycle authority;
 - verify material notebook claims with direct reads/search before edits or
   status transitions in commands that allow notebook context;
 - do not pass notebook context into oblivious implementation review.
 
-Prefer stable subject pages such as:
+Use only canonical repository-qualified stable families:
 
-- `openspec-research-<initiative>-<story>`
-- `openspec-ops-<initiative>-<story>`
-- `openspec-plan-research-<initiative>-<story>`
-- `openspec-plan-ops-<initiative>-<story>`
+- `openspec-research-<repository_key>-<initiative>-<story>`
+- `openspec-ops-<repository_key>-<initiative>-<story>`
+- `openspec-plan-research-<repository_key>-<initiative>-<story>`
+- `openspec-plan-ops-<repository_key>-<initiative>-<story>`
+- `openspec-plan-review-research-<repository_key>-<initiative>-<story>`
+- `openspec-review-<repository_key>-<initiative>-<story>`
 
-Do not store raw transcripts, private deliberation, or broad scratch logs in
-notebooks. Promote only reusable facts, architecture, decisions, constraints,
-source anchors, and durable open questions.
+Repository-key-v1 is defined normatively, in full, by
+`docs/openspec-conventions.md`. Commands must apply the
+exact normative repository-key-v1 contract rather than copy or invent a
+runtime-specific normalization or hash
+recipe. Locally, a missing/invalid identity or reroot key drift skips or fails
+closed only for the selected optional notebook operation; canonical artifact
+work continues, and checkout-derived or per-run keys remain forbidden.
+
+Shared stable pages have one coordinator writer. Every write is whole-page
+read-modify-write preserving active and unrelated entries; retire/compact
+in-page with provenance. A converger may read the whole page and pass only selected copied records, each
+with exactly `Ref`, `Purpose`, `Expected anchors`, and `Lookup` (selected content,
+not a retrieval instruction), plus at most one separate neutral-ops payload. Its child neither reads/writes notebooks nor spawns recursively; it
+researches inline and returns proposals. Use in-page retirement and in-page compaction, never page
+deletion, reset, topic assumptions, or renaming selectors.
+
+Current Pi spawn exposes notebook tools and automatic previews, so it does not
+establish isolation for supplemental implementation-review orientation. Skip
+that optional spawn and review canonical artifacts/live paths directly. Retain
+token/sentinel checks only for runtimes that independently prove an isolated
+child boundary; child self-attestation is not proof.
+
+Do not store raw transcripts, private deliberation, or broad scratch logs.
 
 ## Generated Codex skills
 

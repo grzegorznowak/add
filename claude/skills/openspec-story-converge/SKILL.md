@@ -3,18 +3,19 @@ name: openspec-story-converge
 description: "Run fresh claim/resume implementation passes against one OpenSpec change until it reaches Status: 🟣 IN REVIEW, becomes blocked, or the loop reaches a hard stop. Use when a plan-approved implementation story needs continuation only; independent review is intentionally left to a separate fresh session."
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug> [MAX_CYCLES=5] [WORKTREE=\"<basename>=<path>\"]..."
-allowed-tools: Read Grep Glob Task Bash(git status:*) Bash(git worktree list:*)
+allowed-tools: Read Grep Glob Task Bash(git status:*) Bash(git worktree list:*) Bash(git -C:* remote get-url --all origin) Bash(printf:*) Bash(sha256sum:*)
 ---
 
 # OpenSpec Story Converge
 
-Coordinate the implementation-side iteration loop for exactly one OpenSpec change workspace. This command is an orchestrator only: it may start a fresh `/openspec-story-claim` pass for an approved unstarted story, then run fresh `/openspec-story-resume` passes until implementation is ready for independent local review at `Status: 🟣 IN REVIEW`, blocks, no-progress is detected, or the cycle budget is exhausted. It must never launch `/openspec-story-review`, must never pass notebook or implementation-session context to review, and must stop at `🟣 IN REVIEW` with an explicit operator instruction to run review from a completely fresh, oblivious session.
+Coordinate the implementation-side iteration loop for exactly one OpenSpec change workspace. This command is an orchestrator only: it may start a fresh `/openspec-story-claim` pass for an approved unstarted story, then run fresh `/openspec-story-resume` passes until implementation reaches `Status: 🟣 IN REVIEW`, blocks, no-progress is detected, or the cycle budget is exhausted. At IN REVIEW it stops and routes from bounded readiness evidence: a named planning, implementation/proof, or external-evidence deficiency goes to that executable owner. Fresh review is the next route only when no named planning, implementation/proof, or external-evidence repair remains and no current matching review evidence blocks a new pass. This wrapper never launches implementation review and never passes notebook or implementation-session context to review.
 
-Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"]...`. Initiative and story slugs must match the canonical regex `^[a-z0-9]+(?:-[a-z0-9]+)*$`; reject non-canonical positional slugs before path resolution. The initiative slug and story slug are required. `MAX_CYCLES` is optional and defaults to `5`; it counts implementation-producing passes, not review attempts. `WORKTREE=` values are passed through unchanged to `/openspec-story-claim` and `/openspec-story-resume`; when stopping at `🟣 IN REVIEW`, preserve them in the final `/openspec-story-review` recommendation.
+Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"]...`. Initiative and story slugs must match the canonical regex `^[a-z0-9]+(?:-[a-z0-9]+)*$`; reject non-canonical positional slugs before path resolution. The initiative slug and story slug are required. `MAX_CYCLES` is optional and defaults to `5`; it counts implementation-producing passes, not review attempts. `WORKTREE=` values are passed through unchanged to `/openspec-story-claim` and `/openspec-story-resume`. When an IN REVIEW story is ready for a fresh review handoff, preserve them in that recommendation; when repair remains, preserve selectors only for the executable owner that accepts them.
 
 ## Resolution Model
 
 - `<workspace_root>` = `<cwd>` at launch. Keep it for root-repo worktree discovery.
+- `<repository_key>`: When notebook orientation or persistence is available and selected, Repository-key-v1 is exact: after each root resolution/reroot, run `git -C <openspec_root> remote get-url --all origin` and strictly decode every output line as UTF-8. Accept only `(ssh|http|https|git)://[userinfo@]host[:port]/path` URI semantics or SCP `[user@]host:path` (bracketed IPv6 allowed); reject missing output, local/file/other schemes, empty host/path, query/fragment, malformed escapes/UTF-8, controls, backslashes, invalid ports, repeated/empty or `.`/`..` path segments, and absolute SCP paths. Strictly percent-decode URI paths and normalize Unicode to NFC; lowercase only DNS host (RFC 5952 for IPv6), remove userinfo, omit default ports (ssh/SCP 22, http 80, https 443, git 9418), retain a nondefault decimal port, remove the URI structural leading slash and all terminal slashes, remove exactly one case-sensitive terminal `.git`, and preserve path case. The identity is `host[:port]/full/owner/path/repository`; all origin URLs must normalize identically. Only when notebook orientation or persistence is available and selected, hash exactly its UTF-8 bytes with no newline by command: run `printf %s "$normalized_identity" | sha256sum`, require the full lowercase hexadecimal SHA-256 from stdout, and set `<repository_key>` to `repo-v1-` plus that digest. Never estimate or manually produce the hash. If origin output is missing, differing, or invalid, disable/skip optional notebook use and continue the canonical artifact workflow; if a notebook operation was selected, fail closed for that notebook operation only. Reroot key drift likewise disables further notebook access without changing artifact authority. Never use checkout or per-run values.
 - `<openspec_root>` = the active checkout containing this story's OpenSpec artifacts. It starts as `<workspace_root>` and may be updated in memory during initial resolution or after a claim/resume pass if the active artifacts live in a root repo worktree. Never persist an `OpenSpec root:` field.
 - `<initiative_dir>` = `<openspec_root>/openspec/initiatives/<initiative>`.
 - `<initiative_file>` = `<initiative_dir>/initiative.md`.
@@ -36,7 +37,7 @@ There is no `MASTER.md` and no tracker table. All status is self-contained in th
 2. Choose the first implementation pass from the story's current status, or stop immediately when it is already `🟣 IN REVIEW` / `✅ DONE`.
 3. If an unstarted story is plan-approved, delegate claiming to `/openspec-story-claim <initiative> <story-slug>`.
 4. Run up to `MAX_CYCLES` fresh-agent implementation cycles (`claim` once when needed, then `resume` as needed).
-5. Pass compact notebook references for sourced research, plus neutral operational notes, into later implementation agents only.
+5. Pass copied compact sourced records, plus neutral operational notes, into later implementation agents only.
 6. After each implementation pass, refresh `<openspec_root>` before reading lifecycle artifacts so a claim-created root worktree does not leave convergence reading stale files from the launch checkout.
 7. Stop when the story is ready for independent review, blocked, no-progress is detected, invalid state is found, or the cycle budget is exhausted.
 8. Print the convergence trace, notebook context summary, commit recommendation, and optional operator follow-ups without writing coordination files directly.
@@ -130,32 +131,27 @@ For each cycle:
 
 1. Re-read `<story_file>` and `<progress_file>` from the current `<openspec_root>` before choosing the next pass, and recheck `<blocked_file>` before all status/Plan routing. If it exists, stop at the singular operator-action gate.
 2. If the current status is `🟣 IN REVIEW`, execute the repair-or-review branch above before building a slash command; never infer fresh review from status alone. If the current status is `✅ DONE`, execute the DONE Plan/evidence checks above before building a slash command. Otherwise build the exact slash command line for the chosen claim or resume pass.
-3. If notebook-backed context is available, do not inline entire notebook pages or broad notebook dumps. Pass only compact notebook references, selectors, and the reason/scope for consulting them before the implementation command under this heading:
+3. If notebook-backed context is useful, the coordinator may `notebook_read` the whole stable page, select only the bounded entries needed for this pass, and copy compact records into the child prompt. The child must not call `notebook_read` for those pages. Each record has exactly these fields:
 
    ```text
-   Notebook references from parent orchestration session:
-   This is allowed cross-session orientation for implementation passes only because every reference points to sourced research or neutral operational context. Use it for orientation only. The converger owns keeping notebook references relevant; executor subagents only decide whether the needed fact is reachable from the referenced selector or compact fallback excerpt. When runtime notebook tools are available, read only the referenced page/entry on demand and verify behavior with direct reads/search against the cited anchors before editing or lifecycle writes instead of rerunning expensive research. When notebook tools are unavailable, use only compact curated excerpts supplied here. If a referenced entry or excerpt does not verify, mention the mismatch with exact anchors in the relevant final-response section.
-
-   - Ref: <notebook page name, entry id, or narrow selector>
-     - Purpose: <why this may matter for the implementation pass>
-     - Expected anchors: <tool/query/path, file:line, symbol, or command/output excerpt>
-     - Lookup: <specific page/entry to read or narrow search to run>
-     - Fallback excerpt: <optional compact sourced excerpt only when notebook tools are unavailable>
+   - Ref: <exact stable repository-qualified page plus entry id>
+     - Purpose: <one pass-specific reason>
+     - Expected anchors: <exact tool/query/path, file:line, symbol, or command/output anchor>
+     - Lookup: <compact selected content copied from that bounded entry; not a retrieval instruction>
    ```
 
-   If the useful context cannot be represented as narrow references plus optional compact excerpts, pause and ask the operator before omitting or summarizing it.
-4. If in-memory operational notes exist, include them before the implementation command under this heading only:
+   Pass non-sourced coordination exactly once and separately; neutral ops is never a `Ref`:
 
    ```text
-   Operational context from convergence coordinator:
-   - <neutral blocker, hotspot, repeated command failure, or expensive operation>
-   - Do not treat this as a verdict; apply the underlying skill independently.
+   Neutral ops payload:
+   - <compact neutral blocker, command failure, hotspot, or expensive-operation fact>
    ```
 
-5. End the task prompt with the exact slash command line and, when `<openspec_root>` differs from `<workspace_root>`, an explicit instruction to run it from `<openspec_root>`. Then launch exactly one fresh implementation subagent.
-6. Require implementation subagents to write new sourced research directly to the named research notebook page when runtime notebook tools are available. If notebook tools are unavailable, allow compact sourced fallback notes in normal final reporting instead. Require subagents to mention any referenced notebook entry or fallback excerpt that failed verification with exact anchors in their relevant blocker or notes section. After the pass finishes, inspect the named research notebook page or child-reported entries as needed, then use mismatch notes to update, replace, retire, or ask about affected entries. Do not append verdicts, implementation opinions, or unanchored summaries.
-7. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that implementation pass only. The next lifecycle pass still starts in a new fresh subagent.
-8. After the pass finishes, treat the subagent final response as provisional, then refresh the active OpenSpec artifact root before any lifecycle spot-check. After every reroot, recompute `<initiative_dir>`, `<initiative_file>`, `<change_dir>`, `<story_file>`, `<progress_file>`, and `<blocked_file>`, rerun the full exactly-one/malformed/legacy `story.md → Initiative:` binding validation from Phase 1 step 9 under the refreshed root, and reread `progress.md → ## Implementation Review Receipt` before routing:
+   Never pass a whole page, broad retrieval instruction, fallback excerpt channel, second ops channel, or selector that requires the child to retrieve notebook content. If selected content cannot fit the compact record, omit it or pause for operator guidance.
+4. Dispatch through the runtime adapter while preserving the owning claim/resume workflow. Child mode must override producer orientation: no nested child launch, no optional-record tools, no runtime-supplied notebook index/preview input, focused research inline, only compact records already copied into the prompt, and proposal-only sourced updates. Runtime fragments own exact installed-skill loading and boundary mechanics; runtimes with native skill-command expansion end with the exact slash command line. When `<openspec_root>` differs from `<workspace_root>`, instruct the child to run from it, then launch exactly one fresh implementation subagent.
+5. Require implementation subagents to return proposed new sourced entries to the convergence coordinator; children must not overwrite shared notebook pages. Require subagents to mention any supplied compact record that failed verification with exact anchors. Hold all returned proposals and mismatch notes in memory. Do not call `notebook_read`, `notebook_write`, or merge any proposal after child return until step 7 has refreshed the active root and artifacts and revalidated the identical repository-key-v1.
+6. If the subagent asks an operator question, pause the convergence run, ask the operator, then resume the same subagent for that implementation pass only. The next lifecycle pass still starts in a new fresh subagent.
+7. After the pass finishes, treat the subagent final response as provisional, then refresh the active OpenSpec artifact root before any lifecycle spot-check. After every reroot, recompute `<initiative_dir>`, `<initiative_file>`, `<change_dir>`, `<story_file>`, `<progress_file>`, and `<blocked_file>`, rerun the full exactly-one/malformed/legacy `story.md → Initiative:` binding validation from Phase 1 step 9 under the refreshed root, and reread `progress.md → ## Implementation Review Receipt` before routing:
    - Run this refresh after every claim pass, and after any resume pass whose reported anchors are missing or whose spot-check would otherwise read stale paths.
    - Inspect all explicit `WORKTREE=` arguments first. If exactly one path is a git checkout containing both `<path>/openspec/initiatives/<initiative>/initiative.md` and `<path>/openspec/changes/<story-slug>/story.md`, set `<openspec_root>` to it and recompute artifact paths before any spot-check. If multiple explicit paths qualify, ask which checkout is active and halt; never guess. Target-repo overrides that lack both artifacts are ignored for OpenSpec-root discovery.
    - Only when no explicit path qualifies, inspect registered root-repo worktrees other than `<workspace_root>` with `git -C <workspace_root> worktree list --porcelain`. A branch candidate qualifies only when it is on `refs/heads/<initiative>/<story-slug>` and contains both required artifact files.
@@ -163,13 +159,15 @@ For each cycle:
    - If multiple branch candidates qualify, stop and ask which checkout is active; include the candidate paths and never guess.
    - Only when neither an explicit nor branch candidate qualifies, fall back to `<workspace_root>`. If the launch `<story_file>` or `<progress_file>` is missing after a claim pass, stop with: `OpenSpec artifacts may have moved to a root worktree, but convergence could not locate them. Rerun from the checkout containing openspec/changes/<story-slug>/story.md, or pass WORKTREE="<basename>=<path>" from that checkout.`
 
+   After selecting the refreshed root, recomputing every artifact path, rerunning initiative binding validation, and rereading the authoritative artifacts, continue canonical routing regardless of optional notebook availability. If notebook persistence was selected and remains available, rederive repository-key-v1 from that refreshed root and require exact equality with the run's prior key before notebook access. Missing/invalid origin or drift disables that optional merge; it does not halt artifact routing. Only after a successful equality check may the coordinator read the current stable research record and read-modify-write merge accepted proposals, preserving active/unrelated entries and applying mismatch notes through update, replace, in-record retirement, or operator escalation. Do not append verdicts, implementation opinions, or unanchored summaries.
+
    Before routing or stopping, perform a minimal authority spot-check of only the decision-bearing fields and anchors at the refreshed `<openspec_root>`: inventory the full top-level header region so duplicate or malformed Initiative-like lines cannot evade an exact-field grep, then inspect Status/Plan and bounded reads of `progress.md → ## Implementation Review Receipt` plus the newest relevant progress/handoff entry when they matter. Use bounded reads only for the newest relevant progress or handoff entry body. If those spot-checks agree with the agent's report, continue from the canonical fields. If anchors are missing, stale, ambiguous, or conflicting, broaden to targeted reads of the affected file(s) or stop with a concrete operator repair action; do not launch `/openspec-story-review` from this skill.
-9. After every claim or resume pass and artifact-root refresh, recheck `<blocked_file>` and rerun the complete prerequisite qualification from Phase 2 against current active-first story/blocked/progress evidence before accepting IN REVIEW, DONE, or any continuation. If the selected blocker exists or any prerequisite is now unsatisfied/contradictory, stop immediately with the singular owner/action; do not launch another implementation or review pass.
-10. If the pass leaves the story at `Status: 🟣 IN REVIEW`, stop with result `IN_REVIEW`. Do not launch a review pass in the same cycle.
-11. If the pass leaves the story at `Status: 🔄 IN PROGRESS`, continue only when the cycle budget remains and the no-progress gate does not fire.
-12. If any pass moves the story to `Status: ⛔ BLOCKED`, stop.
-13. If any implementation pass moves the story to `Status: ✅ DONE`, apply the same entry checks: require unambiguous `Plan: 🟢 PLAN APPROVED`, then bounded-check task completion and current implementation/proof evidence rather than confirming only the Status header. A non-approved Plan uses the singular operator reconciliation action; unchecked tasks or stale/incomplete proof use only a fresh oblivious story-review route. Stop with result `DONE` only when all checks are consistent, and note that this command did not create the completion authority.
-14. Run the no-progress gate before starting the next cycle.
+8. After every claim or resume pass and artifact-root refresh, recheck `<blocked_file>` and rerun the complete prerequisite qualification from Phase 2 against current active-first story/blocked/progress evidence before accepting IN REVIEW, DONE, or any continuation. If the selected blocker exists or any prerequisite is now unsatisfied/contradictory, stop immediately with the singular owner/action; do not launch another implementation or review pass.
+9. If the pass leaves the story at `Status: 🟣 IN REVIEW`, run the explicit post-pass IN REVIEW readiness gate after the refreshed-root authority spot-check: re-read current task/proof evidence, newest relevant progress/handoff evidence, receipt supersession evidence, blocker state, and the complete prerequisite gate. Accept result `IN_REVIEW` only when no named implementation/proof, contract, or external-evidence repair remains and review has not run against that current evidence. Otherwise route to the singular repair owner. Stop after the gate and never launch review in the same cycle.
+10. If the pass leaves the story at `Status: 🔄 IN PROGRESS`, continue only when the cycle budget remains and the no-progress gate does not fire.
+11. If any pass moves the story to `Status: ⛔ BLOCKED`, stop.
+12. If any implementation pass moves the story to `Status: ✅ DONE`, apply the same entry checks: require unambiguous `Plan: 🟢 PLAN APPROVED`, then bounded-check task completion and current implementation/proof evidence rather than confirming only the Status header. A non-approved Plan uses the singular operator reconciliation action; unchecked tasks or stale/incomplete proof use only a fresh oblivious story-review route. Stop with result `DONE` only when all checks are consistent, and note that this command did not create the completion authority.
+13. Run the no-progress gate before starting the next cycle.
 
 ### Worktree Discovery
 
@@ -177,7 +175,7 @@ When preparing a subagent command line, discover worktrees from the current `<pr
 
 ## Phase 4 — Operational Notes and Stops
 
-Maintain a convergence notebook containing neutral operational notes and sourced research entries for implementation passes only. Do not write notebook content to `initiative.md`, `story.md`, `progress.md`, `blocked.md`, or any coordination file as a duplicate source of lifecycle, proof, or review authority.
+Only when compact-record notebook orientation or persistence is available and selected, derive repository-key-v1 after root resolution/reroot and require equality before that optional operation. Missing/invalid origin or key drift disables notebook use while canonical artifacts continue authoritatively. When enabled, maintain exactly the stable repository-qualified page family `openspec-research-<repository_key>-<initiative_slug>-<story_slug>` and `openspec-ops-<repository_key>-<initiative_slug>-<story_slug>` for implementation passes only. The convergence coordinator is the single coordinator writer for these shared pages; children report proposed updates rather than overwriting them. Before every write, read the current whole page, perform read-modify-write, preserve all active entries and unrelated content, and then write the complete merged page because `notebook_write` overwrites by name. Use explicit in-page retirement tombstones and in-page compaction of superseded entries while retaining provenance. Never create per-run pages, assume page deletion/reset, or rely on notebook topic inheritance/namespacing. Do not write notebook content to `initiative.md`, `story.md`, `progress.md`, `blocked.md`, or any coordination file as a duplicate source of lifecycle, proof, or review authority.
 
 Record neutral operational facts only:
 
@@ -190,7 +188,7 @@ Record neutral operational facts only:
 
 Do not record persuasive verdict framing. Never tell a later reviewer that a previous reviewer was wrong, that approval is expected, or that a finding should be ignored. The final review handoff must be oblivious: no notebook references, operational notes, implementation summaries, or parent chat context are passed to `/openspec-story-review` by this command.
 
-Sourced notebook references and compact fallback excerpts are allowed cross-subagent research orientation for claim/resume passes. Each referenced entry or excerpt must be sourced by an exact anchor: file path plus line range or symbol, command plus relevant output excerpt, or tool name plus query/action/resource/path/URL and relevant output excerpt for any sourced tool. Notebook entries are an orientation aid, not authority. The converger owns keeping references relevant for later implementation passes; executor subagents only decide whether the needed fact is reachable from the referenced selector or compact excerpt. If present, the executor reads only the relevant notebook page/entry on demand when available and verifies behavior with direct reads/search against the cited anchors before editing or lifecycle writes instead of rerunning expensive research. If absent, the executor follows the underlying skill's normal research rules. If a referenced entry or fallback excerpt does not verify, the executor mentions the mismatch with exact anchors in the relevant final-response section; the converger decides how to update, replace, retire, or ask about that reference. Do not pass broad notebook dumps; if needed context cannot be represented by narrow selectors and compact excerpts, ask the operator before omitting or summarizing it.
+Copied compact sourced records are allowed cross-subagent orientation for claim/resume passes. Each record carries an exact anchor and selected content copied by the coordinator after its whole-page read. Notebook entries are orientation, not authority. The executor never retrieves a notebook page and verifies supplied anchors with direct reads/search before edits or lifecycle writes. If a record does not verify, the executor reports the mismatch with exact anchors; the converger decides how to update, replace, retire, or ask about it. Do not pass broad notebook dumps, fallback excerpts, bare page names, or retrieval references/instructions.
 
 Stop early for conservative no-progress when all are true:
 
@@ -249,12 +247,12 @@ Return only the compact report below. Do not include internal deliberation, anal
 - Cycle 2: ...
 
 ## Notebook Context
-- References passed: <n>
+- Copied compact records passed: <n>
 - Hotspots: <paths/symbols surfaced by sourced research, or none>
 - Research notebook updates: <entries added/updated/retired this run, or none>
-- Referenced entries verified: <summary or none>
-- Stale reference handling: <referenced entries/excerpts not verified, needed facts absent from referenced notebook selectors, or none>
-- Persistence: <notebook page references, compact excerpt fallback, runtime-specific notebook pages, or none>; no coordination-file cache written; no notebook or operational context is passed to review
+- Copied/supplied records verified: <summary or none>
+- Stale record handling: <supplied compact records not verified or none>
+- Persistence: <stable notebook page updates or compact records passed, or none>; no coordination-file cache written; no notebook or operational context is passed to review
 
 ## Commit Recommendation
 - <ready-for-review checkpoint, WIP checkpoint, or none>

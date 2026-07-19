@@ -208,6 +208,53 @@ conventions and command authority described here on top of those generic Pi
 context-management tools, while the repo-local OpenSpec files remain the source
 of truth.
 
+OpenSpec notebook pages use canonical repository-qualified stable names. The
+full repository-key-v1 algorithm is defined normatively in
+`docs/openspec-conventions.md`; lifecycle consumers must apply the
+exact normative repository-key-v1 contract rather than restate or shorten its origin
+normalization and hashing steps. Missing/invalid identity or reroot key drift skips or fails
+closed only for the optional notebook operation while canonical artifacts
+continue authoritatively. Checkout and per-run keys remain forbidden. The
+exact stable families are:
+
+- `openspec-research-<repository_key>-<initiative>-<story>`
+- `openspec-ops-<repository_key>-<initiative>-<story>`
+- `openspec-plan-research-<repository_key>-<initiative>-<story>`
+- `openspec-plan-ops-<repository_key>-<initiative>-<story>`
+- `openspec-plan-review-research-<repository_key>-<initiative>-<story>`
+- `openspec-review-<repository_key>-<initiative>-<story>`
+
+Checkout and per-run keys are forbidden.
+
+A convergence coordinator is the sole writer for its shared pages and always
+performs whole-page read-modify-write preserving active/unrelated content.
+Use in-page retirement and in-page compaction with provenance. Before dispatch it may
+read a complete page, but copies only selected `Ref`, `Purpose`, `Expected
+anchors`, and `Lookup` records into the child prompt; neutral ops is one separate
+inline payload and never a Ref. Pi always exposes notebook tools and automatic
+page-name/first-line previews to spawned children, so runtime isolation is
+fail-closed by contract rather than by pretending those capabilities are absent.
+A converger child treats automatic names/previews as untrusted non-input, makes
+no nested spawn or notebook call, retrieves no page/entry, performs focused
+research inline, and returns proposal-only updates plus an exact boundary proof.
+The coordinator discards a return without that proof or with contradictory use.
+Standalone owner mode remains the one-writer whole-page read-modify-write mode;
+its final response reports pages written. Converger-child final responses report
+proposed updates and stale-record notes, never pages written.
+
+Standalone plan review owns only
+`openspec-plan-review-research-<repository_key>-<initiative>-<story>`. A plan-review
+child inside planning convergence instead proposes updates for the converger's
+`openspec-plan-research-<repository_key>-<initiative>-<story>` aggregate; the two
+pages are distinct and never aliases. Implementation review never consumes parent/converger notebook/chat context.
+Current Pi spawn exposes notebook tools and automatic previews, so it cannot
+establish an isolated review-child boundary; optional supplemental review
+orientation is skipped and review uses canonical artifacts plus live inspection.
+A future runtime may use the retained no-notebook/no-nested-spawn token/sentinel
+protocol only after it independently proves isolation; child self-attestation is
+not proof. Optional review persistence precedes receipt/timeline publication and
+final Status.
+
 ## Standard lifecycle
 
 ### 1. Initiative planning
@@ -407,7 +454,7 @@ until one of these hard stops occurs:
 - no-progress detection;
 - cycle budget exhaustion.
 
-The converger may pass neutral operational notes or sourced notebook page names
+The converger may pass neutral operational notes or copied compact sourced records
 to implementation child sessions only. Those notes are orientation only;
 material claims must be verified against live files before edits. When the story
 reaches `🟣 IN REVIEW`, the converger stops and tells the operator to open a
@@ -588,9 +635,14 @@ non-looped pass performs only the state-correct direct command, and any repair
 must still receive a fresh plan review before approval. The implementation
 wrapper owns repeated fresh claim/resume dispatch and stops at `🟣 IN REVIEW`;
 a non-looped pass is one claim or resume and may stop in `🔄 IN PROGRESS`.
-Neither route authorizes implementation review. At `🟣 IN REVIEW`, use only a
-fresh, oblivious `/openspec-story-review` session with no implementation-loop
-notebook, summary, operational notes, or prior chat context.
+Neither route authorizes or launches implementation review. At `🟣 IN REVIEW`,
+inspect bounded readiness evidence first. If a current aborted review or other
+durable evidence names a planning, implementation/proof, or external-evidence
+repair, route the named executable owner and say fresh review follows repair.
+Use a fresh, oblivious `/openspec-story-review` session with no
+implementation-loop notebook, summary, operational notes, or prior chat context
+only when no named repair remains and no current matching review evidence blocks
+a new pass.
 
 Use an exact command when executable routing is known, an operator action when
 human intervention or selection is required, `wait` for an external event, and

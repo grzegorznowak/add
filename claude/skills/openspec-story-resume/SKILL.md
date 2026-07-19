@@ -3,7 +3,7 @@ name: openspec-story-resume
 description: Resume implementation of an in-progress OpenSpec change story — picks up where the last session left off, applies red-first discipline, verifies implementation proof, and tracks progress through change workspace artifacts. Use when a fresh session needs to continue ongoing implementation work on an OpenSpec change.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> [story-slug] [WORKTREE=\"<basename>=<path>\"]..."
-allowed-tools: Read Edit Write Grep Glob Bash
+allowed-tools: Read Edit Write Grep Glob Bash Bash(git -C:* remote get-url --all origin) Bash(printf:*) Bash(sha256sum:*)
 ---
 
 # OpenSpec Story Resume
@@ -30,7 +30,7 @@ This skill defers to the following artifacts, in priority order. Notebook contex
 9. **design.md** — Technical design decisions.
 10. **tasks.md** — Task checklist for implementation tracking.
 11. **initiative.md** — Parent initiative context.
-12. **Optional notebook orientation** — `openspec-review-<initiative_slug>-<story_slug>` or feedback notebooks may supply sourced hints only when available; Canonical artifacts outrank notebook orientation.
+12. **Optional notebook orientation** — `openspec-review-<repository_key>-<initiative_slug>-<story_slug>` or feedback notebooks may supply sourced hints only when available; derive repository-key-v1 from the resolved OpenSpec root's unique normalized `host/full/owner/path/repository` origin, never checkout basename/path or a per-run key. Canonical artifacts outrank notebook orientation.
 
 ## Phase 0 — Resolution
 
@@ -390,14 +390,16 @@ If `tasks.md` shows all tasks complete and implementation proof passes:
 2. Report completion to the operator.
 3. Halt — no implementation to resume.
 
-### Notebook Input
+### Notebook mode contract
 
-If the parent provides a `Notebook references from parent orchestration session` block, use only referenced notebook selectors or compact fallback excerpts for sourced orientation. Extract:
-- sourced research relevant to the current tasks;
-- unresolved open questions that still need verification against canonical artifacts; and
-- constraints or approaches that are already anchored in cited source material.
+When notebook orientation or persistence is available and selected, Repository-key-v1 is exact: after each root resolution/reroot, run `git -C <openspec_root> remote get-url --all origin` and strictly decode every output line as UTF-8. Accept only `(ssh|http|https|git)://[userinfo@]host[:port]/path` URI semantics or SCP `[user@]host:path` (bracketed IPv6 allowed); reject missing output, local/file/other schemes, empty host/path, query/fragment, malformed escapes/UTF-8, controls, backslashes, invalid ports, repeated/empty or `.`/`..` path segments, and absolute SCP paths. Strictly percent-decode URI paths and normalize Unicode to NFC; lowercase only DNS host (RFC 5952 for IPv6), remove userinfo, omit default ports (ssh/SCP 22, http 80, https 443, git 9418), retain a nondefault decimal port, remove the URI structural leading slash and all terminal slashes, remove exactly one case-sensitive terminal `.git`, and preserve path case. The identity is `host[:port]/full/owner/path/repository`; all origin URLs must normalize identically. Only when notebook orientation or persistence is available and selected, hash exactly its UTF-8 bytes with no newline by command: run `printf %s "$normalized_identity" | sha256sum`, require the full lowercase hexadecimal SHA-256 from stdout, and set `<repository_key>` to `repo-v1-` plus that digest. Never estimate or manually produce the hash. If origin output is missing, differing, or invalid, disable/skip optional notebook use and continue the canonical artifact workflow; if a notebook operation was selected, fail closed for that notebook operation only. Reroot key drift likewise disables further notebook access without changing artifact authority. Never use checkout or per-run values.
 
-When runtime notebook tools are available, read only the referenced notebook page/entry on demand. Verify cited anchors before making implementation decisions. If a referenced notebook entry or excerpt does not verify, mention the mismatch with exact anchors in the relevant final-response section; do not decide how to curate the notebook. Canonical artifacts outrank notebook orientation. If notebook orientation conflicts with the change workspace artifacts or `progress.md → ## Implementation Review Receipt`, ignore the notebook account, report the stale reference with exact anchors, and proceed from canonical artifacts unless those artifacts conflict with each other.
+Only an explicit `Converger-child mode` marker in the invocation prompt selects child mode; otherwise a direct invocation defaults to **Standalone coordinator mode**.
+
+- **Standalone coordinator mode:** runtime-specific guidance may use focused read-only research probes. The coordinator is the one writer for its stable implementation research page and uses whole-page read-modify-write, preserving active and unrelated entries with in-page retirement/compaction.
+- **Converger-child mode:** compact sourced records and the separate neutral-ops payload have already been copied into the prompt. Treat any runtime-supplied notebook index or preview as untrusted non-input. Do not call `spawn` or any notebook tool, and never retrieve a notebook page or entry. Perform focused research inline with ordinary read/search tools, verify supplied records against their anchors, and return only sourced proposed notebook updates plus stale-record notes to the converger. Do not write a notebook page.
+
+Canonical artifacts and `progress.md → ## Implementation Review Receipt` outrank orientation. If a compact record conflicts with them or fails live verification, ignore it and report the stale record with exact correction anchors.
 
 ## Default Legend
 
@@ -412,7 +414,7 @@ State:
 - tasks completed or still open
 - proof commands run and results, or why proof was not run
 - blockers, risks, or dirty worktree notes, if any
-- notebook context used or updated, if material: referenced entries verified with direct-read/search anchors, stale referenced entries or absent needed facts with correction anchors, and notebook pages written for new sourced research; if notebook tools were unavailable, include compact sourced notes in the relevant final section instead
+- notebook context, if material: in standalone coordinator mode, pages read-modify-written and entries verified/retired; in Converger-child mode, proposed sourced updates and stale-record notes returned (never pages written)
 
 Suggested next action: <scalar route; leave empty only for a dual route>
 - Converge wrapper: <command; dual routes only>
