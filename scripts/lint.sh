@@ -546,6 +546,104 @@ check_workflow_contract() {
   fi
 }
 
+review_focus_template_issues() {
+  local file="$1"
+  markdown_without_comments "$file" | awk '
+    function unwrap(line,    previous) {
+      gsub(/\r/, "", line)
+      do {
+        previous = line
+        sub(/^[[:space:]]*>[[:space:]]*/, "", line)
+        sub(/^[[:space:]]*([-+*]|[0-9]+[.)])[[:space:]]+/, "", line)
+        sub(/^[[:space:]]*##*[[:space:]]+/, "", line)
+        sub(/^[[:space:]]*\|[[:space:]]*/, "", line)
+      } while (line != previous)
+      gsub(/[*_`]/, "", line)
+      sub(/^[[:space:]]+/, "", line)
+      sub(/[[:space:]]+$/, "", line)
+      return tolower(line)
+    }
+    /^#[[:space:]]+/ && !saw_title { saw_title = 1; next }
+    /^[[:space:]]*(```|~~~)/ { in_fence = !in_fence; next }
+    /^##[[:space:]]+/ && saw_title { metadata_done = 1 }
+    {
+      normalized = unwrap($0)
+      field_like = (normalized ~ /^review[ _-]*focus[[:space:]]*(:|\||$)/)
+      canonical = ($0 == "Review Focus: |" && saw_title && !metadata_done && !in_fence)
+      if (canonical) canonical_count++
+      if (field_like && !canonical) {
+        extra_count++
+        extra_lines = extra_lines (extra_lines ? "," : "") FNR
+      }
+    }
+    END {
+      if (canonical_count != 1) print "canonical-metadata-count=" (canonical_count + 0)
+      if (extra_count) print "extra-field-like-lines=" extra_lines
+    }
+  '
+}
+
+check_review_focus_template_detector() {
+  local sample="$TMPDIR/review-focus-template.md" wrapped
+  printf '# Story\n\nReview Focus: |\n\n## Purpose\n' >"$sample"
+  if [[ -n "$(review_focus_template_issues "$sample")" ]]; then
+    fail "Review Focus template detector rejected its canonical fixture"
+    return
+  fi
+  local -a wrapped_fields=(
+    '> Review Focus: |'
+    '- Review Focus: |'
+    '1. Review Focus: |'
+    '`Review Focus: |`'
+    '**Review Focus: |**'
+    '## Review Focus'
+    '| Review Focus | guidance |'
+  )
+  for wrapped in "${wrapped_fields[@]}"; do
+    printf '# Story\n\nReview Focus: |\n\n## Purpose\n%s\n' "$wrapped" >"$sample"
+    if [[ -z "$(review_focus_template_issues "$sample")" ]]; then
+      fail "Review Focus template detector accepted wrapped/extra field: $wrapped"
+      return
+    fi
+  done
+  printf '# Story\n\n```yaml\nReview Focus: |\n```\n\n## Purpose\n' >"$sample"
+  if [[ -z "$(review_focus_template_issues "$sample")" ]]; then
+    fail "Review Focus template detector accepted a fenced field"
+    return
+  fi
+  ok "Review Focus template detector rejects wrapped, fenced, and extra field-like headers"
+}
+
+check_review_focus_mention_ownership() {
+  local skill codex_skill runtime file findings
+  local -a bad=()
+  for skill in "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; do
+    [[ -n "$skill" ]] || continue
+    case "$skill" in
+      openspec-story-claim|openspec-story-resume|openspec-story-review) continue ;;
+    esac
+    codex_skill="$(hyphen_to_underscore "$skill")"
+    for runtime in canonical codex pi; do
+      case "$runtime" in
+        canonical) file="$CLAUDE_SKILLS/$skill/SKILL.md" ;;
+        codex) file="$CODEX_SKILLS/$codex_skill/SKILL.md" ;;
+        pi) file="$PI_SKILLS/$skill/SKILL.md" ;;
+      esac
+      if [[ ! -f "$file" ]]; then
+        bad+=("$runtime:$skill:missing-file")
+        continue
+      fi
+      findings="$(grep -inF -- 'review focus' < <(markdown_without_comments "$file") || true)"
+      [[ -z "$findings" ]] || bad+=("$runtime:$skill:lines=$(cut -d: -f1 <<<"$findings" | paste -sd, -)")
+    done
+  done
+  if [[ ${#bad[@]} -gt 0 ]]; then
+    fail "active Review Focus mentions are permitted only in claim, resume, and review: ${bad[*]}"
+  else
+    ok "active Review Focus mentions occur only in claim, resume, and review across canonical + generated Codex/Pi"
+  fi
+}
+
 allowed_tool_tokens() {
   local file="$1" rest token
   local -a seen=()
@@ -1564,6 +1662,26 @@ require_workflow_literal \
 # that currently read or write those anchors. Positive top-level-only wording
 # prevents a stale alternate-section ban from being the sole guard.
 require_literal "canonical story Status template" "$STORY_TEMPLATE" 'Status: ⚪ TODO'
+check_review_focus_template_detector
+review_focus_template_findings="$(review_focus_template_issues "$STORY_TEMPLATE" | paste -sd, -)"
+if [[ -n "$review_focus_template_findings" ]]; then
+  fail "canonical story Review Focus template requires exactly one raw top-level 'Review Focus: |' metadata field and no wrapped, malformed, duplicate, or example field ($review_focus_template_findings)"
+else
+  ok "canonical story Review Focus template has exactly one raw top-level metadata field"
+fi
+check_review_focus_mention_ownership
+REVIEW_FOCUS_HANDOFF_CONTRACT='On every implementation handoff to `🟣 IN REVIEW`, overwrite the top-level `Review Focus: |` block with current reviewer guidance; write a blank block when no focus is needed.'
+for review_focus_writer in openspec-story-claim openspec-story-resume; do
+  check_workflow_contract \
+    "Review Focus handoff writer contract: $review_focus_writer" "$review_focus_writer" \
+    "$REVIEW_FOCUS_HANDOFF_CONTRACT"
+done
+check_workflow_contract \
+  "Review Focus review semantics and read-only contract" openspec-story-review \
+  'Interpret a blank `Review Focus: |` block as a full review and a nonblank block as focused review guidance.' \
+  'The reviewer may widen beyond `Review Focus: |` whenever baseline, scope, or risk is unclear; it is guidance, not an inspection boundary.' \
+  'Outside `🟣 IN REVIEW`, `Review Focus: |` is inert.' \
+  'During review, `Review Focus: |` is read-only: review reads it but does not write it.'
 require_workflow_literal \
   "implementation review requires top-level Status header" \
   openspec-story-review \
