@@ -315,6 +315,17 @@ Assume other fresh sessions may work on nearby stories. Avoid touching files out
 
 ## Finish protocol
 
+For an `🟣 IN REVIEW` completion, use this literal block shape in the top-level story header:
+
+```yaml
+Review Focus: |
+  <optional reviewer guidance on indented lines>
+```
+
+`Review Focus: |` is exactly one top-level field. Its content is the immediately following indented lines; the next top-level header terminates the block. No indented non-whitespace content means the block is blank. Malformed, duplicate, or conflicting Review Focus forms fail closed. Repair the header instead of guessing or publishing review readiness. Keep nonblank Review Focus guidance roughly 500–1,000 tokens. Enforce a deterministic maximum of 1,000 whitespace-delimited units before writing; shorten over-budget guidance rather than truncating it. This is a ceiling range, not a target length: prefer the shortest concrete guidance that identifies the requested surfaces, risks, and evidence.
+
+Prepare and write the complete `Review Focus: |` block before making `Status: 🟣 IN REVIEW` visible in either `story.md` or `progress.md → ## Session Handoff`; publish the focus and both status surfaces as one completion handoff. After writing the focus, set `story.md → Status:` and then the Session Handoff status to `🟣 IN REVIEW`. If interrupted after writing focus but before both statuses, leave the story out of review and reconcile the handoff before retrying. Re-read the focus block and both status surfaces before reporting completion; never leave or report `🟣 IN REVIEW` with stale Review Focus content.
+
 At the end of the session, update `progress.md → ## Session Handoff`:
 
 ```md
@@ -342,6 +353,9 @@ The `Status:` field in `story.md` is the authoritative implementation status. Th
 - `⛔ BLOCKED` — an external blocker prevents completion or review
 
 **Default rule:**
+
+On every implementation handoff to `🟣 IN REVIEW`, overwrite the top-level `Review Focus: |` block with current reviewer guidance; write a blank block when no focus is needed.
+
 1. Claim as `🔄 IN PROGRESS`
 2. Once the chosen focused seam is green and implementation is complete, move to `🟣 IN REVIEW`
 3. Stop there and tell the operator to open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>` from the checkout containing the active OpenSpec artifacts (`<openspec_root>` if it differs from the launch root), with no parent notebook, implementation summary, operational notes, or prior chat context. Optional GitHub PR delivery happens after local completion via `/openspec-pr`, which records PR metadata but does not own `story.md → Status:`.

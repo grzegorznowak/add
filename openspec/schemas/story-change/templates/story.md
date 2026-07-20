@@ -2,9 +2,10 @@
 
 Plan: 🟡 PLAN DRAFT
 Status: ⚪ TODO
+Review Focus: |
 Initiative: <initiative-slug>
 
-<!-- Plan, Status, and Initiative are top-level header fields, not `##` sections.
+<!-- Plan, Status, Review Focus, and Initiative are top-level header fields, not `##` sections.
      Every present Initiative header must occur exactly once. It is required for
      every newly planned story and binds this change workspace to one initiative.
      Legacy absence means zero Initiative or Initiative-like lines in the
@@ -13,9 +14,17 @@ Initiative: <initiative-slug>
      hard conflict; duplicates also halt; routing never backfills the field.
      `/openspec-story-plan-resume` repairs planning/scaffold content.
      `/openspec-story-claim` and `/openspec-story-resume` write authorized
-     implementation Status transitions; `/openspec-feedback` may reopen Status
-     after acknowledgement; `/openspec-story-review` writes completed-verdict
-     Status only after publishing the current review receipt. -->
+     implementation Status transitions and exclusively overwrite Review Focus
+     on every handoff to IN REVIEW, including with a blank block. The literal
+     `Review Focus: |` field occurs exactly once; its content is only immediately following indented
+     lines and the next top-level header terminates it. No indented non-whitespace
+     content is blank. Nonblank guidance is capped at 1,000 whitespace-delimited
+     units; malformed, duplicate, conflicting, or over-budget forms fail closed.
+     Review Focus is inert outside IN REVIEW. `/openspec-feedback` may reopen
+     Status after
+     acknowledgement; `/openspec-story-review` reads Review Focus without
+     writing it and writes completed-verdict Status only after publishing the
+     current review receipt. -->
 
 > Story scaffolded by `/openspec-story-plan` after interactive planning.
 

@@ -96,7 +96,24 @@ Do **not** rediscover the initiative from scratch. Your job is to:
 
 ## Review readiness check
 
-Before doing a full review:
+After confirming entry `Status: 🟣 IN REVIEW`, parse this literal top-level shape:
+
+```yaml
+Review Focus: |
+  <optional reviewer guidance on indented lines>
+```
+
+`Review Focus: |` is exactly one top-level field. Its content is the immediately following indented lines; the next top-level header terminates the block. No indented non-whitespace content means the block is blank. Malformed, duplicate, or conflicting Review Focus forms fail closed. Treat more than 1,000 whitespace-delimited units as over budget and fail closed rather than silently truncating guidance. Keep nonblank Review Focus guidance roughly 500–1,000 tokens. This is a ceiling range, not a required minimum.
+
+If the Review Focus block is blank, perform a full review.
+If it is nonblank, a focused pass is allowed: read the actual content and inspect the focused surface and evidence. Resolve concrete paths, symbols, behaviors, risks, tests, and proof named by the guidance against live artifacts; do not merely repeat the focus text in the verdict. Always perform the readiness/prerequisite gates, inventory the complete diff and acceptance/proof map, inspect the actual implementation and tests for the focused surface, and follow directly connected callsites or invariants needed to judge it. Record which surfaces were intentionally not inspected.
+
+Widen the focused pass to a full review whenever baseline, scope, or risk is unclear. Also widen when the guidance cannot be resolved to live evidence, the diff escapes the claimed focus, an acceptance or proof dependency crosses the focused boundary, a material risk lens points outside it, or focused evidence is inconclusive. Review Focus is guidance, not an inspection boundary: inspect outside it whenever needed, and report any defect encountered there.
+
+During review, `Review Focus: |` is read-only: review reads it but does not write it.
+Outside `🟣 IN REVIEW`, `Review Focus: |` is inert. A permitted review of an existing `✅ DONE` story therefore uses full-review scope rather than stale focus from an earlier handoff.
+
+Before choosing and executing the review scope:
 - inspect the `Status:` header in `story.md`
 - if `Status:` is neither `🟣 IN REVIEW` nor `✅ DONE`, treat the story as not reviewable from this command. In particular, `🔄 IN PROGRESS` must reach `🟣 IN REVIEW` through implementation ownership before review starts; do not normalize it into review from here.
 - inspect the `Plan:` header in `story.md`
@@ -340,7 +357,9 @@ Keep `Why` in plain operator-facing language. Prefer `Not Assessed` over fake pr
 
 ## Review process
 
-1. Use code search and direct reading to understand the story's implementation and impacted surfaces. Record the owner-discovery searches you performed (`Code surfaces searched`) including domain terms, callsites/routes, existing tests, duplicate owners, generated/config/runtime surfaces, and any areas intentionally not searched.
+Execute the full or focused branch selected in `## Review readiness check`. In the full branch, apply the process across all impacted surfaces. In the focused branch, apply it to the mandatory baseline, the actual surfaces named by Review Focus, and connected evidence needed to judge them; widen immediately when a widening trigger is met. The remaining approval gate still applies: focused scope changes inspection breadth, not evidence standards or finding severity.
+
+1. Use code search and direct reading to understand the story's implementation and impacted surfaces at the selected scope. Record the owner-discovery searches you performed (`Code surfaces searched`) including domain terms, callsites/routes, existing tests, duplicate owners, generated/config/runtime surfaces, and any areas intentionally not searched.
 2. Use `git -C <project_root_map>[<basename>] status`, `git -C <project_root_map>[<basename>] diff`, and targeted file reads to inspect what was actually changed. When the story spans multiple repos, run status/diff per repo (iterating over `<project_root_map>` in sorted basename order) and group findings per-repo in the review write-back. Each `<basename>` resolves to either an implementer's worktree (most common) or the main tree at `<workspace_root>/projects/<basename>` (clean main-tree fallback case from the preflight).
 3. Read all relevant story-spec sections and treat each section as a claim: Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, and Discovery Notes when present.
 4. Check the one well-formed current `progress.md → ## Implementation Review Receipt`, or inventory every parseable concern when existing receipt sections are malformed/duplicated. Explicitly verify each concern as resolved, still open, superseded by later authorized feedback/resume/unblock evidence, or not assessable from current evidence. Superseded receipt material is historical context and does not overrule current non-DONE Status/blocker routing; malformed/duplicate material is input to reconciliation, not a reason to skip substantive review. An optional standalone prior review notebook may orient this check only after the fresh-review firewall passes. If no receipt exists, do not manufacture prior concerns from notebook prose; treat them as not assessable unless current artifacts independently state them.
@@ -376,7 +395,7 @@ Keep `Why` in plain operator-facing language. Prefer `Not Assessed` over fake pr
 
 ## Critical checks
 
-Before approving, run these grouped checks. Use the canonical approval gate in `## Review log write-back` for the exact pass/fail contract; this section organizes the investigation that feeds that gate.
+Before approving, run these grouped checks against the selected review scope. A focused pass applies them to the mandatory baseline, focused surfaces, and required adjacent evidence; any uncertainty about an unchecked surface triggers widening rather than an assumption of safety. Use the canonical approval gate in `## Review log write-back` for the exact pass/fail contract; this section organizes the investigation that feeds that gate.
 
 ### 1. Product and story contract
 

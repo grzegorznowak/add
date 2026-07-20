@@ -292,12 +292,25 @@ Status transitions update both:
 
 ### 3.5 Default Behavior Rule
 
+On every implementation handoff to `🟣 IN REVIEW`, overwrite the top-level `Review Focus: |` block with current reviewer guidance; write a blank block when no focus is needed.
+
 The agent's default behavior on resume is:
 1. **Resume at `IN PROGRESS`** — Continue implementing remaining tasks.
 2. **Move to `🟣 IN REVIEW` when done** — When all tasks are complete and implementation proof passes.
 3. **Then hand off to review** — Tell the operator to open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>` with no parent notebook, implementation summary, operational notes, or prior chat context. Optional PR delivery happens only after local completion.
 
 ## Phase 4 — Finish Protocol
+
+For an `🟣 IN REVIEW` completion, use this literal block shape in the top-level story header:
+
+```yaml
+Review Focus: |
+  <optional reviewer guidance on indented lines>
+```
+
+`Review Focus: |` is exactly one top-level field. Its content is the immediately following indented lines; the next top-level header terminates the block. No indented non-whitespace content means the block is blank. Malformed, duplicate, or conflicting Review Focus forms fail closed. Repair the header instead of guessing or publishing review readiness. Keep nonblank Review Focus guidance roughly 500–1,000 tokens. Enforce a deterministic maximum of 1,000 whitespace-delimited units before writing; shorten over-budget guidance rather than truncating it. This is a ceiling range, not a target length: prefer the shortest concrete guidance that identifies the requested surfaces, risks, and evidence.
+
+Prepare and write the complete `Review Focus: |` block before making `Status: 🟣 IN REVIEW` visible in either `story.md` or `progress.md → ## Session Handoff`; publish the focus and both status surfaces as one completion handoff. After writing the focus, set `story.md → Status:` and then the Session Handoff status to `🟣 IN REVIEW`. If interrupted after writing focus but before both statuses, leave the story out of review and reconcile the handoff before retrying. Re-read the focus block and both status surfaces before reporting completion; never leave or report `🟣 IN REVIEW` with stale Review Focus content.
 
 ### 4.1 Session Handoff
 
@@ -329,9 +342,11 @@ At session end, update:
 ### 4.3 Completed Session Signal
 
 If all tasks are complete and implementation proof passes:
-1. Transition status to `🟣 IN REVIEW`.
-2. In the Session Handoff, note: "Ready for review. All tasks complete. Implementation proof passes."
-3. Tell the operator to open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>`; do not pass parent notebook entries, implementation summaries, operational notes, or prior chat context into review.
+1. Prepare and write the current Review Focus block, including an intentionally blank block when no focus is requested.
+2. Transition `story.md → Status:` to `🟣 IN REVIEW`.
+3. Write the Session Handoff, set its Status to `🟣 IN REVIEW`, and note: "Ready for review. All tasks complete. Implementation proof passes."
+4. Re-read the Review Focus block and both status surfaces, correcting any stale or incomplete handoff before reporting readiness.
+5. Tell the operator to open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>`; do not pass parent notebook entries, implementation summaries, operational notes, or prior chat context into review.
 
 ### 4.4 Blocked Session Signal
 

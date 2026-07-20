@@ -7,7 +7,14 @@ description: >
   header occurs exactly once; new stories require it, while bounded pre-v3
   compatibility requires zero Initiative or Initiative-like lines. A malformed
   present Initiative-like field is a conflict, never absence. Plan: and Status:
-  remain independent. Implementation review writes Status:, a compact durable
+  remain independent. The exactly-once top-level Review Focus: | block is
+  exclusively implementation-owned and overwritten by claim/resume on every
+  handoff to IN REVIEW, including with a blank block; review reads it without
+  writing it. Its body is only the immediately following indented lines and ends
+  at the next top-level header. Nonblank guidance has a deterministic maximum of
+  1,000 whitespace-delimited units; malformed, duplicate, conflicting, or
+  over-budget forms fail closed.
+  Implementation review writes Status:, a compact durable
   receipt with a deterministic story-scoped review-identity-v1 digest/base/path
   list in progress.md, and blocked.md when blocked; there is no standalone
   reviews.md artifact.
@@ -28,8 +35,16 @@ artifacts:
     description: >
       The story contract. Its required, exactly-once top-level Initiative:
       field binds the story to one initiative; Plan: and Status: are the
-      lifecycle fields. The
-      body defines Purpose, Actors, Scenarios / Behavior Examples, Acceptance,
+      lifecycle fields. Review Focus: | is an exactly-once top-level multiline
+      implementation handoff field: /openspec-story-claim and
+      /openspec-story-resume exclusively overwrite it on every transition to IN
+      REVIEW, including with a blank block. Its content is the immediately
+      following indented lines and the next top-level header terminates it; no
+      indented non-whitespace content is blank. Nonblank content is capped at
+      1,000 whitespace-delimited units. Malformed, duplicate, conflicting, or
+      over-budget forms fail closed. It is inert outside IN REVIEW and read-only
+      to review. The body
+      defines Purpose, Actors, Scenarios / Behavior Examples, Acceptance,
       Verification (including Test Architecture Plan and Acceptance Proof
       Matrix), scope, discovery, implementation guidance, and locked decisions.
       Created by /openspec-story-plan; Plan/log review is written by
