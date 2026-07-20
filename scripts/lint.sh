@@ -546,6 +546,70 @@ check_workflow_contract() {
   fi
 }
 
+# Completion protocols are checked inside their owning workflow section rather
+# than by whole-file presence, so explanatory prose cannot satisfy an
+# operational checklist contract. Generated variants must retain the same
+# heading and controlled prose.
+check_workflow_section_contract() {
+  local label="$1" skill="$2" heading="$3" codex_skill runtime file literal section
+  local missing=()
+  shift 3
+  codex_skill="$(hyphen_to_underscore "$skill")"
+  for runtime in canonical codex pi; do
+    case "$runtime" in
+      canonical) file="$CLAUDE_SKILLS/$skill/SKILL.md" ;;
+      codex) file="$CODEX_SKILLS/$codex_skill/SKILL.md" ;;
+      pi) file="$PI_SKILLS/$skill/SKILL.md" ;;
+    esac
+    if [[ ! -f "$file" ]]; then
+      missing+=("$runtime:file")
+      continue
+    fi
+    section="$(markdown_without_comments "$file" | awk -v heading="$heading" '
+      $0 == heading { found = 1; print; next }
+      found && /^##[[:space:]]/ { exit }
+      found { print }
+    ')"
+    if [[ -z "$section" ]]; then
+      missing+=("$runtime:section=$heading")
+      continue
+    fi
+    for literal in "$@"; do
+      grep -Fq -- "$literal" <<<"$section" || missing+=("$runtime:$literal")
+    done
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    fail "$label: missing fixed section contract token(s): ${missing[*]}"
+  else
+    ok "$label: canonical + generated Codex/Pi"
+  fi
+}
+
+check_workflow_adjacent_lines_contract() {
+  local label="$1" skill="$2" first="$3" second="$4" codex_skill runtime file
+  local missing=()
+  codex_skill="$(hyphen_to_underscore "$skill")"
+  for runtime in canonical codex pi; do
+    case "$runtime" in
+      canonical) file="$CLAUDE_SKILLS/$skill/SKILL.md" ;;
+      codex) file="$CODEX_SKILLS/$codex_skill/SKILL.md" ;;
+      pi) file="$PI_SKILLS/$skill/SKILL.md" ;;
+    esac
+    if [[ ! -f "$file" ]] || ! markdown_without_comments "$file" | awk -v first="$first" -v second="$second" '
+      previous == first && $0 == second { found = 1 }
+      { previous = $0 }
+      END { exit found ? 0 : 1 }
+    '; then
+      missing+=("$runtime")
+    fi
+  done
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    fail "$label: missing exact adjacent-line block in ${missing[*]}"
+  else
+    ok "$label: canonical + generated Codex/Pi"
+  fi
+}
+
 review_focus_template_issues() {
   local file="$1"
   markdown_without_comments "$file" | awk '
@@ -1671,17 +1735,51 @@ else
 fi
 check_review_focus_mention_ownership
 REVIEW_FOCUS_HANDOFF_CONTRACT='On every implementation handoff to `🟣 IN REVIEW`, overwrite the top-level `Review Focus: |` block with current reviewer guidance; write a blank block when no focus is needed.'
+REVIEW_FOCUS_SHAPE_HEADER='Review Focus: |'
+REVIEW_FOCUS_SHAPE_CONTENT='  <optional reviewer guidance on indented lines>'
+REVIEW_FOCUS_GRAMMAR='`Review Focus: |` is exactly one top-level field. Its content is the immediately following indented lines; the next top-level header terminates the block.'
+REVIEW_FOCUS_BLANK_GRAMMAR='No indented non-whitespace content means the block is blank.'
+REVIEW_FOCUS_FAIL_CLOSED='Malformed, duplicate, or conflicting Review Focus forms fail closed.'
+REVIEW_FOCUS_BUDGET='Keep nonblank Review Focus guidance roughly 500–1,000 tokens.'
+REVIEW_FOCUS_PREPARE_ORDER='Prepare and write the complete `Review Focus: |` block before making `Status: 🟣 IN REVIEW` visible in either `story.md` or `progress.md → ## Session Handoff`; publish the focus and both status surfaces as one completion handoff.'
+REVIEW_FOCUS_REREAD='Re-read the focus block and both status surfaces before reporting completion; never leave or report `🟣 IN REVIEW` with stale Review Focus content.'
+
 for review_focus_writer in openspec-story-claim openspec-story-resume; do
+  check_workflow_adjacent_lines_contract \
+    "Review Focus literal YAML shape: $review_focus_writer" "$review_focus_writer" \
+    "$REVIEW_FOCUS_SHAPE_HEADER" "$REVIEW_FOCUS_SHAPE_CONTENT"
   check_workflow_contract \
     "Review Focus handoff writer contract: $review_focus_writer" "$review_focus_writer" \
-    "$REVIEW_FOCUS_HANDOFF_CONTRACT"
+    "$REVIEW_FOCUS_HANDOFF_CONTRACT" \
+    "$REVIEW_FOCUS_GRAMMAR" \
+    "$REVIEW_FOCUS_BLANK_GRAMMAR" \
+    "$REVIEW_FOCUS_FAIL_CLOSED" \
+    "$REVIEW_FOCUS_BUDGET"
 done
+check_workflow_section_contract \
+  "Review Focus concrete claim completion transaction" openspec-story-claim '## Finish protocol' \
+  "$REVIEW_FOCUS_PREPARE_ORDER" \
+  "$REVIEW_FOCUS_REREAD"
+check_workflow_section_contract \
+  "Review Focus concrete resume completion transaction" openspec-story-resume '## Phase 4 — Finish Protocol' \
+  "$REVIEW_FOCUS_PREPARE_ORDER" \
+  "$REVIEW_FOCUS_REREAD"
+check_workflow_adjacent_lines_contract \
+  "Review Focus literal YAML shape: openspec-story-review" openspec-story-review \
+  "$REVIEW_FOCUS_SHAPE_HEADER" "$REVIEW_FOCUS_SHAPE_CONTENT"
 check_workflow_contract \
-  "Review Focus review semantics and read-only contract" openspec-story-review \
-  'Interpret a blank `Review Focus: |` block as a full review and a nonblank block as focused review guidance.' \
-  'The reviewer may widen beyond `Review Focus: |` whenever baseline, scope, or risk is unclear; it is guidance, not an inspection boundary.' \
-  'Outside `🟣 IN REVIEW`, `Review Focus: |` is inert.' \
-  'During review, `Review Focus: |` is read-only: review reads it but does not write it.'
+  "Review Focus deterministic reader grammar" openspec-story-review \
+  "$REVIEW_FOCUS_GRAMMAR" \
+  "$REVIEW_FOCUS_BLANK_GRAMMAR" \
+  "$REVIEW_FOCUS_FAIL_CLOSED" \
+  "$REVIEW_FOCUS_BUDGET"
+check_workflow_section_contract \
+  "Review Focus operational review choice" openspec-story-review '## Review readiness check' \
+  'If the Review Focus block is blank, perform a full review.' \
+  'If it is nonblank, a focused pass is allowed: read the actual content and inspect the focused surface and evidence.' \
+  'Widen the focused pass to a full review whenever baseline, scope, or risk is unclear.' \
+  'During review, `Review Focus: |` is read-only: review reads it but does not write it.' \
+  'Outside `🟣 IN REVIEW`, `Review Focus: |` is inert.'
 require_workflow_literal \
   "implementation review requires top-level Status header" \
   openspec-story-review \
