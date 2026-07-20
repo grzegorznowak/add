@@ -125,10 +125,10 @@ declare -a DUAL_CAPABLE_OPENSPEC_SKILLS=(
   openspec-story-plan-resume
   openspec-story-plan-review
   openspec-story-resume
-  openspec-story-review
 )
 declare -a SCALAR_ONLY_OPENSPEC_SKILLS=(
   openspec-initiative-plan
+  openspec-story-review
 )
 
 is_supported_active_skill() {
@@ -1098,35 +1098,235 @@ check_persisted_root_detector() {
   ok "persisted-root detector splits prose clauses, catches fenced fields, and excludes prohibitions/path routing"
 }
 
-check_blocked_write_order() {
-  local skill=openspec-story-review codex_skill runtime file section order
-  local bad=()
-  codex_skill="$(hyphen_to_underscore "$skill")"
-  for runtime in canonical codex pi; do
-    case "$runtime" in
-      canonical) file="$CLAUDE_SKILLS/$skill/SKILL.md" ;;
-      codex) file="$CODEX_SKILLS/$codex_skill/SKILL.md" ;;
-      pi) file="$PI_SKILLS/$skill/SKILL.md" ;;
-    esac
-    section="$(markdown_section "$file" '## Status transitions')"
-    order="$(awk '
-      {
-        lower = tolower($0)
-        if (!block && lower ~ /blocked\.md/ && lower ~ /create or update/ && lower ~ /first/) block = NR
-        if (!status && lower ~ /status/ && lower ~ /last/ && lower ~ /blocked/) status = NR
+review_runtime_file() {
+  local runtime="$1"
+  case "$runtime" in
+    canonical) printf '%s\n' "$CLAUDE_SKILLS/openspec-story-review/SKILL.md" ;;
+    codex) printf '%s\n' "$CODEX_SKILLS/openspec_story_review/SKILL.md" ;;
+    pi) printf '%s\n' "$PI_SKILLS/openspec-story-review/SKILL.md" ;;
+    *) return 1 ;;
+  esac
+}
+
+review_packet_block() {
+  local file="$1"
+  awk '
+    $0 == "```ADD-REVIEW-PACKET/1" { inside = 1; next }
+    inside && $0 == "```" { exit }
+    inside { print }
+  ' "$file"
+}
+
+review_packet_fence_shape() {
+  local file="$1"
+  awk '
+    $0 == "```ADD-REVIEW-PACKET/1" {
+      openings++
+      inside = 1
+      next
+    }
+    inside && $0 == "```" {
+      closings++
+      inside = 0
+    }
+    END { print openings + 0 ":" closings + 0 ":" inside + 0 }
+  ' "$file"
+}
+
+review_publication_lines() {
+  local file="$1"
+  markdown_without_comments "$file" | awk '
+    function normalize(text, normalized) {
+      normalized = tolower(text)
+      gsub(/[*`_]/, "", normalized)
+      return normalized
+    }
+    function has_target(text) {
+      return text ~ /(^|[^a-z])(status|receipt|timeline|blocked\.md|product[ -]+(source|code|files?|artifacts?)|openspec[ -]+artifacts?|notebook[ -]+(state|pages?|findings|memory)|story\.md|progress\.md|initiative\.md|proposal\.md|design\.md|tasks\.md)([^a-z]|$)/
+    }
+    function is_prohibition(text) {
+      return text ~ /(^|[^a-z])(do not|don.t|never|must not|may not|cannot|can.t|forbid|prohibit|leave unchanged)([^a-z]|$)/ ||
+        text ~ /(^|[^a-z])no[[:space:]]+[^.;]*(writes?|writing|edits?|editing|modif(y|ies|ying|ied)|updates?|updating|creates?|creating|appends?|appending|persists?|persisting|publishes?|publishing|saves?|saving|stores?|storing|deletes?|deleting|removes?|removing|replaces?|replacing|normalizes?|normalizing|reconciles?|reconciling|changes?|changing|backfills?|backfilling)([^a-z]|$)/ ||
+        text ~ /without[[:space:]]+[^.;]*(writing|editing|modifying|updating|creating|appending|persisting|publishing|saving|storing|deleting|removing|replacing|normalizing|reconciling|changing|backfilling)/ ||
+        text ~ /read[- ]only[[:space:]]+(for|on)[[:space:]]+[^.;]*$/
+    }
+    function is_current_record_predicate(text) {
+      return text ~ /^(the[[:space:]]+)?receipt[[:space:]]+is[[:space:]]+the[[:space:]]+current[[:space:]]+record[[:space:]]*[,.:;!?]*$/
+    }
+    function mutation_near_target(text, rest, offset, position, window) {
+      rest = text
+      offset = 0
+      while (match(rest, /(^|[^a-z])(write|writes|writing|wrote|written|edit|edits|editing|edited|modify|modifies|modifying|modified|update|updates|updating|updated|create|creates|creating|created|append|appends|appending|appended|persist|persists|persisting|persisted|publish|publishes|publishing|published|save|saves|saving|saved|store|stores|storing|stored|set|sets|setting|record|records|recording|recorded|delete|deletes|deleting|deleted|remove|removes|removing|removed|replace|replaces|replacing|replaced|normalize|normalizes|normalizing|normalized|reconcile|reconciles|reconciling|reconciled|backfill|backfills|backfilling|backfilled)([^a-z]|$)/)) {
+        position = offset + RSTART
+        window = substr(text, position > 180 ? position - 180 : 1, RLENGTH + 360)
+        if (has_target(window)) return 1
+        offset += RSTART + RLENGTH - 1
+        rest = substr(rest, RSTART + RLENGTH)
       }
-      END {
-        if (block && status && block < status) print "ok"
-        else print (block + 0) ":" (status + 0)
+      return 0
+    }
+    function inspect(raw, line_number, clause) {
+      clause = normalize(raw)
+      sub(/^[[:space:]]+/, "", clause)
+      sub(/[[:space:]]+$/, "", clause)
+      if (clause == "" || is_prohibition(clause)) return
+      if (match(clause, /^set[[:space:]]+<[^>]+>[[:space:]]*=/))
+        clause = substr(clause, RLENGTH + 1)
+      if (is_current_record_predicate(clause)) return
+      if (mutation_near_target(clause)) {
+        print line_number ":" raw
+        bad = 1
       }
-    ' <<<"$section")"
-    [[ "$order" == ok ]] || bad+=("$runtime:$order")
+    }
+    function inspect_line(raw, line_number, start, i, char, following, lower, word, before, after) {
+      start = 1
+      lower = tolower(raw)
+      for (i = 1; i <= length(raw); i++) {
+        char = substr(raw, i, 1)
+        following = substr(raw, i + 1, 1)
+        word = ""
+        if (substr(lower, i, 3) == "but") word = "but"
+        else if (substr(lower, i, 7) == "however") word = "however"
+        if (word != "") {
+          before = i == 1 ? "" : substr(lower, i - 1, 1)
+          after = substr(lower, i + length(word), 1)
+          if ((before == "" || before !~ /[a-z]/) && (after == "" || after !~ /[a-z]/)) {
+            inspect(substr(raw, start, i - start), line_number)
+            i += length(word) - 1
+            start = i + 1
+            continue
+          }
+        }
+        if (char == ";" || (char == "." && (following == "" || following ~ /[[:space:]]/))) {
+          inspect(substr(raw, start, i - start), line_number)
+          start = i + 1
+        }
+      }
+      inspect(substr(raw, start), line_number)
+    }
+    { inspect_line($0, FNR) }
+    END { exit bad ? 0 : 1 }
+  '
+}
+
+check_review_publication_detector() {
+  local sample index=0
+  local -a bad_samples=(
+    'Write the top-level Status last.'
+    'Reconcile every Implementation Review Receipt before returning.'
+    'Append one verdict entry to the progress timeline.'
+    'Create or update blocked.md first.'
+    'Modify product files only when the fix is obvious.'
+    'Publish the verdict in OpenSpec artifacts.'
+    'Persist supplemental findings to notebook state.'
+    'Do not edit product files; save the result to a notebook page.'
+    'Do not edit product files, but save the result to a notebook page.'
+    'Do not edit product files, however, save the result to a notebook page.'
+    'Do not edit product files; however, save the result to a notebook page.'
+    'Set Status to DONE.'
+    'Record the verdict in progress.md.'
+  )
+  local -a good_samples=(
+    'Do not write Status, receipts, timelines, or blocked.md.'
+    'Product files and OpenSpec artifacts are read-only for this evaluator.'
+    'Read story.md Status and inspect progress.md for a legacy prerequisite receipt.'
+    'A sibling blocked.md makes the prerequisite unsatisfied.'
+    'Require a legacy prerequisite to have exactly one receipt; never normalize it.'
+    'Do not modify product files or OpenSpec artifacts; do not persist notebook state.'
+    'Resolve active <openspec_root>/openspec/changes/<prerequisite-slug>/story.md first.'
+    'Set <story_file> = .../story.md.'
+    'The receipt is the current record.'
+  )
+  for sample in "${bad_samples[@]}"; do
+    printf '%s\n' "$sample" >"$TMPDIR/review-publication-$index.md"
+    if ! review_publication_lines "$TMPDIR/review-publication-$index.md" >/dev/null; then
+      fail "review publication detector missed affirmative sample: $sample"
+      return
+    fi
+    index=$((index + 1))
   done
+  for sample in "${good_samples[@]}"; do
+    printf '%s\n' "$sample" >"$TMPDIR/review-publication-$index.md"
+    if review_publication_lines "$TMPDIR/review-publication-$index.md" >/dev/null; then
+      fail "review publication detector flagged prohibition/read-only input: $sample"
+      return
+    fi
+    index=$((index + 1))
+  done
+  ok "review publication detector catches controlled-prose writes and preserves prohibitions/read-only legacy inputs"
+}
+
+check_review_readonly_evaluator_contract() {
+  local runtime file readonly_count fence_shape packet missing forbidden required publication
+  local -a bad=()
+  check_review_publication_detector
+  for runtime in canonical codex pi; do
+    file="$(review_runtime_file "$runtime")"
+    readonly_count="$(awk '
+      NR == 1 && $0 == "---" { frontmatter = 1; next }
+      frontmatter && $0 == "---" { exit }
+      frontmatter && $0 == "readonly: true" { count++ }
+      END { print count + 0 }
+    ' "$file")"
+    [[ "$readonly_count" -eq 1 ]] || bad+=("$runtime:readonly=$readonly_count")
+
+    publication="$(review_publication_lines "$file" || true)"
+    [[ -z "$publication" ]] || bad+=("$runtime:publication-lines=$(wc -l <<<"$publication" | tr -d ' ')")
+
+    fence_shape="$(review_packet_fence_shape "$file")"
+    if [[ "$fence_shape" != "1:1:0" ]]; then
+      bad+=("$runtime:packet-fences=$fence_shape")
+      continue
+    fi
+    packet="$(review_packet_block "$file")"
+    missing=()
+    for required in \
+      'Review mode: <full | focused>' \
+      'Review focus: <focus summary | none>' \
+      'Subject: <reviewed implementation>' \
+      'Root: <resolved OpenSpec root>' \
+      'Initiative: <initiative-slug>' \
+      'Story: <story-slug>' \
+      'Verdict: APPROVE | REQUEST CHANGES | BLOCKED | NOT REVIEWABLE' \
+      'Finding count: <nonnegative integer>' \
+      'Findings: none' \
+      'Finding ID: <stable local ID>' \
+      'Severity: <severity>' \
+      'Summary: <concise finding>' \
+      'Evidence: <path:line anchors>' \
+      'Proof / verification: <commands and results | not run with reason>' \
+      'Next step: /openspec-feedback'; do
+      grep -Fxq -- "$required" <<<"$packet" || missing+=("$required")
+    done
+    [[ ${#missing[@]} -eq 0 ]] || bad+=("$runtime:packet-schema-missing=${#missing[@]}")
+
+    forbidden="$(grep -Ein -- '(^|[^[:alnum:]_])(cycle[ _-]*id|fingerprint|digest|lock|cas|receipt|timeline|blocked\.md|status[[:space:]]*(transition|publication|write))([^[:alnum:]_]|$)' <<<"$packet" || true)"
+    [[ -z "$forbidden" ]] || bad+=("$runtime:forbidden-packet-field")
+  done
+
   if [[ ${#bad[@]} -gt 0 ]]; then
-    fail "implementation review blocker order: blocked.md creation/update must precede BLOCKED Status write (${bad[*]})"
+    fail "readonly implementation-review evaluator contract: ${bad[*]}"
   else
-    ok "implementation review blocker order: receipt precedes Status transition"
+    ok "readonly implementation-review evaluator has exact metadata, lifecycle entry, and one portable final-response packet"
   fi
+
+  check_workflow_contract \
+    "implementation review exact entry state" openspec-story-review \
+    'Proceed only when entry is exactly `Status: 🟣 IN REVIEW`.' \
+    'Reject `✅ DONE` and every other entry Status as `NOT REVIEWABLE`; never perform a lifecycle review outside `🟣 IN REVIEW`.'
+  check_workflow_contract \
+    "implementation review immutable final response" openspec-story-review \
+    'Return exactly one fenced `ADD-REVIEW-PACKET/1` packet as the entire final response, with no text before or after its matching closing fence.' \
+    'Set `Finding count` to a base-10 nonnegative integer equal to the number of emitted finding blocks.' \
+    'When `Finding count: 0`, emit exactly `Findings: none` and no finding blocks.' \
+    'When `Finding count` is nonzero, omit `Findings: none` and emit exactly that many finding blocks.' \
+    'Do not modify product files, OpenSpec artifacts, or notebook state; do not persist review output anywhere.' \
+    'Do not disposition findings; `/openspec-feedback` owns disposition and durable publication.' \
+    'The direct next step for every packet verdict is `/openspec-feedback`.'
+
+  forbid_workflow_literal \
+    "implementation review has no notebook persistence API" \
+    openspec-story-review notebook_write
 }
 
 schema_artifact_block() {
@@ -1150,6 +1350,18 @@ require_schema_writer() {
   fi
 }
 
+forbid_schema_writer() {
+  local artifact="$1" writer="$2" block
+  block="$(schema_artifact_block "$artifact")"
+  if [[ -z "$block" ]]; then
+    fail "writer metadata: schema artifact '$artifact' is missing"
+  elif grep -Fq -- "$writer" <<<"$block"; then
+    fail "writer metadata: schema artifact '$artifact' still names readonly evaluator $writer"
+  else
+    ok "writer metadata: $artifact excludes readonly evaluator $writer"
+  fi
+}
+
 require_template_writer() {
   local artifact="$1" writer="$2" file
   file="$REPO_ROOT/openspec/schemas/story-change/templates/$artifact.md"
@@ -1159,6 +1371,18 @@ require_template_writer() {
     fail "writer metadata: template '$artifact.md' omits $writer"
   else
     ok "writer metadata: $artifact.md includes $writer"
+  fi
+}
+
+forbid_template_writer() {
+  local artifact="$1" writer="$2" file
+  file="$REPO_ROOT/openspec/schemas/story-change/templates/$artifact.md"
+  if [[ ! -f "$file" ]]; then
+    fail "writer metadata: template '$artifact.md' is missing"
+  elif grep -Fq -- "$writer" "$file"; then
+    fail "writer metadata: template '$artifact.md' still names readonly evaluator $writer"
+  else
+    ok "writer metadata: $artifact.md excludes readonly evaluator $writer"
   fi
 }
 
@@ -1560,9 +1784,7 @@ check_workflow_contract \
   'never recompute or freshness-check the story-scoped review identity against mutable repository state.' \
   'Only an unbound pre-v3 prerequisite with `Status: ✅ DONE`, no `blocked.md`, zero Initiative headers, and zero receipt sections may satisfy without a receipt'
 check_workflow_contract \
-  "review prerequisite/blocker/receipt contradictions" openspec-story-review \
-  'if entry Status is already `✅ DONE`, a bound story must have exactly one well-formed current receipt with every required field exactly once' \
-  'Only an unbound pre-v3 DONE story with zero Initiative headers and zero receipt sections gets bounded legacy compatibility' \
+  "review prerequisite blocker/receipt reader compatibility" openspec-story-review \
   'A sibling `blocked.md` makes the prerequisite contradictory and unsatisfied in active or archive, regardless of DONE or receipt evidence.' \
   'A bound modern prerequisite must have `progress.md` with exactly one `## Implementation Review Receipt` heading and one current body.' \
   'never recompute or freshness-check the story-scoped review identity against mutable repository state.' \
@@ -1586,8 +1808,7 @@ require_literal "single current receipt template" "$PROGRESS_TEMPLATE" 'Exactly 
 require_literal "historical receipt for non-DONE template" "$PROGRESS_TEMPLATE" 'Status controls non-DONE routing, where an older receipt may be'
 CANONICAL_RECEIPT_FIELD_LIST='`Reviewed at`, `Decision`, `Approval gate`, `Status transition`, `Evidence reviewed`, `Identity method`, `Identity digest`, `Identity bases`, `Identity paths`, `Findings`, `Proof`, and `Next owner`'
 for receipt_reader in \
-  openspec-story-claim openspec-story-resume \
-  openspec-story-review openspec-story-converge; do
+  openspec-story-claim openspec-story-resume openspec-story-converge; do
   require_workflow_literal \
     "canonical implementation receipt fields: $receipt_reader" \
     "$receipt_reader" \
@@ -1600,30 +1821,8 @@ for receipt_reader in \
       "$legacy_receipt_field"
   done
 done
-check_workflow_contract \
-  "review canonical identity recording" openspec-story-review \
-  'Record `Evidence reviewed` as a concise target/proof summary' \
-  'Record `Identity method: review-identity-v1` exactly once.' \
-  '`Identity bases` as one compact canonical JSON array' \
-  '`Identity paths` as one compact canonical JSON array' \
-  'Each manifest row is exactly `<repo>\t<path>\t<type>\t<lowercase-64-hex-sha256>\n`' \
-  '`type` is exactly `file`, `executable`, `symlink`, or `deleted`.'
-check_workflow_contract \
-  "review fail-closed receipt/status order" openspec-story-review \
-  'Fail closed with this exact order:' \
-  'create or update `<change_dir>/blocked.md` first' \
-  'never append a duplicate receipt or retain receipt history there' \
-  'Only after that succeeds, write the top-level `Status:` last' \
-  'A non-approve verdict must not leave the story IN REVIEW and suggest another fresh review.'
-check_blocked_write_order
-check_workflow_contract \
-  "review malformed receipt reconciliation" openspec-story-review \
-  'Duplicate or malformed receipt sections are non-authoritative reconciliation inputs: do not choose a latest one' \
-  'normalize all review-owned receipt sections to exactly one current receipt after the verdict' \
-  'remove every old receipt section, and require exactly one normalized receipt in which each required field' \
-  'If the normalized progress write succeeds but Status fails, report the exact receipt/Status mismatch and route explicit review-owned artifact reconciliation; do not call the verdict complete.' \
-  'an APPROVE receipt with a failed Status write remains IN REVIEW, not legacy DONE.' \
-  'Re-read all affected files and report `Receipt Write: failed` for any incomplete required pair.'
+# Review evaluates only. Feedback owns durable publication in a later slice.
+check_review_readonly_evaluator_contract
 check_workflow_contract \
   "planning review modern DONE receipt gate" openspec-story-plan-review \
   'inventory all `<change_dir>/progress.md → ## Implementation Review Receipt` headings.' \
@@ -1711,12 +1910,7 @@ forbid_literal \
   "$PI_SKILLS/openspec-story-review/SKILL.md" \
   'openspec-research-<initiative_slug>-<story_slug>'
 
-# blocked.md is the hard gate: review must create/update it before writing
-# BLOCKED status, and resume may normalize stale BLOCKED only after absence.
-require_workflow_literal \
-  "implementation review blocker receipt" \
-  openspec-story-review \
-  'create or update `<change_dir>/blocked.md` first'
+# blocked.md remains an input gate; resume may normalize stale BLOCKED only after absence.
 require_workflow_literal \
   "resume unblock signal" \
   openspec-story-resume \
@@ -1811,9 +2005,9 @@ check_allowed_tools_exact \
 check_allowed_tools_exact \
   openspec-story-converge \
   Read Grep Glob Task 'Bash(git status:*)' 'Bash(git worktree list:*)'
-check_allowed_tools_contract \
+check_allowed_tools_exact \
   openspec-story-review \
-  Read Edit Write Grep Glob Task Bash
+  Read Grep Glob
 
 # Schema and template ownership must name the complete current writer set.
 for writer in /openspec-story-plan /openspec-story-plan-resume; do
@@ -1824,8 +2018,7 @@ for writer in /openspec-story-plan /openspec-story-plan-resume; do
 done
 for writer in \
   /openspec-story-plan /openspec-story-plan-review /openspec-story-plan-resume \
-  /openspec-story-claim /openspec-story-resume /openspec-feedback \
-  /openspec-story-review; do
+  /openspec-story-claim /openspec-story-resume /openspec-feedback; do
   require_schema_writer story "$writer"
   require_template_writer story "$writer"
 done
@@ -1841,14 +2034,17 @@ for writer in \
 done
 require_schema_writer specs '/opsx:archive'
 for writer in \
-  /openspec-story-claim /openspec-story-resume /openspec-feedback \
-  /openspec-story-review /openspec-pr; do
+  /openspec-story-claim /openspec-story-resume /openspec-feedback /openspec-pr; do
   require_schema_writer progress "$writer"
   require_template_writer progress "$writer"
 done
-for writer in /openspec-story-claim /openspec-story-resume /openspec-story-review; do
+for writer in /openspec-story-claim /openspec-story-resume; do
   require_schema_writer blocked "$writer"
   require_template_writer blocked "$writer"
+done
+for readonly_artifact in story progress blocked; do
+  forbid_schema_writer "$readonly_artifact" /openspec-story-review
+  forbid_template_writer "$readonly_artifact" /openspec-story-review
 done
 
 # Resume may use notebooks for sourced orientation only; artifacts settle any
