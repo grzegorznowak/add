@@ -351,7 +351,9 @@ To add or update a command, read
 fit the OpenSpec lifecycle and artifact conventions above. The short version:
 write the canonical Claude Skill at `claude/skills/<name>/SKILL.md`, add a
 `pi-fragments/<name>.md` fragment only when pi needs runtime-specific
-instructions, then run `bash scripts/lint.sh`.
+instructions. Local lint requires Python 3.12 and
+`python -m pip install -r requirements-lint.txt`; then run
+`bash scripts/lint.sh`.
 
 ## Why "add"
 
