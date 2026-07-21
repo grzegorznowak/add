@@ -5,10 +5,10 @@
      or annotating it may document resolution, but the gate remains closed
      while this file exists.
 
-     Created or updated only by `/openspec-story-claim`,
-     `/openspec-story-resume`, or `/openspec-story-review`; review must write
-     this file before setting the top-level `Status:` to `⛔ BLOCKED`. A plan
-     review blocked verdict uses the Plan lane instead. -->
+     Created or updated only by `/openspec-story-claim` or
+     `/openspec-story-resume`. Readonly implementation review uses this file
+     only as an input gate. A plan-review blocked verdict uses the Plan lane
+     instead. -->
 
 ## Blocker
 <!-- Concrete description of what is blocked and why. -->

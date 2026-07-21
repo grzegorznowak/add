@@ -21,10 +21,8 @@ Initiative: <initiative-slug>
      content is blank. Nonblank guidance is capped at 1,000 whitespace-delimited
      units; malformed, duplicate, conflicting, or over-budget forms fail closed.
      Review Focus is inert outside IN REVIEW. `/openspec-feedback` may reopen
-     Status after
-     acknowledgement; `/openspec-story-review` reads Review Focus without
-     writing it and writes completed-verdict Status only after publishing the
-     current review receipt. -->
+     Status after acknowledgement. The readonly implementation evaluator only
+     reads this artifact. -->
 
 > Story scaffolded by `/openspec-story-plan` after interactive planning.
 

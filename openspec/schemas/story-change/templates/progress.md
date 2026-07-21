@@ -18,24 +18,20 @@
 ## Progress Timeline
 <!-- Append-only timestamped bullets recording meaningful milestones.
      Written by `/openspec-story-claim`, `/openspec-story-resume`,
-     `/openspec-story-review`, and `/openspec-pr`. Acknowledged replanning
-     checkpoints are written by `/openspec-feedback`; review records concise
-     verdict/Status transitions; PR writes only delivery evidence. -->
+     `/openspec-feedback`, and `/openspec-pr`. Readonly implementation review
+     does not own this timeline. -->
 
 ## Implementation Review Receipt
-<!-- Exactly one compact current completed-verdict body, written by
-     `/openspec-story-review` only. Review replaces this body; it never appends
-     receipt history. The timeline carries history. Review writes the receipt
-     and required transition timeline entry together in one validated progress
-     write (after blocked.md for BLOCKED), then writes top-level Status last and
-     performs no later writes. Status controls non-DONE routing, where an older receipt may be
-     historical/superseded by authorized later work. A bound
-     DONE requires one well-formed current APPROVE/PASS body. Duplicate
-     headings/bodies, malformed or non-approving fields, or a contradiction
-     block. Missing-receipt compatibility is limited to an unbound pre-v3 DONE
-     story with zero Initiative or Initiative-like lines; malformed present
-     Initiative-like fields are conflicts, never absence. Never synthesize a
-     backfill. -->
+<!-- Explicitly deprecated legacy-reader compatibility retained until the
+     publisher migration slice. Readonly implementation review does not own this
+     section. Exactly one compact current completed-verdict body remains the
+     compatibility shape for a bound DONE story. Status controls non-DONE routing, where an older receipt may be
+     historical/superseded by
+     authorized later work. Duplicate headings/bodies, malformed or
+     non-approving fields, or a contradiction block. Missing-receipt
+     compatibility is limited to an unbound pre-v3 DONE story with zero
+     Initiative or Initiative-like lines; malformed present Initiative-like
+     fields are conflicts, never absence. Never synthesize a backfill. -->
 - Reviewed at: <UTC ISO timestamp>
 - Decision: APPROVE | REQUEST CHANGES | BLOCKED
 - Approval gate: PASS | FAIL

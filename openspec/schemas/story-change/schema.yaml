@@ -14,10 +14,10 @@ description: >
   at the next top-level header. Nonblank guidance has a deterministic maximum of
   1,000 whitespace-delimited units; malformed, duplicate, conflicting, or
   over-budget forms fail closed.
-  Implementation review writes Status:, a compact durable
-  receipt with a deterministic story-scoped review-identity-v1 digest/base/path
-  list in progress.md, and blocked.md when blocked; there is no standalone
-  reviews.md artifact.
+  Implementation review is a readonly evaluator that returns a portable packet
+  for feedback. The existing receipt shape remains temporarily as explicitly
+  deprecated legacy-reader compatibility until the publisher migration slice;
+  it is not evaluator-owned.
   Implementation is gated on completed planning artifacts and tracked via
   tasks.md checkboxes.
 
@@ -52,8 +52,8 @@ artifacts:
       /openspec-story-plan-resume. /openspec-story-claim and
       /openspec-story-resume write authorized implementation Status:
       transitions; /openspec-feedback may write acknowledged contract/lane and
-      reopen edits; /openspec-story-review writes completed review Status:
-      verdicts after publishing the current receipt. Planning readers apply the
+      reopen edits. The readonly implementation evaluator only reads this
+      artifact. Planning readers apply the
       same bound-DONE rule: a bound DONE story requires one well-formed current
       APPROVE/PASS receipt and never falls through to receipt-absent legacy
       handling.
@@ -95,14 +95,12 @@ artifacts:
       Implementation Review Receipt, PR State, and Unresolved Debt Friction.
       Written by /openspec-story-claim and /openspec-story-resume for
       implementation state/timeline, /openspec-feedback for acknowledged
-      replanning checkpoints, /openspec-story-review for the single compact
-      current review receipt and review transition timeline entry, and
-      /openspec-pr for PR evidence. The receipt includes the canonical
-      story-scoped review-identity-v1 digest/base/path list. PR recomputes it
-      before any write and records the matching digest/time in PR State; archive
-      trusts matching merged-PR verification and recomputes only for an explicit
-      no-PR route. Receipt history is not appended; the Progress Timeline carries
-      history. Excluded from PR bodies.
+      replanning checkpoints, and /openspec-pr for PR evidence. The receipt shape
+      and its story-scoped review-identity-v1 fields are explicitly deprecated
+      legacy-reader compatibility retained until the publisher migration slice;
+      readonly implementation review does not own this artifact. Existing PR and
+      archive readers retain their current compatibility behavior. Excluded from
+      PR bodies.
     template: progress.md
 
   - id: blocked
@@ -111,10 +109,10 @@ artifacts:
       Explicit blocker gate file. When present, lifecycle gates refuse to
       continue. The operator removes this file to unblock; editing or annotating
       it may document resolution, but the gate remains closed while the file
-      exists. Created or updated by /openspec-story-claim,
-      /openspec-story-resume, and /openspec-story-review; review writes it before
-      setting Status: to BLOCKED. A plan-review blocked verdict uses the Plan
-      lane instead. Never auto-created during normal planning.
+      exists. Created or updated by /openspec-story-claim and
+      /openspec-story-resume. Readonly implementation review treats it only as
+      an input gate. A plan-review blocked verdict uses the Plan lane instead.
+      Never auto-created during normal planning.
     template: blocked.md
 
 apply:
