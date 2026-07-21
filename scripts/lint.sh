@@ -26,6 +26,7 @@
 #   21. Approved OpenSpec lifecycle semantics survive canonical, Codex, and Pi generation.
 #   22. Pi implementation/planning convergence prompts end with their owning slash command.
 #   23. Recognized stale install inventory is explicitly and safely prunable.
+#   24. The read-only implementation evaluator emits complete, stable review evidence.
 #
 # Exit codes:
 #   0 — clean
@@ -1288,13 +1289,20 @@ check_review_readonly_evaluator_contract() {
       'Initiative: <initiative-slug>' \
       'Story: <story-slug>' \
       'Verdict: APPROVE | REQUEST CHANGES | BLOCKED | NOT REVIEWABLE' \
+      'Coverage: <inspected surfaces and intentionally uninspected surfaces>' \
+      'Acceptance / proof assessment: <acceptance and proof disposition>' \
+      'Verification run: <commands and results inspected | not run with reason>' \
+      'Red-first assessment: <red-first seam | documented exception | alternative proof>' \
+      'Final stability recheck: <stable | drift details>' \
       'Finding count: <nonnegative integer>' \
       'Findings: none' \
       'Finding ID: <stable local ID>' \
       'Severity: <severity>' \
       'Summary: <concise finding>' \
       'Evidence: <path:line anchors>' \
+      'Impact: <operator-facing consequence>' \
       'Proof / verification: <commands and results | not run with reason>' \
+      'Requested outcome: <concrete correction or evidence needed>' \
       'Next step: /openspec-feedback'; do
       grep -Fxq -- "$required" <<<"$packet" || missing+=("$required")
     done
@@ -1323,6 +1331,17 @@ check_review_readonly_evaluator_contract() {
     'Do not modify product files, OpenSpec artifacts, or notebook state; do not persist review output anywhere.' \
     'Do not disposition findings; `/openspec-feedback` owns disposition and durable publication.' \
     'The direct next step for every packet verdict is `/openspec-feedback`.'
+
+  check_workflow_contract \
+    "implementation review hardened evidence and stability contract" openspec-story-review \
+    'Assess whether the implementation used a red-first seam; when red-first was infeasible, require a documented exception or alternative proof.' \
+    'Immediately before packet emission, re-read entry `Status:`, `Review Focus: |`, sibling `blocked.md` existence, every prerequisite gate, and critical reviewed evidence.' \
+    'If lifecycle or evidence drifted, do not emit `APPROVE` or `REQUEST CHANGES` from stale evidence; emit `NOT REVIEWABLE` with the drift details.' \
+    'Emit `Coverage`, `Acceptance / proof assessment`, `Verification run`, `Red-first assessment`, and `Final stability recheck` for every verdict, including when `Finding count: 0`.' \
+    'Each finding block is exactly seven lines, from `Finding ID` through `Requested outcome`.'
+  forbid_workflow_literal \
+    "implementation review has no six-line finding-block contract" openspec-story-review \
+    'repeat the six-line finding block'
 
   forbid_workflow_literal \
     "implementation review has no notebook persistence API" \
