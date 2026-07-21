@@ -17,8 +17,8 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   performing lifecycle transitions.
 - OpenSpec workflow skills are now the active workflow surface:
   `openspec-initiative-plan`, `openspec-story-plan`, plan review/resume/converge,
-  implementation claim/resume/review/converge, `openspec-pr`,
-  `openspec-feedback`, and `openspec-archive`.
+  implementation claim/resume/review/converge, `openspec-migrate`,
+  `openspec-pr`, `openspec-feedback`, and `openspec-archive`.
 - `merge-conflict-analysis` joins `grillme` and `memorize` as a supported
   non-workflow utility skill.
 - Runtime installers support explicit `--prune-unsupported` cleanup for
@@ -39,11 +39,17 @@ Format loosely follows [Keep a Changelog](https://keepachangelog.com/).
   longer promotes `🔄 IN PROGRESS` stories into review.
 - Renamed the PR delivery helper from `openspec-story-pr` to `openspec-pr` and
   added the old generated names to unsupported-prune cleanup lists.
-- Clarified OpenSpec command authority: implementation claim readiness includes
-  completed expected prerequisites, `/openspec-story-review` owns local approval
-  to `✅ DONE`, `/openspec-pr` records optional PR delivery evidence without
-  mutating story status, and loopers may perform only documented
-  safety-normalization writes.
+- Clarified current OpenSpec command authority: implementation claim readiness
+  includes completed expected prerequisites; `/openspec-story-review` is a
+  readonly evaluator that emits one transient packet; `/openspec-feedback` is
+  the Status-last publisher after complete triage and an isolated pre-DONE replay
+  that is semantically equivalent to the submitted packet; `/openspec-pr`
+  records optional PR delivery evidence without mutating story status; and
+  loopers may perform only documented safety-normalization writes.
+- Hardened delivery identity: every PR route resolves exactly one product
+  repository from bounded Current Claim Worktrees/write surfaces and matches the
+  live PR repository/head, while explicit no-PR archive audits every resolved
+  product repository and fails closed on missing or ambiguous bindings.
 - Removed the PR lifecycle status from the active OpenSpec story state machine;
   PR feedback is absorbed through `/openspec-feedback`, which may explicitly
   reopen story work for resume, while archive still requires merged PR evidence

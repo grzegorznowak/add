@@ -179,7 +179,10 @@ exceptions must be explicit; do not ship a singleton silently.
 
 ## Lint and ship
 
+Local lint requires Python 3.12. Install its dependency, then run lint:
+
 ```bash
+python -m pip install -r requirements-lint.txt
 bash scripts/lint.sh
 ```
 

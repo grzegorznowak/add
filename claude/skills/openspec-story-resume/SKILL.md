@@ -21,7 +21,7 @@ This skill defers to the following artifacts, in priority order. Notebook contex
 
 1. **story.md top-level `Status:` header** — Authoritative current lane/status.
 2. **blocked.md** — Explicit blocker gate (existence = blocked).
-3. **progress.md → the single `## Implementation Review Receipt`** — Current completed implementation-review record (not append-only review history), with verdict, findings, proof, and next owner. It outranks optional notebook orientation when it has not been superseded by a newer authorized feedback/resume/unblock transition.
+3. **progress.md legacy receipt material** — Migration input only. It is inert for lifecycle and routing and never outranks current artifacts or notebook-sourced facts.
 4. **progress.md `## Current Claim`** — The most recent claim details, including assigned worktrees.
 5. **progress.md `## Progress Timeline`** — Sequential implementation log (newest first).
 6. **progress.md `## Session Handoff`** — Exit state from the most recent session.
@@ -71,15 +71,15 @@ Before any implementation begins, read these files from the resolved change work
 2. **`story.md`** — Extract the top-level `Status:`, `Plan:`, `Initiative:`, `## Purpose`, `## Acceptance`, `## Verification`, and any other sections.
 3. **`design.md`** — Understand architecture decisions, if present.
 4. **`tasks.md`** — Extract the task checklist for implementation tracking.
-5. **`progress.md`** — Inventory every `## Implementation Review Receipt`, plus `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, and `## PR State`. One well-formed unsuperseded section is current. Duplicate/malformed sections are not current authority: if a traceable newer authorized feedback/resume/unblock transition puts the story in a non-DONE implementation lane, treat their parseable findings as historical context and proceed from Status/blocker routing; otherwise route a reviewable IN REVIEW/DONE story to fresh substantive `/openspec-story-review`, which owns normalization to exactly one current receipt. Do not rewrite receipt sections here.
-6. **`story.md`** — Check the top-level Status header and contract sections for review findings and unresolved feedback. Optional review/feedback notebook pages may be consulted only for sourced orientation not already captured durably; never let them override artifacts or the receipt.
+5. **`progress.md`** — Read `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, and `## PR State`. Legacy receipt sections are migration input only: do not validate, interpret, rewrite, synthesize, or route from them.
+6. **`story.md`** — Check the top-level Status header and contract sections for review findings and unresolved feedback. Optional review/feedback notebook pages may be consulted only for sourced orientation not already captured durably; never let them override canonical artifacts.
 7. Check for `blocked.md` existence — if present, the change is blocked; treat as a blocking signal.
 
 ### 0.3 Determine Resume Intent
 
 Prioritize the resume intent from these sources (in order):
 
-1. **Story contract, top-level Status/blocker gate, and the single `progress.md → ## Implementation Review Receipt`** — For non-DONE states, current Status plus `blocked.md` owns routing. Use a `REQUEST CHANGES` receipt's findings as resume intent unless a newer authorized feedback reopen, resume claim/timeline entry, or unblock transition supersedes that verdict. Such a prior receipt is historical context and must not deadlock `🔄 IN PROGRESS` or repaired `🟣 IN REVIEW`; contradictory records with no traceable superseding event require artifact reconciliation.
+1. **Story contract and top-level Status/blocker gate** — Current Status plus `blocked.md` owns routing. Legacy receipt content is inert and never supplies resume intent or a route.
 2. **`progress.md → ## Session Handoff`** — The handoff from the most recent session.
 3. **`progress.md → ## Progress Timeline`** (newest entry) — What was last done.
 4. **`story.md → ## Purpose / ## Acceptance`** — The original intent, used as fallback.
@@ -91,7 +91,7 @@ Report the resolved resume intent to the operator before proceeding.
 
 These gates must pass before Phase 1 worktree checks, Phase 2 claim refresh, any `progress.md` write, or implementation work. If any gate fails, halt without updating `progress.md → ## Current Claim` or appending to `## Progress Timeline`.
 
-Apply precedence before the subsections below: if `blocked.md` exists, halt first with the singular operator action to resolve/remove it. Otherwise, for every non-DONE state, authoritative Status/blocker routing owns before prior receipt material: a newer authorized feedback reopen, resume/proof entry, or unblock transition may make a formerly current receipt historical without deleting it. If authoritative `Status: 🟣 IN REVIEW`, inspect bounded readiness evidence instead of blindly self-looping: implementation/proof incompleteness is owned by this implementation resume command; a missing anchor or incomplete/non-reviewable planning scaffold routes singularly to `/openspec-story-plan-resume <initiative-slug> <story-slug>` (or story-plan when the workspace is absent); unresolved external evidence routes to one concrete operator action. Fresh review happens only after the named repair. Halt with only a completely fresh, oblivious `/openspec-story-review <initiative-slug> <story-slug>` route when review has not yet run against the current evidence and all prerequisites are satisfied, or when malformed/duplicate review-owned receipt sections need substantive-review normalization. For `Status: ✅ DONE`, a bound story must have exactly one well-formed current receipt whose required fields occur exactly once and whose verdict is `Decision: APPROVE`, `Approval gate: PASS`, with a transition ending in `✅ DONE`. Do not recompute review identity here: it is story-scoped delivery evidence for PR, not lifecycle or prerequisite state. A missing, duplicate, malformed, or non-approving bound-story receipt routes only to fresh substantive `/openspec-story-review`, which can normalize it. Only an unbound pre-v3 DONE story with zero Initiative headers and zero receipt sections is the legacy fallback, with a warning and no backfill. If DONE is paired with a non-approved, missing, malformed, or ambiguous `Plan:`, halt with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. Do not offer planning or implementation choices for any of these precedence gates.
+Apply precedence before the subsections below: if `blocked.md` exists, halt first with the singular operator action to resolve/remove it. Otherwise authoritative Status/blocker routing owns. If authoritative `Status: 🟣 IN REVIEW`, inspect bounded readiness evidence instead of blindly self-looping: implementation/proof incompleteness is owned by this implementation resume command; a missing anchor or incomplete/non-reviewable planning scaffold routes singularly to `/openspec-story-plan-resume <initiative-slug> <story-slug>` (or story-plan when the workspace is absent); unresolved external evidence routes to one concrete operator action. Fresh review happens only after the named repair. Halt with only a completely fresh, oblivious `/openspec-story-review <initiative-slug> <story-slug>` route when review has not yet run against the current evidence and all prerequisites are satisfied. For `Status: ✅ DONE`, an exact bound receiptless DONE is lifecycle-valid. Receipt presence, absence, shape, verdict, duplication, or staleness cannot change routing, and this skill never synthesizes or normalizes a receipt. If DONE is paired with a non-approved, missing, malformed, or ambiguous `Plan:`, halt with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Preserve current task/proof checks. Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. Do not offer planning or implementation choices for any of these precedence gates.
 
 #### Plan Approval Check
 
@@ -115,8 +115,8 @@ Apply this complete qualification rule to every expected prerequisite before any
 2. Resolve active `<openspec_root>/openspec/changes/<prerequisite-slug>/story.md` first. The active copy is authoritative whenever present. Only when it is absent, fall back to `<openspec_root>/openspec/changes/archive/<prerequisite-slug>/story.md`; never let archived DONE override an active copy.
 3. In the resolved prerequisite directory require exactly one unambiguous top-level line `Status: ✅ DONE`. Missing, duplicate, malformed, or non-DONE Status is unsatisfied. A sibling `blocked.md` makes the prerequisite contradictory and unsatisfied in both active and archived locations, regardless of DONE or receipt evidence.
 4. Inventory the prerequisite's top-level header region for Initiative-like lines exactly as in Phase 0.1. Duplicate or malformed Initiative-like fields are contradictory and unsatisfied, never legacy. Exactly one valid canonical `Initiative:` header makes this a bound modern prerequisite.
-5. A bound modern prerequisite must have `progress.md` with exactly one `## Implementation Review Receipt` heading and one current body. Every required field (`Reviewed at`, `Decision`, `Approval gate`, `Status transition`, `Evidence reviewed`, `Identity method`, `Identity digest`, `Identity bases`, `Identity paths`, `Findings`, `Proof`, and `Next owner`) occurs exactly once; require APPROVE/PASS and a transition ending in `✅ DONE`. Missing, duplicate, malformed, or non-approving receipt evidence is unsatisfied. After slug resolution and modern/legacy classification, prerequisite satisfaction uses only authoritative Status, `blocked.md`, and this modern receipt verdict; never recompute or freshness-check the story-scoped review identity against mutable repository state.
-6. Zero Initiative or Initiative-like header lines is unbound legacy input. Any present receipt must pass the same single-current APPROVE/PASS verdict checks. Only an unbound pre-v3 prerequisite with DONE, no `blocked.md`, zero Initiative headers, and zero receipt sections may satisfy without a receipt; emit a compatibility warning and never synthesize/backfill one.
+5. Receipt presence or absence does not and must not affect prerequisite satisfaction. Ignore legacy receipt shape, verdict, identity, duplication, and staleness; never synthesize or normalize receipt material.
+6. Bound and accepted legacy prerequisites use the same current-state rule: exact `Status: ✅ DONE`, no sibling `blocked.md`, valid path/binding resolution, and any still-required current task/proof checks.
 7. Missing active and archived story files, or any failed gate above, halts resume without writes and names the exact prerequisite owner/action.
 
 An absent or empty `## Expected Prerequisites` section passes automatically.
@@ -126,7 +126,7 @@ An absent or empty `## Expected Prerequisites` section passes automatically.
 1. Read `story.md → Status:` after the Plan Approval, Blocker, and Prerequisite checks.
 2. If `Status: 🔄 IN PROGRESS`, proceed.
 3. If `Status: ⛔ BLOCKED` and `blocked.md` is absent, proceed only for the stale-blocker normalization described above.
-4. If status is TODO, IN REVIEW, DONE, missing, or unknown, halt without implementation writes unless IN REVIEW has a named implementation/proof incompleteness from an aborted review. For TODO, offer the implementation Converge wrapper plus Non-looped claim. For repairable IN REVIEW implementation/proof incompleteness, normalize `story.md → Status:` to `🔄 IN PROGRESS`, record why in the timeline, and proceed through this resume workflow; contract or external-evidence deficiencies use the singular owners in the precedence rule above. If IN REVIEW is ready and has not yet been reviewed against the current evidence, use the singular fresh-review route. For DONE with unchecked tasks or stale/incomplete implementation evidence, route only to a completely fresh, oblivious `/openspec-story-review <initiative-slug> <story-slug>` session; never resume. For actionable PR feedback on a consistent DONE story, recommend only `/openspec-feedback <initiative-slug> --pr <pr-url>`; when acknowledged as `resume-current-story`, feedback reopens the story to `🔄 IN PROGRESS` before implementation resumes. Route other DONE, missing, or unknown states singularly through the evidence/state-owning command; do not guess.
+4. If status is TODO, IN REVIEW, DONE, missing, or unknown, halt without implementation writes unless IN REVIEW has a named implementation/proof incompleteness from an aborted review. For TODO, offer the implementation Converge wrapper plus Non-looped claim. For repairable IN REVIEW implementation/proof incompleteness, normalize `story.md → Status:` to `🔄 IN PROGRESS`, record why in the timeline, and proceed through this resume workflow; contract or external-evidence deficiencies use the singular owners in the precedence rule above. If IN REVIEW is ready and has not yet been reviewed against the current evidence, use the singular fresh-review route. For DONE with unchecked tasks or stale/incomplete implementation evidence, require an operator to reconcile the contradictory durable DONE and current task/proof evidence; never route to the read-only evaluator or resume. For actionable PR feedback on a consistent DONE story, recommend only `/openspec-feedback <initiative-slug> --pr <pr-url>`; when acknowledged as `resume-current-story`, feedback reopens the story to `🔄 IN PROGRESS` before implementation resumes. Route other DONE, missing, or unknown states singularly through the evidence/state-owning command; do not guess.
 
 #### Parallelism Guard
 
@@ -292,6 +292,8 @@ Status transitions update both:
 
 ### 3.5 Default Behavior Rule
 
+On every implementation handoff to `🟣 IN REVIEW`, overwrite the top-level `Review Focus: |` block with current reviewer guidance; write a blank block when no focus is needed.
+
 The agent's default behavior on resume is:
 1. **Resume at `IN PROGRESS`** — Continue implementing remaining tasks.
 2. **Move to `🟣 IN REVIEW` when done** — When all tasks are complete and implementation proof passes.
@@ -299,25 +301,35 @@ The agent's default behavior on resume is:
 
 ## Phase 4 — Finish Protocol
 
+For an `🟣 IN REVIEW` completion, use this literal block shape in the top-level story header:
+
+```yaml
+Review Focus: |
+  <optional reviewer guidance on indented lines>
+```
+
+`Review Focus: |` is exactly one top-level field. Its content is the immediately following indented lines; the next top-level header terminates the block. No indented non-whitespace content means the block is blank. Malformed, duplicate, or conflicting Review Focus forms fail closed. Repair the header instead of guessing or publishing review readiness. Keep nonblank Review Focus guidance roughly 500–1,000 tokens. Enforce a deterministic maximum of 1,000 whitespace-delimited units before writing; shorten over-budget guidance rather than truncating it. This is a ceiling range, not a target length: prefer the shortest concrete guidance that identifies the requested surfaces, risks, and evidence.
+
+Prepare and write the complete `Review Focus: |` block before making `Status: 🟣 IN REVIEW` visible in either `story.md` or `progress.md → ## Session Handoff`; publish the focus and both status surfaces as one completion handoff. After writing the focus, set `story.md → Status:` and then the Session Handoff status to `🟣 IN REVIEW`. If interrupted after writing focus but before both statuses, leave the story out of review and reconcile the handoff before retrying. Re-read the focus block and both status surfaces before reporting completion; never leave or report `🟣 IN REVIEW` with stale Review Focus content.
+
 ### 4.1 Session Handoff
 
 When the session ends (natural completion, operator interrupt, or context limit approached), write to `progress.md → ## Session Handoff`:
 
 ```markdown
 ## Session Handoff
-
-- **Timestamp**: <ISO 8601 timestamp, end of session>
-- **Status**: <current status — 🔄 IN PROGRESS, 🟣 IN REVIEW, ✅ DONE, ⛔ BLOCKED>
-- **Completed In This Session**:
-  - <summary of what was done>
-- **Remaining**:
-  - <what still needs to be done, referencing tasks.md>
-- **Blockers**: <any blockers, or "none">
-- **Next Steps**: <concrete next actions for the next session>
-- **Worktrees**:
-  - <basename>: <path>
-  - ...
-- **Proof Statement**: <implementation proof status — what passed, what was verified>
+- Status: ⚪ TODO | 🔄 IN PROGRESS | 🟣 IN REVIEW | ✅ DONE | ⛔ BLOCKED
+- What changed: <short bullets>
+- Files touched: <paths>
+- Red-first path: <focused seam + red/green outcome, or explicit exception + alternative proof path>
+- Tests run: <commands/results or not run>
+- Acceptance proof coverage: <all acceptance ids and named variants covered | gaps/exclusions listed>
+- Risk-lens self-check: <activated lenses checked, exclusions, or none material>
+- Finding closure: <review/feedback findings fixed with proof and regression check, or none>
+- Remaining work: <short bullets>
+- Unresolved Debt Friction: <split-story / defer-explicitly / block / unfinished fix-now entries, or none>
+- Blockers / risks: <short bullets>
+- Exact next step: <one concrete recommendation>
 ```
 
 ### 4.2 Status Tracking
@@ -329,9 +341,11 @@ At session end, update:
 ### 4.3 Completed Session Signal
 
 If all tasks are complete and implementation proof passes:
-1. Transition status to `🟣 IN REVIEW`.
-2. In the Session Handoff, note: "Ready for review. All tasks complete. Implementation proof passes."
-3. Tell the operator to open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>`; do not pass parent notebook entries, implementation summaries, operational notes, or prior chat context into review.
+1. Prepare and write the current Review Focus block, including an intentionally blank block when no focus is requested.
+2. Transition `story.md → Status:` to `🟣 IN REVIEW`.
+3. Write the Session Handoff, set its Status to `🟣 IN REVIEW`, and note: "Ready for review. All tasks complete. Implementation proof passes."
+4. Re-read the Review Focus block and both status surfaces, correcting any stale or incomplete handoff before reporting readiness.
+5. Tell the operator to open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>`; do not pass parent notebook entries, implementation summaries, operational notes, or prior chat context into review.
 
 ### 4.4 Blocked Session Signal
 
@@ -358,8 +372,8 @@ If a blocker was encountered:
 - **Missing `proposal.md`**: Proceed without it; note the absence in the session handoff.
 - **Missing `design.md`**: Proceed without it; note the absence.
 - **Missing `tasks.md`**: Create a minimal `tasks.md` from `story.md → ## Acceptance` items; ask the operator to confirm.
-- **Missing `progress.md`**: Create it with `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, and `## PR State` sections. Do not invent or retroactively create `## Implementation Review Receipt`; only `/openspec-story-review` writes one after a completed verdict.
-Legacy review artifacts in existing workspaces are tolerated but not authoritative. The single receipt section is replaced by review rather than appended as history; a prior receipt can become historical context after a traceable authorized feedback/resume/unblock transition.
+- **Missing `progress.md`**: Create it with `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, and `## PR State` sections. Never invent or retroactively create review receipt material.
+Legacy review artifacts in existing workspaces are tolerated as inert migration input and are not authoritative.
 - **Missing `story.md`**: Halt — this is a required artifact.
 
 ### Status Inconsistencies
@@ -397,7 +411,7 @@ If the parent provides a `Notebook references from parent orchestration session`
 - unresolved open questions that still need verification against canonical artifacts; and
 - constraints or approaches that are already anchored in cited source material.
 
-When runtime notebook tools are available, read only the referenced notebook page/entry on demand. Verify cited anchors before making implementation decisions. If a referenced notebook entry or excerpt does not verify, mention the mismatch with exact anchors in the relevant final-response section; do not decide how to curate the notebook. Canonical artifacts outrank notebook orientation. If notebook orientation conflicts with the change workspace artifacts or `progress.md → ## Implementation Review Receipt`, ignore the notebook account, report the stale reference with exact anchors, and proceed from canonical artifacts unless those artifacts conflict with each other.
+When runtime notebook tools are available, read only the referenced notebook page/entry on demand. Verify cited anchors before making implementation decisions. If a referenced notebook entry or excerpt does not verify, mention the mismatch with exact anchors in the relevant final-response section; do not decide how to curate the notebook. Canonical artifacts outrank notebook orientation. If notebook orientation conflicts with canonical change-workspace artifacts, ignore the notebook account, report the stale reference with exact anchors, and proceed from canonical artifacts unless those artifacts conflict with each other.
 
 ## Default Legend
 

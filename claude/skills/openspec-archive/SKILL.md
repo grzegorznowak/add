@@ -1,9 +1,9 @@
 ---
 name: openspec-archive
-description: Archive a locally completed OpenSpec change workspace after pre-flight checks (review approved, tasks done, PR merged or explicitly waived). Thin wrapper over /opsx:archive.
+description: Archive a locally completed OpenSpec change workspace after pre-flight checks (DONE, tasks done, PR merged or explicitly waived). Thin wrapper over /opsx:archive.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug>"
-allowed-tools: Read Grep Glob Edit Bash(git worktree:*) Bash(git status:*) Bash(git diff:*) Bash(git rev-parse:*) Bash(git ls-files:*) Bash(git hash-object:*) Bash(sha256sum:*) Bash(shasum:*) Bash(gh pr view:*) Bash(date -u:*)
+allowed-tools: Read Grep Glob Edit Task Bash(git worktree:*) Bash(git status:*) Bash(git diff:*) Bash(git rev-parse:*) Bash(git ls-files:*) Bash(git hash-object:*) Bash(sha256sum:*) Bash(shasum:*) Bash(gh pr view:*) Bash(date -u:*)
 ---
 
 # OpenSpec Archive
@@ -20,9 +20,10 @@ Argument: `$ARGUMENTS` — `<initiative-slug> <story-slug>`. Both are required. 
 - `<initiative_file>` = `<initiative_dir>/initiative.md`.
 - `<change_dir>` = `<openspec_root>/openspec/changes/<story-slug>`.
 - `<progress_file>` = `<change_dir>/progress.md`.
-- The `Status:` header in `story.md` is the archival gate signal. Inventory the top-level header region before the first `## ` heading for every unindented `Initiative` or Initiative-like field line. Exactly one present line is valid only when its whole line matches `^Initiative: ([a-z0-9]+(?:-[a-z0-9]+)*)$`; duplicate, empty, whitespace-before-colon, non-canonical, or otherwise malformed Initiative-like lines are hard conflicts, never legacy absence. A bound modern story also requires one qualifying implementation review receipt.
+- The exact `Status:` header in `story.md` is the archival gate signal. Inventory the top-level header region before the first `## ` heading for every unindented `Initiative` or Initiative-like field line. Exactly one present line is valid only when its whole line matches `^Initiative: ([a-z0-9]+(?:-[a-z0-9]+)*)$`; duplicate, empty, whitespace-before-colon, non-canonical, or otherwise malformed Initiative-like lines are hard conflicts, never legacy absence. A bound receiptless DONE is eligible for archive entry.
 - `<tasks_file>` = `<change_dir>/tasks.md`.
 - `<blocked_file>` = `<change_dir>/blocked.md`.
+- `<product_repository_roots>` = the non-empty deduplicated set of product Git worktree roots deterministically derived from the bounded `progress.md → ## Current Claim` Worktrees and Primary write surfaces inventory. It is transient and is resolved before either merged-PR or no-PR archive routing.
 
 ## Important
 
@@ -52,11 +53,16 @@ This command is a coordination-only transition. It never touches source code, te
    - The two required positional slugs form an operator-explicit initiative+story pair. Only zero Initiative or Initiative-like lines is legacy. For that case, scan active `<openspec_root>/openspec/initiatives/*/initiative.md` files for exact `<story-slug>` associations in `## Story Candidates`. With no associations, the explicit pair may target the legacy story because its selected initiative file exists. With candidate evidence, require exactly one association equal to `<initiative-slug>`; a different or multiple association conflicts and halts. Print a compatibility warning and never backfill the header. An auto-defaulted or menu-selected initiative alone would not authorize zero-reference legacy compatibility.
 7. Check `<blocked_file>` before offering any wrapper/direct route. If `blocked.md` exists, abort with the singular operator action to resolve the blocker and remove the file.
 8. Read the authoritative `Status:` and `Plan:` header fields.
-   - If `Status: 🟣 IN REVIEW`, abort with one route only even when `Plan:` contradicts it: note the Plan drift for review, open a completely fresh, oblivious session with no parent/converger notebook, implementation summary, operational notes, or prior chat context, then run `/openspec-story-review <initiative-slug> <story-slug>`. The wrapper never launches review.
-   - If `Status: ✅ DONE`, inventory every `<progress_file> → ## Implementation Review Receipt` heading/body. When any receipt is present, require exactly one section and exactly one occurrence of every canonical field: `Reviewed at`, `Decision`, `Approval gate`, `Status transition`, `Evidence reviewed`, `Identity method`, `Identity digest`, `Identity bases`, `Identity paths`, `Findings`, `Proof`, and `Next owner`. Require `Decision: APPROVE`, `Approval gate: PASS`, a `Status transition` ending in `✅ DONE`, `Identity method: review-identity-v1`, one canonical `sha256:<lowercase-hex>` digest, and reproducible canonical JSON bases/path arrays (`[]` is valid for an empty list). Duplicate headings/bodies/fields, omitted or extra entry-shaped fields, malformed/contradictory values, or any other verdict routes only to `Open a completely fresh, oblivious session and run /openspec-story-review <initiative-slug> <story-slug>.` Never search older receipt history; fresh substantive review owns normalization. At this phase validate receipt shape and remember its digest but do not recompute identity or mutate PR State; Phase 2 selects the merged-PR versus no-PR identity gate. A true pre-v3 legacy DONE without a receipt is compatible only when the story has zero Initiative or Initiative-like header lines and zero receipt sections; warn that both artifacts are absent, use step 6's explicit/unique-association resolution, and backfill neither. A bound modern DONE with an absent receipt routes only to fresh oblivious review. After these gates, if `Plan:` is anything other than unambiguous `🟢 PLAN APPROVED`, abort with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner.
+   - If `Status: 🟣 IN REVIEW`, inspect current Plan, scaffold, blocker, task, and proof evidence before selecting a route. Repair evidence takes precedence over fresh review: an implementation/proof deficiency routes singularly to its implementation repair owner; planning/contract drift or malformed state requires one explicit operator reconciliation action because planning commands reject IN REVIEW; an external blocker routes to its blocker owner. Only when no repair condition survives use the singular fresh, oblivious `/openspec-story-review <initiative-slug> <story-slug>` route, with no parent/converger notebook, implementation summary, operational notes, or prior chat context. The wrapper never launches review.
+   - If `Status: ✅ DONE`, treat an exact bound receiptless DONE as lifecycle-valid. Legacy receipt presence, absence, shape, verdict, identity, duplication, or staleness cannot affect archive routing; never synthesize or normalize a receipt. If `Plan:` is anything other than unambiguous `🟢 PLAN APPROVED`, abort with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Preserve current blocker, task/proof, and PR checks. Do not recommend planning commands that reject DONE and do not invent a lifecycle owner.
    - Otherwise, if the non-DONE story's `Plan:` is not `🟢 PLAN APPROVED`, route planning repair before any claim/resume choice. For DRAFT or PLAN IN REVIEW, use direct `/openspec-story-plan-review <initiative-slug> <story-slug>` only when all required planning artifacts/sections exist, scaffold anchors are unambiguous, and no unresolved Plan Review Log finding remains; otherwise use direct `/openspec-story-plan-resume <initiative-slug> <story-slug>`. For PLAN CHANGES REQUESTED, unresolved findings route to direct plan-resume; fully blended findings with a structurally reviewable scaffold route to direct plan-review. PLAN BLOCKED and malformed/ambiguous lanes remain singular operator/repair routes. Do not offer implementation choices until planning is approved.
    - Then require `Status: ✅ DONE`. For TODO, offer the implementation Converge wrapper and Non-looped claim pass. For IN PROGRESS, offer the implementation Converge wrapper and Non-looped resume pass. Keep BLOCKED, missing, malformed/ambiguous, and unknown states singular. Use `/openspec-pr` only after local completion.
-9. Read `<initiative_file>` for the post-archive update context.
+9. Before choosing any PR/no-PR route, deterministically resolve product repositories from the selected story's bounded `progress.md → ## Current Claim`:
+   - Require exactly one Current Claim section. Parse its complete `Worktrees:` mapping and `Primary write surfaces:` field. Worktree entries require unique labels and unique absolute, existing Git worktree paths; surfaces must be non-empty and non-placeholder.
+   - Normalize every surface without allowing `..` or symlink escape. An absolute surface must be contained by exactly one listed worktree. Resolve a relative surface against all listed worktrees and require exactly one containment match backed by an existing path or Git-tracked/status evidence. Never select the first path and never fall back to cwd.
+   - Deduplicate matched roots using `git rev-parse --show-toplevel` and set `<product_repository_roots>` to the complete non-empty result. Missing, malformed, stale, unreadable, duplicate, escaped, zero-match, or multiply matched Worktrees/Primary write surfaces fail closed as ambiguous and halt before `gh`, confirmation, Task, or archive mutation.
+   - For each root, derive one unambiguous normalized GitHub remote identity `<owner>/<repo>` from configured remotes. Missing or conflicting identity fails closed. Re-run this entire derivation during the final current-artifact recheck; any changed claim, surface, root, or remote identity restarts preflight.
+10. Read `<initiative_file>` for the post-archive update context.
 
 ## Phase 2 — Pre-flight checks
 
@@ -68,51 +74,48 @@ If `<blocked_file>` exists at `<change_dir>/blocked.md`, abort with: `Story has 
 
 ### Check B — PR State (PR must be merged)
 
-Inventory all `## PR State` headings in `<progress_file>`; more than one is ambiguous and aborts to `/openspec-pr <initiative-slug> <story-slug>` for normalization. From the sole section, when present, extract the exactly-once `- PR URL:` value and trim whitespace. If the section is absent, the line is absent, or the value is blank/placeholder (`<empty>`, `—`, `none`, or a template `<...>` value), mark `<archive_route>=no-pr` and ask: `No PR State found for <story-slug>. Archive without a PR? [y/N]`. If the operator declines, abort with the singular route: `Archive deferred. Run /openspec-pr <initiative-slug> <story-slug> to create or attach a PR.` Do not recompute identity yet; the final no-PR gate runs after task checks and immediately before archive mutation.
+Inventory all `## PR State` headings in `<progress_file>`; more than one is ambiguous and aborts to `/openspec-pr <initiative-slug> <story-slug>` for normalization. From the sole section, when present, extract the exactly-once `- PR URL:` value and trim whitespace. If the section is absent, the line is absent, or the value is blank/placeholder (`<empty>`, `—`, `none`, or a template `<...>` value), mark `<archive_route>=no-pr` and ask: `No PR State found for <story-slug>. Archive without a PR? [y/N]`. If the operator declines, abort with the singular route: `Archive deferred. Run /openspec-pr <initiative-slug> <story-slug> to create or attach a PR.`
 
 **If the sole `## PR State` has a non-empty `- PR URL:` value, mark `<archive_route>=merged-pr` and:**
 
-- For a modern receipt, require exactly one non-placeholder `Verified implementation digest:` and exactly one non-placeholder UTC `Verified at:` in PR State. The verified digest must exactly equal the current receipt's `Identity digest`; missing, duplicate, stale, or mismatched verification aborts with `/openspec-pr <initiative-slug> <story-slug> <pr_url>` so PR can recompute `review-identity-v1` and refresh the same record. Do not recompute identity in archive's merged-PR route. For the exact pre-v3 zero-Initiative/zero-receipt exception, warn that no digest comparison is possible and preserve the bounded compatibility route.
-- Do not trust cached local `PR status`, `Merge commit`, or `Merged at` fields as merge evidence by themselves. Run `gh pr view <url> --json state,mergedAt,mergeCommit` and use the live GitHub response as authority.
+- Require exactly one non-placeholder `- Delivery head:` in the sole PR State section. This is non-review Git delivery evidence; missing, duplicate, malformed, or placeholder delivery head aborts to `/openspec-pr <initiative-slug> <story-slug> <pr_url>` for a fresh binding.
+- The merged-PR route requires exactly one resolved product repository root. Multiple resolved roots cannot be represented by one PR State and halt; use separate stories or the explicit no-PR route only when that route is genuinely intended and confirmed.
+- Do not trust cached local `PR status`, `Merge commit`, `Merged at`, or `Delivery head` fields as live merge evidence by themselves. Run `gh pr view <url> --json state,headRefOid,headRepository,headRepositoryOwner,mergedAt,mergeCommit` and use the live GitHub response as authority. Require the live head repository `<owner>/<repo>` to equal the sole resolved root's normalized remote identity and require live headRefOid to equal the recorded Delivery head. Missing or unequal repository/head mapping fails closed.
 - If `gh` is unavailable, the command fails, the PR cannot be read, or GitHub reports any non-merged state, abort with: `PR is not confirmed merged from GitHub. Run /openspec-pr <initiative-slug> <story-slug> <pr_url> to resync, then re-archive.` Include the observed state/error in the report.
-- If GitHub confirms the PR is merged but `mergeCommit.oid` or `mergedAt` is missing, abort with the same resync hint; archive requires both a non-placeholder merge commit and a non-placeholder merged timestamp.
-- If GitHub confirms merged with complete evidence, refresh/populate only the live delivery fields in `## PR State`: `PR status: merged`, `Merge commit:` (from `mergeCommit.oid`), `Merged at:` (from `mergedAt`), and `Last synced:`. Preserve the already-matched `Verified implementation digest` and `Verified at` byte-for-byte. This coordination refresh is outside `review-identity-v1`; do not recompute identity after archive's own PR State refresh.
+- If GitHub confirms the PR is merged but `headRefOid`, `mergeCommit.oid`, or `mergedAt` is missing, abort with the same resync hint; archive requires all three live values.
+- Require the live merged PR headRefOid to equal the recorded Delivery head exactly. A mismatch proves that the PR advanced after its post-DONE delivery audit; abort to `/openspec-pr <initiative-slug> <story-slug> <pr_url>` and never rewrite the recorded head from archive.
+- If GitHub confirms merged with complete matching evidence, refresh/populate only `PR status: merged`, `Merge commit:` (from `mergeCommit.oid`), `Merged at:` (from `mergedAt`), and `Last synced:`. Preserve the matching `Delivery head` and unrelated legacy fields byte-for-byte; never use legacy fields as gates.
 
-### Check C — Review approval
+### Check C — Lifecycle completion
 
 Use the `Status:` header already read from `<change_dir>/story.md` as the local lifecycle gate. It must be `Status: ✅ DONE`; Phase 1 aborts before pre-flight checks for any other status.
 
-Then consume `progress.md → ## Implementation Review Receipt`:
-
-- Re-run Phase 1's exact receipt inventory and full canonical-field validation against the current file. Require the one APPROVE/PASS record, DONE-ending transition, and well-formed `review-identity-v1` fields. Duplicate, truncated, malformed, non-approving, or contradictory evidence routes only to `Open a completely fresh, oblivious session and run /openspec-story-review <initiative-slug> <story-slug>.` Never search for or select an older approval.
-- For `<archive_route>=merged-pr`, require the still-current receipt digest to equal the PR State verified digest already checked before live merge verification. Do not recompute identity here or after archive's PR State refresh; PR established the identity checkpoint before PR delivery, and coordination-only PR State/timeline writes are excluded from `review-identity-v1`.
-- For `<archive_route>=no-pr`, defer recomputation until after Check D so it occurs immediately before archive mutation. Receipt absence passes only for a true pre-v3 DONE story with zero Initiative or Initiative-like header lines and zero receipt sections. Print a compatibility warning, rely on the already-validated explicit/unique association, and synthesize neither binding nor receipt. A bound modern DONE with no receipt routes only to fresh oblivious review.
-- Phase 1 routes every non-DONE story from authoritative `Status:` before this gate. An old receipt may be historical context but cannot override a current non-DONE lane.
-
-Continue to Check D.
+Legacy receipt material is inert. Receipt presence, absence, malformed or duplicate shape, verdict, identity, and staleness must not block or override archive routing. Never synthesize, normalize, or recompute it. Continue to Check D.
 
 ### Check D — Tasks completeness
 
-If `<tasks_file>` does not exist, abort with: `Status: ✅ DONE contradicts missing tasks.md implementation evidence. Reconcile this in a completely fresh /openspec-story-review <initiative-slug> <story-slug> session.` Do not route to claim or resume.
+If `<tasks_file>` does not exist, abort with: `Operator action: reconcile Status: ✅ DONE with missing tasks.md implementation evidence before archive.` Do not route to the read-only evaluator, claim, or resume.
 
-Read `<tasks_file>`. If it is empty or whitespace-only, abort with: `Status: ✅ DONE contradicts empty tasks.md implementation evidence. Reconcile this in a completely fresh /openspec-story-review <initiative-slug> <story-slug> session.` Do not route to claim or resume.
+Read `<tasks_file>`. If it is empty or whitespace-only, abort with: `Operator action: reconcile Status: ✅ DONE with empty tasks.md implementation evidence before archive.` Do not route to the read-only evaluator, claim, or resume.
 
 Validate the task checklist shape before checking completion:
 
 - Collect valid checkbox task lines matching `- [ ] <task description>` or `- [x] <task description>` / `- [X] <task description>` with a non-empty description.
-- Treat malformed checkbox-like task lines as a hard DONE/evidence contradiction, including `- []`, `- [x]` with no description, or any `- [<marker>]` marker other than space, `x`, or `X`. List the malformed lines and route only to a completely fresh `/openspec-story-review <initiative-slug> <story-slug>` session; never claim or resume.
-- If no valid checkbox task lines exist, report the DONE/evidence contradiction and route only to a completely fresh `/openspec-story-review <initiative-slug> <story-slug>` session.
+- Treat malformed checkbox-like task lines as a hard DONE/evidence contradiction, including `- []`, `- [x]` with no description, or any `- [<marker>]` marker other than space, `x`, or `X`. List the malformed lines and require a singular operator reconciliation action; never route to the read-only evaluator, claim, or resume.
+- If no valid checkbox task lines exist, report the DONE/evidence contradiction and require the same singular operator reconciliation action.
 
 If any valid unchecked tasks remain:
 
 - List each unchecked task as `- [ ] <task description>`.
-- Abort because `Status: ✅ DONE` contradicts task evidence. Route only to a completely fresh `/openspec-story-review <initiative-slug> <story-slug>` session so review owns reconciliation; never claim or resume.
+- Abort because `Status: ✅ DONE` contradicts task evidence. Require a singular operator action to reconcile the durable state before archive; never route to the read-only evaluator, claim, or resume.
 
-### Final no-PR identity gate
+### Final current-artifact recheck
 
-Only when `<archive_route>=no-pr` and a modern receipt exists, immediately before the first archive mutation re-read the Initiative-like header inventory, Status/Plan, blocked gate, and the complete receipt, then recompute canonical `review-identity-v1` from exactly its recorded `Identity bases` and `Identity paths`. Require the result to equal `Identity digest`; missing bases/paths, unavailable inputs, malformed method/value, or mismatch routes only to fresh oblivious `/openspec-story-review <initiative-slug> <story-slug>`. Do not write PR State for a no-PR archive. For the exact zero-Initiative/zero-receipt pre-v3 exception, warn and skip identity recomputation because no identity exists. After this gate, perform no coordination write before `/opsx:archive`; if any gate-bearing artifact changes, restart preflight rather than using the prior result.
+Immediately before the first archive mutation, re-read the Initiative-like header inventory, exact Status/Plan, blocker gate, task/proof evidence, and route-specific PR evidence. Re-resolve the complete bounded Current Claim Worktrees/Primary write surfaces map and require the repository roots and normalized remote identities to be unchanged. Ignore all legacy receipt/identity material. After this gate, perform no coordination write before `/opsx:archive`; if any gate-bearing artifact changes, restart preflight rather than using the prior result.
 
-For `<archive_route>=merged-pr`, do not recompute here: the receipt-equal PR State verification and live GitHub merged state are the authoritative archive evidence, and archive's own coordination refresh is outside identity scope.
+For the explicit **no-PR** archive route only, after the operator's confirmation and this final recheck, run one final pre-archive gate immediately before `/opsx:archive`: launch exactly one isolated, fresh **Task child** for a read-only delivery audit covering **every resolved product repository root**, not merely the first or the OpenSpec checkout. Give it only the canonical initiative/story selectors, current resolved OpenSpec artifact paths, the complete resolved product-repository roots list, and the instruction to inspect current artifacts and readable live repository evidence in every listed root. Limit it to `Read`, `Grep`, and `Glob`; do not give it a submitted packet, receipt, digest, identity, prior review, implementation summary, notebook state, prior chat, or parent conclusion. The child neither emits nor consumes an `ADD-REVIEW-PACKET/1` packet and persists nothing. It must report a per-root result and fail closed unless every resolved product repository's identity and implementation surfaces, plus current DONE, approved Plan, blocker absence, and complete tasks/proof, remain mutually consistent for delivery. Any omitted root, inconclusive root, or failing audit aborts archive. After a passing child result, perform no write or other action before invoking `/opsx:archive`; any delay or changed evidence requires restarting final preflight and this fresh audit.
+
+The merged-PR route uses the live head equality gate above and does not persist another audit artifact. Neither route creates a delivery receipt, digest, identity, review history, packet, or attestation.
 
 ### All pre-flights pass
 
@@ -122,7 +125,7 @@ If all four checks pass, print a summary gate report:
 Pre-flight checks passed for <story-slug>:
 - [x] blocked.md: not present
 - [x] PR State: merged (or confirmed no-PR)
-- [x] Review: exactly one complete canonical APPROVE/PASS/DONE receipt; merged PR State digest matched it, or no-PR review-identity-v1 recomputed immediately before archive (or exact pre-v3 zero-Initiative/zero-receipt compatibility)
+- [x] Lifecycle: exact DONE with current Plan/task/proof evidence consistent
 - [x] Tasks: tasks.md present with valid checked/skipped/deferred task evidence
 Proceeding to archive...
 ```
@@ -169,14 +172,14 @@ After successful archiving, update `<initiative_file>`:
 
 ## Rules
 
-1. **Never archive a story that fails any pre-flight check.** Abort with a precise reason and recovery hint for each failure, including initiative-binding, transient-root, single-current-review-receipt, and artifact-preservation failures.
+1. **Never archive a story that fails any pre-flight check.** Abort with a precise reason and recovery hint for each failure, including initiative-binding, transient-root, current lifecycle/evidence, and artifact-preservation failures.
 2. **Never touch source code, tests, or product files.** This command is a coordination-only transition.
 3. **Never manually move files or manually sync specs.** The actual archive operation is `/opsx:archive`'s responsibility.
 4. **Never modify initiative.md beyond the `## Story Candidates` archival note.** Other sections are owned by other commands.
 5. **Never archive an already-archived story.** Detect and abort early.
 6. **Never override the operator's explicit no-PR decision.** When `## PR State` is absent, ask; don't assume.
 7. **Never proceed to Phase 3 if Phase 2 fails.** Each pre-flight check is a hard gate.
-8. **Never archive without the route-specific identity gate.** A merged-PR route requires PR State's verified digest to equal the current receipt digest plus live GitHub merged evidence and never recomputes after archive's coordination refresh. A no-PR route recomputes `review-identity-v1` from the receipt-recorded bases/paths immediately before archive mutation. Route missing, mismatched, or unverifiable modern evidence to fresh substantive review.
+8. **Never let legacy receipt or identity material affect archive routing.** Preserve route-specific live PR/no-PR confirmation and current Status/Plan/task/proof gates.
 
 ## Final response
 
@@ -196,4 +199,4 @@ Suggested next action: <scalar recovery route or None; leave empty only for a du
 Choose one; do not run both.
 ```
 
-For scalar routes, put the value on the label line and omit the three dual-route lines. For a valid TODO/IN PROGRESS implementation choice only, leave the label empty and render the Converge wrapper line, the state-correct Non-looped pass line, and `Choose one; do not run both.` immediately after it. On successful archive, use `None. The story is archived and complete.` DONE with non-approved Plan uses only the operator action to investigate/reconcile the contradictory durable state and names no lifecycle owner. Keep blocked, malformed/ambiguous, Plan repair for non-DONE stories, PR resync, no-PR decision, archive failure, DONE/evidence contradiction, and terminal routes singular. IN REVIEW uses only the fresh oblivious review route.
+For scalar routes, put the value on the label line and omit the three dual-route lines. For a valid TODO/IN PROGRESS implementation choice only, leave the label empty and render the Converge wrapper line, the state-correct Non-looped pass line, and `Choose one; do not run both.` immediately after it. On successful archive, use `None. The story is archived and complete.` DONE with non-approved Plan uses only the operator action to investigate/reconcile the contradictory durable state and names no lifecycle owner. Keep blocked, malformed/ambiguous, Plan repair for non-DONE stories, PR resync, no-PR decision, archive failure, DONE/evidence contradiction, and terminal routes singular. In the final authoritative route for IN REVIEW, preserve repair-first precedence: route surviving implementation/proof deficiency, planning/contract drift, malformed state, or external blocker to its single repair/reconciliation owner first; only when no repair condition survives use the fresh oblivious story-review route. Never summarize IN REVIEW as a blanket fresh-review rule.

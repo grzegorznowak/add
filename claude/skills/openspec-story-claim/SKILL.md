@@ -75,7 +75,7 @@ Then apply these gates in order:
 
 1. Check the selected change workspace for `blocked.md`. If it exists, stop first with the singular operator action to resolve the blocker and remove the file; do not offer wrapper/direct choices.
 2. Read authoritative `Status:`. If it is `🔄 IN PROGRESS`, or `⛔ BLOCKED` with no `blocked.md` after the blocker was removed, stop with the singular `/openspec-story-resume <initiative_slug> <story_slug>` route. An already-valid story worktree does not make an active claim claimable again. If Status is `🟣 IN REVIEW`, do not blindly route back to review. Inspect bounded readiness evidence: implementation/proof incompleteness routes singularly to `/openspec-story-resume <initiative_slug> <story_slug>`; a missing anchor or incomplete/non-reviewable planning scaffold routes singularly to `/openspec-story-plan-resume <initiative_slug> <story_slug>` (or `/openspec-story-plan INITIATIVE=<initiative_slug>` when the workspace is absent); unresolved external evidence routes to one concrete operator action. Say that fresh review happens only after the named repair. Only when review has not yet run against the current evidence and all prerequisites are satisfied, stop with exactly one fresh, oblivious `/openspec-story-review <initiative_slug> <story_slug>` route. The implementation wrapper never launches review.
-3. If `Status: ✅ DONE`, first require an unambiguous `Plan: 🟢 PLAN APPROVED`; otherwise stop with exactly `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` A bound story (exactly one valid `Initiative:` header) must have exactly one well-formed current receipt whose required fields occur exactly once and whose verdict is `Decision: APPROVE`, `Approval gate: PASS`, with a transition ending in `✅ DONE`. Do not recompute review identity here: it is story-scoped delivery evidence for PR, not lifecycle or prerequisite state. A duplicate, malformed, non-approving, or missing bound-story receipt routes only to a completely fresh `/openspec-story-review <initiative_slug> <story_slug>` substantive review, which owns normalization to one current receipt; do not attempt repair here. Only an unbound pre-v3 DONE story with zero Initiative headers and zero receipt sections qualifies for bounded legacy compatibility, with a warning and no backfill. A consistent DONE story is not claimable; route from its terminal/delivery evidence. Do not recommend planning, claim, or resume commands and do not invent a lifecycle owner.
+3. If `Status: ✅ DONE`, first require an unambiguous `Plan: 🟢 PLAN APPROVED`; otherwise stop with exactly `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` An exact bound receiptless DONE is lifecycle-valid and not claimable; route from its terminal/delivery evidence. Legacy receipt presence, absence, shape, verdict, duplication, or staleness does not affect this route, and this skill never synthesizes or normalizes a receipt. Preserve bounded task/proof checks. Do not recommend planning, claim, or resume commands and do not invent a lifecycle owner.
 4. Only then verify that the story is all of:
    - **unclaimed**: `Status:` is `⬜ TODO`, `⚪ TODO`, or absent
    - **plan-approved**: `Plan:` is `🟢 PLAN APPROVED`
@@ -98,8 +98,8 @@ Apply this complete qualification rule to every expected prerequisite; the earli
 2. Resolve the active prerequisite first at `<openspec_root>/openspec/changes/<slug>/story.md`. The active prerequisite is authoritative whenever that file exists. Only when the active prerequisite file is absent, fall back to `<openspec_root>/openspec/changes/archive/<slug>/story.md`. Never let an archived DONE copy override an existing active prerequisite.
 3. In the resolved prerequisite directory, require exactly one unambiguous top-level `Status:` header whose whole line is `Status: ✅ DONE`. Missing, duplicate, malformed, or non-DONE Status is unsatisfied. Check sibling `blocked.md` before trusting DONE: its existence makes the prerequisite contradictory and unsatisfied in both active and archived locations, regardless of receipt evidence.
 4. Inventory the prerequisite's top-level header region exactly as for the selected story. Duplicate or malformed Initiative-like fields are contradictory and unsatisfied, never legacy. Exactly one valid canonical `Initiative:` header makes this a bound modern prerequisite.
-5. A bound modern prerequisite must have `progress.md` containing exactly one `## Implementation Review Receipt` heading and one current body. Every required field (`Reviewed at`, `Decision`, `Approval gate`, `Status transition`, `Evidence reviewed`, `Identity method`, `Identity digest`, `Identity bases`, `Identity paths`, `Findings`, `Proof`, and `Next owner`) must occur exactly once; require `Decision: APPROVE`, `Approval gate: PASS`, and a transition ending in `✅ DONE`. Missing, duplicate, malformed, or non-approving receipt evidence is unsatisfied. After slug resolution and modern/legacy classification, prerequisite satisfaction uses only authoritative Status, `blocked.md`, and this modern receipt verdict; never recompute or freshness-check the story-scoped review identity against mutable repository state.
-6. A prerequisite with zero Initiative or Initiative-like header lines is unbound legacy input. If any receipt section is present, it must satisfy the same single-current APPROVE/PASS verdict checks; malformed or contradictory receipt material fails. Only an unbound pre-v3 prerequisite with `Status: ✅ DONE`, no `blocked.md`, zero Initiative headers, and zero receipt sections may satisfy without a receipt: emit a compatibility warning and never synthesize or backfill one.
+5. Receipt presence or absence does not and must not affect prerequisite satisfaction. Ignore legacy receipt shape, verdict, identity, duplication, and staleness; never synthesize or normalize receipt material.
+6. Bound and accepted legacy prerequisites use the same current-state rule: exact `Status: ✅ DONE`, no sibling `blocked.md`, valid path/binding resolution, and any still-required current task/proof checks.
 7. If neither active nor archived `story.md` exists, the prerequisite is unsatisfied. Report the exact failed gate and the prerequisite owner/action; do not claim or write lifecycle state.
 
 If `## Expected Prerequisites` is absent or empty, the story has no dependencies and the readiness check for dependencies passes automatically.
@@ -315,11 +315,22 @@ Assume other fresh sessions may work on nearby stories. Avoid touching files out
 
 ## Finish protocol
 
+For an `🟣 IN REVIEW` completion, use this literal block shape in the top-level story header:
+
+```yaml
+Review Focus: |
+  <optional reviewer guidance on indented lines>
+```
+
+`Review Focus: |` is exactly one top-level field. Its content is the immediately following indented lines; the next top-level header terminates the block. No indented non-whitespace content means the block is blank. Malformed, duplicate, or conflicting Review Focus forms fail closed. Repair the header instead of guessing or publishing review readiness. Keep nonblank Review Focus guidance roughly 500–1,000 tokens. Enforce a deterministic maximum of 1,000 whitespace-delimited units before writing; shorten over-budget guidance rather than truncating it. This is a ceiling range, not a target length: prefer the shortest concrete guidance that identifies the requested surfaces, risks, and evidence.
+
+Prepare and write the complete `Review Focus: |` block before making `Status: 🟣 IN REVIEW` visible in either `story.md` or `progress.md → ## Session Handoff`; publish the focus and both status surfaces as one completion handoff. After writing the focus, set `story.md → Status:` and then the Session Handoff status to `🟣 IN REVIEW`. If interrupted after writing focus but before both statuses, leave the story out of review and reconcile the handoff before retrying. Re-read the focus block and both status surfaces before reporting completion; never leave or report `🟣 IN REVIEW` with stale Review Focus content.
+
 At the end of the session, update `progress.md → ## Session Handoff`:
 
 ```md
 ## Session Handoff
-- Status: done | blocked | in progress | in review
+- Status: ⚪ TODO | 🔄 IN PROGRESS | 🟣 IN REVIEW | ✅ DONE | ⛔ BLOCKED
 - What changed: <short bullets>
 - Files touched: <paths>
 - Red-first path: <focused seam + red/green outcome, or explicit exception + alternative proof path>
@@ -338,10 +349,13 @@ At the end of the session, update `progress.md → ## Session Handoff`:
 The `Status:` field in `story.md` is the authoritative implementation status. There is no `MASTER.md` in this flow. Update `story.md → Status:` using this lifecycle:
 - `🔄 IN PROGRESS` — implementation still actively underway
 - `🟣 IN REVIEW` — implementation done enough for an independent `/openspec-story-review`; the focused red seam is green or an explicit exception is recorded; run final verification, review the touched files, tighten rough edges
-- `✅ DONE` — independent review completed via `/openspec-story-review`. **Do not set this status from `/openspec-story-claim`.**
+- `✅ DONE` — canonical completion published outside this implementation pass. **Do not set this status from `/openspec-story-claim`.**
 - `⛔ BLOCKED` — an external blocker prevents completion or review
 
 **Default rule:**
+
+On every implementation handoff to `🟣 IN REVIEW`, overwrite the top-level `Review Focus: |` block with current reviewer guidance; write a blank block when no focus is needed.
+
 1. Claim as `🔄 IN PROGRESS`
 2. Once the chosen focused seam is green and implementation is complete, move to `🟣 IN REVIEW`
 3. Stop there and tell the operator to open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>` from the checkout containing the active OpenSpec artifacts (`<openspec_root>` if it differs from the launch root), with no parent notebook, implementation summary, operational notes, or prior chat context. Optional GitHub PR delivery happens after local completion via `/openspec-pr`, which records PR metadata but does not own `story.md → Status:`.

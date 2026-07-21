@@ -35,7 +35,7 @@ openspec/
     ├── design.md
     ├── tasks.md
     ├── specs/**/*.md
-    ├── progress.md      # runtime evidence; review may create the current receipt
+    ├── progress.md      # implementation handoff/proof and PR delivery evidence
     └── blocked.md       # existence is an explicit blocker gate
 ```
 
@@ -52,9 +52,27 @@ openspec/
   draft, in review, approved, needs changes, or blocked.
 - **Implementation status** — `story.md`'s `Status:` header records local
   execution: TODO, in progress, in review, done, or blocked.
+- **Review focus** — every story has exactly one top-level multiline field:
+
+  ```yaml
+  Review Focus: |
+    <optional reviewer guidance on indented lines>
+  ```
+
+  The body is only the immediately following indented lines and ends at the
+  next top-level header. A blank block means full review. A nonblank block permits
+  a focused review of the named surfaces and evidence, but the reviewer may
+  widen to a full review whenever scope, risk, or evidence requires it.
+  Implementation owns this field: claim/resume overwrites it before every
+  handoff to `🟣 IN REVIEW`, using a blank block when no focus is needed. Review
+  reads it without writing it, and the field is inert outside IN REVIEW.
 - **Runtime evidence** — `progress.md`, `tasks.md`, and optional
-  `blocked.md` preserve handoff, proof, the single current implementation-review
-  receipt, PR delivery metadata, and blockers.
+  `blocked.md` preserve handoff, proof, PR delivery metadata, and blockers.
+  Legacy implementation-review receipts are inert compatibility data pending
+  explicit migration; review and feedback do not create, replace, or normalize them.
+  `/openspec-migrate` operates only on explicitly bound active changes and
+  excludes unbound pre-v3 stories, leaving them untouched because there is no
+  safe initiative inference for migration.
 
 There is no central tracker table in the active workflow. Fresh sessions resume
 from the OpenSpec artifacts themselves.
@@ -99,31 +117,26 @@ oblivious `/openspec-story-review` session.
    `/openspec-story-plan-resume` repairs planning gaps;
    `/openspec-story-plan-converge` loops fresh review/resume passes until the
    Plan lane is approved, blocked, or stopped. Planning readers apply the same
-   bound-DONE rule: a bound DONE story needs one well-formed current
-   APPROVE/PASS receipt and is never treated as receipt-absent legacy.
+   DONE rule: top-level Status and current artifacts are authoritative; receipt
+   presence or absence does not affect planning eligibility.
 4. **Implement red-first** — `/openspec-story-claim` claims a plan-approved,
-   ready TODO story. A bound DONE prerequisite must have exact DONE Status, no
-   blocker, and one well-formed current APPROVE/PASS receipt with a DONE
-   transition and no later contradiction. Dependency readers do not recompute
-   implementation identity. Only an unbound pre-v3 DONE prerequisite with zero
-   Initiative-like lines and no receipt gets a warning-only exception. Claim
+   ready TODO story. A prerequisite must have exact DONE Status and no blocker;
+   receipt presence, absence, or stale content does not qualify or disqualify it. Claim
    writes `progress.md`, chooses the smallest
    credible failing seam, turns it green, records proof, and hands off. `/openspec-story-resume` continues in-progress
    work or applies review/feedback that `/openspec-feedback` routed back to the
    story.
 5. **Review independently** — `/openspec-story-review` is read-only for product
-   code and must run from a completely fresh, oblivious session with no
-   implementation-loop notebook, summary, operational notes, or prior chat
-   context. Every completed verdict replaces/creates the one current
-   `progress.md → ## Implementation Review Receipt`, including the deterministic
-   story-scoped `review-identity-v1` digest/base/path list. For BLOCKED it writes
-   `blocked.md` first, then writes receipt plus transition timeline together in
-   one progress write, then writes top-level `story.md → Status:` last and
-   performs no later writes. Partial writes therefore fail closed. A fresh
-   substantive review may
-   reconcile a malformed or duplicated receipt section into the one current
-   record; it never chooses an old entry as authority or performs receipt-only
-   cleanup in place of review.
+   code and OpenSpec artifacts and must run from a completely fresh, oblivious
+   session with no implementation-loop notebook, summary, operational notes, or
+   prior chat context. It emits exactly one transient `ADD-REVIEW-PACKET/1`
+   packet and never writes Status, receipts, timelines, or `blocked.md`.
+   `/openspec-feedback` owns complete packet disposition, bounded canonical
+   edits, and Status-last lifecycle publication. Immediately before publishing
+   DONE, it launches one isolated fresh replay of the readonly evaluator against
+   current implementation evidence. The fresh result must be semantically
+   equivalent to the submitted packet; mismatch or drift is rejected with no
+   DONE publication and no persisted packet, digest, receipt, or review history.
 6. **Converge implementation** — `/openspec-story-converge` orchestrates fresh
    claim/resume implementation sessions for one change until the story reaches
    `🟣 IN REVIEW`, a blocker appears, no progress is made, or the cycle budget
@@ -131,28 +144,36 @@ oblivious `/openspec-story-review` session.
    oblivious session; it does not launch review itself.
 7. **PR delivery helper** — `/openspec-pr` creates, attaches, or refreshes a
    GitHub PR and records durable PR metadata/evidence in `progress.md` without
-   owning story status. Before any write it recomputes `review-identity-v1` from
-   the receipt bases/paths and records the matching digest and verification time
-   in PR State. Merged PR evidence with matching verification supports archive;
-   requested changes are absorbed through `/openspec-feedback`.
-8. **Absorb feedback** — `/openspec-feedback` routes PR, reviewer, tool, or
-   operator feedback to the Plan Review Log, story contract, progress checkpoint,
-   story candidates, or initiative-level decisions without touching product
-   code. Every acknowledged item, including defer/reject, gets one portable
-   receipt in the selected initiative's `initiative.md → ## Feedback Receipts`.
-   Initiative-only feedback first resolves one active initiative worktree:
-   a unique initiative branch outranks launch, and ambiguity halts before the
-   ledger write. No notebook API or notebook mirror is required. Every direct
-   amendment or resume mutation also gets an FB-tagged `progress.md` checkpoint, including
-   status-only or contract-unchanged mutations. When acknowledged feedback
-   invalidates local completion, it can reopen the story to `🔄 IN PROGRESS` so
-   `/openspec-story-resume` owns the fix.
+   owning story status. Before every PR route it deterministically resolves
+   exactly one product repository from the bounded Current Claim Worktrees and
+   Primary write surfaces, then requires the live PR head repository and head
+   OID to match that checkout. Receiptless DONE is normal PR entry; a stale legacy
+   receipt neither blocks nor overrides delivery routing. Requested changes are
+   absorbed through `/openspec-feedback`.
+8. **Absorb feedback** — `/openspec-feedback` has two explicit modes without
+   touching product code. Review-packet triage validates one complete packet,
+   dispositions every reviewer and operator-added finding as one confirmed set,
+   applies and verifies bounded canonical edits, then publishes Status last; it
+   creates no receipt, cycle, digest, or review history. Ordinary feedback routes
+   PR, reviewer, tool, or operator input to the Plan Review Log, story contract,
+   progress checkpoint, story candidates, or initiative decisions. Every
+   acknowledged ordinary item, including defer/reject, gets one portable receipt
+   in the selected initiative's `initiative.md → ## Feedback Receipts`.
+   Initiative-only ordinary feedback resolves one active initiative worktree
+   before writing its ledger. These ordinary-feedback receipts are distinct from
+   deprecated implementation-review receipts.
 9. **Archive completed changes** — `/openspec-archive` preflights DONE status,
-   task completion, blocker absence, a valid current APPROVE/PASS receipt for a
-   bound story, and PR/no-PR evidence. For a merged PR it trusts PR State only
-   when its verified digest matches the current receipt; it recomputes
-   `review-identity-v1` only for the explicit no-PR route. Only an unbound pre-v3
-   DONE with zero Initiative-like lines and no receipt gets compatibility.
+   task completion, blocker absence, and PR/no-PR evidence. `/openspec-pr`
+   records `Delivery head:` only after a fresh isolated readonly delivery audit,
+   a clean current Git checkout, and exact equality with the live PR head; archive
+   rechecks the live merged PR head against it. Explicit no-PR archive performs
+   its own fresh isolated readonly audit immediately before delegation, covering
+   every product repository resolved from the complete bounded Current Claim
+   Worktrees and Primary write surfaces map. Missing or ambiguous bindings fail
+   closed. This Git head is delivery evidence, never a review packet, receipt,
+   digest, or identity.
+   Receiptless DONE is normal archive entry; a stale legacy
+   implementation-review receipt neither blocks nor overrides archive routing.
    Archive then delegates spec sync and the workspace move to OpenSpec's built-in
    `/opsx:archive <story-slug>` command. The rootless archive adapter redesign is
    deferred: if the active artifacts are in another worktree, rerun archive from
@@ -177,10 +198,11 @@ schemas, proof matrices, Debt Friction, and runtime section conventions.
 | `/openspec-story-plan-converge` | Loop fresh plan-review and plan-resume passes until the Plan lane resolves. |
 | `/openspec-story-claim` | Claim one approved TODO story and begin red-first implementation. |
 | `/openspec-story-resume` | Continue implementation, resolve blockers, or address review/feedback routed back to the story. |
-| `/openspec-story-review` | Independently review implementation from a fresh, oblivious session, publish receipt plus timeline in one progress write, then write `story.md → Status:` last with no later writes. |
+| `/openspec-story-review` | Independently review implementation from a fresh, oblivious session and emit a read-only structured review packet without modifying OpenSpec artifacts. |
 | `/openspec-story-converge` | Loop fresh claim/resume implementation passes until `🟣 IN REVIEW` or stop, then instruct the operator to run review separately. |
-| `/openspec-pr` | Verify `review-identity-v1` before writes and manage optional GitHub PR delivery metadata/evidence in `progress.md → ## PR State`. |
-| `/openspec-feedback` | Classify and absorb structured feedback, including acknowledged story reopens, into the right OpenSpec artifacts. |
+| `/openspec-migrate` | Preview and remove one recognized legacy implementation-review receipt from explicitly bound active changes; unbound pre-v3 stories are excluded. |
+| `/openspec-pr` | Manage optional GitHub PR delivery metadata/evidence in `progress.md → ## PR State`; receiptless DONE is valid entry. |
+| `/openspec-feedback` | Validate, triage, and publish review packets; classify and absorb ordinary structured feedback into the right OpenSpec artifacts. |
 | `/openspec-archive` | Preflight completion gates, then delegate spec sync and archive move to `/opsx:archive`. |
 
 ### Utilities
@@ -357,7 +379,9 @@ To add or update a command, read
 fit the OpenSpec lifecycle and artifact conventions above. The short version:
 write the canonical Claude Skill at `claude/skills/<name>/SKILL.md`, add a
 `pi-fragments/<name>.md` fragment only when pi needs runtime-specific
-instructions, then run `bash scripts/lint.sh`.
+instructions. Local lint requires Python 3.12 and
+`python -m pip install -r requirements-lint.txt`; then run
+`bash scripts/lint.sh`.
 
 ## Why "add"
 
