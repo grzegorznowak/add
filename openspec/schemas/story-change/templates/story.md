@@ -23,7 +23,12 @@ Initiative: <initiative-slug>
      Review Focus is inert outside IN REVIEW. Ordinary `/openspec-feedback` may
      reopen Status after acknowledgement; confirmed review-packet triage may
      publish its bounded IN PROGRESS, DONE, or BLOCKED outcome Status last after
-     all canonical postconditions. The readonly implementation evaluator only
+     all canonical postconditions. Immediately before DONE, feedback launches
+     one isolated fresh replay over current implementation evidence with the
+     same readonly evaluator semantics. The result must be semantically
+     equivalent to the submitted packet; mismatch or drift is rejected, must
+     not publish DONE, and persists no packet receipt, digest, identity, or
+     history. The readonly implementation evaluator only
      reads this artifact and emits a transient packet; it never writes Status,
      receipts, blockers, or timelines. -->
 
@@ -43,13 +48,12 @@ Initiative: <initiative-slug>
 <!-- Why now, what prompted this story. -->
 
 ## Expected Prerequisites
-<!-- Bulleted dependency story slugs. A bound DONE prerequisite requires exact
-     DONE Status, no blocked.md, and one well-formed current APPROVE/PASS review
-     receipt with a DONE transition and no later contradiction. Dependency
-     readers do not recompute the receipt's review identity. Missing, malformed,
-     stale/superseded, or non-approving receipts fail. Only unbound pre-v3 DONE
-     with zero Initiative or Initiative-like lines and zero receipt sections may
-     pass with a compatibility warning and no receipt. -->
+<!-- Bulleted dependency story slugs. A bound or accepted legacy prerequisite
+     requires exact DONE Status, no blocked.md, valid path/binding resolution,
+     and all required current task/proof checks. Receipt presence or absence
+     does not qualify or disqualify a prerequisite. Legacy receipt shape,
+     verdict, identity, duplication, and staleness are inert; never synthesize
+     or normalize receipt material. -->
 
 ## Scope
 <!-- What is in scope. -->

@@ -1,0 +1,33 @@
+{
+  "session_handoff_statuses": [
+    "⚪ TODO",
+    "🔄 IN PROGRESS",
+    "🟣 IN REVIEW",
+    "✅ DONE",
+    "⛔ BLOCKED"
+  ],
+  "session_handoff_fields": [
+    "Status",
+    "What changed",
+    "Files touched",
+    "Red-first path",
+    "Tests run",
+    "Acceptance proof coverage",
+    "Risk-lens self-check",
+    "Finding closure",
+    "Remaining work",
+    "Unresolved Debt Friction",
+    "Blockers / risks",
+    "Exact next step"
+  ],
+  "migration_cases": {
+    "clean-current": "no-op",
+    "legacy-current-receipt": "remove-receipt",
+    "duplicate-receipt": "fail-closed",
+    "malformed-receipt": "fail-closed",
+    "ambiguous-binding": "fail-closed",
+    "unbound-pre-v3-story": "untouched",
+    "archived-story": "untouched",
+    "second-run": "no-op"
+  }
+}

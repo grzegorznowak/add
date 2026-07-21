@@ -3,18 +3,18 @@ name: openspec-pr
 description: Open, attach, or refresh optional GitHub PR delivery metadata/evidence for one OpenSpec story. Does not change story Status.
 disable-model-invocation: true
 argument-hint: "<initiative-slug> <story-slug> [pr-url|OPEN=true]"
-allowed-tools: Read Edit Write Grep Glob Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(git rev-parse:*) Bash(git worktree:*) Bash(git diff:*) Bash(git ls-files:*) Bash(git hash-object:*) Bash(sha256sum:*) Bash(shasum:*) Bash(gh pr list:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*) Bash(curl:*)
+allowed-tools: Read Edit Write Grep Glob Task Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(git rev-parse:*) Bash(git worktree:*) Bash(git diff:*) Bash(git ls-files:*) Bash(git hash-object:*) Bash(sha256sum:*) Bash(shasum:*) Bash(gh pr list:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*) Bash(curl:*)
 ---
 
 # OpenSpec PR
 
-Open, attach, or refresh a GitHub PR for a locally completed OpenSpec story and record delivery metadata on the change workspace's `progress.md`. This is a lightweight delivery helper after local review has already marked the story `✅ DONE`; it is not a story lifecycle state and never updates `story.md → Status:`.
+Open, attach, or refresh a GitHub PR for a locally completed OpenSpec story and record delivery metadata on the change workspace's `progress.md`. This is a lightweight delivery helper after the story is `✅ DONE`; it is not a story lifecycle state and never updates `story.md → Status:`.
 
 Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [<pr_url_or_OPEN=true>]`. Initiative and story may be inferred only when exactly one non-archived, locally DONE story is eligible. The third arg is either a full GitHub PR URL (attach mode) or the literal `OPEN=true` to have this flow open the PR via `gh` (open mode). Omitting the third arg means refresh an existing `## PR State` URL when present, otherwise discover an existing branch PR, otherwise ask before opening a new PR.
 
 ## Intent
 
-This flow applies after `/openspec-story-review` has approved local product/spec correctness and written `Status: ✅ DONE`. GitHub PRs are external delivery/review channels: they may be useful or required before archive, but they are not the authority for local story completion.
+This flow applies to an exact lifecycle-valid `Status: ✅ DONE`. GitHub PRs are external delivery/review channels: they may be useful or required before archive, but they are not the authority for local story completion.
 
 Use this command to:
 
@@ -35,13 +35,14 @@ If a PR reviewer requests changes, do not downgrade the story here. Route action
 - `<progress_file>` = `<change_dir>/progress.md`.
 - `<proposal_file>` = `<change_dir>/proposal.md`.
 - `<review_evidence>` = `story.md` Status header and, optionally, notebook `openspec-review-<initiative_slug>-<story_slug>`.
+- `<product_repository_root>` = the one product Git worktree deterministically derived from the bounded `progress.md → ## Current Claim` Worktrees and Primary write surfaces inventory. It is transient and must be resolved before every attach, refresh, lookup, or OPEN route.
 
 There is no `MASTER.md`, no tracker table, and no PR lifecycle status. All status is self-contained in the change workspace artifacts:
 
 - The `Status:` header field in `<story_file>` is the authoritative implementation status and is not changed by this command.
 - The `Plan:` header field in `<story_file>` is the authoritative planning lane.
 - `story.md → Initiative:` is the authoritative initiative association. Inventory the top-level header region before the first `## ` heading for every unindented `Initiative` or Initiative-like field line. Exactly one present line is valid only when its whole line matches `^Initiative: ([a-z0-9]+(?:-[a-z0-9]+)*)$`; duplicate, empty, whitespace-before-colon, non-canonical, or otherwise malformed Initiative-like lines are hard conflicts, never legacy absence.
-- `Status: ✅ DONE` in `<story_file>` is local completion authority. A modern bound story requires exactly one complete canonical `progress.md → ## Implementation Review Receipt`; receipt absence is compatible only for a true pre-v3 story with zero Initiative or Initiative-like lines and zero receipt sections.
+- `Status: ✅ DONE` in `<story_file>` is local completion authority. A bound receiptless DONE is eligible for PR entry. Legacy receipt presence, absence, shape, verdict, identity, duplication, or staleness cannot qualify or disqualify it.
 - The `## Current Claim` section in `<progress_file>` records implementation state and worktree bindings.
 - The `## PR State` section in `<progress_file>` is the sole PR metadata/evidence location.
 - The `## Progress Timeline` section in `<progress_file>` records milestone bullets.
@@ -51,7 +52,7 @@ There is no `MASTER.md`, no tracker table, and no PR lifecycle status. All statu
 - `⬜ TODO` — not started
 - `🔄 IN PROGRESS` — actively being worked
 - `🟣 IN REVIEW` — ready for independent local review
-- `✅ DONE` — local workflow completed by independent `/openspec-story-review` approval
+- `✅ DONE` — local workflow completed
 - `⛔ BLOCKED` — explicit blocker
 
 ## Phase 0 — Resolution and inference
@@ -68,6 +69,17 @@ Parse `$ARGUMENTS` first. Treat any of the three slots that is empty as a reques
 4. Only zero Initiative or Initiative-like lines is a legacy story. For that case, scan same-root initiative files for exact story-slug associations in `## Story Candidates`. Exactly one association may drive discovery and must equal any selected initiative; a different or multiple association halts. No association is accepted only for a selected story when `<explicit_pair>` is true and the selected same-root initiative file exists. An inferred/defaulted or initiative-only selector is not an explicit pair. Warn for every accepted legacy story and never backfill the header. During broad discovery and story menus, include bound stories plus uniquely associated zero-line legacy stories only; exclude zero-association legacy stories.
 5. Resolve a known pair by root precedence. Because PR accepts no `WORKTREE=` selector, inspect registered worktrees other than `<workspace_root>` on `refs/heads/<initiative>/<story>` first. Exactly one qualifying branch worktree outranks launch even when launch has matching stale artifacts; multiple qualifying branch worktrees halt for operator selection. Only when no branch worktree qualifies, fall back to `<workspace_root>` and require both artifacts there. Ignore unrelated/non-branch matching roots rather than selecting one arbitrarily. Set `<openspec_root>` and recompute every coordination path.
 6. After story/initiative inference fills a missing selector, rerun steps 3–5 with both slugs. All subsequent `openspec/...` reads and writes use `<openspec_root>`. If the launch fallback lacks the active pair, ask the operator to rerun from the checkout containing both artifacts; do not silently select a non-branch copy.
+
+### Deterministic product-repository binding
+
+After a story pair is selected and before **every** PR route—including an explicit URL, cached PR State, branch lookup, refresh, attach, and `OPEN=true`—derive repository identity from the selected story's bounded `progress.md → ## Current Claim`; never guess from cwd, a URL, or the first surface:
+
+1. Require exactly one Current Claim section. Parse its `Worktrees:` mapping and `Primary write surfaces:` field completely. Worktree entries must have unique repo labels and unique absolute, existing Git worktree paths. Primary write surfaces must be non-empty, non-placeholder paths.
+2. Normalize each surface without following it outside the listed worktrees. An absolute surface must be contained by exactly one listed worktree. Resolve a relative surface against the listed worktrees and require exactly one containment match backed by an existing path or Git-tracked/status evidence. Zero matches, multiple matches, `..` escape, symlink escape, duplicate labels/paths, or conflicting repository identity is ambiguous.
+3. Deduplicate the matched worktree roots by `git rev-parse --show-toplevel` and require **exactly one** product repository root for `/openspec-pr`. Missing, malformed, stale, unreadable, or ambiguous Worktrees/Primary write surfaces, and zero or multiple resolved repository roots, fail closed and halt before any `gh` call or coordination write. Multi-repository delivery must use separate stories; passing a PR URL does not bypass this gate.
+4. Set `<product_repository_root>` to that sole root. Read its canonical GitHub repository identity from an unambiguous configured remote, normalizing SSH/HTTPS forms to `<owner>/<repo>`. Missing or conflicting remote identity fails closed.
+
+Re-run this binding at the entry-condition recheck. A changed claim, surface map, root, or remote identity invalidates every prior PR decision.
 
 ### Pass 1 — Initiative inference (when `<initiative>` is empty)
 
@@ -90,24 +102,18 @@ After the initiative is known, list active change workspaces across candidate ro
 
 ### DONE-only story qualification and diagnostic routing
 
-Before Pass 3, read the explicitly selected or DONE-inferred workspace and qualify it. A story becomes resolved PR context only after all of these checks pass: it is active/non-archived, its authoritative `story.md → Initiative:` binding matches, it has no `blocked.md`, it has authoritative `Status: ✅ DONE`, it has unambiguous `Plan: 🟢 PLAN APPROVED`, and bounded task/implementation approval evidence does not contradict DONE.
+Before Pass 3, read the explicitly selected or DONE-inferred workspace and qualify it. A story becomes resolved PR context only after all of these checks pass: it is active/non-archived, its authoritative `story.md → Initiative:` binding matches, it has no `blocked.md`, it has authoritative `Status: ✅ DONE`, it has unambiguous `Plan: 🟢 PLAN APPROVED`, and bounded task/implementation proof evidence does not contradict DONE.
 
-Consume `progress.md → ## Implementation Review Receipt` as follows:
-
-- Inventory every receipt heading and body. If any receipt is present for a DONE story, require exactly one `## Implementation Review Receipt` section and exactly one occurrence of every canonical field: `Reviewed at`, `Decision`, `Approval gate`, `Status transition`, `Evidence reviewed`, `Identity method`, `Identity digest`, `Identity bases`, `Identity paths`, `Findings`, `Proof`, and `Next owner`. Require `Decision: APPROVE`, `Approval gate: PASS`, a `Status transition` ending in `✅ DONE`, `Identity method: review-identity-v1`, one canonical `sha256:<lowercase-hex>` digest, and reproducible canonical JSON bases/path arrays (`[]` is valid for an empty list). Duplicate headings/bodies/fields, omitted or extra entry-shaped fields, `REQUEST CHANGES`, `BLOCKED`, FAIL, malformed values, or contradictory content blocks PR operations and routes only to `Open a completely fresh, oblivious session and run /openspec-story-review <initiative> <story-slug>.` Never search for an older approval; fresh substantive review owns normalization to one current receipt.
-- Before displaying resolved PR context and again immediately before any `gh` mutation or `progress.md` write, recompute the story-scoped identity with canonical `review-identity-v1` using exactly the receipt-recorded `Identity bases` and `Identity paths`. Require an exact match to the receipt's `Identity digest` and resolve every recorded base/path without substitution. Missing paths, an unavailable base, unsupported/malformed identity input, or mismatch routes only to the same fresh oblivious review; this command never repairs or synthesizes receipt evidence. Save the matching digest and the last pre-mutation UTC verification timestamp in memory for PR State write-back.
-- `review-identity-v1` excludes the story's OpenSpec coordination artifacts. Therefore this command's own `## PR State` and `## Progress Timeline` writes do not change the identity and must not trigger a post-write recomputation; source/path drift remains a mismatch at the required pre-mutation recomputation.
-- A true pre-v3 legacy DONE without an implementation review receipt is compatible only when the same story has zero Initiative or Initiative-like header lines, zero receipt sections, and every other qualification passes. Print a warning that both binding and receipt evidence are absent, use the Phase 0 explicit/unique-association rules to resolve it, and backfill neither artifact. A bound modern DONE with an absent receipt routes only to the same fresh oblivious review; do not invent a synthetic receipt.
-- For every non-DONE story, authoritative `Status:` owns routing. A receipt left from an earlier completed review may be historical context but never overrides the current non-DONE lane or makes the story eligible for PR delivery.
+Treat legacy receipt material as inert migration input. A bound receiptless DONE is eligible for PR delivery. Receipt presence, absence, malformed or duplicate shape, verdict, identity, and staleness must not block or override PR routing, and this command never repairs, normalizes, synthesizes, or recomputes receipt evidence. Authoritative Status plus current blocker, Plan, task/proof, and PR-delivery evidence owns routing.
 
 An explicit or diagnostic non-DONE candidate is never resolved PR context and never reaches PR inference. Route it without mutation in this order:
 
 1. `blocked.md` -> one scalar operator action to resolve the blocker and remove the file.
-2. `Status: 🟣 IN REVIEW` -> one fresh, oblivious `/openspec-story-review <initiative> <story-slug>` route even when Plan contradicts it; the wrapper never launches review.
+2. `Status: 🟣 IN REVIEW` -> inspect current Plan, scaffold, blocker, task, and proof evidence before selecting a route. Repair evidence takes precedence over fresh review: an implementation/proof deficiency routes singularly to its implementation repair owner; planning/contract drift or malformed state requires one explicit operator reconciliation action because planning commands reject IN REVIEW; an external blocker routes to its blocker owner. Only when no repair condition survives use the singular fresh, oblivious `/openspec-story-review <initiative> <story-slug>` route; the wrapper never launches review.
 3. For another non-DONE status, inspect Plan. A safely repairable incomplete scaffold may use the planning Converge wrapper plus Non-looped plan-resume; a structurally reviewable DRAFT/PLAN IN REVIEW lane with no unresolved finding may use the wrapper plus Non-looped plan-review; CHANGES REQUESTED uses plan-resume while findings/repairs remain and plan-review only when fully blended and reviewable. PLAN BLOCKED, malformed/ambiguous/unresolvable Plan, and unknown state remain singular.
 4. With approved Plan, TODO may use the implementation wrapper plus Non-looped claim and IN PROGRESS may use that wrapper plus Non-looped resume. BLOCKED, missing, malformed/ambiguous, and unknown statuses remain singular.
 
-For a DONE candidate, any non-approved, missing, malformed, or ambiguous Plan is a contradictory durable state. Abort with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before PR delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. If Plan is approved but bounded tasks or implementation approval evidence contradicts DONE, route only to a completely fresh, oblivious story-review session. Only a DONE candidate passing these checks is `<resolved_story>`.
+For a DONE candidate, any non-approved, missing, malformed, or ambiguous Plan is a contradictory durable state. Abort with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before PR delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. If Plan is approved but bounded tasks or implementation proof evidence contradicts DONE, require a singular operator action to reconcile the contradictory durable state; do not route to the read-only evaluator. Only a DONE candidate passing these checks is `<resolved_story>`.
 
 ### Pass 3 — PR inference (when `<pr_url_or_OPEN=true>` is empty)
 
@@ -115,10 +121,10 @@ After the DONE story is resolved, decide whether this is an attach (existing PR)
 
 1. **PR State section.** Read `<progress_file>` and look for a `## PR State` section. If it exists and has a `- PR URL:` line with a non-empty URL, that is the existing PR. Use attach mode in refresh form. Print: `inferred PR (from PR State): <url>`. Skip the rest of the chain.
 
-2. **Project repo detection.** Read `<progress_file>` for the `## Current Claim` section and parse the `- Primary write surfaces:` field. Take the first path. Walk up the directory tree until you find a `.git/` directory; that is the project repo. If no `.git/` is found, fall back to the workspace `.git/` if one exists. If still none, skip directly to step 4.
+2. **Project repo identity.** Use the already resolved `<product_repository_root>`; repository discovery is never deferred or skipped. For any explicit, cached, discovered, attached, refreshed, or newly opened PR, query live GitHub fields including `headRefOid`, `headRefName`, `headRepository`, and `headRepositoryOwner`. Require the live PR head repository `<owner>/<repo>` to equal the normalized configured remote identity of `<product_repository_root>`. A fork PR is valid only when the checked-out root's configured identity is that live head repository. Missing or unequal live repository/head mapping halts before mutation.
 
 3. **Branch-based PR lookup.**
-   - Inside the detected project repo, run `git rev-parse --abbrev-ref HEAD` to get the current branch.
+   - Inside `<product_repository_root>`, run `git rev-parse --abbrev-ref HEAD` to get the current branch.
    - If the branch is the repo's default branch, abort before OPEN mode with the scalar route `Operator action: check out or create and push the story feature branch, then rerun /openspec-pr <initiative> <story-slug> OPEN=true.` Operating directly on `main`/`master` is not how PRs are opened; do not also offer another route.
    - Otherwise run `gh pr list --head <branch> --state all --json url,number,headRefName,title,state,isDraft,mergedAt,mergeCommit,closedAt,reviewDecision,latestReviews` from inside the project repo. Use all states so this helper can discover already merged or closed PRs instead of opening duplicates.
    - If exactly one PR is returned, print `inferred PR (from current branch <branch>): <url> (state: <state>)` and **ask the user to confirm** before attaching. The branch may legitimately host work unrelated to this story.
@@ -149,14 +155,14 @@ Print this even when everything was passed explicitly — the printout is the co
 
 ### Entry-condition recheck
 
-Immediately before any PR/body/progress mutation, re-resolve `<openspec_root>`, re-read and inventory the already resolved story's complete top-level Initiative-like header region by the rules above, and repeat the full DONE-only qualification. Legacy receipt absence is allowed only for the exact zero-Initiative-like/zero-receipt pre-v3 case. A present receipt must be the one complete canonical APPROVE/PASS record with a transition ending in DONE, and canonical `review-identity-v1` must recompute from its recorded bases/path list to exactly its recorded digest. If the root becomes ambiguous, the story is archived, `blocked.md` appeared, Status is no longer DONE, Plan is no longer unambiguously approved, receipt evidence is malformed/missing for a bound story, or identity evidence mismatches or cannot be verified, abort without any `gh` or progress action using the same fresh-review route above. Save the matching digest and current UTC timestamp only after this final pre-mutation recheck. Never print a resolved-context block whose status is not `✅ DONE`.
+Immediately before `gh pr create`, and again before any existing-PR or post-create body/progress mutation, re-resolve `<openspec_root>`, re-read and inventory the already resolved story's complete top-level Initiative-like header region by the rules above, rerun the deterministic Current Claim Worktrees/Primary write surfaces repository binding, and repeat the full DONE-only qualification using current Status, blocker, Plan, task/proof, and repository/PR evidence. When a live PR exists, re-query its repository/head mapping and require its head repository identity to equal the sole resolved product repository identity. Ignore legacy receipt material. If the artifact root or product root becomes ambiguous, the repository map changes, the story is archived, `blocked.md` appeared, Status is no longer DONE, Plan is no longer unambiguously approved, or current task/proof evidence contradicts DONE, abort without any further `gh` or progress action using the state/evidence-owning route. Never print a resolved-context block whose status is not `✅ DONE`.
 
 Do not normalize or mutate `story.md → Status:` from this command.
 
 ### Known limitations
 
-- **Cross-repo PR detection is not supported.** The PR inference looks at the project repo derived from the story's `Primary write surfaces` in `progress.md → ## Current Claim`. If a story's surfaces span multiple repos, pass the PR URL explicitly.
-- **Stories without a `## Current Claim` section in progress.md cannot have their project repo inferred.** This usually means the story has never been claimed via `/openspec-story-claim` / `/openspec-story-resume`. Pass the PR URL explicitly in that case.
+- **Cross-repo PR delivery is not supported.** `/openspec-pr` requires exactly one repository derived from the complete bounded Current Claim Worktrees/Primary write surfaces map. An explicit PR URL cannot bypass a multi-repository or ambiguous binding.
+- **Stories without a complete, unambiguous `## Current Claim` repository map are ineligible.** Re-run the state-owning claim/resume repair path to establish trustworthy Worktrees and Primary write surfaces; do not infer from cwd.
 
 ## PR description — product-focused, NOT implementation-focused
 
@@ -184,7 +190,7 @@ Suppress anything that describes *how* the code was implemented rather than *wha
 - `## Current Claim` (session-local metadata)
 - `## Progress Timeline` (implementation diary with timestamps)
 - `## Session Handoff` (inter-session handoff notes)
-- `Status:` header in `story.md` (prior review approval signal)
+- `Status:` header in `story.md` (local completion signal)
 - `design.md` content (architecture decisions, rationale, internal module structure)
 - `tasks.md` content (task checklists, implementation ordering)
 - `progress.md` content (runtime tracking)
@@ -271,25 +277,40 @@ Do not paste sections verbatim if they contain internal terminology. Rephrase in
 ## PR creation mode
 
 **Attach mode (default)** — a PR URL is provided:
-- The user has already opened the PR
-- Verify the URL is well-formed (`https://github.com/<org>/<repo>/pull/<n>`)
-- Call `gh pr view <PR_URL> --json number,title,headRefName,state,url,body,isDraft,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` to enrich metadata and read the current body, review decision, merged state, and merge commit.
-- **Update the PR body to the generated product description** via `gh pr edit <PR_URL> --body-file <tmpfile>`
-  - If the existing body already contains substantial content authored by the user, show a diff and ask confirmation before overwriting. Offer to prepend/append instead of replacing.
-  - If the existing body is empty or auto-generated (e.g. commit messages), replace silently.
-- If `gh` is unavailable, skip enrichment and the body edit, record only what the user provided, and tell the user the PR body was not updated
+- The user has already opened the PR.
+- Verify the URL is well-formed (`https://github.com/<org>/<repo>/pull/<n>`).
+- Perform only the read-only query `gh pr view <PR_URL> --json number,title,headRefName,headRefOid,headRepository,headRepositoryOwner,state,url,body,isDraft,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` to enrich metadata and read the current body, live delivery head, review decision, merged state, and merge commit. Do not edit the PR body or `progress.md` yet.
+- Generate the proposed product description in a tempfile. If the existing body already contains substantial user-authored content, show a diff and resolve whether to overwrite, prepend, or append; this decision is read-only and does not authorize publication before the delivery audit. An empty or auto-generated body may be selected for replacement without prompting.
+- If `gh` is unavailable or does not return `headRefOid`, abort without body or progress mutation; live PR-head binding is mandatory.
 
 **Open mode** — user passes `OPEN=true` with no URL, or explicitly selects a `✅ DONE` story with no URL and no existing PR was found:
-- Verify `git status` is clean or only contains intended changes
-- Verify the current branch is not the default branch
-- Generate the PR body (see template above) and write it to a tempfile
-- Call `gh pr create --title "<story title>" --body-file <tmpfile>`
-- Capture the returned URL
-- Immediately call `gh pr view <returned-url> --json number,title,headRefName,state,url,body,isDraft,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` to populate the same durable metadata fields used by attach/refresh mode.
+- Verify `git status` is clean; an intended-but-uncommitted change is still not deliverable.
+- Verify the current branch is not the default branch.
+- Generate the PR body (see template above) and write it to a tempfile.
+- Call `gh pr create --title "<story title>" --body-file <tmpfile>` and capture the returned URL. This initial creation is the sole allowed mutation before the returned PR head can be audited.
+- Immediately perform the read-only query `gh pr view <returned-url> --json number,title,headRefName,headRefOid,headRepository,headRepositoryOwner,state,url,body,isDraft,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` to populate the same live metadata used by attach/refresh mode. Make no subsequent PR-body or progress mutation before the complete delivery audit succeeds.
 - If the current branch is the default branch, abort with only `Operator action: check out or create and push the story feature branch, then rerun /openspec-pr <initiative> <story-slug> OPEN=true.` For a `✅ DONE` story, leave `story.md`, `progress.md`, and `## PR State` untouched.
 - If `gh` fails or is unavailable, abort with only `Operator action: open the PR manually, then rerun /openspec-pr <initiative> <story-slug> <pr-url> in attach mode.` Include the failure, and for a `✅ DONE` story leave `story.md`, `progress.md`, and `## PR State` untouched.
 
 In both modes, **never** force-push, **never** bypass hooks, **never** rewrite history without explicit user confirmation.
+
+## Post-DONE delivery binding audit
+
+A local DONE signal predates delivery and cannot bind a later Git head by itself. After a live PR exists and before any existing-PR or post-create body/progress mutation, perform this fresh delivery gate:
+
+1. Re-resolve the bounded Current Claim Worktrees/Primary write surfaces map and require exactly one unchanged `<product_repository_root>` with an unambiguous configured GitHub identity. Re-query the live PR and require its head repository identity to match that root. Then launch exactly one isolated, fresh **Task child** for a read-only delivery audit. Give it only the canonical initiative/story selectors, resolved current OpenSpec artifact paths, resolved product-repository root, and the instruction to inspect current artifacts and readable live repository evidence. The child is limited to `Read`, `Grep`, and `Glob`; it must not mutate anything, emit or consume an `ADD-REVIEW-PACKET/1` packet, or receive prior review packets, receipts, dispositions, implementation summaries, notebook state, prior chat, or parent-session conclusions. This is a non-review delivery audit, not another implementation verdict. It must fail closed unless current DONE, approved Plan, blocker absence, complete tasks/proof, implementation surfaces, and repository identity are mutually consistent for delivery.
+2. After the child reports a clean audit, run `git status --porcelain` in the resolved product repository and require the working tree to be clean. Then read the current Git HEAD with `git rev-parse HEAD`. Re-query the selected PR with `gh pr view <url> --json headRefOid,...`; require a non-empty live `headRefOid` and require the clean current Git HEAD to equal the live PR headRefOid exactly. A detached, stale, dirty, unreadable, or unequal head aborts before any body/progress mutation and routes to branch/PR reconciliation.
+3. Hold that exact SHA as `<delivery_head>`. It is Git delivery evidence only. Persist it solely as `progress.md → ## PR State → Delivery head`; do not label it as review evidence and do not create a packet, receipt, digest, identity, attestation, or review-history field from the audit.
+
+Attach/refresh mode therefore requires live GitHub head data even when body enrichment is otherwise unavailable. If `gh` is unavailable or the PR head cannot be read, abort without changing the PR body or `progress.md`; do not create a URL-only delivery record.
+
+## Post-audit mutation
+
+Only after the delivery audit child reports clean, `git status --porcelain` confirms the working tree is clean, and the current Git HEAD equals the live `headRefOid` may this flow mutate the PR body or `progress.md`:
+
+- For attach/refresh, publish the already generated and operator-resolved product description with `gh pr edit <PR_URL> --body-file <tmpfile>`. If the edit fails, abort without progress write-back.
+- For OPEN, the initial `gh pr create` already supplied the body; do not perform a subsequent body edit unless a newly generated body is required, in which case it follows this same post-audit rule.
+- Then write the audited `<delivery_head>` and current live PR metadata to `progress.md` as specified below. No body/progress write may reuse an earlier or partial audit.
 
 ## Write-back to progress.md
 
@@ -303,17 +324,16 @@ Add or refresh a `## PR State` section in `<progress_file>`:
 - Number: <n>
 - Title: <pr title>
 - Branch: <head ref>
+- Delivery head: <sha from clean current Git HEAD equal to live PR headRefOid>
 - Opened at: <UTC ISO timestamp>
 - PR status: open | changes_requested | approved | merged | closed
 - Review decision: <APPROVED | CHANGES_REQUESTED | REVIEW_REQUIRED | blank | unavailable>
 - Merge commit: <sha or "—">
 - Merged at: <UTC ISO timestamp or "—">
-- Verified implementation digest: <receipt Identity digest, or "—" only for accepted pre-v3 no-receipt legacy>
-- Verified at: <UTC ISO timestamp from the final pre-mutation identity verification, or "—" only for accepted pre-v3 no-receipt legacy>
 - Last synced: <UTC ISO timestamp>
 ```
 
-Do **not** create a duplicate `## PR State` section. If one already exists, update its fields in place. When refreshing an older section, add the `Review decision:`, `Merged at:`, `Verified implementation digest:`, and `Verified at:` fields rather than dropping them. For a modern receipt, the verified digest must exactly equal its `Identity digest`; never carry forward an older verification timestamp or digest.
+Do **not** create a duplicate `## PR State` section. If one already exists, update its current delivery fields in place. Preserve unrelated legacy fields byte-for-byte, but never use them as delivery or lifecycle gates.
 
 ### PR status derivation
 
@@ -325,7 +345,7 @@ When `gh pr view` is available, derive the progress `PR status` from the enriche
 4. Else if `reviewDecision` is `APPROVED`, set `PR status: approved`.
 5. Else set `PR status: open`.
 
-If `gh` is unavailable in attach mode, record the supplied URL and any user-provided fields, set unavailable fields to `unavailable` or `—`, and report that archive cannot treat the PR as merged until live GitHub data or explicit merged-state evidence, merge commit, and merged-at timestamp are recorded.
+If `gh` is unavailable in attach mode, abort without PR State write-back because the live `headRefOid` cannot be bound to a clean current Git HEAD. Tell the operator to rerun with `gh` available; user-provided or cached head values cannot substitute for live delivery binding.
 
 ### Progress Timeline entry
 
@@ -347,7 +367,7 @@ Never update the `Status:` header field in `<story_file>` from this command. If 
 
 If `## PR State` already has a PR URL, refresh it:
 
-- Re-query `gh pr view --json number,title,headRefName,state,url,body,isDraft,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt` if available and update `## PR State → PR status`, `Review decision`, `Merge commit`, `Merged at`, `Verified implementation digest`, `Verified at`, and `Last synced`. The identity fields come only from the final successful pre-mutation recomputation, not cached PR State.
+- Re-query `gh pr view <PR_URL> --json number,title,headRefName,headRefOid,headRepository,headRepositoryOwner,state,url,body,isDraft,reviewDecision,latestReviews,mergedAt,mergeCommit,closedAt,updatedAt`, rerun the complete post-DONE delivery binding audit, and update `## PR State → Delivery head`, `PR status`, `Review decision`, `Merge commit`, `Merged at`, and `Last synced` only after the clean current HEAD exactly matches the live `headRefOid`.
 - If `PR status` is `merged` and both `Merge commit:` and `Merged at:` are populated, report that archive PR evidence is complete.
 - If `PR status` is `merged` but merge commit or merged-at evidence is missing, report the missing durable evidence and tell the user to rerun `/openspec-pr` with `gh` available or provide the missing evidence explicitly before archive.
 - If `PR status` is `changes_requested` or reviewer comments request changes, do not update `story.md → Status:`. Tell the user to run `/openspec-feedback <initiative> --pr <PR URL>` so the feedback can be classified into story rework, planning changes, a follow-up story, initiative decision, or defer/reject.
@@ -360,7 +380,7 @@ There is no `MASTER.md` and no tracker table in this flow. PR evidence is writte
 ## Rules
 
 1. **Use the PR description inclusion boundary above.** The PR body is a product contract for reviewers, not an implementation diary.
-2. **Never change `story.md → Status:` from this flow.** Local completion is owned by `/openspec-story-review`; PR merge evidence is an archive gate, not story lifecycle authority.
+2. **Never change `story.md → Status:` from this flow.** PR merge evidence is an archive gate, not story lifecycle authority.
 3. **Never touch product code in this flow.** It is a coordination-only PR delivery helper (except for the optional `gh pr create` call in open mode).
 4. **Never skip the progress.md write-back when a PR is opened, attached, or refreshed.** The PR URL is the durable link between the change workspace and the GitHub review.
 5. **Never leave `Last synced` stale across PR metadata refreshes.**
@@ -368,7 +388,7 @@ There is no `MASTER.md` and no tracker table in this flow. PR evidence is writte
 7. **Never silently pick among multiple locally DONE stories.** Ask the operator to pass the story explicitly.
 8. **Never absorb PR feedback here.** Route actionable feedback through `/openspec-feedback`.
 9. **Never treat cached local PR metadata as merged archive evidence when live `gh` data is available.** Archive performs its own authoritative preflight.
-10. **Never perform PR delivery against implementation state that differs from, or cannot be reproduced by, canonical `review-identity-v1` from the receipt's recorded bases/path list.** Require the recomputed digest to equal the receipt, persist that digest and verification time in PR State, and route mismatch or unverifiable evidence to fresh substantive review. PR State/timeline coordination writes are outside identity scope and require no post-write recomputation.
+10. **Never let legacy receipt or identity material affect PR delivery.** Preserve current task/proof and repository/PR checks; stale receipt content cannot block or override routing.
 11. **Never summarize or quote original tickets.** Include detected links only, and omit the section when no link is found.
 
 ## Final response

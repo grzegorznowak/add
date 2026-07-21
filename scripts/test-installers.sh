@@ -72,6 +72,90 @@ else
   ok "install-pi.sh refuses overwrite and preserves original bytes"
 fi
 
+canonical_migrate="$REPO_ROOT/claude/skills/openspec-migrate/migrate.py"
+codex_helper_conflict="$TMPDIR/codex-helper-conflict"
+mkdir -p "$codex_helper_conflict/openspec_migrate"
+printf 'local helper edit\n' > "$codex_helper_conflict/openspec_migrate/migrate.py"
+cp -- "$codex_helper_conflict/openspec_migrate/migrate.py" "$TMPDIR/codex-helper.baseline"
+if CODEX_SKILLS_DIR="$codex_helper_conflict" "$REPO_ROOT/scripts/install-codex.sh" >/dev/null 2>&1; then
+  fail "install-codex.sh accepted a modified migrate.py without --force"
+elif ! cmp -s "$TMPDIR/codex-helper.baseline" "$codex_helper_conflict/openspec_migrate/migrate.py"; then
+  fail "install-codex.sh changed modified migrate.py before refusing"
+elif [[ -e "$codex_helper_conflict/openspec_migrate/SKILL.md" || \
+        -e "$codex_helper_conflict/openspec_migrate/agents/openai.yaml" ]]; then
+  fail "install-codex.sh wrote migrate skill or metadata before detecting helper conflict"
+else
+  ok "install-codex.sh helper conflict leaves the migrate distribution unit unchanged"
+fi
+pi_helper_conflict="$TMPDIR/pi-helper-conflict"
+mkdir -p "$pi_helper_conflict/openspec-migrate"
+printf 'local helper edit\n' > "$pi_helper_conflict/openspec-migrate/migrate.py"
+cp -- "$pi_helper_conflict/openspec-migrate/migrate.py" "$TMPDIR/pi-helper.baseline"
+if PI_SKILLS_DIR="$pi_helper_conflict" "$REPO_ROOT/scripts/install-pi.sh" >/dev/null 2>&1; then
+  fail "install-pi.sh accepted a modified migrate.py without --force"
+elif ! cmp -s "$TMPDIR/pi-helper.baseline" "$pi_helper_conflict/openspec-migrate/migrate.py"; then
+  fail "install-pi.sh changed modified migrate.py before refusing"
+elif [[ -e "$pi_helper_conflict/openspec-migrate/SKILL.md" ]]; then
+  fail "install-pi.sh wrote migrate SKILL.md before detecting helper conflict"
+else
+  ok "install-pi.sh helper conflict leaves no newly written migrate skill"
+fi
+
+codex_migrate_skill_conflict="$TMPDIR/codex-migrate-skill-conflict"
+mkdir -p "$codex_migrate_skill_conflict/openspec_migrate"
+printf 'local migrate skill edit\n' > "$codex_migrate_skill_conflict/openspec_migrate/SKILL.md"
+cp -- "$codex_migrate_skill_conflict/openspec_migrate/SKILL.md" "$TMPDIR/codex-migrate-skill.baseline"
+if CODEX_SKILLS_DIR="$codex_migrate_skill_conflict" "$REPO_ROOT/scripts/install-codex.sh" >/dev/null 2>&1; then
+  fail "install-codex.sh accepted a modified migrate SKILL.md without --force"
+elif ! cmp -s "$TMPDIR/codex-migrate-skill.baseline" "$codex_migrate_skill_conflict/openspec_migrate/SKILL.md"; then
+  fail "install-codex.sh changed modified migrate SKILL.md before refusing"
+elif [[ -e "$codex_migrate_skill_conflict/openspec_migrate/migrate.py" || \
+        -e "$codex_migrate_skill_conflict/openspec_migrate/agents/openai.yaml" ]]; then
+  fail "install-codex.sh wrote migrate metadata or helper despite SKILL.md conflict"
+else
+  ok "install-codex.sh skill conflict leaves the migrate distribution unit unchanged"
+fi
+
+codex_migrate_metadata_conflict="$TMPDIR/codex-migrate-metadata-conflict"
+mkdir -p "$codex_migrate_metadata_conflict/openspec_migrate/agents"
+printf 'local metadata edit\n' > "$codex_migrate_metadata_conflict/openspec_migrate/agents/openai.yaml"
+cp -- "$codex_migrate_metadata_conflict/openspec_migrate/agents/openai.yaml" "$TMPDIR/codex-migrate-metadata.baseline"
+if CODEX_SKILLS_DIR="$codex_migrate_metadata_conflict" "$REPO_ROOT/scripts/install-codex.sh" >/dev/null 2>&1; then
+  fail "install-codex.sh accepted modified migrate metadata without --force"
+elif ! cmp -s "$TMPDIR/codex-migrate-metadata.baseline" "$codex_migrate_metadata_conflict/openspec_migrate/agents/openai.yaml"; then
+  fail "install-codex.sh changed modified migrate metadata before refusing"
+elif [[ -e "$codex_migrate_metadata_conflict/openspec_migrate/SKILL.md" || \
+        -e "$codex_migrate_metadata_conflict/openspec_migrate/migrate.py" ]]; then
+  fail "install-codex.sh wrote migrate skill or helper despite metadata conflict"
+else
+  ok "install-codex.sh metadata conflict leaves the migrate distribution unit unchanged"
+fi
+
+pi_migrate_skill_conflict="$TMPDIR/pi-migrate-skill-conflict"
+mkdir -p "$pi_migrate_skill_conflict/openspec-migrate"
+printf 'local migrate skill edit\n' > "$pi_migrate_skill_conflict/openspec-migrate/SKILL.md"
+cp -- "$pi_migrate_skill_conflict/openspec-migrate/SKILL.md" "$TMPDIR/pi-migrate-skill.baseline"
+if PI_SKILLS_DIR="$pi_migrate_skill_conflict" "$REPO_ROOT/scripts/install-pi.sh" >/dev/null 2>&1; then
+  fail "install-pi.sh accepted a modified migrate SKILL.md without --force"
+elif ! cmp -s "$TMPDIR/pi-migrate-skill.baseline" "$pi_migrate_skill_conflict/openspec-migrate/SKILL.md"; then
+  fail "install-pi.sh changed modified migrate SKILL.md before refusing"
+elif [[ -e "$pi_migrate_skill_conflict/openspec-migrate/migrate.py" ]]; then
+  fail "install-pi.sh wrote migrate.py despite migrate SKILL.md conflict"
+else
+  ok "install-pi.sh skill conflict leaves no newly written migrate helper"
+fi
+
+codex_helper_fresh="$TMPDIR/codex-helper-fresh"
+pi_helper_fresh="$TMPDIR/pi-helper-fresh"
+if CODEX_SKILLS_DIR="$codex_helper_fresh" "$REPO_ROOT/scripts/install-codex.sh" >/dev/null 2>&1 && \
+   PI_SKILLS_DIR="$pi_helper_fresh" "$REPO_ROOT/scripts/install-pi.sh" >/dev/null 2>&1 && \
+   cmp -s "$canonical_migrate" "$codex_helper_fresh/openspec_migrate/migrate.py" && \
+   cmp -s "$canonical_migrate" "$pi_helper_fresh/openspec-migrate/migrate.py"; then
+  ok "generated installers preserve exact canonical migrate.py bytes"
+else
+  fail "generated installers did not distribute exact migrate.py bytes"
+fi
+
 echo
 echo "lint: explicit unsupported prune"
 codex_no_prune="$TMPDIR/codex-no-prune"

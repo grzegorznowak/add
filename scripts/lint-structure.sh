@@ -10,6 +10,9 @@ printf 'lint: shell syntax\n'
 bash -n scripts/*.sh
 printf 'ok   bash -n scripts/*.sh\n\n'
 
+bash "$REPO_ROOT/scripts/test-review-lifecycle.sh"
+printf '\n'
+
 printf 'lint: repository structure\n'
 python3 - "$REPO_ROOT" <<'PY'
 import pathlib
@@ -130,7 +133,7 @@ ok("YAML frontmatter and packet-validator fixtures")
 
 expected_canonical = [
     "grillme", "memorize", "merge-conflict-analysis", "openspec-archive",
-    "openspec-feedback", "openspec-initiative-plan", "openspec-next-action",
+    "openspec-feedback", "openspec-initiative-plan", "openspec-migrate", "openspec-next-action",
     "openspec-pr", "openspec-story-claim", "openspec-story-converge",
     "openspec-story-plan", "openspec-story-plan-converge",
     "openspec-story-plan-resume", "openspec-story-plan-review",
@@ -188,7 +191,9 @@ for path in sorted((root / "pi-fragments").glob("*.md")):
 
 # Runtime permissions are executable safety contracts, so these are exact.
 capability_contracts = {
-    "openspec-feedback": "Read Edit Write Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*) Bash(printf:*) Bash(sha256sum:*) Bash(shasum:*) Bash(git worktree list:*)",
+    "openspec-archive": "Read Grep Glob Edit Task Bash(git worktree:*) Bash(git status:*) Bash(git diff:*) Bash(git rev-parse:*) Bash(git ls-files:*) Bash(git hash-object:*) Bash(sha256sum:*) Bash(shasum:*) Bash(gh pr view:*) Bash(date -u:*)",
+    "openspec-feedback": "Read Edit Write Grep Glob Task Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*) Bash(printf:*) Bash(sha256sum:*) Bash(shasum:*) Bash(git worktree list:*)",
+    "openspec-pr": "Read Edit Write Grep Glob Task Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(git rev-parse:*) Bash(git worktree:*) Bash(git diff:*) Bash(git ls-files:*) Bash(git hash-object:*) Bash(sha256sum:*) Bash(shasum:*) Bash(gh pr list:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*) Bash(curl:*)",
     "openspec-initiative-plan": "Read Grep Glob Write Bash(mkdir -p:*) Bash(git status:*) Bash(git log:*)",
     "openspec-story-converge": "Read Grep Glob Task Bash(git status:*) Bash(git worktree list:*)",
     "openspec-story-plan-converge": "Read Edit Grep Glob Task Bash(git status:*) Bash(git worktree list:*)",

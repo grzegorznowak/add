@@ -51,7 +51,7 @@ Read, in order:
 2. `<initiative_file>`, including constraints, decisions, candidate context, and linked intent
 3. all of `<story_file>`, especially Purpose, Actors, Triggering Need, Expected Prerequisites, Scope, Out of Scope, Scenarios / Behavior Examples, Acceptance, Verification, Critical Files, Implementation Notes, Locked Decisions, and Discovery Notes
 4. `<change_dir>/proposal.md`, `design.md`, `tasks.md`, and delta specs under `specs/`
-5. `<change_dir>/progress.md`, including Current Claim, Progress Timeline, Session Handoff, legacy Implementation Review Receipt input, and PR State
+5. `<change_dir>/progress.md`, including Current Claim, Progress Timeline, Session Handoff, and PR State. Legacy receipt material is inert and ignored. It has no lifecycle or evidentiary authority and does not warrant analysis during implementation evaluation. Do not mine concerns, findings, approval, or verdicts from it; only `/openspec-migrate` may inspect its bounded shape for removal.
 6. dependency story artifacts and materially constraining sibling story artifacts
 7. implementation and tests at resolved target roots
 8. explicitly linked durable issue, PR, ticket, or design-source material only when available through readable files
@@ -65,11 +65,10 @@ Apply this gate to every canonical prerequisite bullet before substantive review
 1. Require the dependency slug to match `^[a-z0-9]+(?:-[a-z0-9]+)*$`.
 2. Resolve the active prerequisite first. Use archive only when the active copy is absent; active always outranks archive.
 3. Require exactly one top-level `Status: ✅ DONE`.
-4. A sibling `blocked.md` makes the prerequisite contradictory and unsatisfied in active or archive, regardless of DONE or receipt evidence.
-5. Validate the Initiative header by the same exact-header rule. A bound modern prerequisite must have `progress.md` with exactly one `## Implementation Review Receipt` heading and one current body.
-6. For that read-only legacy input, require every established field exactly once and require `Decision: APPROVE`, `Approval gate: PASS`, and a transition ending in DONE. Missing, duplicate, malformed, or non-approving evidence is unsatisfied. Do not normalize it.
-7. Only an unbound pre-v3 prerequisite with DONE, no blocker input, zero Initiative-like headers, and zero receipt sections may pass under warned compatibility.
-8. Treat the prerequisite verdict as legacy reader evidence; never recompute or freshness-check the story-scoped review identity against mutable repository state. During final gate recheck, never recompute a prerequisite's review identity.
+4. A sibling `blocked.md` makes the prerequisite contradictory and unsatisfied in active or archive.
+5. Validate the Initiative header by the same exact-header rule.
+6. Receipt presence or absence does not and must not affect prerequisite satisfaction. Ignore legacy receipt shape, verdict, identity, duplication, and staleness; never synthesize or normalize it.
+7. Bound and accepted legacy prerequisites use the same current-state rule: exact DONE, no blocker, and valid path/binding plus current required artifact checks.
 
 Any unsatisfied prerequisite produces `NOT REVIEWABLE` with a finding naming the exact deficiency.
 
@@ -98,7 +97,7 @@ The review must be fresh and oblivious. Allowed inputs are current OpenSpec arti
 
 Do not accept parent/converger notebook references under any alias. If inherited implementation-session context is supplied, stop with `NOT REVIEWABLE`. Explain that a fresh invocation with only artifact selectors is required and route the packet to `/openspec-feedback`.
 
-A prior completed review section in `progress.md` is read-only legacy evidence. Classify each parseable concern as resolved, still open, superseded, or not assessable. Duplicate or malformed legacy sections are evidence-quality findings; never reconcile them.
+A prior implementation-review receipt section in `progress.md` is inert migration input, not review evidence. Do not inspect its body, report its shape as a finding, or derive review scope or migration work from it.
 
 ## Worktree and evidence mapping
 

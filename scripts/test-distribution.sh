@@ -165,9 +165,53 @@ for runtime, base, names in (("Codex", codex_root, actual_codex), ("Pi", pi_root
                     errors.append(f"Codex {name}: strict invocation policy drift")
     ok(f"{runtime} generated metadata")
 
+canonical_helper = root / "claude/skills/openspec-migrate/migrate.py"
+for runtime, helper in (
+    ("Codex", codex_root / "openspec_migrate/migrate.py"),
+    ("Pi", pi_root / "openspec-migrate/migrate.py"),
+):
+    if not helper.is_file() or helper.is_symlink():
+        errors.append(f"{runtime} migrate: missing regular non-symlink migrate.py")
+    elif helper.read_bytes() != canonical_helper.read_bytes():
+        errors.append(f"{runtime} migrate: helper bytes differ from canonical")
+    generated_helpers = sorted(path.relative_to(helper.parents[1]).as_posix() for path in helper.parents[1].rglob("migrate.py"))
+    if generated_helpers != [helper.relative_to(helper.parents[1]).as_posix()]:
+        errors.append(f"{runtime} migrate: ancillary helper inventory drift: {generated_helpers}")
+ok("exact migrate helper bytes and ancillary inventory across runtimes")
+
+# The new active contract must not reintroduce obsolete review identity/digest
+# fields in its blank progress artifact or current user-facing documentation.
+stale_review_fields = (
+    "Review identity:",
+    "Review digest:",
+    "Identity method:",
+    "Identity digest:",
+    "Identity bases:",
+    "Identity paths:",
+    "review-identity-v1",
+)
+identity_surfaces = [
+    root / "openspec/schemas/story-change/templates/progress.md",
+    root / "README.md",
+    root / "docs/openspec-conventions.md",
+    root / "docs/openspec-lifecycle.md",
+    root / "docs/openspec-add-flow-design-book.svg",
+]
+for path in identity_surfaces:
+    text = path.read_text(encoding="utf-8")
+    present = [field for field in stale_review_fields if field in text]
+    if present:
+        errors.append(
+            f"{path.relative_to(root)}: stale review digest/identity fields remain: {present}"
+        )
+ok("new progress template, docs, and SVG omit stale digest/identity fields")
+
 capability_contracts = {
-    "openspec-feedback": "Read Edit Write Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*) Bash(printf:*) Bash(sha256sum:*) Bash(shasum:*) Bash(git worktree list:*)",
+    "openspec-archive": "Read Grep Glob Edit Task Bash(git worktree:*) Bash(git status:*) Bash(git diff:*) Bash(git rev-parse:*) Bash(git ls-files:*) Bash(git hash-object:*) Bash(sha256sum:*) Bash(shasum:*) Bash(gh pr view:*) Bash(date -u:*)",
+    "openspec-feedback": "Read Edit Write Grep Glob Task Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*) Bash(printf:*) Bash(sha256sum:*) Bash(shasum:*) Bash(git worktree list:*)",
+    "openspec-pr": "Read Edit Write Grep Glob Task Bash(git status:*) Bash(git log:*) Bash(git branch:*) Bash(git rev-parse:*) Bash(git worktree:*) Bash(git diff:*) Bash(git ls-files:*) Bash(git hash-object:*) Bash(sha256sum:*) Bash(shasum:*) Bash(gh pr list:*) Bash(gh pr view:*) Bash(gh pr edit:*) Bash(gh pr create:*) Bash(curl:*)",
     "openspec-initiative-plan": "Read Grep Glob Write Bash(mkdir -p:*) Bash(git status:*) Bash(git log:*)",
+    "openspec-migrate": "Bash(python3:*)",
     "openspec-story-converge": "Read Grep Glob Task Bash(git status:*) Bash(git worktree list:*)",
     "openspec-story-plan-converge": "Read Edit Grep Glob Task Bash(git status:*) Bash(git worktree list:*)",
     "openspec-story-review": "Read Grep Glob",
@@ -204,6 +248,7 @@ argument_lines = {
     "openspec_archive": "Argument: INITIATIVE=<slug> STORY=<slug>",
     "openspec_feedback": "Argument: INITIATIVE=<slug> [--pr <pr_url>] [feedback_or_file]",
     "openspec_initiative_plan": "Argument: [SLUG=<slug>]",
+    "openspec_migrate": "Argument: INITIATIVE=<slug> [STORY=<slug>]",
     "openspec_next_action": "Argument: [INITIATIVE=<slug>] [STORY=<slug>] [SPEC=<spec-or-path>] [--all]",
     "openspec_pr": "Argument: INITIATIVE=<slug> STORY=<slug> [<pr_url_or_OPEN=true>]",
     "openspec_story_claim": 'Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"]...',
@@ -218,6 +263,7 @@ argument_lines = {
 body_rewrites = {
     "openspec_archive": "the INITIATIVE and STORY named variables",
     "openspec_feedback": "the INITIATIVE, feedback flags, and feedback payload named variables",
+    "openspec_migrate": "the INITIATIVE and STORY named variables",
     "openspec_next_action": "the INITIATIVE, STORY, SPEC, and --all selectors",
     "openspec_pr": "the INITIATIVE, STORY, and PR selector named variables",
     "openspec_story_claim": "the INITIATIVE, STORY, and WORKTREE named variables",
@@ -228,6 +274,178 @@ body_rewrites = {
     "openspec_story_plan_review": "the INITIATIVE and STORY named variables",
     "openspec_story_review": "the INITIATIVE, STORY, and WORKTREE named variables",
 }
+
+# Full generated-body parity is intentionally independent of the production
+# generators. These are the only compiler transformations allowed between a
+# canonical Claude body and a runtime body.
+codex_argument_transforms = {
+    name.replace("_", "-"): (line, body_rewrites.get(name))
+    for name, line in argument_lines.items()
+}
+codex_argument_transforms["openspec-initiative-plan"] = (
+    argument_lines["openspec_initiative_plan"], "the SLUG named variable",
+)
+codex_argument_transforms["openspec-story-resume"] = (
+    argument_lines["openspec_story_resume"],
+    "the INITIATIVE, STORY, and WORKTREE named variables",
+)
+codex_argument_transforms["merge-conflict-analysis"] = (None, "the named variables")
+# Codex exposes this frontmatter value as its invocation hint. This is the only
+# skill-specific frontmatter rewrite allowed in addition to the name transform.
+codex_frontmatter_transforms = {
+    "openspec-migrate": (
+        'argument-hint: "<initiative-slug> [<story-slug>]"',
+        'argument-hint: "INITIATIVE=<slug> [STORY=<slug>]"',
+    ),
+}
+
+
+def normalized_generated(text: str) -> str:
+    # Both installers capture command output, which strips trailing newlines,
+    # then write exactly one final newline.
+    return text.rstrip("\n") + "\n"
+
+
+def strip_pi_transport(text: str) -> str:
+    output = []
+    skipping = False
+    for line in text.splitlines(keepends=True):
+        heading = line.rstrip("\n")
+        if re.fullmatch(r"##+ Shared Research Board Input", heading):
+            skipping = True
+            continue
+        if re.match(r"^## ", heading):
+            skipping = False
+        if not skipping:
+            output.append(line)
+    return "".join(output)
+
+
+def expected_codex(name: str, canonical_text: str) -> str:
+    transformed = canonical_text
+    transform = codex_argument_transforms.get(name)
+    if transform is not None:
+        argument_line, body_rewrite = transform
+        if name == "merge-conflict-analysis":
+            transformed = transformed.replace("`$ARGUMENTS` — ", "")
+        elif argument_line is not None:
+            transformed = re.sub(r"^Argument:.*$", argument_line, transformed, flags=re.MULTILINE)
+        if body_rewrite is not None:
+            transformed = transformed.replace("$ARGUMENTS", body_rewrite)
+    transformed = transformed.replace("$RUNTIME_NAME", "Codex")
+    frontmatter_transform = codex_frontmatter_transforms.get(name)
+    if frontmatter_transform is not None:
+        source_hint, codex_hint = frontmatter_transform
+        if transformed.count(source_hint) != 1:
+            errors.append(f"Codex {name}: canonical argument-hint transform source drift")
+        transformed = transformed.replace(source_hint, codex_hint, 1)
+    transformed = re.sub(
+        r"^name:.*$", f"name: {name.replace('-', '_')}", transformed,
+        count=1, flags=re.MULTILINE,
+    )
+    return normalized_generated(transformed)
+
+
+def expected_pi(name: str, canonical_text: str) -> str:
+    fragment = root / "pi-fragments" / f"{name}.md"
+    stripped = strip_pi_transport(canonical_text).replace("$RUNTIME_NAME", "pi")
+    if not fragment.is_file():
+        return normalized_generated(stripped)
+    fragment_text = fragment.read_text(encoding="utf-8")
+    if fragment_text.startswith("---\n"):
+        return normalized_generated(fragment_text)
+    return normalized_generated(stripped.rstrip("\n") + "\n\n" + fragment_text)
+
+
+def skill_parts(text: str) -> tuple[str, str]:
+    match = re.match(r"^---\n.*?^---\n", text, flags=re.MULTILINE | re.DOTALL)
+    if match is None:
+        return "", text
+    return text[:match.end()], text[match.end():]
+
+
+def skill_body(text: str) -> str:
+    return skill_parts(text)[1]
+
+
+def frontmatter_parity_issue(label: str, expected: str, actual: str) -> str | None:
+    expected_frontmatter, _ = skill_parts(expected)
+    actual_frontmatter, _ = skill_parts(actual)
+    if actual_frontmatter == expected_frontmatter:
+        return None
+    return f"{label}: generated frontmatter differs outside allowlisted transforms"
+
+
+def phase_at(lines: list[str], line_number: int) -> str:
+    for line in reversed(lines[:line_number]):
+        if re.match(r"^#{1,6} ", line):
+            return line.strip()
+    return "<preamble>"
+
+
+def body_parity_issue(label: str, expected: str, actual: str) -> str | None:
+    expected_body = skill_body(expected)
+    actual_body = skill_body(actual)
+    if actual_body == expected_body:
+        return None
+    expected_lines = expected_body.splitlines()
+    actual_lines = actual_body.splitlines()
+    first = 0
+    limit = min(len(expected_lines), len(actual_lines))
+    while first < limit and expected_lines[first] == actual_lines[first]:
+        first += 1
+    expected_phase = phase_at(expected_lines, min(first + 1, len(expected_lines)))
+    actual_phase = phase_at(actual_lines, min(first + 1, len(actual_lines)))
+    expected_line = expected_lines[first] if first < len(expected_lines) else "<EOF>"
+    actual_line = actual_lines[first] if first < len(actual_lines) else "<EOF>"
+    return (
+        f"{label}: generated body parity drift at line {first + 1}; "
+        f"expected phase {expected_phase!r}, actual phase {actual_phase!r}; "
+        f"expected {expected_line!r}, got {actual_line!r}"
+    )
+
+
+for name in canonical:
+    canonical_text = (root / "claude/skills" / name / "SKILL.md").read_text(encoding="utf-8")
+    runtime_name = name.replace("-", "_")
+    codex_text = (codex_root / runtime_name / "SKILL.md").read_text(encoding="utf-8")
+    pi_text = (pi_root / name / "SKILL.md").read_text(encoding="utf-8")
+    codex_expected = expected_codex(name, canonical_text)
+    pi_expected = expected_pi(name, canonical_text)
+    for issue in (
+        frontmatter_parity_issue(f"Codex {runtime_name}", codex_expected, codex_text),
+        frontmatter_parity_issue(f"Pi {name}", pi_expected, pi_text),
+        body_parity_issue(f"Codex {runtime_name}", codex_expected, codex_text),
+        body_parity_issue(f"Pi {name}", pi_expected, pi_text),
+    ):
+        if issue is not None:
+            errors.append(issue)
+ok("canonical generated frontmatter/body parity under allowlisted compiler transforms")
+
+# Prove the exact-body oracle rejects defects that the former spot checks
+# accepted: truncation, a removed phase, and drift inside an allowed rewrite.
+review_canonical = (root / "claude/skills/openspec-story-review/SKILL.md").read_text(encoding="utf-8")
+review_expected = expected_codex("openspec-story-review", review_canonical)
+review_body = skill_body(review_expected)
+truncated = review_expected[:-(max(1, len(review_body) // 3))]
+if body_parity_issue("truncated fixture", review_expected, truncated) is None:
+    errors.append("generated-body parity validator accepted a truncated fixture")
+phase_start = review_expected.index("## Review method")
+phase_end = review_expected.index("## Verdict rules", phase_start)
+removed_phase = review_expected[:phase_start] + review_expected[phase_end:]
+removed_issue = body_parity_issue("removed-phase fixture", review_expected, removed_phase)
+if removed_issue is None or "expected phase '## Review method'" not in removed_issue:
+    errors.append("generated-body parity validator accepted a removed phase or lost phase diagnostics")
+claim_canonical = (root / "claude/skills/openspec-story-claim/SKILL.md").read_text(encoding="utf-8")
+claim_expected = expected_codex("openspec-story-claim", claim_canonical)
+allowed_rewrite = "the INITIATIVE, STORY, and WORKTREE named variables"
+if allowed_rewrite not in claim_expected:
+    errors.append("generated-body parity rewrite fixture no longer exercises the allowlist")
+else:
+    altered_rewrite = claim_expected.replace(allowed_rewrite, "the WRONG named variables", 1)
+    if body_parity_issue("rewrite fixture", claim_expected, altered_rewrite) is None:
+        errors.append("generated-body parity validator accepted an altered allowed rewrite")
+ok("generated-body parity negative mutation proofs and phase diagnostics")
 
 
 def codex_transport_issues(name: str, text: str) -> list[str]:
@@ -246,6 +464,44 @@ def codex_transport_issues(name: str, text: str) -> list[str]:
 for name in argument_lines:
     text = (codex_root / name / "SKILL.md").read_text(encoding="utf-8")
     errors.extend(f"Codex {name}: {issue}" for issue in codex_transport_issues(name, text))
+
+# Independently pair the generated migrate frontmatter argument-hint with the
+# variables its body tells Codex to parse, rather than trusting the parity
+# allowlist alone.
+migrate_codex = (codex_root / "openspec_migrate/SKILL.md").read_text(encoding="utf-8")
+migrate_fields, migrate_frontmatter_issues = frontmatter_text(migrate_codex)
+errors.extend(f"Codex migrate: {issue}" for issue in migrate_frontmatter_issues)
+migrate_hint = migrate_fields.get("argument-hint", "")
+if migrate_hint != "INITIATIVE=<slug> [STORY=<slug>]":
+    errors.append(f"Codex migrate: unexpected argument-hint {migrate_hint!r}")
+hint_variables = re.findall(r"\b([A-Z][A-Z_]*)=<", migrate_hint)
+parse_match = re.search(
+    r"Parse `the ([A-Z_, ]+(?:and [A-Z_]+)?) named variables` once",
+    migrate_codex,
+)
+body_variables = re.findall(r"[A-Z][A-Z_]*", parse_match.group(1)) if parse_match else []
+if hint_variables != ["INITIATIVE", "STORY"]:
+    errors.append(f"Codex migrate: unexpected argument-hint variables {hint_variables}")
+if body_variables != hint_variables:
+    errors.append(
+        "Codex migrate: argument-hint variables do not match named-variable body: "
+        f"hint={hint_variables}, body={body_variables}"
+    )
+# Mutation proof: the independent frontmatter oracle must reject a positional
+# hint even when the body remains otherwise correct.
+positional_hint = migrate_codex.replace(
+    'argument-hint: "INITIATIVE=<slug> [STORY=<slug>]"',
+    'argument-hint: "<initiative-slug> [<story-slug>]"',
+    1,
+)
+canonical_migrate_text = (root / "claude/skills/openspec-migrate/SKILL.md").read_text(encoding="utf-8")
+if frontmatter_parity_issue(
+    "migrate positional-hint fixture",
+    expected_codex("openspec-migrate", canonical_migrate_text),
+    positional_hint,
+) is None:
+    errors.append("Codex migrate: frontmatter parity accepted a positional argument-hint")
+ok("Codex migrate named argument-hint matches its body and rejects positional drift")
 
 runtime_lines = {
     "openspec_story_claim": "- Claimed by: Codex fresh session",

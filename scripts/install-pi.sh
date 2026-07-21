@@ -89,6 +89,78 @@ ensure_dir_path() {
   fi
 }
 
+preflight_file_if_safe() {
+  local source="$1" dest="$2" label="$3"
+  if [[ -L "$source" || ! -f "$source" ]]; then
+    printf 'error: %s source must be a regular non-symlink file: %s\n' "$label" "$source" >&2
+    return 1
+  fi
+  if [[ "$FORCE" != "1" && ( -L "$dest" || ( -e "$dest" && ! -f "$dest" ) ) ]]; then
+    if [[ "$DRY_RUN" == "1" ]]; then
+      printf '  would refuse: existing non-file %s (use --force)\n' "$dest"
+      return 0
+    fi
+    printf 'error: refusing to replace existing non-file %s (use --force)\n' "$dest" >&2
+    return 1
+  fi
+  if [[ "$FORCE" != "1" && -f "$dest" && ! -L "$dest" ]] && ! cmp -s -- "$source" "$dest"; then
+    if [[ "$DRY_RUN" == "1" ]]; then
+      printf '  would refuse: modified file %s (use --force)\n' "$dest"
+      return 0
+    fi
+    printf 'error: refusing to overwrite existing modified file %s (use --force)\n' "$dest" >&2
+    return 1
+  fi
+}
+
+preflight_content_if_safe() {
+  local dest="$1" content="$2" tmp status=0
+  tmp="$(mktemp "${TMPDIR:-/tmp}/pi-preflight.XXXXXX")"
+  printf '%s\n' "$content" > "$tmp"
+  preflight_file_if_safe "$tmp" "$dest" "generated" || status=$?
+  rm -f -- "$tmp"
+  return "$status"
+}
+
+copy_file_if_safe() {
+  local source="$1" dest="$2" tmp
+  if [[ -L "$source" || ! -f "$source" ]]; then
+    printf 'error: ancillary source must be a regular non-symlink file: %s\n' "$source" >&2
+    return 1
+  fi
+  if [[ -L "$dest" || ( -e "$dest" && ! -f "$dest" ) ]]; then
+    if [[ "$FORCE" != "1" ]]; then
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would refuse: existing non-file %s (use --force)\n' "$dest"
+        return 0
+      fi
+      printf 'error: refusing to replace existing non-file %s (use --force)\n' "$dest" >&2
+      return 1
+    fi
+    printf 'warn: replacing conflicting path %s\n' "$dest" >&2
+    if [[ "$DRY_RUN" != "1" ]]; then rm -rf -- "$dest"; fi
+  fi
+  if [[ -f "$dest" && ! -L "$dest" ]] && ! cmp -s -- "$source" "$dest"; then
+    if [[ "$FORCE" != "1" ]]; then
+      if [[ "$DRY_RUN" == "1" ]]; then
+        printf '  would refuse: modified file %s (use --force)\n' "$dest"
+        return 0
+      fi
+      printf 'error: refusing to overwrite existing modified file %s (use --force)\n' "$dest" >&2
+      return 1
+    fi
+    printf 'warn: overwriting modified generated file %s\n' "$dest" >&2
+  fi
+  if [[ "$DRY_RUN" == "1" ]]; then
+    printf '  would: copy %s -> %s\n' "$source" "$dest"
+    return 0
+  fi
+  tmp="$(mktemp "$dest.tmp.XXXXXX")"
+  cp -- "$source" "$tmp"
+  chmod --reference="$source" "$tmp"
+  mv -f -- "$tmp" "$dest"
+}
+
 write_content_if_safe() {
   local dest="$1" content="$2"
   local tmp
@@ -281,8 +353,17 @@ for skill_dir in "$CLAUDE_SKILLS"/*/; do
   compiled="$(compile_skill "$skill_name" "$skill_file" "$fragment")"
 
   out_dir="$PI_DEST/$skill_name"
+  if [[ "$skill_name" == "openspec-migrate" ]]; then
+    # Treat the generated skill and helper as one unit: detect every overwrite
+    # conflict before creating or replacing either destination file.
+    preflight_content_if_safe "$out_dir/SKILL.md" "$compiled"
+    preflight_file_if_safe "$skill_dir/migrate.py" "$out_dir/migrate.py" "ancillary"
+  fi
   ensure_dir_path "$out_dir"
   write_content_if_safe "$out_dir/SKILL.md" "$compiled"
+  if [[ "$skill_name" == "openspec-migrate" ]]; then
+    copy_file_if_safe "$skill_dir/migrate.py" "$out_dir/migrate.py"
+  fi
   echo "  $skill_name -> $out_dir/SKILL.md"
 done
 

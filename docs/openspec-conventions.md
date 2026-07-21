@@ -123,11 +123,8 @@ same deterministic source identity, does not repeat an already completed owned
 edit, and may append the one missing receipt after acknowledgement. Notebook
 mirrors may be used for orientation when a runtime supports them, but the
 workflow never requires or invokes notebook APIs; mirrors never replace this
-ledger or participate in deduplication/lifecycle authority. Existing
-prerequisite, next-action, PR, archive, resume, and convergence readers retain
-their legacy receipt compatibility until the later readers/migration slice;
-receiptless packet triage does not rewrite or normalize those readers in this
-slice.
+ledger or participate in deduplication/lifecycle authority. Deprecated implementation-review receipts are separate inert migration input;
+ordinary-feedback receipt handling never rewrites or normalizes them.
 
 External resources are links or anchors. Do not paste long ticket, PR, or design
 bodies into the initiative file.
@@ -155,13 +152,22 @@ initiative binding and both lifecycle fields as top-level header fields, never
 Plan: 🟡 PLAN DRAFT
 Status: ⚪ TODO
 Initiative: <initiative-slug>
+Review Focus: |
+  <optional reviewer guidance on indented lines>
 ```
 
 `Initiative:` must match `^[a-z0-9]+(?:-[a-z0-9]+)*$` and the selected existing
 `openspec/initiatives/<initiative-slug>/initiative.md`. `Status:` is the only
 canonical implementation-status header; an `## Status` section is not an
-equivalent. `## Acceptance` is the canonical contract heading; do not rename it
-`## Acceptance Criteria`.
+equivalent. `Review Focus: |` occurs exactly once. Its body consists only of the
+immediately following indented lines and ends at the next top-level header. A
+blank block means full review. A nonblank block permits a focused review of its
+named surfaces and evidence, subject to reviewer widening when scope, risk, or
+evidence requires a full review. Implementation owns Review Focus:
+`/openspec-story-claim` and `/openspec-story-resume` overwrite it before every
+handoff to `🟣 IN REVIEW`, using a blank block when no focus is needed. Review
+reads but never writes it; outside IN REVIEW it is inert. `## Acceptance` is the
+canonical contract heading; do not rename it `## Acceptance Criteria`.
 
 The planning body should contain these sections when applicable:
 
@@ -237,17 +243,9 @@ packet producer and owns no Status write.
 
 Resolve an active prerequisite before an archived fallback; an existing active
 copy always wins. It must have exactly one unambiguous `Status: ✅ DONE` and no
-sibling `blocked.md`. A modern, bound prerequisite additionally requires exactly
-one well-formed current receipt: every required receipt field occurs exactly
-once, Decision is APPROVE, Approval gate is PASS, Status transition ends in
-`✅ DONE`, and no later authorized reopen/resume/unblock/proof evidence
-contradicts it. Prerequisite qualification deliberately does **not** recompute
-`review-identity-v1`; implementation identity is a delivery/archive gate, not a
-dependency gate. Any present receipt on an unbound story must pass the same
-current-receipt checks. Only an unbound pre-v3 DONE prerequisite with zero
-Initiative or Initiative-like lines and zero receipt sections may pass through
-the bounded legacy rule, always with a compatibility warning and never a
-backfill.
+sibling `blocked.md`. Receipt presence, absence, or stale legacy content does not
+qualify or disqualify a prerequisite. Readers use current lifecycle artifacts
+and never treat an implementation-review receipt as approval authority.
 
 #### Actors
 
@@ -502,8 +500,8 @@ Where to write it:
 - implementation review: reads artifacts and emits one portable readonly review
   packet; confirmed `/openspec-feedback` packet triage records the resulting
   bounded canonical decision and publishes any eligible lifecycle Status last.
-  Existing receipt-shaped artifacts remain legacy reader inputs until the later
-  readers/migration slice.
+  Existing implementation-review receipt shapes are inert legacy data pending
+  the explicit migration command.
 
 ## Runtime artifacts
 
@@ -521,93 +519,51 @@ Created on the first runtime write by an artifact-writing owner, normally
   `/openspec-story-resume`, ordinary `/openspec-feedback`, and `/openspec-pr`.
   Review packet triage records no receipt, review cycle, digest, review timeline,
   or publication log.
-- `## Implementation Review Receipt` — a deprecated legacy-reader compatibility
-  section. Existing bodies retain their historical field shape (Reviewed at,
-  Decision, Approval gate, Status transition, Evidence reviewed, Identity method,
-  Identity digest, Identity bases, Identity paths, Findings, Proof, and Next
-  owner), but neither readonly review nor packet triage creates, replaces, or
-  appends one.
+- `## Implementation Review Receipt` — deprecated, inert legacy data. It has no
+  lifecycle authority and receives no new writes. `/openspec-migrate` is the
+  sole removal owner for a uniquely recognized legacy receipt; duplicate,
+  malformed, or ambiguous
+  bodies fail closed for operator repair.
 - `## Session Handoff` — latest exit state and next action for a fresh session.
 - `## PR State` — sole durable PR metadata/evidence location, owned by
-  `/openspec-pr`; in addition to PR metadata it records the implementation digest
-  verified by PR and its verification timestamp. It does not own implementation
-  status transitions.
+  `/openspec-pr`. Before every PR route, the complete bounded Current Claim
+  Worktrees/Primary write surfaces map must resolve exactly one product
+  repository and the live PR head repository must match it. Its `Delivery head:`
+  is the clean current Git HEAD recorded only after a fresh isolated readonly
+  delivery audit and exact equality with the live PR `headRefOid`; archive
+  rechecks the live merged head against it. A no-PR archive resolves the same
+  bounded map and audits every resolved product repository; missing or ambiguous
+  mappings fail closed.
+  It is non-review delivery evidence and never a packet, receipt, digest, or
+  identity. It does not own implementation status transitions. An explicitly
+  confirmed no-PR archive runs a fresh isolated readonly delivery audit
+  immediately before archive instead of inventing this field.
 
-`story.md → Status:` controls all non-DONE routing. An earlier receipt may remain
-as historical evidence after an authorized claim/resume/feedback write changes
-Status away from DONE; it remains superseded for routing unless an explicit
-migration or owning workflow replaces it. For `Status: ✅ DONE`, a present
-receipt must be exactly one
-well-formed current body with `Decision: APPROVE`, `Approval gate: PASS`, a DONE
-transition, and the complete `review-identity-v1` fields. Duplicate
-headings/bodies, malformed fields, REQUEST CHANGES/BLOCKED/FAIL, stale or
-contradictory evidence block delivery/archive. A bound story with exactly one
-valid `Initiative:` header must have that receipt; planning readers and writers
-apply this same bound-DONE rule and must not treat a missing receipt as legacy.
-The only no-receipt compatibility case is an unbound pre-v3 DONE story—zero
-Initiative or Initiative-like lines and zero receipt sections—accepted by the
-bounded legacy binding rule, with a warning and no synthetic backfill.
-
-The canonical implementation identity is the story-scoped
-`review-identity-v1` manifest. The receipt stores its method and digest plus two
-compact UTF-8 JSON arrays: `Identity bases` is an array of
-`{"repo":"<basename>","base":"<review-base>"}` objects sorted by the UTF-8
-bytes of `repo`; `Identity paths` is an array of
-`{"repo":"<basename>","path":"<relative-path>"}` objects sorted by the UTF-8
-bytes of `repo`, then `path`. Emit standard JSON string escaping and no
-insignificant whitespace; use `[]` for an empty list. Each repository basename
-and each `(repo,path)` pair occurs exactly once. `base` is the full immutable Git
-commit object ID used to delimit that repository's story scope; paths are
-resolved relative to the repository root. `Evidence reviewed` stores proof
-context, not an alternative identity.
-
-For each listed path, emit exactly one UTF-8 row with four fields and no header:
-
-```text
-<repo>\t<path>\t<type>\t<lowercase-64-hex-sha256>\n
-```
-
-`repo` is the receipt's repository basename and `path` is the `/`-separated path
-relative to that repository's root. `type` is exactly one of
-`file`, `executable`, `symlink`, or `deleted`; unsupported special files prevent
-a completed verdict. The row digest is SHA-256 of the exact reviewed file bytes,
-the link-target bytes for `symlink`, or the zero-byte string for `deleted`.
-Repository names and paths containing TAB, LF, or CR are invalid and prevent a
-completed verdict. Encode all rows as UTF-8, sort the complete encoded row bytes
-bytewise, concatenate
-them without a header or extra separators, require LF termination on every row,
-and SHA-256 that exact byte sequence. The empty path list hashes the zero-byte
-manifest. Record the result as `Identity digest: sha256:<lowercase-hex>`.
-
-The retained path list describes the story-scoped
-implementation/config/test/runtime set reviewed across its recorded bases,
-including relevant tracked, modified, deleted, type-changed, and non-ignored
-untracked paths. Its historical scope excludes VCS metadata and the selected
-story coordination files `story.md`, `progress.md`, and `blocked.md`; it does not
-broadly exclude `openspec/`, unrelated story-authored contract/proof files, or a
-selected source path merely because it is dirty/untracked. This paragraph
-documents reader compatibility only, not current evaluator write ownership.
-
-PR resolves the recorded bases and paths, recomputes `review-identity-v1`, and
-requires an exact receipt-digest match **before any PR, PR-body, or progress
-write**. The same PR write records `Verified implementation digest` and
-`Verified at` in `## PR State`. For a merged PR, archive trusts that durable PR
-verification only when its verified digest exactly equals the current receipt
-digest and the PR evidence is current/merged; archive does not recompute in that
-route. Archive recomputes the manifest only for the explicit no-PR route, before
-archive writes/delegation.
+`story.md → Status:` controls lifecycle routing, including ordinary bound
+receiptless DONE. A stale legacy implementation-review receipt is inert: it does
+not qualify a prerequisite, block PR/archive, override Status, or supply current
+review authority. `/openspec-migrate` previews and, after explicit confirmation,
+removes one uniquely recognized legacy receipt only from explicitly bound active
+changes while preserving non-review progress content. `/openspec-migrate`
+excludes unbound pre-v3 stories and leaves them untouched because there is no
+safe initiative inference for migration. It never synthesizes approval.
+Duplicate, malformed, or ambiguous
+legacy bodies fail closed for operator repair rather than being selected or
+normalized.
 
 Readonly review validates the implementation and emits one transient portable
 packet without changing `progress.md`, `story.md`, `blocked.md`, or notebook
 state. Confirmed `/openspec-feedback` packet triage applies bounded canonical
-postconditions and publishes Status last, but deliberately creates no receipt,
-review timeline, cycle, digest, or publication history.
+postconditions and publishes Status last. Immediately before DONE it launches
+one isolated fresh replay over current implementation evidence using the same
+readonly evaluator semantics. The result must be semantically equivalent to the
+submitted packet; mismatch or drift is rejected, must not publish DONE, and
+creates no persisted packet, receipt, review timeline, cycle, digest, identity,
+or publication history.
 
-A malformed or duplicated retained receipt section continues to fail closed for
-legacy DONE qualification, PR, and archive readers. The readonly evaluator does
-not repair it, and packet triage does not silently normalize it. Migration or an
-explicit owning workflow must resolve such legacy state; readers never select an
-apparent latest body or invent approval.
+Legacy implementation-review receipt maintenance belongs only to
+`/openspec-migrate`, which may remove one matching its bounded legacy shape;
+malformed or ambiguous state requires operator repair.
 
 `## Current Claim` uses plural worktree bindings when needed:
 
@@ -729,19 +685,13 @@ summaries, operational notes, or prior chat context.
   for `NOT REVIEWABLE`.
 - Treat an unmerged PR as authority to reopen or downgrade a locally DONE story;
   route actionable PR feedback through `/openspec-feedback` for classification.
-- Let an old receipt override an authoritative non-DONE Status; authorized later
-  work may supersede it, and readonly review never refreshes or replaces it.
-- Archive or deliver a DONE story when its receipt is missing for a bound story,
-  duplicated, non-approving, malformed, identity-unverified for the applicable
-  PR/no-PR route, or otherwise contradicts current evidence. Only an unbound
-  pre-v3 DONE with no receipt gets compatibility when every other gate passes;
-  warn and never invent a receipt.
-- Accept a modern prerequisite that has `blocked.md` or a missing, malformed,
-  superseded, contradictory, or non-approving current receipt. Prerequisite
-  readers validate current receipt authority but do not recompute identity. An
-  unbound pre-v3 DONE may satisfy the gate only with the same explicit
-  compatibility warning.
-- Archive a story with `blocked.md`, incomplete tasks, missing valid review
-  approval (subject to that pre-v3 exception), or unresolved PR/no-PR evidence.
+- Let an old implementation-review receipt override authoritative Status or
+  current artifacts; receipt presence and absence are inert for prerequisite,
+  delivery, and archive routing.
+- Ask any workflow other than `/openspec-migrate` to maintain or remove a legacy
+  implementation-review receipt.
+- Accept a prerequisite that has `blocked.md` or lacks exact DONE Status.
+- Archive a story with `blocked.md`, incomplete tasks, non-DONE Status, or
+  unresolved PR/no-PR evidence.
 - Treat notebook pages, chat summaries, or old handoffs as stronger authority
   than current OpenSpec artifacts and live repo evidence.
