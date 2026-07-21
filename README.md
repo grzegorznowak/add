@@ -112,18 +112,12 @@ oblivious `/openspec-story-review` session.
    work or applies review/feedback that `/openspec-feedback` routed back to the
    story.
 5. **Review independently** — `/openspec-story-review` is read-only for product
-   code and must run from a completely fresh, oblivious session with no
-   implementation-loop notebook, summary, operational notes, or prior chat
-   context. Every completed verdict replaces/creates the one current
-   `progress.md → ## Implementation Review Receipt`, including the deterministic
-   story-scoped `review-identity-v1` digest/base/path list. For BLOCKED it writes
-   `blocked.md` first, then writes receipt plus transition timeline together in
-   one progress write, then writes top-level `story.md → Status:` last and
-   performs no later writes. Partial writes therefore fail closed. A fresh
-   substantive review may
-   reconcile a malformed or duplicated receipt section into the one current
-   record; it never chooses an old entry as authority or performs receipt-only
-   cleanup in place of review.
+   code and OpenSpec artifacts and must run from a completely fresh, oblivious
+   session with no implementation-loop notebook, summary, operational notes, or
+   prior chat context. It emits exactly one transient `ADD-REVIEW-PACKET/1`
+   packet and never writes Status, receipts, timelines, or `blocked.md`.
+   `/openspec-feedback` owns complete packet disposition, bounded canonical
+   edits, and Status-last lifecycle publication.
 6. **Converge implementation** — `/openspec-story-converge` orchestrates fresh
    claim/resume implementation sessions for one change until the story reaches
    `🟣 IN REVIEW`, a blocker appears, no progress is made, or the cycle budget
@@ -135,18 +129,18 @@ oblivious `/openspec-story-review` session.
    the receipt bases/paths and records the matching digest and verification time
    in PR State. Merged PR evidence with matching verification supports archive;
    requested changes are absorbed through `/openspec-feedback`.
-8. **Absorb feedback** — `/openspec-feedback` routes PR, reviewer, tool, or
-   operator feedback to the Plan Review Log, story contract, progress checkpoint,
-   story candidates, or initiative-level decisions without touching product
-   code. Every acknowledged item, including defer/reject, gets one portable
-   receipt in the selected initiative's `initiative.md → ## Feedback Receipts`.
-   Initiative-only feedback first resolves one active initiative worktree:
-   a unique initiative branch outranks launch, and ambiguity halts before the
-   ledger write. No notebook API or notebook mirror is required. Every direct
-   amendment or resume mutation also gets an FB-tagged `progress.md` checkpoint, including
-   status-only or contract-unchanged mutations. When acknowledged feedback
-   invalidates local completion, it can reopen the story to `🔄 IN PROGRESS` so
-   `/openspec-story-resume` owns the fix.
+8. **Absorb feedback** — `/openspec-feedback` has two explicit modes without
+   touching product code. Review-packet triage validates one complete packet,
+   dispositions every reviewer and operator-added finding as one confirmed set,
+   applies and verifies bounded canonical edits, then publishes Status last; it
+   creates no receipt, cycle, digest, or review history. Ordinary feedback routes
+   PR, reviewer, tool, or operator input to the Plan Review Log, story contract,
+   progress checkpoint, story candidates, or initiative decisions. Every
+   acknowledged ordinary item, including defer/reject, gets one portable receipt
+   in the selected initiative's `initiative.md → ## Feedback Receipts`.
+   Initiative-only ordinary feedback resolves one active initiative worktree
+   before writing its ledger. Existing receipt readers remain compatible until
+   their dedicated migration slice.
 9. **Archive completed changes** — `/openspec-archive` preflights DONE status,
    task completion, blocker absence, a valid current APPROVE/PASS receipt for a
    bound story, and PR/no-PR evidence. For a merged PR it trusts PR State only
@@ -177,10 +171,10 @@ schemas, proof matrices, Debt Friction, and runtime section conventions.
 | `/openspec-story-plan-converge` | Loop fresh plan-review and plan-resume passes until the Plan lane resolves. |
 | `/openspec-story-claim` | Claim one approved TODO story and begin red-first implementation. |
 | `/openspec-story-resume` | Continue implementation, resolve blockers, or address review/feedback routed back to the story. |
-| `/openspec-story-review` | Independently review implementation from a fresh, oblivious session, publish receipt plus timeline in one progress write, then write `story.md → Status:` last with no later writes. |
+| `/openspec-story-review` | Independently review implementation from a fresh, oblivious session and emit a read-only structured review packet without modifying OpenSpec artifacts. |
 | `/openspec-story-converge` | Loop fresh claim/resume implementation passes until `🟣 IN REVIEW` or stop, then instruct the operator to run review separately. |
 | `/openspec-pr` | Verify `review-identity-v1` before writes and manage optional GitHub PR delivery metadata/evidence in `progress.md → ## PR State`. |
-| `/openspec-feedback` | Classify and absorb structured feedback, including acknowledged story reopens, into the right OpenSpec artifacts. |
+| `/openspec-feedback` | Validate, triage, and publish review packets; classify and absorb ordinary structured feedback into the right OpenSpec artifacts. |
 | `/openspec-archive` | Preflight completion gates, then delegate spec sync and archive move to `/opsx:archive`. |
 
 ### Utilities

@@ -22,9 +22,10 @@ openspec/
 ```
 
 - `initiative.md` groups related changes and stores initiative-level goal,
-  constraints, decisions, resources, and future story candidates.
-  `/openspec-feedback` creates `## Feedback Receipts` on first use; initiative
-  planning does not seed that operational section.
+  constraints, decisions, resources, and future story candidates. Ordinary
+  `/openspec-feedback` creates `## Feedback Receipts` on first receipt-bearing
+  use; review packet triage is receiptless, and initiative planning does not
+  seed that operational section.
 - `openspec/changes/<story-slug>/` is the active change workspace for one
   story-sized outcome.
 - `story.md → Initiative:` is the required top-level story-to-initiative binding.
@@ -32,20 +33,24 @@ openspec/
 - The top-level `story.md → Status:` field is the authoritative implementation
   status; an `## Status` section is not equivalent.
 - `blocked.md` is an explicit lifecycle gate. If it exists, lifecycle commands
-  stop until the blocker is resolved and the file is removed.
+  stop until the blocker is resolved and the file is removed, except that a
+  confirmed `/openspec-feedback` packet-triage rerun may verify exact existing
+  planned bytes without rewriting and continue to Status-last BLOCKED publication.
 - `progress.md` holds runtime evidence, including the durable implementation
   review receipt; it is not a planning input and is not seeded by
   `/openspec-story-plan`.
 
-Commands may resolve a transient `<openspec_root>` that contains both selected
-initiative and story artifacts, including after worktree relocation. For
-commands accepting `WORKTREE=`, exactly one explicit value containing the pair
-wins; several halt. If none qualifies, exactly one registered worktree on
-`refs/heads/<initiative>/<story>` containing the pair wins even over a matching,
-possibly stale launch copy; several branch candidates halt. The launch checkout
-is fallback only when no qualifying branch worktree exists and it contains the
-pair. Commands recompute every coordination path after selection and never
-persist an absolute `OpenSpec root:` field in an artifact or receipt.
+Commands may resolve a transient `<openspec_root>` that contains selected
+coordination artifacts, including after worktree relocation. Explicit contained
+unregistered `WORKTREE=` paths are supported specifically by the
+`/openspec-story-review` packet producer and `/openspec-feedback` packet consumer
+when resolving their exact initiative/story pair. Their fallback discovery uses
+registered `refs/heads/<initiative>/<story>` worktrees before the launch root.
+This is not a global `WORKTREE=` rule: ordinary feedback and next-action retain
+their documented launch-root/registered-worktree boundaries, and every other
+command follows its own resolver contract. Commands recompute every coordination
+path after selection and never persist an absolute `OpenSpec root:` field in an
+artifact or receipt.
 
 One feedback invocation resolves one root that contains its initiative plus
 every targeted active story before acknowledgement or writes; all edits and
@@ -145,10 +150,11 @@ Legend: [state] = durable OpenSpec state, "-- command -->" = owner transition,
 | or feedback that /openspec-feedback routed back to the story, and       |
 | returns completed work to [🟣 IN REVIEW].                              |
 |                                                                        |
-| /openspec-story-review owns Status + review receipt and branches:      |
-|   request changes -------------------------> [🔄 IN PROGRESS]          |
-|   blocked -- blocked.md first -------------> [⛔ BLOCKED]              |
-|   approve ---------------------------------> [✅ DONE]                 |
+| /openspec-story-review emits one readonly packet; confirmed            |
+| /openspec-feedback packet triage publishes Status last:                |
+|   accepted current rework -----------------> [🔄 IN PROGRESS]          |
+|   accepted external blocker -> blocked.md -> [⛔ BLOCKED]              |
+|   eligible clean completion ----------------> [✅ DONE]                |
 |                                                                        |
 | [⛔ BLOCKED] -- operator removes blocked.md --> [⛔ BLOCKED, resumable] |
 | [⛔ BLOCKED, resumable] --/openspec-story-resume--> [🔄 IN PROGRESS]   |
@@ -176,16 +182,18 @@ Legend: [state] = durable OpenSpec state, "-- command -->" = owner transition,
 
 Side inputs and gates:
 
-- `/openspec-feedback` can route feedback into initiative operational sections,
-  story plan review logs, acknowledged story contract/reopen edits, future
-  story candidates, or initiative-level decisions. Every disposition also gets
-  one durable initiative receipt. Feedback never touches product source, never
-  approves the Plan lane, and never advances implementation status. Its only
-  status write is an acknowledged `resume-current-story` reopen from `✅ DONE`
-  or `🟣 IN REVIEW` back to `🔄 IN PROGRESS`; PR metadata alone never reopens a
-  story.
+- Ordinary `/openspec-feedback` can route feedback into initiative operational
+  sections, story plan review logs, acknowledged story contract/reopen edits,
+  future story candidates, or initiative-level decisions. Every ordinary
+  disposition also gets one durable initiative receipt. Ordinary feedback never
+  touches product source, never approves the Plan lane, and its only Status write
+  is an acknowledged `resume-current-story` reopen to `🔄 IN PROGRESS`. The
+  separate receiptless packet-triage mode owns only its confirmed Status-last
+  outcomes; PR metadata alone never reopens a story.
 - `blocked.md` is the hard implementation and archive stop, even if the
-  `Status:` header is stale.
+  `Status:` header is stale. The sole existing-file exception is confirmed
+  packet-triage rerun reconciliation of exact planned bytes before Status-last
+  BLOCKED publication; it verifies without rewriting.
 - Delta specs live under the active change workspace until archive. The
   archive command delegates to OpenSpec's built-in `/opsx:archive` step, which
   syncs durable spec behavior into `openspec/specs/` and moves the workspace to
@@ -288,9 +296,11 @@ inspect or route an already-DONE story; missing modern receipts are not legacy.
 
 Implementation uses `story.md → Status:`. `/openspec-story-claim` owns the
 ready TODO-to-IN-PROGRESS transition; `/openspec-story-resume` owns authorized
-continuation transitions, including return to IN REVIEW; feedback may only
-perform an acknowledged reopen to IN PROGRESS; review owns completed-verdict
-transitions:
+continuation transitions, including return to IN REVIEW. Ordinary feedback may
+only perform an acknowledged reopen to IN PROGRESS. Review packet triage instead
+owns its confirmed Status-last IN PROGRESS, DONE, or BLOCKED publication;
+`NOT REVIEWABLE` cannot publish DONE. Readonly review emits a packet and owns no
+transition:
 
 | Status value | Meaning |
 |---|---|
@@ -314,78 +324,35 @@ exception and an alternative proof path before proceeding.
 
 ### 5. Implementation review
 
-`/openspec-story-review` is independent, oblivious, and read-only for product
-code. It must run from a completely fresh session with no implementation-loop
-notebook, summary, operational notes, or prior chat context. It may write only:
+`/openspec-story-review` is an independent, oblivious, readonly evaluator. It
+must run from a completely fresh session with no implementation-loop notebook,
+summary, operational notes, or prior chat context. It reads the bound IN REVIEW
+story, contract, implementation, tests, tasks, prior durable evidence, design
+trace, risk lenses, and proof quality, then returns exactly one portable
+`ADD-REVIEW-PACKET/1` response. It does not write product code, OpenSpec
+artifacts, notebook state, receipts, Status, `blocked.md`, progress timelines,
+or publication logs.
 
-- the single compact current completed verdict in
-  `progress.md → ## Implementation Review Receipt`;
-- the top-level `story.md → Status:` field;
-- a concise `progress.md → ## Progress Timeline` transition entry;
-- `blocked.md` for BLOCKED.
+`/openspec-feedback` review packet triage is the sole publisher for this flow. It
+validates and pair-binds the complete packet, dispositions all packet and
+operator-added findings as one set, shows every canonical postcondition and one
+lifecycle outcome, and requires complete confirmation before writing. Canonical
+story/design/task/initiative edits are verified first; an accepted external
+blocker creates or verifies exact `blocked.md` bytes next; top-level Status is
+published last. Accepted current work returns to IN PROGRESS, an accepted
+external blocker publishes BLOCKED, and an eligible clean APPROVE or REQUEST
+CHANGES disposition set may publish DONE. BLOCKED and NOT REVIEWABLE packets
+never publish DONE.
 
-A completed verdict publishes in one unambiguous fail-closed order: for BLOCKED,
-write `blocked.md` first; then replace/create the normalized receipt **and** its
-required transition timeline entry together in the same validated `progress.md`
-write; then update top-level Status last. Re-read after Status and perform no
-later writes. A receipt/progress failure therefore cannot publish DONE/BLOCKED
-Status. A Status failure leaves contradictory durable evidence that blocks DONE
-and must be repaired rather than inferred away. Pre-verdict `NOT REVIEWABLE`
-aborts write no blocker, receipt, Status, or timeline entry.
-
-The receipt body records Reviewed at, Decision (`APPROVE`, `REQUEST CHANGES`, or
-`BLOCKED`), Approval gate, Status transition, Evidence reviewed, Identity method
-(`review-identity-v1`), Identity digest, Identity bases, Identity paths,
-Findings, Proof, and Next owner. There is exactly one current receipt
-heading/body: review replaces it after each completed verdict, while the
-append-only progress timeline carries history. Review checks the story contract,
-implementation, tests, tasks, prior findings, design trace, risk lenses, and
-evidence quality. It can request changes and route to
-`/openspec-story-resume`, block, or mark a locally approved story `✅ DONE` when
-all completion gates pass.
-
-Malformed or duplicate receipt sections fail closed for DONE delivery/archive.
-A fresh oblivious review may reconcile them only after completing the substantive
-review: it carries recoverable prior concerns into the assessment, replaces the
-entire malformed/duplicate receipt span with one current well-formed body, and
-then writes Status last. It never selects the apparent latest old body, invents
-approval, or performs receipt-only cleanup.
-
-Status controls non-DONE routing. Authorized later claim/resume/feedback work may
-make an older receipt historical without deleting it; the next completed review
-replaces it. DONE with a present receipt requires exactly one well-formed current
-APPROVE/PASS body, a DONE transition, complete `review-identity-v1` fields, and
-no later contradiction. Duplicate or malformed sections and FAIL/non-approve or
-contradictory evidence block. A bound DONE missing its receipt also blocks in
-planning and implementation routing. Only an unbound pre-v3 DONE—zero Initiative
-or Initiative-like lines and zero receipt sections—gets bounded compatibility,
-with a warning and no backfill.
-
-`review-identity-v1` is story-scoped. Its receipt stores the digest and exact
-scope as compact no-whitespace UTF-8 JSON arrays: bases use
-`{"repo":"<basename>","base":"<review-base>"}` sorted by `repo` bytes and paths
-use `{"repo":"<basename>","path":"<relative-path>"}` sorted by `repo`, then
-`path` bytes (`[]` when empty); basenames and `(repo,path)` pairs are unique.
-Each base is the full immutable Git commit object ID delimiting the story scope;
-each path is relative to its repository root. For every listed
-path, emit exactly one UTF-8, no-header row
-`repo<TAB>path<TAB>type<TAB><lowercase-64-hex-sha256><LF>`. `repo` is the repository
-basename; `path` is `/`-separated and relative to its repository root;
-`type` is exactly `file`, `executable`, `symlink`, or `deleted`; and the row hash
-covers exact file bytes, symlink-target bytes, or zero bytes for `deleted`.
-Reject repository names or paths containing TAB, LF, or CR. Bytewise-sort the
-complete encoded rows, concatenate them with every row LF-terminated and no
-other bytes, then SHA-256 the result; an empty path list hashes zero bytes.
-
-The path list is the exact reviewed story implementation/config/test/runtime
-scope, including relevant tracked, modified, deleted, type-changed, and
-non-ignored untracked paths. Exclude VCS metadata and the selected story's
-review-owned coordination files `story.md`, `progress.md`, and `blocked.md`; do
-not broadly exclude `openspec/` or unrelated selected source paths. PR
-recomputes from the receipt bases/paths before any write, requires an exact
-receipt-digest match, and records the verified digest/time in PR State. Archive
-trusts that matching durable verification for a merged PR and does not
-recompute; only the explicit no-PR archive route recomputes before writes.
+Legacy `progress.md → ## Implementation Review Receipt` bodies and their
+`review-identity-v1` fields remain reader-compatibility inputs for prerequisite,
+next-action, PR, archive, resume, and convergence gates during migration. No new
+readonly-review or packet-triage receipt/timeline/history is produced. Existing
+readers continue to fail closed on a bound DONE story whose retained receipt is
+missing, duplicate, malformed, non-approving, identity-incomplete, superseded,
+or contradictory. Only the documented unbound pre-v3 DONE exception may qualify
+without a receipt, with a warning and no backfill. This compatibility does not
+confer write ownership on `/openspec-story-review`.
 
 GitHub PRs are external delivery/review channels. A PR may still be opened or
 refreshed after local completion, but PR state does not own `story.md → Status:`.
@@ -470,12 +437,12 @@ Canonical dispositions:
 | `initiative-level-decision` | Initiative decision notes. |
 | `defer-or-reject` | Receipt only, preserving the acknowledged reason. |
 
-For every disposition, `/openspec-feedback` creates `## Feedback Receipts` in
-`initiative.md` if absent and appends exactly one portable entry with Feedback
-ID, Source ID, Source hash, Disposition, Target, Acknowledged reason/rationale,
-Changed artifacts, and Next owner. `Source ID` plus `Source hash` is the
-reproducible deduplication key: stable provider object IDs identify hosted
-feedback. A manual/file item is valid UTF-8 with CRLF converted to LF and only
+For every ordinary-mode disposition, `/openspec-feedback` creates `## Feedback
+Receipts` in `initiative.md` if absent and appends exactly one portable entry
+with Feedback ID, Source ID, Source hash, Disposition, Target, Acknowledged
+reason/rationale, Changed artifacts, and Next owner. `Source ID` plus `Source
+hash` is the reproducible deduplication key: stable provider object IDs identify
+hosted feedback. A manual/file item is valid UTF-8 with CRLF converted to LF and only
 outer Unicode whitespace trimmed; SHA-256 is computed over the complete remaining
 normalized UTF-8 bytes with no added delimiter or terminal LF. Its Source ID is
 `manual:sha256:<full-hex>` and its Source hash uses that same full hash—never an
@@ -505,6 +472,17 @@ receipt-only dispositions recover by the same dedupe rule. Notebook support is
 optional orientation only and cannot replace the ledger; `/openspec-feedback`
 does not require notebook APIs. Contract-changing feedback must pass fresh
 `/openspec-story-plan-review` before implementation continues.
+
+Review packet triage is a separate atomic mode. It validates the producer's
+complete ordered packet grammar and pair-qualified root, writes only within the
+bound current story/current initiative, records no packet receipt/cycle/digest/
+history, and publishes Status last after all confirmed postconditions. It may
+create a confirmed absent `blocked.md`; exact existing bytes satisfy the
+postcondition and conflicting existing content is preserved as a hard stop.
+Ordinary mode keeps the receipt-based contract above. Existing prerequisite,
+next-action, PR, archive, resume, and convergence readers retain their legacy
+receipt compatibility until the later explicit readers/migration slice; this
+packet-triage slice does not normalize or rewrite those readers.
 
 ### 9. Archive
 
@@ -551,10 +529,13 @@ than mutating it remotely. Archived workspaces move to
 | Ready TODO → IN PROGRESS Status claim, including prerequisite readiness | `/openspec-story-claim` |
 | Authorized implementation continuation Status writes | `/openspec-story-resume` |
 | Implementation progress and handoff | `/openspec-story-claim`, `/openspec-story-resume` |
-| Explicit implementation blocker creation/update | `/openspec-story-claim`, `/openspec-story-resume`, `/openspec-story-review` |
-| Current review receipt, completed-verdict Status, and review timeline transition | `/openspec-story-review` |
+| Explicit implementation blocker creation/update | `/openspec-story-claim`, `/openspec-story-resume`; confirmed absent-file creation by `/openspec-feedback` review packet triage |
+| Portable readonly implementation review packet | `/openspec-story-review` |
+| Confirmed review-packet canonical edits and Status-last publication | `/openspec-feedback` review packet triage |
+| Legacy implementation review receipts | Retained reader compatibility only until the later readers/migration slice; no new packet-triage receipt |
 | PR metadata and delivery evidence | `/openspec-pr` |
-| First-use `## Feedback Receipts` creation and all feedback receipts/candidates/decisions | `/openspec-feedback` |
+| Ordinary-mode first-use `## Feedback Receipts` creation and feedback receipts/candidates/decisions | `/openspec-feedback` ordinary mode |
+| Receiptless review-packet current-story/current-initiative decisions and handoffs | `/openspec-feedback` review packet triage |
 | Archive preflight and delegation to `/opsx:archive` | `/openspec-archive` |
 | Read-only lifecycle inspection and next-command recommendation | `/openspec-next-action` |
 | Plan or implementation loop selection | `/openspec-story-plan-converge`, `/openspec-story-converge` |

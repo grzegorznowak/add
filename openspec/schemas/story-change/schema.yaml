@@ -51,9 +51,12 @@ artifacts:
       /openspec-story-plan-review; planning/scaffold repair is written by
       /openspec-story-plan-resume. /openspec-story-claim and
       /openspec-story-resume write authorized implementation Status:
-      transitions; /openspec-feedback may write acknowledged contract/lane and
-      reopen edits. The readonly implementation evaluator only reads this
-      artifact. Planning readers apply the
+      transitions; ordinary /openspec-feedback may write acknowledged
+      contract/lane and reopen edits, while confirmed review-packet triage may
+      publish its bounded IN PROGRESS, DONE, or BLOCKED outcome Status last after
+      all canonical postconditions. The readonly implementation evaluator only
+      reads this artifact and emits a transient packet; it never writes Status,
+      receipts, blockers, or timelines. Planning readers apply the
       same bound-DONE rule: a bound DONE story requires one well-formed current
       APPROVE/PASS receipt and never falls through to receipt-absent legacy
       handling.
@@ -107,11 +110,18 @@ artifacts:
     generates: blocked.md
     description: >
       Explicit blocker gate file. When present, lifecycle gates refuse to
-      continue. The operator removes this file to unblock; editing or annotating
-      it may document resolution, but the gate remains closed while the file
-      exists. Created or updated by /openspec-story-claim and
-      /openspec-story-resume. Readonly implementation review treats it only as
-      an input gate. A plan-review blocked verdict uses the Plan lane instead.
+      continue. The sole publication-rerun exception lets confirmed
+      /openspec-feedback packet triage verify exact planned existing bytes
+      without rewriting before Status-last BLOCKED publication. Otherwise the
+      operator removes this file to unblock; editing or annotating it may
+      document resolution, but the gate remains closed while the file exists.
+      Created or updated by /openspec-story-claim and
+      /openspec-story-resume. Confirmed /openspec-feedback review-packet triage
+      may create only an absent file whose planned final bytes are confirmed,
+      treats an exact existing file as satisfied, and stops on an
+      existing conflict without overwriting. Readonly implementation review
+      treats it only as an input gate. A plan-review blocked verdict uses the
+      Plan lane instead.
       Never auto-created during normal planning.
     template: blocked.md
 

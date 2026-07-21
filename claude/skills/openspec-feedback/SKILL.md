@@ -12,9 +12,13 @@ Absorb structured feedback into one OpenSpec initiative without turning PR revie
 
 Argument: `$ARGUMENTS` — `<initiative_slug> [--pr <pr_url>] [feedback_or_file] [WORKTREE="<basename>=<path>"]`. The initiative slug is required by argument or explicit menu selection. PR mode processes all actionable feedback items from the PR.
 
+## Mode router
+
+Route the invocation before applying workflow prose. One complete fenced `ADD-REVIEW-PACKET/1` packet in the immediately preceding message or pasted payload selects **review packet triage mode**; use the shared boundaries in `## Important` and then only `## Review packet triage mode`. Every other valid feedback source selects **ordinary non-review feedback mode**; use the shared boundaries and Phases 0–6. Packet-like input that fails the exact review-mode intake contract stops with zero writes and never falls through to ordinary mode.
+
 ## Important
 
-This command may edit coordination documents only:
+The boundaries in this section apply to both modes. This command may edit coordination documents only:
 
 - `initiative.md` (Feedback-Derived Story Candidates, Feedback-Derived Decisions, Feedback Receipts)
 - non-archived change workspace artifacts under `openspec/changes/<story-slug>/`:
@@ -22,9 +26,12 @@ This command may edit coordination documents only:
   - `design.md` (when design sources or element trace are affected)
   - `tasks.md` (feedback-owned task additions, reopenings, or contract-alignment edits)
   - `story.md` Status header and contract sections (review findings reflected in contract)
-  - `progress.md` (a feedback checkpoint for every direct amendment or implementation resume, including status-only resume)
+  - `progress.md` (an ordinary-feedback checkpoint for every direct amendment or implementation resume, including status-only resume)
+  - `blocked.md` (review packet mode only, for a confirmed accepted external blocker)
 
-`Write` is permitted only when a missing `progress.md`, `## Progress Timeline`, or `initiative.md → ## Feedback Receipts` section must be created for an acknowledged edit, or when exact retained bytes/hashes are needed for transaction rollback or reconciliation; do not create unrelated scaffold. It never touches product source code, tests, configs, archived change workspaces, `CONTRACT.md`, worktree contents outside the resolved coordination artifacts, branches, GitHub PR bodies, or `reviews.md` (legacy artifact; review findings are durable in story.md and the initiative feedback receipt). It never creates a full new change workspace and never advances or approves implementation status. Its only allowed `story.md → Status:` write is an explicitly acknowledged `resume-current-story` reopen to `🔄 IN PROGRESS` so implementation can resume after local/PR feedback. New work discovered from feedback becomes a feedback-derived story candidate in the initiative; `/openspec-story-plan` owns full story planning.
+In ordinary non-review feedback mode, `Write` is permitted only when a missing `progress.md`, `## Progress Timeline`, or `initiative.md → ## Feedback Receipts` section must be created for an acknowledged edit, or when exact retained bytes/hashes are needed for transaction rollback or reconciliation; do not create unrelated scaffold. Review packet mode may additionally create its confirmed `blocked.md`, under the stricter atomic procedure below. Neither mode touches product source code, tests, configs, archived change workspaces, `CONTRACT.md`, worktree contents outside the resolved coordination artifacts, branches, GitHub PR bodies, or `reviews.md` (legacy artifact). Neither mode creates a full new change workspace.
+
+Ordinary mode never advances or approves implementation status. Its only allowed `story.md → Status:` write is an explicitly acknowledged `resume-current-story` reopen to `🔄 IN PROGRESS` so implementation can resume after local/PR feedback. Review packet mode instead owns only the confirmed, Status-last lifecycle outcomes defined in its dedicated section. New work discovered from ordinary feedback becomes a feedback-derived story candidate in the initiative; `/openspec-story-plan` owns full story planning.
 
 There is no dry-run mode. Normal operation is:
 
@@ -43,6 +50,81 @@ Feedback often spans several stories. Selecting a story before classification re
 `## Plan Review Log` in `story.md` answers: "what planning contract concerns must be resolved before implementation continues?"
 
 `Plan:` header in `story.md` answers: "is the story contract ready to implement, or does it need planning rework?"
+
+## Review packet triage mode
+
+This is a dedicated, atomic intake path. It does not use Phases 0–6 below. Review mode starts only from one complete fenced `ADD-REVIEW-PACKET/1` packet supplied as the immediately preceding message or pasted payload. Recognize that exact fence token before treating its contents as ordinary payload; a mention of the token, an excerpt, an unfenced block, or a packet mixed with other feedback stays invalid and must not fall through to ordinary mode. The initiative argument, when supplied, is a binding assertion rather than a second feedback source.
+
+The mode router and `## Important` are shared rules. Phases 0–6 are ordinary-mode rules and are not part of packet triage. Review packet mode uses only this section after routing. Ordinary non-review feedback mode remains separate: ordinary mode retains the existing receipt-based compatibility contract, including its acknowledgement, dispositions, FB identities, checkpoints, recovery rules, `## Feedback Receipts`, and Phase 6 response. None of those ordinary-mode contracts may be imported into review packet triage.
+
+### Validate and bind before triage
+
+Hold the packet only in transient invocation memory. The packet is never persisted, copied into an artifact, summarized as packet metadata, or used as a durable identity. Review packet mode must not create or append feedback receipts, review cycles, identity digests, or review history.
+
+Packet grammar validation is separate from artifact qualification. Before classification, confirmation, or any write, first validate only the complete packet grammar:
+
+1. Require one matching opening and closing `ADD-REVIEW-PACKET/1` fence and no text outside it. The complete ordered scalar grammar is exactly: `Review mode:`, `Review focus:`, `Subject:`, `Root:`, `Initiative:`, `Story:`, `Verdict:`, `Coverage:`, `Acceptance / proof assessment:`, `Verification run:`, `Red-first assessment:`, `Final stability recheck:`, and `Finding count:`. Require each scalar exactly once, in that order, and non-empty except for the producer-documented `none` or not-run forms. `Review mode` is `full` or `focused`; `Verdict` is exactly `APPROVE`, `REQUEST CHANGES`, `BLOCKED`, or `NOT REVIEWABLE`. After the conditional findings form and one final `Next step`, reject every unrecognized, additional, duplicated, or out-of-order line.
+2. Parse `Finding count` as a base-10 nonnegative integer. A zero count requires exactly `Findings: none` and forbids finding-block lines. A nonzero count forbids `Findings: none` and requires exactly that many contiguous blocks. The exact consumer finding-field manifest is: `Finding ID:`, `Severity:`, `Summary:`, `Evidence:`, `Impact:`, `Proof / verification:`, `Requested outcome:`. Require exactly those seven lines in that order in each block, unique non-empty finding IDs, and no extra block fields. `Severity` is exactly one of `Critical`, `High`, `Medium`, `Low`, or `Info`. Require exactly one final `Next step: /openspec-feedback` after all findings. Require packet Initiative and Story values to match the canonical slug grammar before using either in a path.
+
+A malformed, truncated, or internally stale packet fails these grammar/intake gates with zero writes and requires a fresh complete packet. Packet-like input that fails this contract never falls through to ordinary feedback mode.
+
+After grammar succeeds, attempt artifact qualification and pair binding:
+
+3. **Pair-qualified root contract.** Resolve the review root independently of ordinary Phase 0: every candidate must contain both the packet initiative artifact and packet story artifact at their exact contained active paths. Use this precedence: explicit selector, then the unique exact initiative/story branch worktree, then launch root. An explicit `WORKTREE=` path may qualify whether or not it is registered, provided both exact artifacts are contained beneath that path; multiple qualifying explicit candidates halt as ambiguous. Only the fallback branch-discovery step is restricted to registered worktrees: when no explicit candidate qualifies, a registered worktree qualifies when its exact branch is `refs/heads/<Initiative>/<Story>` and both artifacts are contained; ambiguity halts. Use launch root only when no qualifying branch worktree exists and both artifacts are contained there. Require packet `Root` to resolve to that same root and the invocation initiative (if present) to equal packet Initiative. Never merge roots or redirect a mismatch.
+4. **Packet legacy-binding compatibility.** Inventory the complete top-level header region of the contained non-archived `openspec/changes/<Story>/story.md` before consuming a binding. Exactly one canonical `Initiative:` equal to packet Initiative binds. Any duplicate, malformed, empty, noncanonical, or mismatched Initiative-like line is a hard zero-write conflict. With zero Initiative or Initiative-like lines, inspect only exact story-slug associations in every existing initiative’s `## Story Candidates`: exactly one unique exact `## Story Candidates` association binds only when it equals packet Initiative; different or multiple exact associations halt. When there is no exact association, the packet’s explicit `Initiative:`/`Story:` pair is the compatibility fallback because the producer already emitted that operator-selected pair; require the matching existing packet initiative and story artifacts and warn that the durable header is absent. Never silently backfill or normalize the binding. A canonical header may be added only when that canonical header edit is part of the complete confirmed triage set shown before writes; otherwise safely publish under this same legacy binding without repair.
+5. When the pair binds, re-read `story.md`, the packet evidence anchors, and the minimum artifacts needed to test the requested outcomes. Require every path to remain within the bound root and every cited fact needed for triage to be inspectable. Record current canonical content and hashes in memory. A normal writable first pass requires top-level `Status: 🟣 IN REVIEW`; the same status also permits reconciliation after an interrupted confirmed pass whose canonical edits landed before Status publication.
+
+For `APPROVE`, `REQUEST CHANGES`, or `BLOCKED`, failed qualification, binding, containment, evidence inspection, or IN-REVIEW state is a hard zero-write stop; request a fresh packet only when the packet itself is malformed or stale, otherwise route the failed artifact/state prerequisite to its owning workflow.
+
+**NOT REVIEWABLE prerequisite route.** A structurally valid `NOT REVIEWABLE` packet does not dead-end when pair qualification, binding, artifact integrity, or current `Status: 🟣 IN REVIEW` is the failed review prerequisite. Attempt qualification and binding first. If either cannot succeed, or current Status is not IN REVIEW, enter a routing-only, zero-write branch rather than requiring a new packet. Disposition every packet and operator-added finding together, if any, as a transient routing set; include an explicit no-findings outcome when both sets are empty. Show the complete proposed no-write routing set and obtain one confirmation when operator judgment or an added finding affects the route. Never propose canonical edits, create `blocked.md`, or publish any lifecycle Status in this branch, and never publish DONE. Route the failed prerequisite to its owning workflow—for example planning repair, blocker resolution/resume, missing workspace planning, prerequisite owner, or the current state-owning command. Ask for a fresh packet only if packet grammar is malformed or its asserted packet facts are stale, not merely because the review correctly reported an unqualified pair or state. A `NOT REVIEWABLE` packet that does bind a valid IN-REVIEW pair continues into normal triage below and may accept a current-story correction or external blocker, but remains ineligible for DONE.
+
+### Build one complete triage decision
+
+Start with every validated packet finding. Include operator-added findings in the same review-mode finding set. Before disposition, require each operator-added finding to supply the same substantive facts—summary, direct evidence, impact, proof or verification, and requested outcome—as a packet finding; keep any transient local label out of canonical artifacts. If the packet has zero findings and the operator adds none, record an explicit transient `no findings` outcome for confirmation rather than inventing a disposition or durable entry.
+
+Disposition every finding as exactly one of `accept`, `reject-or-waive`, `defer`, or `re-scope`.
+
+- `accept`: identify the smallest canonical story contract, task, design, proof, or blocker edit that satisfies the requested outcome. Classify accepted work as current-story rework or as an external prerequisite that genuinely prevents current-story work.
+- `reject-or-waive`: require a specific operator-confirmed rationale. Plan a durable statement of the actual product/scope decision in `story.md` under the applicable `## Locked Decisions`, `## Out of Scope`, acceptance, or verification text; never store only a conversational rejection.
+- `defer`: require a named future owner and concrete destination. Plan the bounded non-current obligation in `story.md` and, when the destination is initiative work, the corresponding initiative story candidate or decision so it remains actionable.
+- `re-scope`: require the destination initiative/story or explicit owner that now owns the outcome. Remove ambiguity from the current story contract and preserve an actionable handoff without creating or editing a destination change workspace.
+
+**Bounded destination contract.** Durable review-mode writes stay inside the bound current story and current initiative. Record every deferred or re-scoped obligation, future owner, and named destination in the bound current `story.md`; when initiative routing is needed, add only the corresponding candidate or decision in the bound current `initiative.md`. Re-scoping to another initiative or story is a handoff recorded in those current artifacts, not authority to write the destination. Revalidate canonical slugs, active/non-archived source binding, path containment, expected content, and current initiative association for every current-story/current-initiative candidate immediately before confirmation and writes.
+
+For every proposed canonical change, show the exact artifact and section, the intended postcondition, and why that location is authoritative. Do not include raw packet text, the fence token, packet verdict metadata, finding IDs as journal keys, source hashes, receipt IDs, review-cycle numbers, or a review-history entry. Durable text records the resulting contract, rationale, owner, or destination—not the packet that prompted it.
+
+Determine one proposed lifecycle outcome from the complete disposition set and packet Verdict:
+
+1. An accepted external prerequisite that prevents current work is the blocker outcome. **Blocker publication contract.** Plan complete final `blocked.md` bytes from the canonical template, with its `# Blocked: <story-slug>`, `## Blocker`, and `## Resolution` sections naming the blocker, evidence, resolution condition, and owner, followed by `⛔ BLOCKED`. If an existing bound `blocked.md` exactly matches the planned final bytes, treat that postcondition as already satisfied and do not rewrite it. A conflicting existing `blocked.md` is a hard conflict: stop with zero new writes, preserve it, and require owner resolution or a rebuilt complete triage plan; never overwrite or merge it.
+2. Otherwise, accepted current-story rework is the rework outcome. Any accepted finding owned by the current story publishes `🔄 IN PROGRESS`.
+3. Only `APPROVE` and `REQUEST CHANGES` packets are eligible for clean completion. When every finding is durably rejected/waived, deferred, or re-scoped, with no accepted current-story work and no accepted external blocker, publish `✅ DONE`.
+4. A `NOT REVIEWABLE` packet may triage an accepted current-story correction or accepted external blocker through outcomes 1–2, but it is never eligible for clean completion. `NOT REVIEWABLE` never publishes `✅ DONE`. With neither accepted correction nor accepted blocker, leave Status `🟣 IN REVIEW`, make no lifecycle write, and route the failed prerequisite to its owner.
+5. A `BLOCKED` packet with an accepted external blocker creates or verifies `blocked.md` and then publishes `⛔ BLOCKED`. A `BLOCKED` packet with accepted current-story correction but no accepted external blocker publishes `🔄 IN PROGRESS`. A `BLOCKED` packet with neither accepted outcome remains `🟣 IN REVIEW`, writes no lifecycle Status, and routes blocker resolution or a fresh review as appropriate. `BLOCKED` is never eligible for clean completion and can never publish `✅ DONE`.
+
+The blocker outcome takes precedence because work cannot truthfully be published resumable while its accepted external prerequisite prevents progress. All accepted non-blocker findings still receive canonical edits before that blocker publication.
+
+### Single confirmation and zero-write exits
+
+Collect and show every finding disposition together, then obtain one explicit confirmation of the complete set before any write. The confirmation view includes operator-added findings (or the explicit zero-finding outcome), every artifact postcondition, every reject/waive rationale, every deferred/re-scoped owner and destination, and the one lifecycle outcome. Ask exactly whether to apply the complete triage set.
+
+The operator may revise any disposition, rationale, owner, destination, or edit; rebuild and show the entire set after a revision. Do not interpret confirmation of one row, a subset, canonical edits without the lifecycle outcome, or the lifecycle outcome without all canonical edits as authorization. Cancellation or partial selection ends review mode with zero writes. Questions, requested revisions, invalid confirmation, and a choice to handle only some findings also end or repeat planning without edits; they never fall through to ordinary mode.
+
+### Apply, verify, and publish
+
+After complete confirmation, re-resolve the same bounded root and re-run packet binding, top-level `Status: 🟣 IN REVIEW`, path containment, evidence, target-section, and expected-content/hash gates. Construct the complete final bytes for every planned artifact before the first write. If anything drifted, stop with zero new writes and request a fresh plan or packet.
+
+Apply and verify every confirmed canonical artifact edit before publishing lifecycle Status. Use this order:
+
+1. Apply idempotent story/design/tasks/initiative edits for all dispositions. After each edit, re-read the artifact and verify the exact intended postcondition and content hash. For each `reject-or-waive`, durably record the confirmed rationale in canonical story artifacts. For each `defer` or `re-scope`, durably record the future owner and destination in canonical artifacts.
+2. For an accepted external blocker, create and verify `blocked.md` before publishing `⛔ BLOCKED`; when it already exactly matches the confirmed final bytes, verify and retain it without a write. Refuse to publish BLOCKED if the blocker file is missing, incomplete, conflicting, outside the bound story, or fails verification.
+3. Re-read and verify every confirmed non-Status postcondition as one complete set. Ensure the proposed lifecycle outcome still follows from current evidence and no unconfirmed edit is present.
+4. Write the top-level `Status:` header last, only after every other confirmed write is verified. Change only that exact header: blocker outcome to `⛔ BLOCKED`, rework outcome to `🔄 IN PROGRESS`, and eligible clean completion to `✅ DONE`. Re-read it and all final postconditions before reporting success.
+
+A write or verification failure stops immediately and forbids the Status write. Report exact changed paths and which intended postconditions are present or missing; do not claim cancellation and do not manufacture rollback success. Canonical edits may therefore exist while Status remains `🟣 IN REVIEW`.
+
+**Rerun contract.** On a rerun with the same complete packet while Status remains `🟣 IN REVIEW`, validate and pair-bind it from scratch, rebuild the complete dispositions, and obtain complete confirmation again. Reconcile each intended postcondition against current canonical content: treat an exact already-satisfied edit (including exact `blocked.md` bytes) as complete, reject conflicting or ambiguous content, and apply only missing edits in the same order. This reconciliation uses canonical end state, not a journal, packet identity, receipt, digest, cycle, or persisted packet. Status remains the final operation. If Status already left IN REVIEW, do not infer that a newly supplied packet is the one previously applied; stop and require the state-owning workflow.
+
+Report packet mode separately: dispositions by transient finding label, verified canonical paths, and final Status (or unchanged IN REVIEW after failure). Do not use the ordinary Phase 6 receipt fields or ordinary-mode next-route derivation.
 
 ## Phase 0 — Resolve initiative and intake
 

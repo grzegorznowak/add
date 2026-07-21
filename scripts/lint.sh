@@ -698,14 +698,18 @@ check_review_focus_mention_ownership() {
         bad+=("$runtime:$skill:missing-file")
         continue
       fi
-      findings="$(grep -inF -- 'review focus' < <(markdown_without_comments "$file") || true)"
+      if [[ "$skill" == openspec-feedback ]]; then
+        findings="$(markdown_without_comments "$file" | awk '{ gsub(/`Review focus:`/, ""); print }' | grep -inF -- 'review focus' || true)"
+      else
+        findings="$(grep -inF -- 'review focus' < <(markdown_without_comments "$file") || true)"
+      fi
       [[ -z "$findings" ]] || bad+=("$runtime:$skill:lines=$(cut -d: -f1 <<<"$findings" | paste -sd, -)")
     done
   done
   if [[ ${#bad[@]} -gt 0 ]]; then
-    fail "active Review Focus mentions are permitted only in claim, resume, and review: ${bad[*]}"
+    fail "active Review Focus mentions are permitted only in claim, resume, review, and feedback's exact packet scalar: ${bad[*]}"
   else
-    ok "active Review Focus mentions occur only in claim, resume, and review across canonical + generated Codex/Pi"
+    ok "active Review Focus mentions occur only in claim, resume, review, and feedback's exact packet scalar across canonical + generated Codex/Pi"
   fi
 }
 
@@ -939,6 +943,324 @@ check_no_all_runtime_force_guidance() {
   printf '%s\n' 'Do not recommend scripts/install.sh --agents all --force in prose.' >"$sample"
   if has_all_runtime_force_guidance "$sample"; then
     fail "all-runtime force detector scanned non-code prose as an executable command"
+  fi
+}
+
+has_positive_packet_ledger_write() {
+  local text
+  text="$(markdown_without_comments /dev/stdin)"
+  awk '
+    { text = text " " tolower($0) }
+    END {
+      # Protect Markdown path suffixes so sentence splitting keeps the path and
+      # its surrounding writer/object phrase in one candidate.
+      gsub(/\.md/, "__markdown_suffix__", text)
+      count = split(text, clause, /[.;]|[[:space:]]+(but|however)[[:space:]]+/)
+      for (i = 1; i <= count; i++) {
+        candidate = clause[i]
+        gsub(/__markdown_suffix__/, ".md", candidate)
+        gsub(/(instead of|rather than)[[:space:]]+(a[[:space:]]+|the[[:space:]]+)?(review packet|packet metadata|packet.s metadata|feedback receipts?|review cycles?|identity digests?|review (history|timeline)|publication log)/, "", candidate)
+        gsub(/retains?[[:space:]]+the[[:space:]]+existing[[:space:]]+receipt-based[[:space:]]+compatibility[[:space:]]+contract/, "", candidate)
+        packet_ledger = candidate ~ /(review packet|packet metadata|packet.s metadata|feedback receipts?|review cycles?|identity digests?|review (history|timeline)|publication log)/
+        addition = candidate ~ /(^|[^a-z])(save|saves|saved|saving|copy|copies|copied|copying|store|stores|stored|storing|persist|persists|persisted|persisting|write|writes|wrote|written|writing|append|appends|appended|appending|create|creates|created|creating|emit|emits|emitted|emitting|record|records|recorded|recording|log|logs|logged|logging|retain|retains|retained|retaining|mirror|mirrors|mirrored|mirroring|update|updates|updated|updating|maintain|maintains|maintained|maintaining)([^a-z]|$)/
+        negative = candidate ~ /(^|[^a-z])(do not|don.t|must not|never|no new|without|forbid|forbids|forbidden)([^a-z]|$)/
+        if (packet_ledger && addition && !negative) found = 1
+      }
+      exit found ? 0 : 1
+    }
+  ' <<<"$text"
+}
+
+has_stale_story_review_writer_claim() {
+  awk '
+    function stale_paragraph(text, count, clause, i, candidate, writer_candidate,
+                             explicit_writer, other_writer, artifact, mutation,
+                             negative, writer_context) {
+      text = tolower(text)
+      # Template comments are contractual prose, and .md path dots are not
+      # sentence boundaries.
+      gsub(/\.md/, "__markdown_suffix__", text)
+      count = split(text, clause, /[.;]|[[:space:]]+(but|however)[[:space:]]+/)
+      writer_context = 0
+      for (i = 1; i <= count; i++) {
+        candidate = clause[i]
+        gsub(/__markdown_suffix__/, ".md", candidate)
+        writer_candidate = candidate
+        gsub(/implementation review receipt/, "receipt", writer_candidate)
+        explicit_writer = writer_candidate ~ /(\/openspec-story-review|implementation review|readonly review)/
+        other_writer = candidate ~ /\/openspec-feedback/ || (candidate ~ /\/openspec-/ && !explicit_writer)
+        if (explicit_writer) writer_context = 1
+        else if (other_writer) writer_context = 0
+        artifact = candidate ~ /(receipt|status|timeline|blocked\.md|progress\.md|story\.md)/
+        mutation = candidate ~ /(^|[^a-z])(own|owns|write|writes|wrote|written|writing|create|creates|created|creating|append|appends|appended|appending|publish|publishes|published|publishing|record|records|recorded|recording|replace|replaces|replaced|replacing|update|updates|updated|updating)([^a-z]|$)/
+        negative = candidate ~ /(^|[^a-z])(do not|does not|must not|never|no[[:space:]]+(write|status|receipt|timeline|blocked)|owns?[[:space:]]+no|without|only reads|reader compatibility|not evaluator-owned)([^a-z]|$)/
+        if (!other_writer && (explicit_writer || writer_context) && artifact && mutation && !negative) return 1
+      }
+      return 0
+    }
+    /^[[:space:]]*$/ {
+      if (stale_paragraph(paragraph)) found = 1
+      paragraph = ""
+      next
+    }
+    { paragraph = paragraph " " $0 }
+    END {
+      if (stale_paragraph(paragraph)) found = 1
+      exit found ? 0 : 1
+    }
+  '
+}
+
+has_exact_consumer_finding_manifest() {
+  grep -Fq -- 'The exact consumer finding-field manifest is: `Finding ID:`, `Severity:`, `Summary:`, `Evidence:`, `Impact:`, `Proof / verification:`, `Requested outcome:`.'
+}
+
+has_exact_malformed_packet_fallback_contract() {
+  local text
+  text="$(cat)"
+  grep -Fq -- 'A malformed, truncated, or internally stale packet fails these grammar/intake gates with zero writes and requires a fresh complete packet.' <<<"$text" &&
+    grep -Fq -- 'Packet-like input that fails this contract never falls through to ordinary feedback mode.' <<<"$text"
+}
+
+check_feedback_review_packet_triage_contract() {
+  local skill=openspec-feedback producer=openspec-story-review codex_skill producer_codex
+  local runtime file producer_file section whole key pattern scalar packet_schema
+  local actual_packet_labels expected_packet_labels mutated_section finding_field needle
+  local -a missing=()
+  local -a section_contracts=(
+    validation-section '### Validate and bind before triage'
+    decision-section '### Build one complete triage decision'
+    confirmation-section '### Single confirmation and zero-write exits'
+    publication-section '### Apply, verify, and publish'
+  )
+  local -a relationships=(
+    pair-root-label '**Pair-qualified root contract.**'
+    pair-root-artifacts 'both the packet initiative artifact and packet story artifact'
+    pair-root-precedence 'explicit selector, then the unique exact initiative/story branch worktree, then launch root'
+    explicit-root-unregistered 'An explicit `WORKTREE=` path may qualify whether or not it is registered'
+    legacy-binding-label '**Packet legacy-binding compatibility.**'
+    legacy-binding-unique 'exactly one unique exact `## Story Candidates` association'
+    legacy-binding-explicit-pair 'the packet’s explicit `Initiative:`/`Story:` pair is the compatibility fallback'
+    legacy-binding-conflict 'different or multiple exact associations'
+    legacy-binding-confirmed-repair 'canonical header edit is part of the complete confirmed triage set'
+    grammar-qualification-separation 'Packet grammar validation is separate from artifact qualification'
+    not-reviewable-routing-only 'routing-only, zero-write branch'
+    not-reviewable-all-findings 'Disposition every packet and operator-added finding together'
+    not-reviewable-owner-route 'route the failed prerequisite to its owning workflow'
+    initial-state '`Status: 🟣 IN REVIEW`'
+    dispositions '`accept`, `reject-or-waive`, `defer`, or `re-scope`'
+    atomic-confirmation 'complete triage set'
+    zero-write 'zero writes'
+    bounded-destination-label '**Bounded destination contract.**'
+    bounded-destination 'writes stay inside the bound current story and current initiative'
+    blocker-label '**Blocker publication contract.**'
+    blocker-existing 'exactly matches the planned final bytes'
+    blocker-conflict 'conflicting existing `blocked.md`'
+    blocked-verdict-external '`BLOCKED` packet with an accepted external blocker'
+    blocked-verdict-current '`BLOCKED` packet with accepted current-story correction'
+    blocked-verdict-unresolved '`BLOCKED` packet with neither accepted outcome'
+    completion-verdicts 'Only `APPROVE` and `REQUEST CHANGES` packets'
+    rerun-label '**Rerun contract.**'
+    rerun-state 'Status remains `🟣 IN REVIEW`'
+    status-last 'Status remains the final operation'
+    no-ledger 'must not create or append feedback receipts, review cycles, identity digests, or review history'
+    ordinary-compatibility 'ordinary mode retains the existing receipt-based compatibility contract'
+  )
+  local -a packet_scalars=(
+    'Review mode' 'Review focus' 'Subject' 'Root' 'Initiative' 'Story' 'Verdict'
+    'Coverage' 'Acceptance / proof assessment' 'Verification run'
+    'Red-first assessment' 'Final stability recheck' 'Finding count'
+  )
+  local -a consumer_finding_fields=(
+    'Finding ID' 'Severity' 'Summary' 'Evidence' 'Impact'
+    'Proof / verification' 'Requested outcome'
+  )
+  expected_packet_labels="$(cat <<'EOF'
+Review mode
+Review focus
+Subject
+Root
+Initiative
+Story
+Verdict
+Coverage
+Acceptance / proof assessment
+Verification run
+Red-first assessment
+Final stability recheck
+Finding count
+Findings
+Finding ID
+Severity
+Summary
+Evidence
+Impact
+Proof / verification
+Requested outcome
+Next step
+EOF
+)"
+
+  codex_skill="$(hyphen_to_underscore "$skill")"
+  producer_codex="$(hyphen_to_underscore "$producer")"
+  for runtime in canonical codex pi; do
+    case "$runtime" in
+      canonical)
+        file="$CLAUDE_SKILLS/$skill/SKILL.md"
+        producer_file="$CLAUDE_SKILLS/$producer/SKILL.md"
+        ;;
+      codex)
+        file="$CODEX_SKILLS/$codex_skill/SKILL.md"
+        producer_file="$CODEX_SKILLS/$producer_codex/SKILL.md"
+        ;;
+      pi)
+        file="$PI_SKILLS/$skill/SKILL.md"
+        producer_file="$PI_SKILLS/$producer/SKILL.md"
+        ;;
+    esac
+    whole="$(markdown_without_comments "$file")"
+    section="$(markdown_section /dev/stdin '## Review packet triage mode' <<<"$whole")"
+    packet_schema="$(awk '/^```ADD-REVIEW-PACKET\/1$/ { inside=1; next } inside && /^```$/ { exit } inside { print }' "$producer_file")"
+    actual_packet_labels="$(awk -F': ' 'NF { print $1 }' <<<"$packet_schema")"
+    [[ "$actual_packet_labels" == "$expected_packet_labels" ]] || missing+=("$runtime:producer-schema-order-or-extra")
+    if [[ -z "$section" ]]; then
+      missing+=("$runtime:section")
+      continue
+    fi
+    if ! awk '/^## Mode router$/ { router=NR } /^## Important$/ { important=NR } END { exit !(router && important && router < important) }' <<<"$whole"; then
+      missing+=("$runtime:router-order")
+    fi
+    for ((i = 0; i < ${#section_contracts[@]}; i += 2)); do
+      key="${section_contracts[i]}"
+      pattern="${section_contracts[i + 1]}"
+      grep -Fq -- "$pattern" <<<"$section" || missing+=("$runtime:$key")
+    done
+    for ((i = 0; i < ${#relationships[@]}; i += 2)); do
+      key="${relationships[i]}"
+      pattern="${relationships[i + 1]}"
+      grep -Fqi -- "$pattern" <<<"$section" || missing+=("$runtime:$key")
+    done
+    for scalar in "${packet_scalars[@]}"; do
+      grep -Eq "^${scalar}:" "$producer_file" || missing+=("$runtime:producer-scalar:$scalar")
+      grep -Fq -- "\`$scalar:\`" <<<"$section" || missing+=("$runtime:consumer-scalar:$scalar")
+    done
+    has_exact_consumer_finding_manifest <<<"$section" || missing+=("$runtime:consumer-finding-field-manifest")
+    for finding_field in "${consumer_finding_fields[@]}"; do
+      needle="\`$finding_field:\`"
+      mutated_section="${section/"$needle"/\`MISSING FIELD:\`}"
+      if has_exact_consumer_finding_manifest <<<"$mutated_section"; then
+        missing+=("$runtime:mutation-missing-consumer-field:$finding_field")
+      fi
+    done
+    has_exact_malformed_packet_fallback_contract <<<"$section" || missing+=("$runtime:malformed-packet-fallback")
+    mutated_section="${section/never falls through to ordinary feedback mode/may fall through to ordinary feedback mode}"
+    if has_exact_malformed_packet_fallback_contract <<<"$mutated_section"; then
+      missing+=("$runtime:mutation-malformed-packet-fallback")
+    fi
+    for pattern in 'Critical' 'High' 'Medium' 'Low' 'Info'; do
+      grep -Fq -- "\`$pattern\`" <<<"$section" || missing+=("$runtime:severity:$pattern")
+    done
+    grep -Fq 'reject every unrecognized, additional, duplicated, or out-of-order line' <<<"$section" || missing+=("$runtime:reject-extra-lines")
+    if has_positive_packet_ledger_write <<<"$section"; then
+      missing+=("$runtime:packet-ledger-addition")
+    fi
+  done
+
+  if ! has_positive_packet_ledger_write <<'EOF'
+Review packet mode must not create feedback receipts; however append review history after completion.
+EOF
+  then
+    missing+=("detector:mixed-positive-negative")
+  fi
+  if ! has_positive_packet_ledger_write <<'EOF'
+Store review history after completion.
+EOF
+  then
+    missing+=("detector:store-positive")
+  fi
+  if ! has_positive_packet_ledger_write <<'EOF'
+Save/copy the review packet into story.md.
+EOF
+  then
+    missing+=("detector:save-copy-packet")
+  fi
+  if ! has_positive_packet_ledger_write <<'EOF'
+Persist packet
+metadata in progress.md.
+EOF
+  then
+    missing+=("detector:wrapped-packet-metadata")
+  fi
+  if ! has_positive_packet_ledger_write <<'EOF'
+Write to progress.md the review packet.
+EOF
+  then
+    missing+=("detector:path-before-review-packet")
+  fi
+  if ! has_positive_packet_ledger_write <<'EOF'
+Record in story.md the packet metadata.
+EOF
+  then
+    missing+=("detector:path-before-packet-metadata")
+  fi
+  if ! has_positive_packet_ledger_write <<'EOF'
+Retain the review packet in progress.md.
+EOF
+  then
+    missing+=("detector:retain-review-packet")
+  fi
+  if ! has_positive_packet_ledger_write <<'EOF'
+Mirror the review packet into initiative.md.
+EOF
+  then
+    missing+=("detector:mirror-review-packet")
+  fi
+  if has_positive_packet_ledger_write <<'EOF'
+Record canonical rationale instead of review history.
+EOF
+  then
+    missing+=("detector:negative-comparison")
+  fi
+  if has_positive_packet_ledger_write <<'EOF'
+<!-- Store review history while debugging this checker. -->
+Review packet mode must not create or append feedback receipts, review cycles, identity digests, or review history.
+EOF
+  then
+    missing+=("detector:comments-or-negative")
+  fi
+
+  if [[ ${#missing[@]} -gt 0 ]]; then
+    fail "feedback review-packet triage: incomplete contract(s): ${missing[*]}"
+  else
+    ok "feedback review-packet triage: producer-coupled grammar, bounded routing, atomic publication, and lifecycle contracts in canonical + generated Codex/Pi"
+  fi
+}
+
+check_readonly_review_write_ownership_docs() {
+  local file findings sample
+  local -a bad=()
+  for file in "$README_DOC" "$LIFECYCLE_DOC" "$CONVENTIONS_DOC" "$STORY_SCHEMA" "$STORY_TEMPLATE" "$PROGRESS_TEMPLATE" "$BLOCKED_TEMPLATE"; do
+    findings="$(has_stale_story_review_writer_claim <"$file" && printf stale || true)"
+    [[ -z "$findings" ]] || bad+=("$file")
+  done
+  sample='Implementation review writes the receipt and Status last.'
+  has_stale_story_review_writer_claim <<<"$sample" || bad+=("detector:missed-positive")
+  sample='<!-- /openspec-story-review writes the review receipt. -->'
+  has_stale_story_review_writer_claim <<<"$sample" || bad+=("detector:missed-comment-positive")
+  sample='Readonly review writes Status.'
+  has_stale_story_review_writer_claim <<<"$sample" || bad+=("detector:missed-readonly-positive")
+  sample='Implementation review updates progress.md with the receipt.'
+  has_stale_story_review_writer_claim <<<"$sample" || bad+=("detector:missed-path-positive")
+  sample='/openspec-story-review is read-only. Every completed verdict writes Status and the receipt.'
+  has_stale_story_review_writer_claim <<<"$sample" || bad+=("detector:missed-anaphoric-positive")
+  sample='Readonly /openspec-story-review only reads legacy receipts and owns no Status write.'
+  if has_stale_story_review_writer_claim <<<"$sample"; then
+    bad+=("detector:false-positive")
+  fi
+  if [[ ${#bad[@]} -gt 0 ]]; then
+    fail "readonly review write ownership: stale writer claim(s): ${bad[*]}"
+  else
+    ok "readonly review write ownership: README/docs/schema and story/progress/blocked templates exclude evaluator mutation claims"
   fi
 }
 
@@ -1679,8 +2001,11 @@ echo
 echo "lint: OpenSpec lifecycle semantic invariants"
 
 CANONICAL_SLUG_REGEX='^[a-z0-9]+(?:-[a-z0-9]+)*$'
+README_DOC="$REPO_ROOT/README.md"
+STORY_SCHEMA="$REPO_ROOT/openspec/schemas/story-change/schema.yaml"
 STORY_TEMPLATE="$REPO_ROOT/openspec/schemas/story-change/templates/story.md"
 PROGRESS_TEMPLATE="$REPO_ROOT/openspec/schemas/story-change/templates/progress.md"
+BLOCKED_TEMPLATE="$REPO_ROOT/openspec/schemas/story-change/templates/blocked.md"
 CONVENTIONS_DOC="$REPO_ROOT/docs/openspec-conventions.md"
 LIFECYCLE_DOC="$REPO_ROOT/docs/openspec-lifecycle.md"
 
@@ -1884,7 +2209,9 @@ check_workflow_contract \
   'Backfill only: reuse FB-### from the named FB marker under <receipt_root>; do not reapply owned edits.' \
   'reconcile any reported partial file first, and produce a receipt-only backfill plan.'
 require_literal "feedback receipt lifecycle contract" "$LIFECYCLE_DOC" '## Feedback Receipts'
+check_feedback_review_packet_triage_contract
 check_feedback_receipt_contract
+check_readonly_review_write_ownership_docs
 
 # Canonical/Codex feedback cannot require a notebook API. Pi may add optional
 # notebook orientation, but every disposition is already durable above.
@@ -2057,7 +2384,7 @@ for writer in \
   require_schema_writer progress "$writer"
   require_template_writer progress "$writer"
 done
-for writer in /openspec-story-claim /openspec-story-resume; do
+for writer in /openspec-story-claim /openspec-story-resume /openspec-feedback; do
   require_schema_writer blocked "$writer"
   require_template_writer blocked "$writer"
 done
