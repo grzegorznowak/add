@@ -37,19 +37,16 @@ export LC_ALL=C
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 CLAUDE_SKILLS="${REPO_ROOT}/claude/skills"
 PI_FRAGMENTS="${REPO_ROOT}/pi-fragments"
-if ! PRIVATE_TMPDIR="$(mktemp -d)" || [[ -z "$PRIVATE_TMPDIR" || ! -d "$PRIVATE_TMPDIR" ]]; then
-  printf 'FAIL unable to create private lint temporary directory\n' >&2
-  exit 1
-fi
-readonly TMPDIR="$PRIVATE_TMPDIR"
-export TMPDIR
-trap 'rm -rf -- "$TMPDIR"' EXIT
-CODEX_SKILLS="$TMPDIR/codex-skills"
-PI_SKILLS="$TMPDIR/pi-skills"
 
-FAIL=0
-fail() { printf 'FAIL %s\n' "$*" >&2; FAIL=1; }
-ok()   { printf 'ok   %s\n' "$*"; }
+lint_render_message() {
+  local message="$1"
+  if [[ -n "${LINT_SUITE_TMPDIR:-}" && -n "${LINT_AGGREGATE_TMP_ROOT:-}" ]]; then
+    message="${message//"$LINT_SUITE_TMPDIR"/"$LINT_AGGREGATE_TMP_ROOT"}"
+  fi
+  printf '%s' "$message"
+}
+fail() { printf 'FAIL %s\n' "$(lint_render_message "$*")" >&2; FAIL=1; }
+ok()   { printf 'ok   %s\n' "$(lint_render_message "$*")"; }
 
 # Convert "epic-story-claim" to "epic_story_claim"
 hyphen_to_underscore() { printf '%s' "${1//-/_}"; }
@@ -1066,1163 +1063,117 @@ check_production_prune_manifests() {
   fi
 }
 
-echo "lint: claude/skills/"
-declare -a CLAUDE_NAMES=()
-if [[ ! -d "$CLAUDE_SKILLS" ]]; then
-  fail "missing directory: $CLAUDE_SKILLS"
-else
-  for skill_dir in "$CLAUDE_SKILLS"/*/; do
+lint_suite_bootstrap() {
+  local assigned_tmp="" assigned_root=""
+  FAIL=0
+  LINT_USING_AGGREGATE_ROOT=0
+
+  if [[ -n "${LINT_SUITE_TMPDIR+x}" || -n "${LINT_AGGREGATE_TMP_ROOT+x}" ]]; then
+    if [[ -z "${LINT_SUITE_TMPDIR:-}" || -z "${LINT_AGGREGATE_TMP_ROOT:-}" || \
+          ! -d "$LINT_SUITE_TMPDIR" || -L "$LINT_SUITE_TMPDIR" || \
+          ! -d "$LINT_AGGREGATE_TMP_ROOT" || -L "$LINT_AGGREGATE_TMP_ROOT" ]]; then
+      printf 'FAIL unable to create private lint temporary directory\n' >&2
+      return 1
+    fi
+    assigned_tmp="$(cd -- "$LINT_SUITE_TMPDIR" && pwd -P)" || assigned_tmp=""
+    assigned_root="$(cd -- "$LINT_AGGREGATE_TMP_ROOT" && pwd -P)" || assigned_root=""
+    if [[ -z "$assigned_tmp" || -z "$assigned_root" || "$assigned_tmp" != "$assigned_root" ]]; then
+      printf 'FAIL unable to create private lint temporary directory\n' >&2
+      return 1
+    fi
+    PRIVATE_TMPDIR="$assigned_tmp"
+    LINT_USING_AGGREGATE_ROOT=1
+  else
+    if ! PRIVATE_TMPDIR="$(mktemp -d)" || [[ -z "$PRIVATE_TMPDIR" || ! -d "$PRIVATE_TMPDIR" ]]; then
+      printf 'FAIL unable to create private lint temporary directory\n' >&2
+      return 1
+    fi
+    trap 'rm -rf -- "$TMPDIR"' EXIT
+  fi
+
+  readonly TMPDIR="$PRIVATE_TMPDIR"
+  export TMPDIR
+  CODEX_SKILLS="$TMPDIR/codex-skills"
+  PI_SKILLS="$TMPDIR/pi-skills"
+}
+
+lint_collect_source_inventory() {
+  local skill_dir skill_md dir_name skill_name
+  CLAUDE_NAMES=()
+  if [[ -d "$CLAUDE_SKILLS" ]]; then
+    for skill_dir in "$CLAUDE_SKILLS"/*/; do
+      [[ -d "$skill_dir" ]] || continue
+      dir_name="$(basename "$skill_dir")"
+      skill_md="$skill_dir/SKILL.md"
+      [[ -f "$skill_md" ]] || continue
+      [[ "$(extract_name "$skill_md")" == "$dir_name" ]] && CLAUDE_NAMES+=("$dir_name")
+    done
+  fi
+  OPENSPEC_WORKFLOW_SKILLS=()
+  for skill_name in "${CLAUDE_NAMES[@]:-}"; do
+    [[ "$skill_name" == openspec-* ]] && OPENSPEC_WORKFLOW_SKILLS+=("$skill_name")
+  done
+}
+
+lint_generate_silently() {
+  local generation_rc=0
+  CODEX_SKILLS_DIR="$CODEX_SKILLS" "$REPO_ROOT/scripts/install-codex.sh" >/dev/null 2>&1 || generation_rc=1
+  PI_SKILLS_DIR="$PI_SKILLS" "$REPO_ROOT/scripts/install-pi.sh" >/dev/null 2>&1 || generation_rc=1
+  return "$generation_rc"
+}
+
+lint_collect_generated_inventory() {
+  local skill_dir dir_name skill_md openai_yaml declared_name
+  CODEX_NAMES=()
+  for skill_dir in "$CODEX_SKILLS"/*/; do
     [[ -d "$skill_dir" ]] || continue
     dir_name="$(basename "$skill_dir")"
     skill_md="$skill_dir/SKILL.md"
-
-    if in_array "$dir_name" "${UNSUPPORTED_SKILLS[@]}"; then
-      fail "$skill_dir: unsupported workflow skill remains in active claude/skills/"
-    elif ! is_supported_active_skill "$dir_name"; then
-      fail "$skill_dir: active skill is neither openspec-* nor an approved utility"
-    fi
-
-    if [[ ! -f "$skill_md" ]]; then
-      fail "$skill_dir: missing SKILL.md"
-      continue
-    fi
-
-    check_frontmatter_fields "$skill_md" name description disable-model-invocation argument-hint allowed-tools
-    check_frontmatter_unique_keys "$skill_md"
-    check_frontmatter_yaml_scalar_safety "$skill_md"
-    check_frontmatter_value "$skill_md" disable-model-invocation true
-
+    openai_yaml="$skill_dir/agents/openai.yaml"
+    [[ -f "$skill_md" ]] || continue
     declared_name="$(extract_name "$skill_md")"
-    if [[ -z "$declared_name" ]]; then
-      fail "$skill_md: empty or unparsable name field"
-    elif [[ "$declared_name" != "$dir_name" ]]; then
-      fail "$skill_md: name '$declared_name' does not match directory '$dir_name'"
-    else
-      ok "$dir_name"
-      CLAUDE_NAMES+=("$dir_name")
-    fi
+    [[ -n "$declared_name" && "$declared_name" == "$dir_name" ]] || continue
+    [[ -f "$openai_yaml" ]] || continue
+    grep -Eq '^[[:space:]]*allow_implicit_invocation:[[:space:]]*false' "$openai_yaml" || continue
+    CODEX_NAMES+=("$dir_name")
   done
-fi
-
-declare -a OPENSPEC_WORKFLOW_SKILLS=()
-for skill_name in "${CLAUDE_NAMES[@]:-}"; do
-  [[ "$skill_name" == openspec-* ]] && OPENSPEC_WORKFLOW_SKILLS+=("$skill_name")
-done
-
-# Keep the output-shape manifest honest: every listed name must be active, and
-# every active OpenSpec workflow must have exactly one shape classification.
-for skill_name in "${DUAL_CAPABLE_OPENSPEC_SKILLS[@]}" "${SCALAR_ONLY_OPENSPEC_SKILLS[@]}"; do
-  if ! in_array "$skill_name" "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; then
-    fail "OpenSpec output-shape manifest names non-active workflow '$skill_name'"
-  fi
-done
-for skill_name in "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; do
-  [[ -z "$skill_name" ]] && continue
-  shape_count=0
-  in_array "$skill_name" "${DUAL_CAPABLE_OPENSPEC_SKILLS[@]}" && shape_count=$((shape_count + 1))
-  in_array "$skill_name" "${SCALAR_ONLY_OPENSPEC_SKILLS[@]}" && shape_count=$((shape_count + 1))
-  if [[ "$shape_count" -ne 1 ]]; then
-    fail "active OpenSpec workflow '$skill_name' must have exactly one output-shape classification (found $shape_count)"
-  fi
-done
-
-echo
-echo "lint: pi-fragments/"
-declare -a PI_REPLACE_NAMES=()
-declare -a PI_APPEND_NAMES=()
-if [[ ! -d "$PI_FRAGMENTS" ]]; then
-  fail "missing directory: $PI_FRAGMENTS"
-else
-  for fragment in "$PI_FRAGMENTS"/*.md; do
-    [[ -f "$fragment" ]] || continue
-    frag_name="$(basename "$fragment" .md)"
-    first_line="$(head -1 "$fragment")"
-
-    if in_array "$frag_name" "${UNSUPPORTED_SKILLS[@]}"; then
-      fail "$fragment: unsupported workflow fragment remains in active pi-fragments/"
-    elif ! is_supported_pi_fragment "$frag_name"; then
-      fail "$fragment: active pi fragment is neither openspec-* nor an approved utility fragment"
-    fi
-
-    if [[ "$first_line" == "---" ]]; then
-      # Replace fragment: must have valid frontmatter and name field
-      check_frontmatter_unique_keys "$fragment"
-      check_frontmatter_yaml_scalar_safety "$fragment"
-      declared_name="$(extract_name "$fragment")"
-      if [[ -z "$declared_name" ]]; then
-        fail "$fragment: replace fragment missing 'name:' in frontmatter"
-      elif [[ "$declared_name" != "$frag_name" ]]; then
-        fail "$fragment: name '$declared_name' does not match filename '$frag_name'"
-      else
-        ok "$frag_name (replace)"
-        PI_REPLACE_NAMES+=("$frag_name")
-      fi
-    else
-      # Append fragment: must have matching Claude skill
-      if [[ -d "$CLAUDE_SKILLS/$frag_name" ]]; then
-        ok "$frag_name (append)"
-        PI_APPEND_NAMES+=("$frag_name")
-      else
-        fail "$fragment: append fragment has no matching claude/skills/$frag_name/"
-      fi
-    fi
+  PI_GEN_NAMES=()
+  for skill_dir in "$PI_SKILLS"/*/; do
+    [[ -d "$skill_dir" ]] || continue
+    dir_name="$(basename "$skill_dir")"
+    skill_md="$skill_dir/SKILL.md"
+    [[ -f "$skill_md" ]] || continue
+    declared_name="$(extract_name "$skill_md")"
+    [[ -n "$declared_name" && "$declared_name" == "$dir_name" ]] || continue
+    PI_GEN_NAMES+=("$dir_name")
   done
-fi
-
-echo
-echo "lint: generating codex skills (install-codex.sh)"
-if ! CODEX_SKILLS_DIR="$CODEX_SKILLS" "$REPO_ROOT/scripts/install-codex.sh" >/dev/null 2>&1; then
-  fail "install-codex.sh failed"
-else
-  ok "install-codex.sh succeeded"
-fi
-
-echo
-echo "lint: generating pi skills (install-pi.sh)"
-if ! PI_SKILLS_DIR="$PI_SKILLS" "$REPO_ROOT/scripts/install-pi.sh" >/dev/null 2>&1; then
-  fail "install-pi.sh failed"
-else
-  ok "install-pi.sh succeeded"
-fi
-
-echo
-echo "lint: generated codex/skills/"
-declare -a CODEX_NAMES=()
-for skill_dir in "$CODEX_SKILLS"/*/; do
-  [[ -d "$skill_dir" ]] || continue
-  dir_name="$(basename "$skill_dir")"
-  skill_md="$skill_dir/SKILL.md"
-  openai_yaml="$skill_dir/agents/openai.yaml"
-
-  if in_array "$dir_name" "${UNSUPPORTED_CODEX_SKILLS[@]}"; then
-    fail "$skill_dir: unsupported workflow skill was generated for Codex"
-  elif ! is_supported_active_skill "$(underscore_to_hyphen "$dir_name")"; then
-    fail "$skill_dir: generated Codex skill is neither openspec_* nor an approved utility"
-  fi
-
-  if [[ ! -f "$skill_md" ]]; then
-    fail "$skill_dir: missing SKILL.md"
-    continue
-  fi
-
-  check_frontmatter_fields "$skill_md" name description
-  check_frontmatter_unique_keys "$skill_md"
-  check_frontmatter_yaml_scalar_safety "$skill_md"
-
-  declared_name="$(extract_name "$skill_md")"
-  if [[ -z "$declared_name" ]]; then
-    fail "$skill_md: empty or unparsable name field"
-    continue
-  elif [[ "$declared_name" != "$dir_name" ]]; then
-    fail "$skill_md: name '$declared_name' does not match directory '$dir_name'"
-    continue
-  fi
-
-  if [[ ! -f "$openai_yaml" ]]; then
-    fail "$skill_dir: missing agents/openai.yaml"
-    continue
-  fi
-  if ! grep -Eq '^[[:space:]]*allow_implicit_invocation:[[:space:]]*false' "$openai_yaml"; then
-    fail "$openai_yaml: missing or wrong 'allow_implicit_invocation: false'"
-    continue
-  fi
-
-  ok "$dir_name"
-  CODEX_NAMES+=("$dir_name")
-done
-
-echo
-echo "lint: generated pi/skills/"
-declare -a PI_GEN_NAMES=()
-for skill_dir in "$PI_SKILLS"/*/; do
-  [[ -d "$skill_dir" ]] || continue
-  dir_name="$(basename "$skill_dir")"
-  skill_md="$skill_dir/SKILL.md"
-
-  if in_array "$dir_name" "${UNSUPPORTED_SKILLS[@]}"; then
-    fail "$skill_dir: unsupported workflow skill was generated for pi"
-  elif ! is_supported_active_skill "$dir_name"; then
-    fail "$skill_dir: generated pi skill is neither openspec-* nor an approved utility"
-  fi
-
-  if [[ ! -f "$skill_md" ]]; then
-    fail "$skill_dir: missing SKILL.md"
-    continue
-  fi
-
-  check_frontmatter_fields "$skill_md" name description
-  check_frontmatter_unique_keys "$skill_md"
-  check_frontmatter_yaml_scalar_safety "$skill_md"
-
-  declared_name="$(extract_name "$skill_md")"
-  if [[ -z "$declared_name" ]]; then
-    fail "$skill_md: empty or unparsable name field"
-    continue
-  elif [[ "$declared_name" != "$dir_name" ]]; then
-    fail "$skill_md: name '$declared_name' does not match directory '$dir_name'"
-    continue
-  fi
-
-  ok "$dir_name"
-  PI_GEN_NAMES+=("$dir_name")
-done
-
-echo
-check_production_prune_manifests
-
-echo
-echo "lint: OpenSpec lifecycle semantic invariants"
-
-CANONICAL_SLUG_REGEX='^[a-z0-9]+(?:-[a-z0-9]+)*$'
-STORY_TEMPLATE="$REPO_ROOT/openspec/schemas/story-change/templates/story.md"
-PROGRESS_TEMPLATE="$REPO_ROOT/openspec/schemas/story-change/templates/progress.md"
-CONVENTIONS_DOC="$REPO_ROOT/docs/openspec-conventions.md"
-LIFECYCLE_DOC="$REPO_ROOT/docs/openspec-lifecycle.md"
-
-# Exact frontmatter key/token parsing is itself an invariant: duplicate keys or
-# malformed suffixes must not silently select a permissive value/token prefix.
-check_frontmatter_duplicate_detector
-check_allowed_tool_tokenizer
-
-# Story binding and operator-explicit review menus use story.md as authority.
-# Zero-reference legacy acceptance is permitted only after an initiative is
-# explicit/menu-selected; initiative discovery itself lists only bound stories.
-require_literal "initiative binding template" "$STORY_TEMPLATE" 'Initiative: <initiative-slug>'
-require_schema_writer story 'Initiative:'
-require_workflow_literal "initiative binding writer" openspec-story-plan 'Initiative: <initiative-slug>'
-check_workflow_contract \
-  "implementation review bound-story menu" openspec-story-review \
-  'a canonical top-level `Initiative:` header wins; otherwise only a unique exact `## Story Candidates` association binds the legacy workspace.' \
-  'Exclude malformed, conflicting, multiply-associated, and zero-reference legacy workspaces from this initiative menu because no explicit initiative has yet accepted them.' \
-  'Enumerate only workspaces explicitly bound to it or uniquely candidate-associated with it.' \
-  'If no initiative references it, accept only when `<explicit_pair>` is true; emit a compatibility warning and do not backfill the header.'
-check_workflow_contract \
-  "planning review bound-story menu" openspec-story-plan-review \
-  'For menu/discovery scans, enumerate active `<root>/openspec/changes/*/story.md` workspaces across `<candidate_roots>`; never drive membership from initiative prose.' \
-  'Inventory the complete top-level header region before the first `## ` heading for every unindented `Initiative` or Initiative-like field line.' \
-  'any other malformed Initiative-like line halts without editing and reports every offending line. Never reinterpret malformed present input as zero-header legacy.' \
-  'No association is accepted only when `<explicit_pair>` is true and the selected initiative file exists.'
-require_literal "legacy initiative binding policy" "$CONVENTIONS_DOC" 'Legacy stories without an `Initiative:` header'
-check_workflow_contract \
-  "feedback uniform explicit-pair legacy qualification" openspec-feedback \
-  'Duplicate headers, empty values, malformed header syntax, or noncanonical values are hard conflicts, not legacy input; halt without relabeling or repair.' \
-  'Every no-header target qualifies for any story disposition, including status-only resume or receipt backfill, only after the operator acknowledges a plan that names the exact `<initiative-slug>` + `<story-slug>` pair' \
-  'a refreshed scan proves that no other initiative has an exact Story Candidates reference.'
-check_workflow_contract \
-  "feedback initiative-only authoritative root" openspec-feedback \
-  'Set `<receipt_root>` exactly once for the invocation.' \
-  'Never default an initiative-only batch blindly to `<launch_root>`.' \
-  'including an initiative-only batch, refresh `git worktree list --porcelain`, rerun Phase 0' \
-  're-read `<receipt_root>/openspec/initiatives/<initiative-slug>/initiative.md` and revalidate every initiative-only disposition against that authoritative context'
-
-# Next-action resolves selected and broad-scan stories across candidate roots
-# before lifecycle routing and never silently chooses a stale duplicate.
-check_workflow_contract \
-  "next-action transient root" openspec-next-action \
-  'Build `<candidate_roots>` before declaring any target missing.' \
-  'First inspect explicit `WORKTREE=` paths that are `<workspace_root>` or registered worktrees and contain the selected story plus its bound/associated initiative file.' \
-  'Only when no explicit path qualifies, inspect registered worktrees other than `<workspace_root>`' \
-  'Recompute all paths after selection.' \
-  'aggregate active `openspec/changes/*/story.md` workspaces across `<candidate_roots>`'
-check_workflow_contract \
-  "implementation review explicit-root precedence" openspec-story-review \
-  'Inspect all explicit `WORKTREE=` values in either accepted form first.' \
-  'If exactly one explicit candidate qualifies, set `<openspec_root>=<path>` immediately' \
-  'Only when no explicit candidate qualifies, inspect registered root-repo worktrees other than `<workspace_root>`' \
-  'that unique branch worktree outranks launch.'
-check_workflow_contract \
-  "next-action exact Initiative-like binding validation" openspec-next-action \
-  'Inventory the complete top-level header region before the first `## ` heading for every unindented `Initiative` or Initiative-like field line.' \
-  'any other malformed Initiative-like line halts and reports every offending line. Never reinterpret malformed present input as a zero-header legacy story.' \
-  'Only zero Initiative or Initiative-like lines is legacy.'
-check_workflow_contract \
-  "next-action story-scoped DONE receipt and PR verification" openspec-next-action \
-  'A modern DONE receipt qualifies only when exactly one section contains every canonical field exactly once' \
-  'recompute canonical `review-identity-v1` from exactly the receipt-recorded `Identity bases` and `Identity paths` and require the result to equal `Identity digest`.' \
-  'A bound modern DONE without a receipt routes only to the same fresh oblivious review.' \
-  'whether the sole `## PR State` has exactly one non-placeholder `Verified implementation digest` equal to the receipt digest and one non-placeholder `Verified at` timestamp.'
-check_workflow_contract \
-  "PR canonical story-scoped receipt identity and PR State write-back" openspec-pr \
-  'A modern bound story requires exactly one complete canonical `progress.md → ## Implementation Review Receipt`' \
-  'recompute the story-scoped identity with canonical `review-identity-v1` using exactly the receipt-recorded `Identity bases` and `Identity paths`.' \
-  'Save the matching digest and the last pre-mutation UTC verification timestamp in memory for PR State write-back.' \
-  'A bound modern DONE with an absent receipt routes only to the same fresh oblivious review' \
-  'For a modern receipt, the verified digest must exactly equal its `Identity digest`; never carry forward an older verification timestamp or digest.'
-check_workflow_contract \
-  "archive route-scoped receipt identity and PR State verification" openspec-archive \
-  'At this phase validate receipt shape and remember its digest but do not recompute identity or mutate PR State' \
-  'A bound modern DONE with an absent receipt routes only to fresh oblivious review.' \
-  'The verified digest must exactly equal the current receipt'"'"'s `Identity digest`' \
-  'Do not recompute identity in archive'"'"'s merged-PR route.' \
-  'Only when `<archive_route>=no-pr` and a modern receipt exists, immediately before the first archive mutation' \
-  'recompute canonical `review-identity-v1` from exactly its recorded `Identity bases` and `Identity paths`.'
-
-# A transient root may be reported operationally, but no artifact template or
-# artifact-writing command (including planning writers) may persist it.
-check_persisted_root_detector
-for artifact_template in "$REPO_ROOT"/openspec/schemas/story-change/templates/*.md; do
-  if grep -Fq -- '<openspec_root>' "$artifact_template"; then
-    fail "artifact template contains forbidden literal <openspec_root>: $artifact_template"
-  elif awk '{ line=tolower($0); gsub(/[*_`]/, "", line); if (line ~ /openspec([ -]+artifact)?[ -]+root[[:space:]]*:/) bad=1 } END { exit bad ? 0 : 1 }' "$artifact_template"; then
-    fail "artifact template persists an OpenSpec root field: $artifact_template"
-  else
-    ok "artifact template has no root literal or persisted OpenSpec root field: $artifact_template"
-  fi
-done
-for skill_name in "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; do
-  [[ -z "$skill_name" ]] && continue
-  codex_name="$(hyphen_to_underscore "$skill_name")"
-  for artifact_writer in \
-    "$CLAUDE_SKILLS/$skill_name/SKILL.md" \
-    "$CODEX_SKILLS/$codex_name/SKILL.md" \
-    "$PI_SKILLS/$skill_name/SKILL.md"; do
-    root_write_findings=""
-    if root_write_findings="$(check_no_persisted_root_writes "$artifact_writer")"; then
-      fail "artifact write clause persists OpenSpec root: $artifact_writer"
-      printf '%s\n' "$root_write_findings" | sed 's/^/  /' >&2
-    fi
-  done
-done
-
-# Prerequisite lookup is a fixed ordered policy, avoiding slow prose-spanning
-# regular expressions and preventing archive from overriding an active copy.
-check_workflow_contract \
-  "archived prerequisite fallback without mutable identity freshness" openspec-story-claim \
-  'Resolve the active prerequisite first at `<openspec_root>/openspec/changes/<slug>/story.md`.' \
-  'The active prerequisite is authoritative whenever that file exists' \
-  'Only when the active prerequisite file is absent, fall back to `<openspec_root>/openspec/changes/archive/<slug>/story.md`.' \
-  'Never let an archived DONE copy override an existing active prerequisite.' \
-  'Check sibling `blocked.md` before trusting DONE: its existence makes the prerequisite contradictory and unsatisfied in both active and archived locations' \
-  'A bound modern prerequisite must have `progress.md` containing exactly one `## Implementation Review Receipt` heading and one current body.' \
-  'Missing, duplicate, malformed, or non-approving receipt evidence is unsatisfied.' \
-  'never recompute or freshness-check the story-scoped review identity against mutable repository state.' \
-  'Only an unbound pre-v3 prerequisite with `Status: ✅ DONE`, no `blocked.md`, zero Initiative headers, and zero receipt sections may satisfy without a receipt'
-check_workflow_contract \
-  "review prerequisite/blocker/receipt contradictions" openspec-story-review \
-  'if entry Status is already `✅ DONE`, a bound story must have exactly one well-formed current receipt with every required field exactly once' \
-  'Only an unbound pre-v3 DONE story with zero Initiative headers and zero receipt sections gets bounded legacy compatibility' \
-  'A sibling `blocked.md` makes the prerequisite contradictory and unsatisfied in active or archive, regardless of DONE or receipt evidence.' \
-  'A bound modern prerequisite must have `progress.md` with exactly one `## Implementation Review Receipt` heading and one current body.' \
-  'never recompute or freshness-check the story-scoped review identity against mutable repository state.' \
-  'never recompute a prerequisite'"'"'s review identity.'
-for prerequisite_reader in openspec-story-resume openspec-story-converge; do
-  check_workflow_contract \
-    "prerequisite blocker/receipt/no-identity-freshness: $prerequisite_reader" "$prerequisite_reader" \
-    'A sibling `blocked.md` makes the prerequisite contradictory and unsatisfied' \
-    'A bound modern prerequisite must have `progress.md` with exactly one `## Implementation Review Receipt` heading and one current body.' \
-    'never recompute or freshness-check the story-scoped review identity against mutable repository state.' \
-    'Only an unbound pre-v3 prerequisite with DONE, no `blocked.md`, zero Initiative headers, and zero receipt sections may satisfy without a receipt'
-done
-
-# The receipt is one replace-in-place current record. Review validates in memory,
-# writes blocked.md when needed, writes the receipt, and writes Status last. For
-# non-DONE lanes a superseded receipt remains historical context only.
-require_literal "implementation review receipt template" "$PROGRESS_TEMPLATE" '## Implementation Review Receipt'
-forbid_literal "implementation review receipt is not in story template" "$STORY_TEMPLATE" '## Implementation Review Receipt'
-require_schema_writer progress 'Implementation Review Receipt'
-require_literal "single current receipt template" "$PROGRESS_TEMPLATE" 'Exactly one compact current completed-verdict body'
-require_literal "historical receipt for non-DONE template" "$PROGRESS_TEMPLATE" 'Status controls non-DONE routing, where an older receipt may be'
-CANONICAL_RECEIPT_FIELD_LIST='`Reviewed at`, `Decision`, `Approval gate`, `Status transition`, `Evidence reviewed`, `Identity method`, `Identity digest`, `Identity bases`, `Identity paths`, `Findings`, `Proof`, and `Next owner`'
-for receipt_reader in \
-  openspec-story-claim openspec-story-resume \
-  openspec-story-review openspec-story-converge; do
-  require_workflow_literal \
-    "canonical implementation receipt fields: $receipt_reader" \
-    "$receipt_reader" \
-    "$CANONICAL_RECEIPT_FIELD_LIST"
-  for legacy_receipt_field in \
-    'Review identity'" version" 'Review base'"/range" 'Review identity'" digest"; do
-    forbid_workflow_literal \
-      "no legacy implementation receipt field in $receipt_reader" \
-      "$receipt_reader" \
-      "$legacy_receipt_field"
-  done
-done
-check_workflow_contract \
-  "review canonical identity recording" openspec-story-review \
-  'Record `Evidence reviewed` as a concise target/proof summary' \
-  'Record `Identity method: review-identity-v1` exactly once.' \
-  '`Identity bases` as one compact canonical JSON array' \
-  '`Identity paths` as one compact canonical JSON array' \
-  'Each manifest row is exactly `<repo>\t<path>\t<type>\t<lowercase-64-hex-sha256>\n`' \
-  '`type` is exactly `file`, `executable`, `symlink`, or `deleted`.'
-check_workflow_contract \
-  "review fail-closed receipt/status order" openspec-story-review \
-  'Fail closed with this exact order:' \
-  'create or update `<change_dir>/blocked.md` first' \
-  'never append a duplicate receipt or retain receipt history there' \
-  'Only after that succeeds, write the top-level `Status:` last' \
-  'A non-approve verdict must not leave the story IN REVIEW and suggest another fresh review.'
-check_blocked_write_order
-check_workflow_contract \
-  "review malformed receipt reconciliation" openspec-story-review \
-  'Duplicate or malformed receipt sections are non-authoritative reconciliation inputs: do not choose a latest one' \
-  'normalize all review-owned receipt sections to exactly one current receipt after the verdict' \
-  'remove every old receipt section, and require exactly one normalized receipt in which each required field' \
-  'If the normalized progress write succeeds but Status fails, report the exact receipt/Status mismatch and route explicit review-owned artifact reconciliation; do not call the verdict complete.' \
-  'an APPROVE receipt with a failed Status write remains IN REVIEW, not legacy DONE.' \
-  'Re-read all affected files and report `Receipt Write: failed` for any incomplete required pair.'
-check_workflow_contract \
-  "planning review modern DONE receipt gate" openspec-story-plan-review \
-  'inventory all `<change_dir>/progress.md → ## Implementation Review Receipt` headings.' \
-  'A bound modern DONE story without a receipt routes to the same fresh oblivious review, never legacy compatibility.' \
-  'Only a consistent DONE with a qualifying receipt or the exact zero-Initiative/zero-receipt pre-v3 exception' \
-  'Do not recommend planning commands that reject DONE and do not invent a lifecycle owner.'
-check_workflow_contract \
-  "historical receipt routing: openspec-story-converge" openspec-story-converge \
-  'One well-formed unsuperseded section is current' \
-  'historical' \
-  'non-DONE'
-check_workflow_contract \
-  "historical receipt routing: openspec-story-resume" openspec-story-resume \
-  'One well-formed unsuperseded section is current.' \
-  'historical context' \
-  'non-DONE'
-
-# Feedback uses one invocation-wide receipt root, deterministic source identity
-# and FB allocation, Write for missing owned anchors, FB-tagged task/checkpoint
-# edits, and a receipt-only recovery path after a partial append failure.
-forbid_workflow_literal "initiative planning does not seed feedback receipts" openspec-initiative-plan '## Feedback Receipts'
-check_workflow_contract \
-  "feedback rooted deterministic receipts" openspec-feedback \
-  'Set `<receipt_root>` exactly once for the invocation.' \
-  'Allocate new identities in their normalized input order.' \
-  'The same Source ID with a different hash is a new identity.' \
-  '`Write` is permitted only when a missing `progress.md`, `## Progress Timeline`, or `initiative.md → ## Feedback Receipts` section must be created' \
-  'Any changed or added `tasks.md` row also includes `[FB-###]`' \
-  'Receipt append failed after owned edits for FB-###.' \
-  'reuse the same FB ID' \
-  'construct its creation with the first acknowledged receipt' \
-  'Append exactly one entry per stable identity'
-check_workflow_contract \
-  "feedback receipt failure rollback/recovery" openspec-feedback \
-  'If any owned edit or marker fails, stop before its receipt and later items.' \
-  'Best-effort restore every file already written for that item from the retained item-baseline bytes, then verify every restored hash.' \
-  'If rollback is incomplete, report every exact partially changed path with its current hash, expected item-baseline hash, and expected post-edit hash.' \
-  'If a receipt append fails after owned edits succeeded, stop immediately; do not process later items, roll back or reapply successful owned edits, or allocate a different ID.' \
-  'expected pre/post-receipt hashes so retry can reconcile a partial append.' \
-  'Backfill only: reuse FB-### from the named FB marker under <receipt_root>; do not reapply owned edits.' \
-  'reconcile any reported partial file first, and produce a receipt-only backfill plan.'
-require_literal "feedback receipt lifecycle contract" "$LIFECYCLE_DOC" '## Feedback Receipts'
-check_feedback_receipt_contract
-
-# Canonical/Codex feedback cannot require a notebook API. Pi may add optional
-# notebook orientation, but every disposition is already durable above.
-for portable_feedback_file in \
-  "$CLAUDE_SKILLS/openspec-feedback/SKILL.md" \
-  "$CODEX_SKILLS/openspec_feedback/SKILL.md"; do
-  mapfile -t portable_feedback_tools < <(allowed_tool_tokens "$portable_feedback_file")
-  for notebook_tool in notebook_index notebook_read notebook_write; do
-    if in_array "$notebook_tool" "${portable_feedback_tools[@]:-}"; then
-      fail "portable feedback has unconditional canonical notebook tool $notebook_tool: $portable_feedback_file"
-    fi
-  done
-  if awk '
-    {
-      lower = tolower($0)
-      if (lower ~ /notebook_(index|read|write)/ &&
-          lower ~ /(use|scan|read|write|persist|required|must|abort|unavailable|not available)/ &&
-          lower !~ /(optional|if available|when available|may use|may write)/) bad = 1
-    }
-    END { exit bad ? 0 : 1 }
-  ' "$portable_feedback_file"; then
-    fail "portable feedback has unconditional canonical notebook API instructions: $portable_feedback_file"
-  fi
-  if grep -Fq 'run this skill from a pi session' "$portable_feedback_file"; then
-    fail "portable feedback has a Pi-only rerun requirement: $portable_feedback_file"
-  fi
-done
-forbid_workflow_literal "portable feedback rejects no-receipt disposition" openspec-feedback 'No durable artifact write needed'
-
-# Pi may gather review-session evidence, but it may not import implementation
-# convergence context into a fresh implementation review.
-require_workflow_literal \
-  "fresh implementation review firewall" \
-  openspec-story-review \
-  'Do not accept parent/converger notebook references'
-forbid_literal \
-  "Pi review firewall fragment" \
-  "$PI_FRAGMENTS/openspec-story-review.md" \
-  'openspec-research-<initiative_slug>-<story_slug>'
-forbid_literal \
-  "Pi review firewall generated skill" \
-  "$PI_SKILLS/openspec-story-review/SKILL.md" \
-  'openspec-research-<initiative_slug>-<story_slug>'
-
-# blocked.md is the hard gate: review must create/update it before writing
-# BLOCKED status, and resume may normalize stale BLOCKED only after absence.
-require_workflow_literal \
-  "implementation review blocker receipt" \
-  openspec-story-review \
-  'create or update `<change_dir>/blocked.md` first'
-require_workflow_literal \
-  "resume unblock signal" \
-  openspec-story-resume \
-  'If `blocked.md` is absent but `story.md → Status:` contains `⛔ BLOCKED`'
-
-# Canonical lifecycle/header spelling is intentionally scoped to the commands
-# that currently read or write those anchors. Positive top-level-only wording
-# prevents a stale alternate-section ban from being the sole guard.
-require_literal "canonical story Status template" "$STORY_TEMPLATE" 'Status: ⚪ TODO'
-require_workflow_literal \
-  "implementation review requires top-level Status header" \
-  openspec-story-review \
-  'top-level `Status:` header'
-forbid_workflow_literal \
-  "implementation review rejects alternate Status section" \
-  openspec-story-review \
-  'has an equivalent (e.g., an `## Status` section'
-require_literal "canonical Acceptance template" "$STORY_TEMPLATE" '## Acceptance'
-for skill_name in openspec-story-claim openspec-story-resume; do
-  require_workflow_literal "canonical Acceptance reader: $skill_name" "$skill_name" '## Acceptance'
-  forbid_workflow_literal "no stale Acceptance Criteria heading: $skill_name" "$skill_name" '## Acceptance Criteria'
-done
-
-# Slugs and executable tool permissions are exact contracts, not prose hints.
-for skill_name in "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; do
-  [[ -z "$skill_name" ]] && continue
-  require_workflow_literal "canonical slug regex: $skill_name" "$skill_name" "$CANONICAL_SLUG_REGEX"
-done
-check_allowed_tools_contract \
-  openspec-initiative-plan \
-  Read Grep Glob Write 'Bash(mkdir -p:*)' 'Bash(git status:*)' 'Bash(git log:*)'
-check_allowed_tools_contract \
-  openspec-feedback \
-  Read Edit Grep Glob 'Bash(gh pr view:*)' 'Bash(gh api:*)' 'Bash(date -u:*)' 'Bash(printf:*)' 'Bash(sha256sum:*)' 'Bash(shasum:*)'
-check_allowed_tools_exact \
-  openspec-story-plan-converge \
-  Read Edit Grep Glob Task 'Bash(git status:*)' 'Bash(git worktree list:*)'
-check_allowed_tools_exact \
-  openspec-story-converge \
-  Read Grep Glob Task 'Bash(git status:*)' 'Bash(git worktree list:*)'
-check_allowed_tools_contract \
-  openspec-story-review \
-  Read Edit Write Grep Glob Task Bash
-
-# Schema and template ownership must name the complete current writer set.
-for writer in /openspec-story-plan /openspec-story-plan-resume; do
-  require_schema_writer proposal "$writer"
-  require_template_writer proposal "$writer"
-  require_schema_writer specs "$writer"
-  require_template_writer spec "$writer"
-done
-for writer in \
-  /openspec-story-plan /openspec-story-plan-review /openspec-story-plan-resume \
-  /openspec-story-claim /openspec-story-resume /openspec-feedback \
-  /openspec-story-review; do
-  require_schema_writer story "$writer"
-  require_template_writer story "$writer"
-done
-for writer in /openspec-story-plan /openspec-story-plan-resume /openspec-feedback; do
-  require_schema_writer design "$writer"
-  require_template_writer design "$writer"
-done
-for writer in \
-  /openspec-story-plan /openspec-story-plan-resume /openspec-story-claim \
-  /openspec-story-resume /openspec-feedback; do
-  require_schema_writer tasks "$writer"
-  require_template_writer tasks "$writer"
-done
-require_schema_writer specs '/opsx:archive'
-for writer in \
-  /openspec-story-claim /openspec-story-resume /openspec-feedback \
-  /openspec-story-review /openspec-pr; do
-  require_schema_writer progress "$writer"
-  require_template_writer progress "$writer"
-done
-for writer in /openspec-story-claim /openspec-story-resume /openspec-story-review; do
-  require_schema_writer blocked "$writer"
-  require_template_writer blocked "$writer"
-done
-
-# Resume may use notebooks for sourced orientation only; artifacts settle any
-# conflict and carry the implementation/review/feedback authority.
-require_workflow_literal \
-  "artifact-over-notebook resume authority" \
-  openspec-story-resume \
-  'Canonical artifacts outrank notebook orientation.'
-forbid_workflow_literal \
-  "artifact-over-notebook removes notebook precedence" \
-  openspec-story-resume \
-  'the contract and notebook take precedence'
-forbid_workflow_literal \
-  "artifact-over-notebook removes notebook conflict prompt" \
-  openspec-story-resume \
-  'If notebook orientation conflicts with the change workspace artifacts, flag the conflict and ask the operator to resolve.'
-
-# PR extraction must use the full canonical selector to the actual level-three
-# subsection; checking an isolated backticked heading misses stale prose paths.
-for heading in 'Verification Commands' 'Test Architecture Plan' 'Acceptance Proof Matrix'; do
-  require_workflow_literal \
-    "PR canonical full selector: $heading" \
-    openspec-pr \
-    "story.md → ## Verification → ### $heading"
-  forbid_workflow_literal \
-    "PR stale full selector: $heading" \
-    openspec-pr \
-    "story.md → ## Verification → ## $heading"
-done
-
-# PR descriptions must orient a cold reader with an evidence-backed catalyst and
-# causal boundary without displacing the product verification contract.
-check_workflow_contract \
-  "PR catalyst-first cold-reader summary" openspec-pr \
-  '`story.md → ## Triggering Need` → Summary' \
-  '`proposal.md → ## Goal / Context` → Summary' \
-  'Start with the source-supported catalyst' \
-  'State the observable before state and the user-visible after state' \
-  'If the artifacts state no catalyst, lead with the strongest source-supported Goal, Purpose, or outcome without inventing a gap, history, or causality.' \
-  'source-supported catalyst context, user-visible before/after state, and external compatibility facts belong when they remain true regardless of implementation.' \
-  'Never infer chronology or causality' \
-  'define it only from source-supported context' \
-  'Do not let the Summary replace or weaken Requirements, Acceptance criteria, Contract changes, Out of scope, or How to verify.'
-forbid_workflow_literal \
-  "PR removes outcome-only summary template" openspec-pr \
-  '<one short paragraph in product language — the user-visible outcome this PR delivers>'
-
-# Rootless archive mutation is forbidden: a remote active root produces an exact
-# cd-and-rerun handoff. Broad PR discovery filters unrelated bound stories while
-# still halting a conflict on an explicitly selected story.
-check_workflow_contract \
-  "archive remote-root rerun" openspec-archive \
-  'If the selected or identified active checkout differs from `<workspace_root>`, halt before any PR refresh, artifact edit, `/opsx:archive`, or initiative update.' \
-  'Print the exact two-step rerun: `cd <active-root>` followed by `/openspec-archive <initiative-slug> <story-slug>`.' \
-  'The current rootless adapter is never invoked against a different checkout'
-check_workflow_contract \
-  "PR unrelated story filtering" openspec-pr \
-  'filter a well-formed story bound to another initiative as unrelated instead of halting the PR scan' \
-  'filter well-formed stories bound to other initiatives as unrelated rather than halting' \
-  'A conflict on an explicitly selected story still halts.'
-
-# Every IN REVIEW diagnostic names an executable fresh-review command; it does
-# not return a prose-only owner or send implementation review through a wrapper.
-check_workflow_contract \
-  "next-action IN REVIEW executable route" openspec-next-action \
-  '/openspec-story-review <initiative> <story-slug>' \
-  'The current Status owns this route'
-check_workflow_contract \
-  "archive IN REVIEW executable route" openspec-archive \
-  '/openspec-story-review <initiative-slug> <story-slug>' \
-  'If `Status: 🟣 IN REVIEW`'
-check_workflow_contract \
-  "PR IN REVIEW executable route" openspec-pr \
-  '/openspec-story-review <initiative> <story-slug>' \
-  '`Status: 🟣 IN REVIEW` -> one fresh, oblivious'
-check_workflow_contract \
-  "plan-review IN REVIEW executable route" openspec-story-plan-review \
-  '/openspec-story-review <initiative-slug> <story-slug>' \
-  'If it is `🟣 IN REVIEW`, abort plan review'
-
-# A genuinely absent story routes to creation; incomplete existing workspaces
-# route to repair. These exact creation routes avoid a resume dead end.
-require_workflow_literal \
-  "missing story recovery: next-action" \
-  openspec-next-action \
-  '/openspec-story-plan INITIATIVE=<initiative>'
-require_workflow_literal \
-  "missing story recovery: openspec-story-plan-converge" \
-  openspec-story-plan-converge \
-  '/openspec-story-plan INITIATIVE=<initiative>'
-for skill_name in \
-  openspec-story-plan-resume openspec-story-plan-review \
-  openspec-story-resume openspec-story-review; do
-  require_workflow_literal \
-    "missing story recovery: $skill_name" \
-    "$skill_name" \
-    '/openspec-story-plan INITIATIVE=<initiative-slug>'
-done
-
-require_exact_line \
-  "README Claude update guidance does not force symlinks" \
-  "$REPO_ROOT/README.md" \
-  'scripts/install.sh --yes --agents claude'
-require_exact_line \
-  "README Codex update guidance forces generated refresh" \
-  "$REPO_ROOT/README.md" \
-  'scripts/install.sh --yes --agents codex --force'
-require_exact_line \
-  "README Pi update guidance forces generated refresh" \
-  "$REPO_ROOT/README.md" \
-  'scripts/install.sh --yes --agents pi --force'
-check_no_all_runtime_force_guidance "$REPO_ROOT/README.md"
-
-echo
-echo "lint: research board contracts in generated skills"
-for cn in "${CLAUDE_NAMES[@]:-}"; do
-  [[ -z "$cn" ]] && continue
-  expected_codex="$(hyphen_to_underscore "$cn")"
-  claude_md="$CLAUDE_SKILLS/$cn/SKILL.md"
-  codex_md="$CODEX_SKILLS/$expected_codex/SKILL.md"
-  [[ -f "$codex_md" ]] || continue
-  if grep -qE '^##+ Shared Research Board Input$' "$claude_md"; then
-    if grep -qE '^##+ Shared Research Board Input$' "$codex_md"; then
-      ok "codex: $expected_codex preserves Shared Research Board Input"
-    else
-      fail "$expected_codex: missing generated Codex Shared Research Board Input section"
-    fi
-  fi
-done
-if grep -RlE '^##+ Shared Research Board Input$' "$PI_SKILLS" 2>/dev/null; then
-  fail "generated pi skills still contain Shared Research Board Input section"
-else
-  ok "pi: no Shared Research Board Input"
-fi
-
-echo
-echo "lint: OpenSpec notebook terminology"
-if grep -RInE 'Shared Research Board|Research Board|board-refresh|board entries|board entry|provided board' "$CLAUDE_SKILLS"/openspec-* "$PI_FRAGMENTS"/openspec-*.md "$CODEX_SKILLS"/openspec_* "$PI_SKILLS"/openspec-* 2>/dev/null; then
-  fail "OpenSpec source, fragments, or generated skills still use Research Board terminology (matches above)"
-else
-  ok "OpenSpec skills use notebook terminology"
-fi
-
-echo
-echo "lint: OpenSpec notebook prompt boundaries"
-bad_notebook_prompt_pattern='complete inline note''book snap''shot|whole relevant note''book con''text|inline the note''book|f''ull note''book|note''book con''text becomes too large to pass in f''ull'
-if grep -RInE "$bad_notebook_prompt_pattern" "$CLAUDE_SKILLS"/openspec-* "$PI_FRAGMENTS"/openspec-*.md "$CODEX_SKILLS"/openspec_* "$PI_SKILLS"/openspec-* 2>/dev/null; then
-  fail "OpenSpec source, fragments, or generated skills ask for oversized notebook prompt context (matches above)"
-else
-  ok "OpenSpec notebook prompts use references or compact excerpts"
-fi
-
-echo
-echo "lint: OpenSpec removed research-event response contract"
-bad_research_event_pattern='Research Ev''ents|research ev''ents'
-if grep -RInE "$bad_research_event_pattern" "$CLAUDE_SKILLS"/openspec-* "$PI_FRAGMENTS"/openspec-*.md "$CODEX_SKILLS"/openspec_* "$PI_SKILLS"/openspec-* 2>/dev/null; then
-  fail "OpenSpec source, fragments, or generated skills still require removed research-event response contract (matches above)"
-else
-  ok "OpenSpec skills avoid the removed research-event response contract"
-fi
-
-echo
-echo "lint: pairing (claude ↔ codex)"
-for cn in "${CLAUDE_NAMES[@]:-}"; do
-  [[ -z "$cn" ]] && continue
-  expected="$(hyphen_to_underscore "$cn")"
-  if in_array "$expected" "${CODEX_NAMES[@]:-}"; then
-    ok "$cn ↔ $expected"
-  else
-    fail "claude skill '$cn' has no generated codex counterpart (expected '$expected')"
-  fi
-done
-
-echo
-echo "lint: pairing (claude ↔ pi)"
-for cn in "${CLAUDE_NAMES[@]:-}"; do
-  [[ -z "$cn" ]] && continue
-  if in_array "$cn" "${PI_GEN_NAMES[@]:-}"; then
-    ok "$cn ↔ $cn"
-  else
-    fail "claude skill '$cn' has no generated pi counterpart"
-  fi
-done
-
-echo
-echo "lint: OpenSpec suggested-next-action output contract"
-for skill_name in "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; do
-  [[ -z "$skill_name" ]] && continue
-  codex_name="$(hyphen_to_underscore "$skill_name")"
-  dual_capable=false
-  in_array "$skill_name" "${DUAL_CAPABLE_OPENSPEC_SKILLS[@]}" && dual_capable=true
-  check_suggested_next_action_contract "claude: $skill_name" "$CLAUDE_SKILLS/$skill_name/SKILL.md" "$dual_capable"
-  check_suggested_next_action_contract "codex: $codex_name" "$CODEX_SKILLS/$codex_name/SKILL.md" "$dual_capable"
-  check_suggested_next_action_contract "pi: $skill_name" "$PI_SKILLS/$skill_name/SKILL.md" "$dual_capable"
-done
-
-check_pi_converge_dispatch \
-  "Pi implementation convergence fragment" \
-  "$PI_FRAGMENTS/openspec-story-converge.md" \
-  "You are executing the openspec-story-<claim|resume> workflow for openspec/<initiative_slug>/<story_slug>." \
-  "/openspec-story-<claim|resume> <initiative_slug> <story_slug> [WORKTREE=...]" \
-  "/openspec-story-review"
-check_pi_converge_dispatch \
-  "generated Pi implementation convergence" \
-  "$PI_SKILLS/openspec-story-converge/SKILL.md" \
-  "You are executing the openspec-story-<claim|resume> workflow for openspec/<initiative_slug>/<story_slug>." \
-  "/openspec-story-<claim|resume> <initiative_slug> <story_slug> [WORKTREE=...]" \
-  "/openspec-story-review"
-check_pi_converge_dispatch \
-  "Pi planning convergence fragment" \
-  "$PI_FRAGMENTS/openspec-story-plan-converge.md" \
-  "You are executing the openspec-story-plan-<review|resume> workflow for openspec/<initiative_slug>/<story_slug>." \
-  "/openspec-story-plan-<review|resume> <initiative_slug> <story_slug>" \
-  "/openspec-story-review"
-check_pi_converge_dispatch \
-  "generated Pi planning convergence" \
-  "$PI_SKILLS/openspec-story-plan-converge/SKILL.md" \
-  "You are executing the openspec-story-plan-<review|resume> workflow for openspec/<initiative_slug>/<story_slug>." \
-  "/openspec-story-plan-<review|resume> <initiative_slug> <story_slug>" \
-  "/openspec-story-review"
-
-echo
-echo "lint: phase-heading parity (claude ↔ codex)"
-for cn in "${CLAUDE_NAMES[@]:-}"; do
-  [[ -z "$cn" ]] && continue
-  expected_codex="$(hyphen_to_underscore "$cn")"
-  in_array "$expected_codex" "${CODEX_NAMES[@]:-}" || continue
-  claude_md="$CLAUDE_SKILLS/$cn/SKILL.md"
-  codex_md="$CODEX_SKILLS/$expected_codex/SKILL.md"
-  claude_phases="$(extract_phase_headings "$claude_md" | sed -E 's/[[:space:]]+/ /g')"
-  codex_phases="$(extract_phase_headings "$codex_md" | sed -E 's/[[:space:]]+/ /g')"
-  if [[ "$claude_phases" != "$codex_phases" ]]; then
-    fail "$cn: phase headings differ between claude and generated codex versions"
-  else
-    ok "$cn (phases aligned)"
-  fi
-done
-
-echo
-echo "lint: main installer dry-run (codex)"
-installer_dry_run_output=""
-if ! installer_dry_run_output="$("$REPO_ROOT/scripts/install.sh" --agents codex --yes --dry-run 2>&1)"; then
-  fail "scripts/install.sh --agents codex --yes --dry-run failed"
-elif grep -Fq "$REPO_ROOT/codex/skills" <<<"$installer_dry_run_output"; then
-  fail "scripts/install.sh codex dry-run still references deleted $REPO_ROOT/codex/skills"
-elif ! grep -Fq "install-codex.sh" <<<"$installer_dry_run_output"; then
-  fail "scripts/install.sh codex dry-run did not route through install-codex.sh"
-else
-  ok "install.sh codex dry-run uses install-codex.sh"
-fi
-
-echo
-echo "lint: non-tty installer safety"
-non_tty_output=""
-if non_tty_output="$(HOME="$TMPDIR/non-tty-home" "$REPO_ROOT/scripts/install.sh" </dev/null 2>&1)"; then
-  fail "scripts/install.sh </dev/null succeeded without --yes"
-elif grep -Fq "non-interactive installs require --yes" <<<"$non_tty_output"; then
-  ok "non-tty install requires --yes"
-else
-  fail "scripts/install.sh </dev/null failed for an unexpected reason: $non_tty_output"
-fi
-
-echo
-echo "lint: generated installer overwrite safety"
-codex_conflict="$TMPDIR/codex-conflict"
-mkdir -p "$codex_conflict/openspec_story_claim/agents"
-printf 'local codex edit\n' > "$codex_conflict/openspec_story_claim/SKILL.md"
-printf 'policy:\n  allow_implicit_invocation: false\n' > "$codex_conflict/openspec_story_claim/agents/openai.yaml"
-if CODEX_SKILLS_DIR="$codex_conflict" "$REPO_ROOT/scripts/install-codex.sh" >/dev/null 2>&1; then
-  fail "install-codex.sh overwrote modified existing SKILL.md without --force"
-else
-  ok "install-codex.sh protects modified existing SKILL.md"
-fi
-pi_conflict="$TMPDIR/pi-conflict"
-mkdir -p "$pi_conflict/openspec-story-claim"
-printf 'local pi edit\n' > "$pi_conflict/openspec-story-claim/SKILL.md"
-if PI_SKILLS_DIR="$pi_conflict" "$REPO_ROOT/scripts/install-pi.sh" >/dev/null 2>&1; then
-  fail "install-pi.sh overwrote modified existing SKILL.md without --force"
-else
-  ok "install-pi.sh protects modified existing SKILL.md"
-fi
-
-echo
-echo "lint: explicit unsupported prune"
-codex_no_prune="$TMPDIR/codex-no-prune"
-mkdir -p "$codex_no_prune/epic_story_claim/agents"
-printf '%s\n' '---' 'name: epic_story_claim' 'description: legacy' '---' > "$codex_no_prune/epic_story_claim/SKILL.md"
-printf 'policy:\n  allow_implicit_invocation: false\n' > "$codex_no_prune/epic_story_claim/agents/openai.yaml"
-if CODEX_SKILLS_DIR="$codex_no_prune" "$REPO_ROOT/scripts/install-codex.sh" >/dev/null 2>&1 && [[ -d "$codex_no_prune/epic_story_claim" ]]; then
-  ok "install-codex.sh leaves unsupported dirs without --prune-unsupported"
-else
-  fail "install-codex.sh pruned or failed on unsupported dir without --prune-unsupported"
-fi
-
-codex_prune="$TMPDIR/codex-prune"
-mkdir -p "$codex_prune/epic_story_claim/agents" "$codex_prune/epic_story_resume/agents" \
-  "$codex_prune/epic_story_review/agents" "$codex_prune/epic_story_plan/agents" "$codex_prune/openspec_epic_plan/agents"
-printf '%s\n' '---' 'name: epic_story_claim' 'description: legacy' '---' > "$codex_prune/epic_story_claim/SKILL.md"
-printf '%s\n' '---' 'name: not_epic_story_resume' 'description: local' '---' > "$codex_prune/epic_story_resume/SKILL.md"
-printf '%s\n' '---' 'name: epic_story_review' '"name": epic_story_review' '---' > "$codex_prune/epic_story_review/SKILL.md"
-printf '%s\n' '---' 'name: [epic_story_plan]' '---' > "$codex_prune/epic_story_plan/SKILL.md"
-printf '%s\n' '---' 'name: openspec_epic_plan' 'description: renamed' '---' > "$codex_prune/openspec_epic_plan/SKILL.md"
-printf 'policy:\n  allow_implicit_invocation: false\n' > "$codex_prune/epic_story_claim/agents/openai.yaml"
-if CODEX_SKILLS_DIR="$codex_prune" "$REPO_ROOT/scripts/install-codex.sh" --prune-unsupported >/dev/null 2>&1; then
-  if [[ ! -e "$codex_prune/epic_story_claim" && ! -e "$codex_prune/openspec_epic_plan" && \
-        -d "$codex_prune/epic_story_resume" && -d "$codex_prune/epic_story_review" && -d "$codex_prune/epic_story_plan" ]]; then
-    ok "install-codex.sh --prune-unsupported removes only exactly verified unsupported dirs"
-  else
-    fail "install-codex.sh --prune-unsupported did not prune/skip expected Codex dirs"
-  fi
-else
-  fail "install-codex.sh --prune-unsupported failed"
-fi
-
-pi_no_prune="$TMPDIR/pi-no-prune"
-mkdir -p "$pi_no_prune/epic-story-claim"
-printf '%s\n' '---' 'name: epic-story-claim' 'description: legacy' '---' > "$pi_no_prune/epic-story-claim/SKILL.md"
-if PI_SKILLS_DIR="$pi_no_prune" "$REPO_ROOT/scripts/install-pi.sh" >/dev/null 2>&1 && [[ -d "$pi_no_prune/epic-story-claim" ]]; then
-  ok "install-pi.sh leaves unsupported dirs without --prune-unsupported"
-else
-  fail "install-pi.sh pruned or failed on unsupported dir without --prune-unsupported"
-fi
-
-pi_prune="$TMPDIR/pi-prune"
-mkdir -p "$pi_prune/epic-story-claim" "$pi_prune/epic-story-resume" \
-  "$pi_prune/epic-story-review" "$pi_prune/epic-story-plan" "$pi_prune/openspec-epic-plan"
-printf '%s\n' '---' 'name: epic-story-claim' 'description: legacy' '---' > "$pi_prune/epic-story-claim/SKILL.md"
-printf '%s\n' '---' 'name: not-epic-story-resume' 'description: local' '---' > "$pi_prune/epic-story-resume/SKILL.md"
-printf '%s\n' '---' 'name: epic-story-review' 'name : epic-story-review' '---' > "$pi_prune/epic-story-review/SKILL.md"
-printf '%s\n' '---' 'name: {epic-story-plan}' '---' > "$pi_prune/epic-story-plan/SKILL.md"
-printf '%s\n' '---' 'name: openspec-epic-plan' 'description: renamed' '---' > "$pi_prune/openspec-epic-plan/SKILL.md"
-if PI_SKILLS_DIR="$pi_prune" "$REPO_ROOT/scripts/install-pi.sh" --prune-unsupported >/dev/null 2>&1; then
-  if [[ ! -e "$pi_prune/epic-story-claim" && ! -e "$pi_prune/openspec-epic-plan" && \
-        -d "$pi_prune/epic-story-resume" && -d "$pi_prune/epic-story-review" && -d "$pi_prune/epic-story-plan" ]]; then
-    ok "install-pi.sh --prune-unsupported removes only exactly verified unsupported dirs"
-  else
-    fail "install-pi.sh --prune-unsupported did not prune/skip expected pi dirs"
-  fi
-else
-  fail "install-pi.sh --prune-unsupported failed"
-fi
-
-codex_dry_prune="$TMPDIR/codex-dry-prune"
-mkdir -p "$codex_dry_prune/epic_story_claim/agents"
-printf '%s\n' '---' 'name: epic_story_claim' 'description: legacy' '---' > "$codex_dry_prune/epic_story_claim/SKILL.md"
-codex_dry_prune_output=""
-if codex_dry_prune_output="$(CODEX_SKILLS_DIR="$codex_dry_prune" "$REPO_ROOT/scripts/install-codex.sh" --dry-run --prune-unsupported 2>&1)" && [[ -d "$codex_dry_prune/epic_story_claim" ]] && grep -Fq "would: rm -rf $codex_dry_prune/epic_story_claim" <<<"$codex_dry_prune_output"; then
-  ok "install-codex.sh --dry-run --prune-unsupported reports prune without mutating"
-else
-  fail "install-codex.sh --dry-run --prune-unsupported did not report prune safely"
-fi
-
-pi_dry_prune="$TMPDIR/pi-dry-prune"
-mkdir -p "$pi_dry_prune/epic-story-claim"
-printf '%s\n' '---' 'name: epic-story-claim' 'description: legacy' '---' > "$pi_dry_prune/epic-story-claim/SKILL.md"
-pi_dry_prune_output=""
-if pi_dry_prune_output="$(PI_SKILLS_DIR="$pi_dry_prune" "$REPO_ROOT/scripts/install-pi.sh" --dry-run --prune-unsupported 2>&1)" && [[ -d "$pi_dry_prune/epic-story-claim" ]] && grep -Fq "would: rm -rf $pi_dry_prune/epic-story-claim" <<<"$pi_dry_prune_output"; then
-  ok "install-pi.sh --dry-run --prune-unsupported reports prune without mutating"
-else
-  fail "install-pi.sh --dry-run --prune-unsupported did not report prune safely"
-fi
-
-prune_home="$TMPDIR/prune-home"
-mkdir -p "$prune_home/.claude/skills"
-ln -s "$REPO_ROOT/archive/skills/legacy-epic/claude/skills/epic-story-claim" "$prune_home/.claude/skills/epic-story-claim"
-if HOME="$prune_home" "$REPO_ROOT/scripts/install.sh" --agents claude --yes --prune-unsupported >/dev/null 2>&1; then
-  if [[ ! -e "$prune_home/.claude/skills/epic-story-claim" && ! -L "$prune_home/.claude/skills/epic-story-claim" ]]; then
-    ok "install.sh --prune-unsupported prunes Claude legacy symlinks"
-  else
-    fail "install.sh --prune-unsupported did not prune Claude legacy symlink"
-  fi
-else
-  fail "install.sh --agents claude --prune-unsupported failed"
-fi
-
-outside_prune_home="$TMPDIR/outside-prune-home"
-outside_target="$TMPDIR/outside-legacy-target"
-mkdir -p "$outside_prune_home/.claude/skills" "$outside_target"
-ln -s "$outside_target" "$outside_prune_home/.claude/skills/epic-story-claim"
-if HOME="$outside_prune_home" "$REPO_ROOT/scripts/install.sh" --agents claude --yes --prune-unsupported >/dev/null 2>&1; then
-  if [[ -L "$outside_prune_home/.claude/skills/epic-story-claim" ]]; then
-    ok "install.sh --prune-unsupported skips Claude legacy symlinks outside this repo"
-  else
-    fail "install.sh --prune-unsupported removed a Claude legacy symlink outside this repo"
-  fi
-else
-  fail "install.sh --agents claude --prune-unsupported failed with outside symlink"
-fi
-
-dry_prune_home="$TMPDIR/dry-prune-home"
-mkdir -p "$dry_prune_home/.claude/skills"
-ln -s "$REPO_ROOT/archive/skills/legacy-epic/claude/skills/epic-story-claim" "$dry_prune_home/.claude/skills/epic-story-claim"
-dry_prune_output=""
-if dry_prune_output="$(HOME="$dry_prune_home" "$REPO_ROOT/scripts/install.sh" --agents claude --yes --dry-run --prune-unsupported 2>&1)" && [[ -L "$dry_prune_home/.claude/skills/epic-story-claim" ]] && grep -Fq "prune $dry_prune_home/.claude/skills/epic-story-claim" <<<"$dry_prune_output"; then
-  ok "install.sh --dry-run --prune-unsupported reports Claude prune without mutating"
-else
-  fail "install.sh --dry-run --prune-unsupported did not report prune safely"
-fi
-
-forward_home="$TMPDIR/forward-prune-home"
-mkdir -p "$forward_home/.codex/skills/epic_story_claim" "$forward_home/.pi/agent/skills/epic-story-claim"
-printf '%s\n' '---' 'name: epic_story_claim' 'description: legacy' '---' > "$forward_home/.codex/skills/epic_story_claim/SKILL.md"
-printf '%s\n' '---' 'name: epic-story-claim' 'description: legacy' '---' > "$forward_home/.pi/agent/skills/epic-story-claim/SKILL.md"
-if HOME="$forward_home" "$REPO_ROOT/scripts/install.sh" --agents codex --yes --prune-unsupported >/dev/null 2>&1 && HOME="$forward_home" "$REPO_ROOT/scripts/install.sh" --agents pi --yes --prune-unsupported >/dev/null 2>&1; then
-  if [[ ! -e "$forward_home/.codex/skills/epic_story_claim" && ! -e "$forward_home/.pi/agent/skills/epic-story-claim" ]]; then
-    ok "install.sh forwards --prune-unsupported to generated installers"
-  else
-    fail "install.sh did not forward --prune-unsupported to generated installers"
-  fi
-else
-  fail "install.sh generated-installer prune forwarding failed"
-fi
-
-# Names observed in old active installs but absent from the original prune
-# inventory. Exact frontmatter/symlink safety still applies; this only proves
-# that the complete recognized stale inventory is reachable by each installer.
-declare -a STALE_PRUNE_SKILLS=(
-  epic-claim
-  epic-new-story
-  epic-resume
-  epic-review
-  epic-story-save
-)
-stale_codex_prune="$TMPDIR/stale-codex-prune"
-stale_pi_prune="$TMPDIR/stale-pi-prune"
-stale_claude_home="$TMPDIR/stale-claude-home"
-mkdir -p "$stale_codex_prune" "$stale_pi_prune" "$stale_claude_home/.claude/skills"
-for stale_name in "${STALE_PRUNE_SKILLS[@]}"; do
-  stale_codex_name="$(hyphen_to_underscore "$stale_name")"
-  mkdir -p "$stale_codex_prune/$stale_codex_name/agents" "$stale_pi_prune/$stale_name"
-  printf '%s\n' '---' "name: $stale_codex_name" 'description: recognized stale workflow' '---' > "$stale_codex_prune/$stale_codex_name/SKILL.md"
-  printf '%s\n' '---' "name: $stale_name" 'description: recognized stale workflow' '---' > "$stale_pi_prune/$stale_name/SKILL.md"
-  ln -s "$REPO_ROOT/archive" "$stale_claude_home/.claude/skills/$stale_name"
-done
-
-if CODEX_SKILLS_DIR="$stale_codex_prune" "$REPO_ROOT/scripts/install-codex.sh" --prune-unsupported >/dev/null 2>&1; then
-  stale_remaining=()
-  for stale_name in "${STALE_PRUNE_SKILLS[@]}"; do
-    stale_codex_name="$(hyphen_to_underscore "$stale_name")"
-    [[ -e "$stale_codex_prune/$stale_codex_name" ]] && stale_remaining+=("$stale_codex_name")
-  done
-  if [[ ${#stale_remaining[@]} -eq 0 ]]; then
-    ok "install-codex.sh prunes the complete recognized stale inventory"
-  else
-    fail "install-codex.sh stale prune inventory is incomplete: ${stale_remaining[*]}"
-  fi
-else
-  fail "install-codex.sh failed while pruning the recognized stale inventory"
-fi
-
-if PI_SKILLS_DIR="$stale_pi_prune" "$REPO_ROOT/scripts/install-pi.sh" --prune-unsupported >/dev/null 2>&1; then
-  stale_remaining=()
-  for stale_name in "${STALE_PRUNE_SKILLS[@]}"; do
-    [[ -e "$stale_pi_prune/$stale_name" ]] && stale_remaining+=("$stale_name")
-  done
-  if [[ ${#stale_remaining[@]} -eq 0 ]]; then
-    ok "install-pi.sh prunes the complete recognized stale inventory"
-  else
-    fail "install-pi.sh stale prune inventory is incomplete: ${stale_remaining[*]}"
-  fi
-else
-  fail "install-pi.sh failed while pruning the recognized stale inventory"
-fi
-
-if HOME="$stale_claude_home" "$REPO_ROOT/scripts/install.sh" --agents claude --yes --prune-unsupported >/dev/null 2>&1; then
-  stale_remaining=()
-  for stale_name in "${STALE_PRUNE_SKILLS[@]}"; do
-    if [[ -e "$stale_claude_home/.claude/skills/$stale_name" || -L "$stale_claude_home/.claude/skills/$stale_name" ]]; then
-      stale_remaining+=("$stale_name")
-    fi
-  done
-  if [[ ${#stale_remaining[@]} -eq 0 ]]; then
-    ok "install.sh prunes the complete recognized stale Claude inventory"
-  else
-    fail "install.sh stale Claude prune inventory is incomplete: ${stale_remaining[*]}"
-  fi
-else
-  fail "install.sh failed while pruning the recognized stale Claude inventory"
-fi
-
-if "$REPO_ROOT/scripts/install.sh" --prune-unsuported --dry-run >/dev/null 2>&1; then
-  fail "install.sh accepted misspelled --prune-unsuported"
-else
-  ok "install.sh rejects misspelled --prune-unsuported"
-fi
-
-if "$REPO_ROOT/scripts/install-codex.sh" --prune-unsuported >/dev/null 2>&1; then
-  fail "install-codex.sh accepted misspelled --prune-unsuported"
-else
-  ok "install-codex.sh rejects misspelled --prune-unsuported"
-fi
-
-if "$REPO_ROOT/scripts/install-pi.sh" --prune-unsuported >/dev/null 2>&1; then
-  fail "install-pi.sh accepted misspelled --prune-unsuported"
-else
-  ok "install-pi.sh rejects misspelled --prune-unsuported"
-fi
-
-echo
-echo "lint: codex skill content hygiene"
-if grep -RInE '^(legacy-argument-hint:)|^This skill was migrated one-to-one from the former custom prompt|^Original argument hint:' "$CODEX_SKILLS" >/dev/null 2>&1; then
-  fail "prompt-era Codex scaffolding found in generated codex skills (matches below)"
-  grep -RInE '^(legacy-argument-hint:)|^This skill was migrated one-to-one from the former custom prompt|^Original argument hint:' "$CODEX_SKILLS" 2>&1 | sed 's/^/  /' >&2 || true
-else
-  ok "no prompt-era Codex scaffolding"
-fi
-
-echo
-echo "lint: no cure_workspace absolute paths"
-if grep -RIn 'cure_workspace' "$CLAUDE_SKILLS" "$PI_FRAGMENTS" "$REPO_ROOT/docs" "$REPO_ROOT/README.md" 2>/dev/null; then
-  fail "found 'cure_workspace' references (above) — strip project-specific paths"
-else
-  ok "no cure_workspace leakage"
-fi
-
-echo
-
-echo "lint: codex argument contracts"
-expect_codex_contains() {
-  local skill="$1" expected="$2" file
-  file="$CODEX_SKILLS/$skill/SKILL.md"
-  if [[ ! -f "$file" ]]; then
-    fail "$skill: missing generated Codex skill for argument-contract check"
-  elif grep -Fq "$expected" "$file"; then
-    ok "$skill: preserves $expected"
-  else
-    fail "$skill: generated Codex body missing '$expected'"
-  fi
-}
-expect_codex_argument_line() {
-  local skill="$1" expected="$2" file
-  file="$CODEX_SKILLS/$skill/SKILL.md"
-  if [[ ! -f "$file" ]]; then
-    fail "$skill: missing generated Codex skill for argument-line check"
-  elif grep -Fxq "$expected" "$file"; then
-    ok "$skill: argument line preserves contract"
-  else
-    fail "$skill: generated Codex argument line missing exact '$expected'"
-  fi
 }
 
-expect_codex_argument_line openspec_archive 'Argument: INITIATIVE=<slug> STORY=<slug>'
-expect_codex_argument_line openspec_initiative_plan 'Argument: [SLUG=<slug>]'
-expect_codex_argument_line openspec_next_action 'Argument: [INITIATIVE=<slug>] [STORY=<slug>] [SPEC=<spec-or-path>] [--all]'
-expect_codex_argument_line openspec_feedback 'Argument: INITIATIVE=<slug> [--pr <pr_url>] [feedback_or_file]'
-expect_codex_argument_line openspec_story_claim 'Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"]...'
-expect_codex_argument_line openspec_story_resume 'Argument: INITIATIVE=<slug> [STORY=<slug>] [WORKTREE="<basename>=<path>"]...'
-expect_codex_argument_line openspec_story_review 'Argument: INITIATIVE=<slug> STORY=<slug> [WORKTREE="<basename>=<path>"]...'
-expect_codex_argument_line openspec_story_converge 'Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5] [WORKTREE="<basename>=<path>"]...'
-expect_codex_argument_line openspec_story_plan 'Argument: [INITIATIVE=<slug>]'
-expect_codex_argument_line openspec_story_plan_resume 'Argument: INITIATIVE=<slug> STORY=<slug>'
-expect_codex_argument_line openspec_story_plan_review 'Argument: INITIATIVE=<slug> STORY=<slug>'
-expect_codex_argument_line openspec_story_plan_converge 'Argument: INITIATIVE=<slug> STORY=<slug> [MAX_CYCLES=5]'
-expect_codex_argument_line openspec_pr 'Argument: INITIATIVE=<slug> STORY=<slug> [<pr_url_or_OPEN=true>]'
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  # Aggregate allocation is never delegated by its caller. Child suites share
+  # that exact root, matching the monolith's generated and scratch paths.
+  unset LINT_SUITE_TMPDIR LINT_AGGREGATE_TMP_ROOT LINT_AGGREGATE_GENERATED_READY
+  lint_suite_bootstrap || exit 1
+  readonly LINT_AGGREGATE_TMP_ROOT="$TMPDIR"
+  export LINT_AGGREGATE_TMP_ROOT
+  export LINT_SUITE_TMPDIR="$LINT_AGGREGATE_TMP_ROOT"
 
-expect_codex_contains openspec_next_action "the INITIATIVE, STORY, SPEC, and --all selectors"
-expect_codex_contains openspec_feedback "the INITIATIVE, feedback flags, and feedback payload named variables"
-expect_codex_contains openspec_story_claim "the INITIATIVE, STORY, and WORKTREE named variables"
-expect_codex_contains openspec_story_review "the INITIATIVE, STORY, and WORKTREE named variables"
-expect_codex_contains openspec_story_converge "the INITIATIVE, STORY, MAX_CYCLES, and WORKTREE named variables"
-expect_codex_contains openspec_story_plan_converge "the INITIATIVE, STORY, and MAX_CYCLES named variables"
-expect_codex_contains openspec_pr "the INITIATIVE, STORY, and PR selector named variables"
-
-expect_codex_contains openspec_story_claim "Claimed by: Codex fresh session"
-expect_codex_contains openspec_story_resume "Claimed by: Codex fresh session (resume)"
-
-if grep -RIn '\$ARGUMENTS' "$CODEX_SKILLS"/openspec_* 2>/dev/null; then
-  fail "generated Codex OpenSpec skills still contain raw \$ARGUMENTS"
-else
-  ok "generated Codex OpenSpec skills have no raw \$ARGUMENTS"
+  aggregate_fail=0
+  bash "$REPO_ROOT/scripts/lint-structure.sh" --main || aggregate_fail=1
+  bash "$REPO_ROOT/scripts/test-distribution.sh" --primary || aggregate_fail=1
+  # Primary owns both generator attempts and their diagnostics. Every later
+  # generated-content suite inventories the shared trees without regenerating.
+  export LINT_AGGREGATE_GENERATED_READY=1
+  bash "$REPO_ROOT/scripts/lint-workflow-contracts.sh" || aggregate_fail=1
+  bash "$REPO_ROOT/scripts/test-distribution.sh" --generated || aggregate_fail=1
+  bash "$REPO_ROOT/scripts/test-installers.sh" || aggregate_fail=1
+  bash "$REPO_ROOT/scripts/test-distribution.sh" --content-hygiene || aggregate_fail=1
+  bash "$REPO_ROOT/scripts/lint-structure.sh" --repository-hygiene || aggregate_fail=1
+  bash "$REPO_ROOT/scripts/test-distribution.sh" --content-contracts || aggregate_fail=1
+  echo
+  if [[ $aggregate_fail -ne 0 ]]; then
+    echo "lint: FAILED"
+    exit 1
+  fi
+  echo "lint: PASSED"
 fi
-
-if grep -RIn 'Claimed by: pi' "$CODEX_SKILLS"/openspec_* 2>/dev/null; then
-  fail "generated Codex OpenSpec skills contain hard-coded pi claimant identity"
-else
-  ok "generated Codex OpenSpec skills avoid hard-coded pi claimant identity"
-fi
-
-echo
-
-echo "lint: openspec pi fragment authority boundary"
-if grep -RInE 'Persist review verdict|Review findings → notebook|Proof tracking → notebook|approval evidence.*notebook_write|lifecycle.*notebook_write' "$PI_FRAGMENTS"/openspec-*.md 2>/dev/null; then
-  fail "OpenSpec Pi fragments persist review/proof/lifecycle authority to notebooks (matches above)"
-else
-  ok "OpenSpec Pi fragments keep review/proof/lifecycle authority in canonical artifacts"
-fi
-
-echo
-if [[ $FAIL -ne 0 ]]; then
-  echo "lint: FAILED"
-  exit 1
-fi
-echo "lint: PASSED"
