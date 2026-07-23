@@ -14,8 +14,8 @@ Initiative: <initiative-slug>
      `/openspec-story-plan-resume` repairs planning/scaffold content.
      `/openspec-story-claim` and `/openspec-story-resume` write authorized
      implementation Status transitions; `/openspec-feedback` may reopen Status
-     after acknowledgement; `/openspec-story-review` writes completed-verdict
-     Status only after publishing the current review receipt. -->
+     after acknowledgement. `/openspec-feedback` publishes completed-verdict Status
+     only after validating a state-bound handoff from the read-only evaluator. -->
 
 > Story scaffolded by `/openspec-story-plan` after interactive planning.
 

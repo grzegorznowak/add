@@ -2,8 +2,9 @@
 name: openspec-feedback
 description: Absorb structured review/tool, PR, or reviewer feedback into an OpenSpec initiative by routing it to story edits, review rework, story candidates, or initiative-level decisions. Use when feedback needs to be incorporated without bloating or drifting stories.
 disable-model-invocation: true
+readonly: false
 argument-hint: "<initiative-slug> [--pr <pr-url>] [feedback-or-file] [WORKTREE=\"<basename>=<path>\"]"
-allowed-tools: Read Edit Write Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*) Bash(printf:*) Bash(sha256sum:*) Bash(shasum:*) Bash(git worktree list:*)
+allowed-tools: Read Edit Write Grep Glob Bash(gh pr view:*) Bash(gh api:*) Bash(date -u:*) Bash(printf:*) Bash(sha256sum:*) Bash(shasum:*) Bash(git worktree list:*) Bash(stat:*) Bash(readlink:*)
 ---
 
 # OpenSpec Feedback
@@ -14,7 +15,10 @@ Argument: `$ARGUMENTS` — `<initiative_slug> [--pr <pr_url>] [feedback_or_file]
 
 ## Important
 
-This command may edit coordination documents only:
+This command may edit coordination documents only. Feedback is the sole publisher of a completed implementation review.
+
+- For a validated completed-review handoff, publication is limited to the current `progress.md → ## Implementation Review Receipt`, exactly one review transition in `## Progress Timeline`, the top-level `story.md → Status:`, and `blocked.md` for BLOCKED.
+- For ordinary feedback absorption:
 
 - `initiative.md` (Feedback-Derived Story Candidates, Feedback-Derived Decisions, Feedback Receipts)
 - non-archived change workspace artifacts under `openspec/changes/<story-slug>/`:
@@ -24,7 +28,7 @@ This command may edit coordination documents only:
   - `story.md` Status header and contract sections (review findings reflected in contract)
   - `progress.md` (a feedback checkpoint for every direct amendment or implementation resume, including status-only resume)
 
-`Write` is permitted only when a missing `progress.md`, `## Progress Timeline`, or `initiative.md → ## Feedback Receipts` section must be created for an acknowledged edit, or when exact retained bytes/hashes are needed for transaction rollback or reconciliation; do not create unrelated scaffold. It never touches product source code, tests, configs, archived change workspaces, `CONTRACT.md`, worktree contents outside the resolved coordination artifacts, branches, GitHub PR bodies, or `reviews.md` (legacy artifact; review findings are durable in story.md and the initiative feedback receipt). It never creates a full new change workspace and never advances or approves implementation status. Its only allowed `story.md → Status:` write is an explicitly acknowledged `resume-current-story` reopen to `🔄 IN PROGRESS` so implementation can resume after local/PR feedback. New work discovered from feedback becomes a feedback-derived story candidate in the initiative; `/openspec-story-plan` owns full story planning.
+`Write` is permitted only when a missing `progress.md`, `## Progress Timeline`, or `initiative.md → ## Feedback Receipts` section must be created, or when a missing `blocked.md` is the first write of a fully validated BLOCKED completed-review publication; the narrowed runtime tool set otherwise uses validated `Edit` replacements and must not create unrelated scaffold. `git worktree list` is permitted only for coordination-root discovery from the launch repository. `stat`, `readlink`, and the hash tools are permitted only to validate recorded or operator-explicit target paths, containment, path type, executable bit, exact symlink-target bytes, and exact content bytes. They never authorize branch, index, worktree, Git-object, or product-file mutation. This command never touches product source code, tests, configs, archived change workspaces, `CONTRACT.md`, worktree contents outside the resolved coordination artifacts, branches, GitHub PR bodies, or `reviews.md` (legacy artifact; review findings are durable in story.md and the initiative feedback receipt). It never creates a full new change workspace. Outside completed-review publication, its only allowed `story.md → Status:` write is an explicitly acknowledged `resume-current-story` reopen to `🔄 IN PROGRESS` so implementation can resume after local/PR feedback. New work discovered from feedback becomes a feedback-derived story candidate in the initiative; `/openspec-story-plan` owns full story planning.
 
 There is no dry-run mode. Normal operation is:
 
@@ -44,13 +48,58 @@ Feedback often spans several stories. Selecting a story before classification re
 
 `Plan:` header in `story.md` answers: "is the story contract ready to implement, or does it need planning rework?"
 
+## Completed review handoff intake
+
+When the payload contains a completed-review handoff, process it exclusively under `## Completed review publication`; do not classify it as an FB item or combine it with ordinary feedback. Accept only one fenced `## Completed Review Handoff` block with `Handoff version: review-handoff-v1`. Require every handoff field exactly once, including the complete canonical receipt field set: `Reviewed at`, `Decision`, `Approval gate`, `Status transition`, `Evidence reviewed`, `Identity method`, `Identity digest`, `Identity bases`, `Identity paths`, `Findings`, `Proof`, and `Next owner`; also require `Story`, `Review cycle`, all three baseline digests, all three expected digests, `Target Status`, `Timeline transition`, and `Blocker body`.
+
+Resolve the canonical initiative/story pair and active root using the same containment, binding, partitioned explicit-selector, and unique branch-worktree precedence used below. Coordination-root selectors and target-repository selectors have distinct roles: only a selector whose path contains the selected contained initiative/story artifacts can choose `<receipt_root>`, while every named selector remains an explicit target override for reviewer-equivalent root mapping. A target-only selector never causes coordination-root selection to fail. Reject a missing, duplicate, malformed, stale, or mismatched completed-review handoff. Validate strict lowercase SHA-256 forms, canonical JSON identity fields, canonical JSON transport strings for the exact timeline/blocker bytes, one top-level Status, one complete receipt body in expected progress bytes, one timeline transition, and decision/gate/status consistency. `APPROVE`/`PASS` maps to `✅ DONE`; `REQUEST CHANGES`/`FAIL` maps to `🔄 IN PROGRESS`; `BLOCKED`/`FAIL` maps to `⛔ BLOCKED`.
+
+Recompute `Review cycle` from the packet baseline digests using the exact `review-cycle-v1` canonical encoding and require an exact match. `Review cycle` identifies the baseline artifact state, not packet issuance order. Recompute exact current artifact digests and the complete expected artifact bytes from the packet fields before deciding whether this invocation is a no-write completed replay or an active publication.
+
+The canonical progress-byte transform used by both review and feedback is:
+
+1. Treat `progress.md` as exact bytes. Require valid UTF-8, no CR byte, LF-only line termination, and a terminal LF. A canonical section-boundary heading is an LF-terminated line at byte column zero whose bytes excluding the LF are exactly `## ` followed by a nonempty title whose first and last bytes are neither ASCII SPACE nor TAB. Every such line is a section boundary. Fenced-code state is irrelevant: an exact column-zero canonical heading inside a fence is still a boundary, so examples containing one must indent or escape it. Reject target-heading near-matches deterministically: for each input line excluding its LF, form a comparison title by removing maximal leading and trailing ASCII SPACE/TAB runs; removing a leading run of one or more `#` bytes and the following maximal ASCII SPACE/TAB run, if present; removing a trailing run of one or more `#` bytes only when that run is preceded by ASCII SPACE or TAB, then trimming ASCII SPACE/TAB again; and folding only ASCII `A` through `Z` to lowercase. If that comparison title is `progress timeline` or `implementation review receipt`, the original line bytes excluding the LF must be exactly `## Progress Timeline` or `## Implementation Review Receipt`, respectively, or the input is rejected. Require exactly one exact `## Progress Timeline`. A section range starts at its exact heading line and ends immediately before the next canonical section-boundary heading or EOF.
+2. Decode `Timeline transition` from its canonical JSON transport string. The decoded bytes must be exactly one nonempty line beginning with the two ASCII bytes `- `, containing no CR or embedded LF, and ending with exactly one LF.
+3. Require the Progress Timeline range to end with the two bytes `\n\n`. Its deterministic append point is immediately before the range's final LF byte, preserving every prior timeline byte in its original order.
+4. In baseline construction mode, require zero exact full-line occurrences of the decoded transition and insert it at that append point. In expected-candidate validation mode, require exactly one occurrence at that append point and retain it. Reject every other occurrence count or location.
+5. Remove every section range whose heading line is exactly `## Implementation Review Receipt`, including duplicates. Each of the twelve packet receipt values must be one valid UTF-8 line with no CR or LF. Construct the normalized receipt as the exact bytes `## Implementation Review Receipt\n`, then exactly one `- <Field>: <value>\n` line for each canonical field in packet order, then one additional LF as the section separator.
+6. Insert that one normalized receipt immediately after the resulting Progress Timeline range and before the next surviving canonical section-boundary heading or EOF. Preserve every other byte and surviving section order exactly, then SHA-256 hash the complete resulting bytes.
+7. Review applies baseline construction mode to its final baseline bytes. Feedback applies baseline construction mode only when current progress exactly matches the packet's baseline digest; for an exact expected-progress transaction prefix, feedback applies expected-candidate validation mode and requires the packet's expected digest. Any malformed, non-UTF-8, ambiguous, or noncanonical input fails closed.
+
+Authorize only these exact digest tuples: pristine baseline; blocked prefix; progress prefix; or completed Status prefix. In field order `(story, progress, blocked)`, they are `(story-baseline, progress-baseline, blocked-baseline)`, `(story-baseline, progress-baseline, expected-blocked)`, `(story-baseline, expected-progress, expected-blocked)`, and `(expected-story, expected-progress, expected-blocked)`. Check the exact completed Status prefix before enforcing the active-publication status gate: when all three current artifacts match the packet's complete expected bytes, report already published and perform no writes even though Status is no longer `🟣 IN REVIEW`. Every writable prefix must retain the exact baseline story bytes with top-level Status `🟣 IN REVIEW`; reject a non-exact or conflicting replay and any other non-`IN REVIEW` state. Any artifact digest combination outside those transaction prefixes is an unreconciled partial failure.
+
+For a writable prefix, set `<workspace_root>` to `<launch_root>` and `<openspec_root>` to `<receipt_root>`, then rebuild `<project_root_map>` only from `progress.md → ## Current Claim`, named `WORKTREE="<basename>=<path>"` target selectors, and the fixed main-tree candidates below. Parse recorded `Worktrees` child entries as `<basename>: <absolute-path>`, use the legacy singular `Worktree: <absolute-path>` only when the plural form is absent, and parse `Main-tree targets` as comma-separated basenames. Reject duplicate keys, non-absolute recorded/explicit paths, and mixed named/legacy selector forms. An explicit selector overrides the recorded path for that basename only.
+
+For a `Main-tree targets` basename with no effective worktree path, the only candidates are the fixed reviewer-compatible path `<launch_root>/projects/<basename>` or `<launch_root>` when `basename(<launch_root>)` is that basename. Require the selected candidate to be an existing directory with `.git`; otherwise fail closed. Define a legacy empty claim as one with no recorded `Worktrees`, no legacy singular `Worktree`, and no `Main-tree targets`; named explicit selectors do not disable this fallback. For a legacy empty claim, derive legacy main-tree basenames from exact `story.md → ## Scope` `projects/<basename>/` tokens and resolve them only through those same fixed main-tree candidates. A named selector overrides its basename and may add a mapped basename that is absent from Scope, but it does not suppress Scope-derived candidates for other basenames. Require every packet identity basename to resolve exactly once through a recorded path, named selector, explicit `Main-tree targets` basename, or this bounded Scope fallback; stale Scope tokens whose fixed candidates do not exist are ignored exactly as in review, while an unresolved packet basename fails closed. Do not search the filesystem or Git state for another repository by basename, and never use `<receipt_root>` as a target-root fallback. A root-repository alias is valid only when its recorded or explicit effective path canonicalizes exactly to `<launch_root>` or `<receipt_root>`; retain the declared alias key.
+
+Require each basename in `Identity bases` and `Identity paths` to map exactly once to an absolute existing directory. Canonicalize each candidate root with `readlink`; reject a missing or non-directory root, duplicate canonical roots under different identity keys, and any ambiguous or conflicting recorded/explicit mapping. For every identity path, reject absolute paths and empty, `.`, or `..` components; require both the lexical join and the canonical parent to remain beneath the canonical target root. Classify the final path without following it: hash exact bytes for a regular file, use `stat` to distinguish executable from non-executable, hash the exact `readlink` result for a symlink, require absence for `deleted`, and reject every other type.
+
+Feedback does not repeat the reviewer's Git branch, worktree-registration, detached-HEAD, or immutable-base object checks because its narrowed runtime has no target-repository Git command. Treat the packet's canonical full-object `Identity bases` as state-bound review assertions, and fail closed unless the safely mapped live paths reproduce the packet's exact canonical `review-identity-v1` manifest and digest. Duplicate or malformed Implementation Review Receipt sections are non-authoritative reconciliation inputs; replace all of them with exactly one current receipt containing every required field exactly once. Revalidate the handoff, safely mapped reviewed identity, and authoritative story/review-cycle transaction prefix immediately before the next publication write.
+
+## Completed review publication
+
+1. Build and validate the complete publication in memory before the first write. This includes complete expected bytes and hashes for all artifacts.
+2. For a blocked result, create or update `blocked.md` first. On retry, skip this write only when its bytes exactly match the expected blocked digest.
+3. Publish exactly one normalized Implementation Review Receipt and exactly one Progress Timeline transition atomically, then re-read both. Preserve every unrelated `progress.md` section byte-for-byte. On retry from the progress prefix, do not repeat this write.
+4. Re-read `progress.md` and the present-or-absent `blocked.md`; require their exact expected digests and require `story.md` still at its exact baseline digest.
+5. Write the top-level `Status:` last, using only the mapped target status.
+6. Enforce the governing sequence: Write the top-level `Status:` last, perform a final re-read, and make no further writes. Require all three expected digests; this restates and verifies step 5 rather than authorizing a second Status write.
+
+A retry may continue only from the pristine baseline or an exact transaction prefix produced from the same handoff; never duplicate its receipt or timeline transition. If any required write or re-read fails, stop, report the exact artifact mismatch, and do not call publication complete. A failed APPROVE publication remains `🟣 IN REVIEW`, never receipt-absent legacy DONE. A successfully published non-approve verdict must not leave the story `🟣 IN REVIEW`.
+
+### Completed-review publication response
+
+After successful publication, report the decision, target Status, changed artifact paths with verified digests, and `published`; after an exact completed replay, report the same outcome as `already published` with no writes. Do not emit FB IDs, ordinary dispositions, Feedback Receipt outcomes, or any other ordinary-feedback response field. End with exactly one scalar `Suggested next action: <packet Next owner>`; the packet route becomes active only after success or exact completed replay.
+
+On any validation, write, or reread failure, report the exact failed check and required repair, do not report publication complete, and do not expose the packet's post-publication `Next owner`. End with exactly one scalar `Suggested next action: <immediate repair action>`.
+
 ## Phase 0 — Resolve initiative and intake
 
 1. Set `<launch_root>` = `<cwd>` and leave the invocation-wide `<receipt_root>` unresolved only until the selected initiative is known. Both variables are transient, in-memory artifact anchors; never persist either path in `initiative.md`, story artifacts, receipts, or any other file.
 2. Parse `$ARGUMENTS`.
    - Accept an initiative slug or `INITIATIVE=<slug>` as the initiative selector.
    - Accept `--pr <url>`, `PR_URL=<url>`, or a bare GitHub PR URL as PR pointer mode.
-   - Preserve raw `WORKTREE="<basename>=<path>"` occurrences as explicit checkout selectors; they are not feedback text.
+   - Preserve raw `WORKTREE="<basename>=<path>"` occurrences in `<explicit_worktree_map>` as named target-repository selectors; they are not feedback text. After initiative/story selection, separately mark a selector as coordination-root-qualified only when its bounded path contains the selected contained initiative/story artifacts. One selector may have both roles, but target-only selectors never choose `<receipt_root>`.
    - Treat remaining text as feedback payload unless it resolves to a readable file path.
 3. Select the initiative slug without making the launch checkout authoritative:
    - If a slug was provided, validate it matches `^[a-z0-9]+(?:-[a-z0-9]+)*$` before resolving any path. If it fails, abort with: `invalid initiative slug; use lowercase hyphenated slug characters only`.
@@ -58,7 +107,7 @@ Feedback often spans several stories. Selecting a story before classification re
    - If no initiatives exist in the bounded roots, stop and tell the operator to run `/openspec-initiative-plan` first.
 4. Resolve `<receipt_root>` immediately, before validating a launch-root initiative copy, reading receipts, deduplicating, allocating an FB ID, classifying initiative-only items, or resolving any story target:
    - Refresh `git worktree list --porcelain`. A root is bounded only when it is `<launch_root>` or a registered worktree. A qualifying root must contain `openspec/initiatives/<initiative-slug>/initiative.md`, and that resolved file must remain contained under the root's `openspec/initiatives/` directory.
-   - First inspect explicit `WORKTREE="<basename>=<path>"` selectors. Exactly one distinct bounded qualifying explicit path sets `<receipt_root>`. Multiple qualifying explicit paths halt for one explicit active-checkout choice. If selectors were supplied but none qualifies, halt and require a valid selector or a rerun without it; never silently ignore an explicit checkout choice.
+   - First inspect coordination-root-qualified `WORKTREE="<basename>=<path>"` selectors. Exactly one distinct bounded qualifying explicit path sets `<receipt_root>`. Multiple qualifying explicit paths halt for one explicit active-checkout choice. Target-only selectors remain available to `<project_root_map>` but do not participate in this choice and do not prevent ordinary branch/launch-root precedence when no coordination-root-qualified selector exists.
    - With no qualifying explicit selector, inspect registered worktrees other than `<launch_root>` whose exact branch is `refs/heads/<initiative-slug>/<story-slug>`, where `<story-slug>` is canonical, and which contain the selected initiative file. Exactly one qualifying branch worktree sets `<receipt_root>` and outranks a possibly stale launch copy. Multiple qualifying branch roots halt before intake/dedupe and require the operator to choose the active checkout, then rerun with exactly one `WORKTREE=` selector; never guess from recency or story contents.
    - Only when no qualifying branch worktree exists may `<launch_root>` set `<receipt_root>`, and only if its selected initiative file exists and passes containment. Otherwise halt: the selected initiative has no valid bounded checkout.
    - Set `<receipt_root>` exactly once for the invocation. Every initiative-only batch, mixed batch, receipt, candidate, decision, defer/reject record, legacy-evidence scan, and story artifact uses this root. Never default an initiative-only batch blindly to `<launch_root>`.
@@ -189,7 +238,7 @@ Status and lane rules:
 - Do not edit archived change workspaces under `openspec/changes/archive/`.
 - Do not route to, read as writable, or create paths for a story target that failed the canonical slug and containment gate.
 - Do not rewrite a `✅ DONE` story's product contract. Convert feedback to a candidate, initiative-level decision, or defer/reject entry unless the operator explicitly acknowledges a `resume-current-story` reopen through the normal lifecycle.
-- Do not advance or approve implementation `Status` in `story.md` from this command. The only allowed status mutation is reopening an acknowledged `resume-current-story` target from `✅ DONE` or `🟣 IN REVIEW` to `🔄 IN PROGRESS`; if it is already `🔄 IN PROGRESS`, leave it unchanged.
+- Outside the separately validated completed-review publication protocol, do not advance or approve implementation `Status` in `story.md`. Ordinary feedback may only reopen an acknowledged `resume-current-story` target from `✅ DONE` or `🟣 IN REVIEW` to `🔄 IN PROGRESS`; if it is already `🔄 IN PROGRESS`, leave it unchanged.
 - Never derive a status reopen from PR metadata alone. The acknowledged Proposed Feedback Absorption plan must name `resume-current-story`, the target story, and the reason the local completion/review state must be revisited.
 - You may downgrade or invalidate the `Plan:` header field in `story.md`, but this command must never set `Plan:` to `🟢 PLAN APPROVED`:
   - `queue-planning-feedback` sets `Plan:` to `🟠 PLAN CHANGES REQUESTED`.
@@ -433,6 +482,8 @@ Use this compact format:
 `Changed artifacts` lists every successful disposition-owned edit (including `tasks.md` or the FB-tagged progress checkpoint when applicable) plus `openspec/initiatives/<initiative-slug>/initiative.md` for the receipt itself. Keep the receipt short; source bodies and raw review details stay at their source. Every acknowledged item, including `defer-or-reject`, must end with exactly one receipt after its owned edits succeed.
 
 ## Phase 6 — Final response
+
+This phase applies only to ordinary feedback absorption; a completed-review payload uses the dedicated publication response above and emits none of these ordinary fields.
 
 Report:
 
