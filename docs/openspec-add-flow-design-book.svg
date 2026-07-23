@@ -154,7 +154,7 @@
   <rect class="custom-artifact" x="1440" y="1440" width="155" height="55" /><text class="artifact-text" x="1455" y="1474">Status DONE</text>
   <rect class="custom-artifact" x="1270" y="1515" width="155" height="55" /><text class="artifact-text" x="1292" y="1549">progress.md</text>
   <rect class="custom-artifact" x="1440" y="1515" width="125" height="55" /><text class="artifact-text" x="1455" y="1549">blocked.md</text>
-  <text class="comment" x="1270" y="1600">Review writes blocker first if needed, receipt + timeline together, Status last, then no later writes.</text>
+  <text class="comment" x="1270" y="1600">Review authors the handoff; feedback writes blocker first if needed, receipt + timeline together, Status last.</text>
 
   <!-- Steps 5+6: Feedback + PR/archive -->
   <rect class="panel-purple" x="105" y="1675" width="795" height="225" />

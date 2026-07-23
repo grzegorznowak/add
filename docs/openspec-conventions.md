@@ -218,9 +218,11 @@ exact legacy `Status: ⬜ TODO` to `Status: ⚪ TODO`, and add the empty log
 section, but it must not rewrite active, in-review, done, blocked, blank, or
 unknown status values. `/openspec-story-claim` owns the ready TODO-to-IN-PROGRESS
 Status write. `/openspec-story-resume` owns authorized implementation continuation
-Status writes, including return to IN REVIEW. `/openspec-feedback` owns only an
-acknowledged reopen to IN PROGRESS, and `/openspec-story-review` owns completed
-review verdict Status writes.
+Status writes, including return to IN REVIEW. `/openspec-feedback` owns an acknowledged reopen to IN PROGRESS and every
+completed-review publication Status write. `/openspec-story-review` is read-only
+and authors the completed-review handoff.
+
+`/openspec-story-review` authors the completed-review handoff; `/openspec-feedback` validates it and solely publishes the receipt, timeline transition, blocker, and Status.
 
 #### Prerequisite qualification
 
@@ -488,35 +490,37 @@ Where to write it:
   `## Locked Decisions` as appropriate;
 - plan review: `story.md → ## Plan Review Log`;
 - implementation: `progress.md → ## Progress Timeline`;
-- implementation review: for BLOCKED, creates/updates `blocked.md` first; then
-  publishes the single current `progress.md → ## Implementation Review Receipt`
-  and its transition entry together in one validated `progress.md` write; then
+- implementation review: authors a completed-review handoff without mutating artifacts;
+- feedback publication: validates that handoff, creates/updates `blocked.md` first
+  for BLOCKED, publishes the single current receipt and transition together, then
   writes top-level `story.md → Status:` last and performs no later writes.
 
 ## Runtime artifacts
 
 ### `progress.md`
 
-Created on the first runtime write, normally by `/openspec-story-claim` or
-`/openspec-story-resume`; `/openspec-story-review` may create the minimal review
-receipt section when progress is otherwise absent. Standard sections:
+Created on the first runtime write by a state-owning command, normally
+`/openspec-story-claim` or `/openspec-story-resume`; `/openspec-feedback` may
+create the minimal runtime file only while publishing a validated completed-review
+handoff. Standard sections:
 
 - `## Current Claim` — current implementation owner, scope, write surfaces,
   worktree bindings, and status.
 - `## Progress Timeline` — append-only concise timestamped milestones,
   red-first evidence, proof updates, Debt Friction, review status transitions,
   and PR metadata updates. It is written by `/openspec-story-claim`,
-  `/openspec-story-resume`, `/openspec-story-review`, and `/openspec-pr`.
+  `/openspec-story-resume`, `/openspec-feedback`, and `/openspec-pr`.
   `/openspec-feedback` appends an FB-tagged absorption checkpoint for every
   acknowledged `amend-existing-story` or `resume-current-story` mutation;
   direct amendments, status-only reopens, unchanged Status, and unchanged
   contract sections are not exceptions (record unchanged fields as `none`).
 - `## Implementation Review Receipt` — exactly one heading and one compact
-  current completed-verdict body, written only by `/openspec-story-review`. Its
-  body records Reviewed at, Decision, Approval gate, Status transition, Evidence
+  current completed-verdict body, published only by `/openspec-feedback` from a
+  validated completed-review handoff. Its body records Reviewed at, Decision,
+  Approval gate, Status transition, Evidence
   reviewed, Identity method, Identity digest, Identity bases, Identity paths,
-  Findings, Proof, and Next owner. Review replaces that body rather than
-  appending receipt history; the timeline carries history.
+  Findings, Proof, and Next owner. Feedback replaces that body from the validated
+  handoff rather than appending receipt history; the timeline carries history.
 - `## Session Handoff` — latest exit state and next action for a fresh session.
 - `## PR State` — sole durable PR metadata/evidence location, owned by
   `/openspec-pr`; in addition to PR metadata it records the implementation digest
@@ -525,8 +529,8 @@ receipt section when progress is otherwise absent. Standard sections:
 
 `story.md → Status:` controls all non-DONE routing. An earlier receipt may remain
 as historical evidence after an authorized claim/resume/feedback write changes
-Status away from DONE; it is superseded for routing until the next completed
-review replaces it. For `Status: ✅ DONE`, a present receipt must be exactly one
+Status away from DONE; it is superseded for routing until the next validated
+completed-review publication replaces it. For `Status: ✅ DONE`, a present receipt must be exactly one
 well-formed current body with `Decision: APPROVE`, `Approval gate: PASS`, a DONE
 transition, and the complete `review-identity-v1` fields. Duplicate
 headings/bodies, malformed fields, REQUEST CHANGES/BLOCKED/FAIL, stale or
@@ -587,22 +591,22 @@ digest and the PR evidence is current/merged; archive does not recompute in that
 route. Archive recomputes the manifest only for the explicit no-PR route, before
 archive writes/delegation.
 
-Review builds and validates the completed verdict in memory. For BLOCKED it
-writes `blocked.md` first. It then writes the normalized receipt and required
-concise timeline transition together in the same validated `progress.md` write,
+Review performs the substantive assessment read-only and authors a completed-review
+handoff in memory. Feedback validates the handoff against the current state and
+review identity. For BLOCKED publication it writes `blocked.md` first; it then
+writes the handoff's normalized receipt and concise timeline transition together,
 re-reads that result, and writes top-level Status last. It performs no later
-writes—not to the timeline, receipt, blocker, notebook, or any other artifact.
-A receipt/progress failure therefore cannot advertise DONE/BLOCKED; a Status
-failure leaves contradictory durable evidence that fails closed and must be
-reported for repair. Pre-verdict/NOT REVIEWABLE aborts write none of these.
+writes. Pre-verdict/NOT REVIEWABLE review produces no completed handoff.
 
-A malformed or duplicated receipt section blocks DONE qualification, PR, and
-archive, but it need not remain permanently malformed. When the story otherwise
-qualifies for a fresh oblivious review, that review performs the full substantive
-assessment, carries forward each recoverable concern, and replaces the malformed
-or duplicate receipt span with exactly one well-formed current body before
-writing Status last. It must not select a "latest" old body, synthesize an
-approval without review, or run a receipt-only cleanup pass.
+A malformed, missing, duplicated, or non-approving bound-modern DONE receipt is
+not repair input. Ordinary feedback may only preserve its bytes while an operator-
+acknowledged `resume-current-story` disposition reopens to `🔄 IN PROGRESS`.
+`/openspec-story-resume` repairs implementation and returns to `🟣 IN REVIEW`; a
+fresh review authors a new completed-review handoff, which feedback validates and
+publishes. Without that validated handoff, feedback never reconstructs,
+synthesizes, normalizes, replaces, or repairs Implementation Review Receipt
+content. The exact unbound pre-v3 zero-binding/zero-receipt exception remains
+warning-only and is never backfilled.
 
 `## Current Claim` uses plural worktree bindings when needed:
 
@@ -624,9 +628,10 @@ compatibility.
 
 ### `blocked.md`
 
-Existence means the story is blocked. `/openspec-story-claim`,
-`/openspec-story-resume`, and `/openspec-story-review` may create or update it;
-review must do so before writing top-level `Status: ⛔ BLOCKED`. Commands halt
+Existence means the story is blocked. `/openspec-story-claim` and
+`/openspec-story-resume` may create or update implementation blockers;
+`/openspec-feedback` alone publishes a completed-review BLOCKED handoff and must
+write the blocker before top-level `Status: ⛔ BLOCKED`. Commands halt
 on the file and report its contents. After the operator removes it,
 `/openspec-story-resume` may normalize stale blocked status and record history
 in `progress.md`; the hard gate is the file.
@@ -710,14 +715,15 @@ summaries, operational notes, or prior chat context.
   archive commands.
 - Create runtime files during `/openspec-story-plan`.
 - Approve a plan from `/openspec-story-plan-resume` or `/openspec-feedback`.
-- Advance or approve implementation status from `/openspec-feedback`, or derive
-  status transitions from PR metadata refreshes. `/openspec-feedback` may only
-  reopen to `🔄 IN PROGRESS` after an acknowledged `resume-current-story`
-  disposition.
+- Advance or approve implementation status from ordinary `/openspec-feedback`
+  outside a validated completed-review publication, or derive status transitions
+  from PR metadata refreshes. Ordinary feedback may only reopen to
+  `🔄 IN PROGRESS` after an acknowledged `resume-current-story` disposition.
 - Treat an unmerged PR as authority to reopen or downgrade a locally DONE story;
   route actionable PR feedback through `/openspec-feedback` for classification.
 - Let an old receipt override an authoritative non-DONE Status; authorized later
-  work may supersede that receipt until the next completed review replaces it.
+  work may supersede that receipt until the next validated completed-review
+  publication replaces it.
 - Archive or deliver a DONE story when its receipt is missing for a bound story,
   duplicated, non-approving, malformed, identity-unverified for the applicable
   PR/no-PR route, or otherwise contradicts current evidence. Only an unbound

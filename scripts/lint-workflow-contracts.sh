@@ -233,6 +233,121 @@ reviewer_semantic_findings() {
   '
 }
 
+stale_done_review_route_findings() {
+  local file="$1"
+  markdown_without_comments "$file" | awk 'BEGIN { RS="" }
+    function bad_receipt_evidence(text) {
+      return text ~ /(^|[^a-z])receiptless([^a-z]|$)/ ||
+        text ~ /(missing|absent|lacking|duplicate|duplicated|malformed|non-approving|invalid|incomplete|truncated)[^.!?;]*(implementation[[:space:]]+review[[:space:]]+|approval[[:space:]]+)?receipt/ ||
+        text ~ /receipt[[:space:]-]+(evidence|fields?|sections?|records?)[^.!?;]*(missing|absent|duplicate|duplicated|malformed|non-approving|invalid|incomplete|truncated)/ ||
+        text ~ /receipt[[:space:]]+(is[[:space:]]+)?(missing|absent|duplicate|duplicated|malformed|non-approving|invalid|incomplete|truncated)/ ||
+        text ~ /(^|[^a-z])(without|with[[:space:]]+no|no)[[:space:]]+(an?[[:space:]]+)?((implementation|approval|completed-review)[[:space:]]+)?receipt([^a-z]|$)/
+    }
+    function rejected_quotation(text) {
+      return text ~ /(^|[^a-z])(reject|rejects|rejected|quote|quotes|quoted)[^.!?;]*(rule|claim|wording|statement)/
+    }
+    function feedback_route(text) {
+      return text ~ /(route|routes|routed|return|returns|returned|send|sends|sent|use|uses)[^.!?;]*(ordinary[ -])?(\/openspec-)?feedback/
+    }
+    function affirmative_review_route(text, target, route) {
+      target = "(/openspec-story-review|fresh[ -]review[[:space:]]+route|fresh[[:space:]]+(oblivious[[:space:]]+|substantive[[:space:]]+)?review)"
+      route = "(route|routes|routed|return|returns|returned|send|sends|sent|recommend|recommends|recommended|open|opens|run|runs|invoke|invokes|launch|launches|hand off|hands off|direct|directs|use|uses)"
+      if (rejected_quotation(text)) return 0
+      if (text ~ "(never|do not|does not|must not|may not|cannot|can.t)[^.!?;]*" route "[^.!?;]*" target ||
+          text ~ route "[^.!?;]*(not[[:space:]]+to|rather[[:space:]]+than|instead[[:space:]]+of)[[:space:]]*" target ||
+          text ~ route "[^.!?;]*(ordinary[[:space:]]+)?feedback[^.!?;]*(not[[:space:]]+|rather[[:space:]]+than|instead[[:space:]]+of)[^.!?;]*" target ||
+          text ~ route "[^.!?;]*(ordinary[ -])?(\/openspec-)?feedback[^.!?;]*" target)
+        return 0
+      return text ~ route "[^.!?;]*" target ||
+        text ~ /(return|returns|returned)[[:space:]]+to[[:space:]]+(implementation[ -])?review([^a-z]|$)/
+    }
+    {
+      raw = $0
+      paragraph = tolower(raw)
+      gsub(/`/, "", paragraph)
+      count = split(paragraph, sentences, /[.!?;]+[[:space:]]*/)
+      done_context = paragraph ~ /(^|[^a-z])(done|bound[[:space:]]+modern|modern[[:space:]]+(done|receipt))([^a-z]|$)/
+      receipt_feedback_context = bad_receipt_evidence(paragraph) && feedback_route(paragraph)
+      for (c = 1; c <= count; c++)
+        if (done_context && affirmative_review_route(sentences[c]) &&
+            (bad_receipt_evidence(sentences[c]) ||
+             (!receipt_feedback_context && c > 1 && bad_receipt_evidence(sentences[c - 1]) && !feedback_route(sentences[c - 1])) ||
+             (!receipt_feedback_context && c < count && bad_receipt_evidence(sentences[c + 1]) && !feedback_route(sentences[c + 1])))) {
+          one_line = raw
+          gsub(/\n/, " ", one_line)
+          print "stale-done-review-route:paragraph-" NR ":" one_line
+          next
+        }
+    }
+  '
+}
+
+review_receipt_ownership_findings() {
+  local file="$1"
+  markdown_without_comments "$file" | awk '
+    function clause_finding(clause, subject, artifact, action) {
+      subject = "((the|a)[[:space:]]+)?(\/openspec[ -]story[ -]review|(fresh[[:space:]]+)?(substantive[ -]|readonly[ -]|implementation[ -])?(review|reviewer|reviewers))"
+      artifact = "(receipt([[:space:]]+(publication|normalization))?|normalization|status([[:space:]]+transition)?|((completed[ -]review[[:space:]]+)?timeline)([[:space:]]+transition)?|local[[:space:]]+completion|blocker|blocked\\.md)"
+      action = "(write|writes|wrote|written|create|creates|created|replace|replaces|replaced|normalize|normalizes|normalized|publish|publishes|published|set|sets|transition|transitions|transitioned|mutate|mutates|mutated|update|updates|updated|own|owns|owned|ownership|responsible)"
+      sub(/^[[:space:]]*<[^>]*>/, "", clause)
+      if (clause ~ /(never|not|cannot|can.t)[^.;]*(write|create|replace|normalize|publish|set|transition|mutate|update|own|responsible)/ ||
+          clause ~ subject "[^.;]*(write|create|replace|normalize|publish|set|transition|mutate|update|own)[^.;]*no[[:space:]]+receipt" ||
+          clause ~ artifact "[^.;]*(is|are|be|been)[^.;]*(not|never)[^.;]*(owned|written|created|replaced|normalized|published|set|transitioned|mutated|updated)" ||
+          clause ~ /(rather[[:space:]]+than|instead[[:space:]]+of)[[:space:]]+(an?[[:space:]]+|the[[:space:]]+)?(implementation[ -])?(review|reviewer|reviewers|\/openspec[ -]story[ -]review)/)
+        return 0
+      if (clause ~ subject "[^.;]*(author|authors|authored)[^.;]*(target[[:space:]]+status|timeline[[:space:]]+transition|blocker[[:space:]]+body)[^.;]*handoff") return 0
+      if (clause ~ subject "[^.;]*(author|authors|authored|approve|approves|approved|evaluate|evaluates|evaluated|return|returns|returned)[^.;]*feedback[^.;]*" action) return 0
+      return clause ~ "^[^a-z]*" subject "[^.;]*" action "[^.;]*" artifact ||
+        clause ~ "^[^a-z]*" subject "[^.;]*(responsible[[:space:]]+for)[^.;]*" artifact ||
+        clause ~ artifact "[^.;]*(is|are|be|been)[^.;]*(written|created|replaced|normalized|published|set|transitioned|mutated|updated|owned)[^.;]*by[[:space:]]+(the[[:space:]]+)?" subject ||
+        clause ~ artifact "[^.;]*(belongs|belong)[[:space:]]+to[[:space:]]+" subject
+    }
+    {
+      raw = $0
+      line = tolower(raw)
+      gsub(/`/, "", line)
+      count = split(line, clauses, /[.;]/)
+      for (c = 1; c <= count; c++)
+        if (clause_finding(clauses[c])) {
+          print "review-receipt-ownership:" FNR ":" raw
+          next
+        }
+    }
+  '
+}
+
+blanket_fresh_review_route_findings() {
+  local file="$1"
+  markdown_without_comments "$file" | awk '
+    {
+      raw=$0; line=tolower(raw); gsub(/`/, "", line)
+      if (line ~ /(^|[^a-z])(every|all|any)[^.;]*(fail|failed|failure|condition|gate|recheck)[^.;]*(route|routes|use|uses|return|returns)[^.;]*fresh[ -]review/ ||
+          line ~ /(^|[^a-z])(every|all|any)[^.;]*(fail|failed|failure|condition|gate|recheck)[^.;]*\/openspec[ -]story[ -]review/)
+        print "blanket-fresh-review-route:" FNR ":" raw
+    }
+  '
+}
+
+plan_review_status_ownership_findings() {
+  local file="$1"
+  markdown_without_comments "$file" | awk '
+    {
+      raw=$0; line=tolower(raw); gsub(/`/, "", line)
+      subject="(\/openspec[ -]story[ -]plan[ -]review|plan(ning)?[ -]review)"
+      count=split(line, clauses, /[.;]|[[:space:]]+and[[:space:]]+/)
+      for (c=1; c<=count; c++) {
+        clause=clauses[c]
+        if (clause ~ /(does|do|must)[[:space:]]+not[^.;]*(set|write|update|transition|own)/) continue
+        if (clause ~ subject "[^.;]*(set|sets|write|writes|update|updates|transition|transitions|own|owns|owned|responsible)[^.;]*(implementation[[:space:]]+)?status" ||
+            clause ~ "(implementation[[:space:]]+)?status[^.;]*(is|be|been)[^.;]*(set|written|updated|transitioned|owned)[^.;]*by[[:space:]]+" subject) {
+          print "plan-review-status-ownership:" FNR ":" raw
+          next
+        }
+      }
+    }
+  '
+}
+
 extract_progress_transform_block() {
   local input="$1"
   local output="$2"
@@ -387,23 +502,236 @@ lint_workflow_contracts() {
     "next-action story-scoped DONE receipt and PR verification" openspec-next-action \
     'A modern DONE receipt qualifies only when exactly one section contains every canonical field exactly once' \
     'recompute canonical `review-identity-v1` from exactly the receipt-recorded `Identity bases` and `Identity paths` and require the result to equal `Identity digest`.' \
-    'A bound modern DONE without a receipt routes only to the same fresh oblivious review.' \
     'whether the sole `## PR State` has exactly one non-placeholder `Verified implementation digest` equal to the receipt digest and one non-placeholder `Verified at` timestamp.'
   check_workflow_contract \
     "PR canonical story-scoped receipt identity and PR State write-back" openspec-pr \
     'A modern bound story requires exactly one complete canonical `progress.md → ## Implementation Review Receipt`' \
     'recompute the story-scoped identity with canonical `review-identity-v1` using exactly the receipt-recorded `Identity bases` and `Identity paths`.' \
     'Save the matching digest and the last pre-mutation UTC verification timestamp in memory for PR State write-back.' \
-    'A bound modern DONE with an absent receipt routes only to the same fresh oblivious review' \
     'For a modern receipt, the verified digest must exactly equal its `Identity digest`; never carry forward an older verification timestamp or digest.'
   check_workflow_contract \
     "archive route-scoped receipt identity and PR State verification" openspec-archive \
     'At this phase validate receipt shape and remember its digest but do not recompute identity or mutate PR State' \
-    'A bound modern DONE with an absent receipt routes only to fresh oblivious review.' \
     'The verified digest must exactly equal the current receipt'"'"'s `Identity digest`' \
     'Do not recompute identity in archive'"'"'s merged-PR route.' \
     'Only when `<archive_route>=no-pr` and a modern receipt exists, immediately before the first archive mutation' \
     'recompute canonical `review-identity-v1` from exactly its recorded `Identity bases` and `Identity paths`.'
+
+  # Every active DONE router sends invalid modern receipt evidence through an
+  # acknowledged ordinary-feedback reopen. Generated runtimes must retain the
+  # same route and the exact no-backfill pre-v3 exception.
+  MODERN_DONE_FEEDBACK_ROUTE='For a bound modern `Status: ✅ DONE`, a missing, duplicate, malformed, or non-approving Implementation Review Receipt routes only to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition; never route that receipt contradiction directly to `/openspec-story-review`.'
+  PRE_V3_NO_BACKFILL_ROUTE='The only no-receipt exception is an unbound pre-v3 DONE story with zero Initiative or Initiative-like header lines and zero receipt sections; warn and backfill neither binding nor receipt.'
+  for done_router in \
+    openspec-archive openspec-next-action openspec-pr \
+    openspec-story-claim openspec-story-resume openspec-story-converge \
+    openspec-story-plan-review openspec-story-plan-converge \
+    openspec-story-plan-resume; do
+    check_workflow_contract \
+      "modern DONE feedback reopen and exact pre-v3 exception: $done_router" \
+      "$done_router" \
+      "$MODERN_DONE_FEEDBACK_ROUTE" \
+      "$PRE_V3_NO_BACKFILL_ROUTE"
+  done
+  # Semantic route/ownership guards cover paraphrases in every distributed active
+  # skill. Exact positive route contracts above and the exact pre-v3 exception stay
+  # pinned independently; these detectors reject stale affirmative ownership/routes.
+  stale_route_fixture="$TMPDIR/stale-done-review-route-fixture.md"
+  clean_route_fixture="$TMPDIR/clean-done-review-route-fixture.md"
+  cat >"$stale_route_fixture" <<'EOF'
+- A bound DONE story whose approval receipt is absent gets sent straight into `/openspec-story-review`.
+
+- When modern DONE receipt fields are duplicated, open a fresh `/openspec-story-review` session.
+
+- Invalid Implementation Review Receipt proof directs the modern DONE case to `/openspec-story-review`.
+
+- A bound modern DONE without a receipt routes only to the same fresh oblivious review.
+
+- A bound modern DONE with no receipt uses fresh substantive review.
+
+- No implementation receipt on a bound DONE story sends it to the fresh-review route.
+
+- A receiptless bound modern DONE routes to `/openspec-story-review`.
+
+- A bound modern DONE lacking an approval receipt returns to implementation review.
+
+- The bound modern DONE receipt is missing. Route it to fresh review.
+
+- A bound modern DONE has no receipt evidence. After recording the contradiction, send it to `/openspec-story-review`.
+
+- If feedback is not available, a receiptless modern DONE routes to `/openspec-story-review`.
+EOF
+  cat >"$clean_route_fixture" <<'EOF'
+- Never route a missing modern DONE receipt directly to `/openspec-story-review`; use ordinary feedback.
+
+- A missing modern DONE receipt routes to feedback, not `/openspec-story-review`.
+
+- A bound modern DONE without a receipt uses feedback rather than `/openspec-story-review`.
+
+- For a bound modern DONE with no receipt, use feedback instead of `/openspec-story-review`.
+
+- An identity digest mismatch routes to fresh `/openspec-story-review` after canonical recomputation.
+
+- Unchecked task evidence sends the DONE story to `/openspec-story-review` for substantive review.
+
+- Reject the rule “a bound modern DONE without a receipt routes to fresh review”.
+
+- Quote the claim “receiptless modern DONE routes to `/openspec-story-review`” only as rejected legacy wording.
+EOF
+  stale_route_fixture_findings="$(stale_done_review_route_findings "$stale_route_fixture")"
+  clean_route_fixture_findings="$(stale_done_review_route_findings "$clean_route_fixture")"
+  if [[ "$(grep -c '^stale-done-review-route:' <<<"$stale_route_fixture_findings" || true)" != 11 ]]; then
+    fail "semantic DONE-receipt route detector missed paraphrased stale fixtures: $stale_route_fixture_findings"
+  elif [[ -n "$clean_route_fixture_findings" ]]; then
+    fail "semantic DONE-receipt route detector rejected negated or identity/task routes: $clean_route_fixture_findings"
+  else
+    ok "semantic DONE-receipt route detector rejects paraphrases and accepts valid negatives"
+  fi
+
+  stale_ownership_fixture="$TMPDIR/stale-review-receipt-ownership-fixture.md"
+  clean_ownership_fixture="$TMPDIR/clean-review-receipt-ownership-fixture.md"
+  cat >"$stale_ownership_fixture" <<'EOF'
+- `/openspec-story-review` creates the current receipt after approval.
+- The reviewer owns receipt normalization.
+- A receipt is replaced by review before DONE.
+- Implementation review publishes the approval receipt.
+- Fresh substantive review owns normalization.
+- Receipt publication is owned by review.
+- Implementation review is responsible for receipt publication.
+- Receipt normalization belongs to substantive review.
+- Local completion is owned by `/openspec-story-review`.
+- The reviewer publishes the completed-review timeline transition.
+- Completed-review Status is set by `/openspec-story-review`.
+- The blocker is written by the readonly reviewer.
+EOF
+  cat >"$clean_ownership_fixture" <<'EOF'
+- `/openspec-story-review` must never write or replace the receipt.
+- The reviewer publishes no receipt.
+- Receipt publication is not owned by review.
+- Feedback publishes the receipt instead of `/openspec-story-review`.
+- The reviewer authors a completed-review handoff; feedback publishes the receipt.
+- The reviewer authors Target Status, Timeline transition, and Blocker body in the handoff; feedback publishes them.
+- Feedback creates the receipt from the reviewer-authored handoff.
+EOF
+  stale_ownership_fixture_findings="$(review_receipt_ownership_findings "$stale_ownership_fixture")"
+  clean_ownership_fixture_findings="$(review_receipt_ownership_findings "$clean_ownership_fixture")"
+  if [[ "$(grep -c '^review-receipt-ownership:' <<<"$stale_ownership_fixture_findings" || true)" != 12 ]]; then
+    fail "semantic review receipt-ownership detector missed paraphrased fixtures: $stale_ownership_fixture_findings"
+  elif [[ -n "$clean_ownership_fixture_findings" ]]; then
+    fail "semantic review receipt-ownership detector rejected negation or handoff/feedback publication: $clean_ownership_fixture_findings"
+  else
+    ok "semantic review receipt-ownership detector rejects paraphrases and accepts publication boundaries"
+  fi
+
+  blanket_route_stale_fixture="$TMPDIR/blanket-fresh-review-stale.md"
+  blanket_route_clean_fixture="$TMPDIR/blanket-fresh-review-clean.md"
+  cat >"$blanket_route_stale_fixture" <<'EOF'
+- Every failed final-recheck condition uses the fresh-review route.
+- All recheck failures route to `/openspec-story-review`.
+EOF
+  cat >"$blanket_route_clean_fixture" <<'EOF'
+- Missing receipt evidence returns through ordinary feedback. Identity mismatch uses fresh review.
+- Root ambiguity requires operator correction; only unverifiable identity routes to fresh review.
+EOF
+  blanket_route_stale_findings="$(blanket_fresh_review_route_findings "$blanket_route_stale_fixture")"
+  blanket_route_clean_findings="$(blanket_fresh_review_route_findings "$blanket_route_clean_fixture")"
+  if [[ "$(grep -c '^blanket-fresh-review-route:' <<<"$blanket_route_stale_findings" || true)" != 2 ]]; then
+    fail "blanket final-recheck detector missed stale fixtures: $blanket_route_stale_findings"
+  elif [[ -n "$blanket_route_clean_findings" ]]; then
+    fail "blanket final-recheck detector rejected state-correct routes: $blanket_route_clean_findings"
+  else
+    ok "blanket final-recheck detector requires state-correct routes"
+  fi
+
+  plan_status_stale_fixture="$TMPDIR/plan-review-status-stale.md"
+  plan_status_clean_fixture="$TMPDIR/plan-review-status-clean.md"
+  cat >"$plan_status_stale_fixture" <<'EOF'
+- Plan review sets implementation Status to IN PROGRESS.
+- Implementation Status is owned by `/openspec-story-plan-review`.
+EOF
+  cat >"$plan_status_clean_fixture" <<'EOF'
+- Plan review sets Plan to approved and routes from authoritative implementation Status.
+- Story claim owns implementation entry; plan review does not write Status.
+EOF
+  plan_status_stale_findings="$(plan_review_status_ownership_findings "$plan_status_stale_fixture")"
+  plan_status_clean_findings="$(plan_review_status_ownership_findings "$plan_status_clean_fixture")"
+  if [[ "$(grep -c '^plan-review-status-ownership:' <<<"$plan_status_stale_findings" || true)" != 2 ]]; then
+    fail "plan-review Status detector missed stale fixtures: $plan_status_stale_findings"
+  elif [[ -n "$plan_status_clean_findings" ]]; then
+    fail "plan-review Status detector rejected plan-only ownership: $plan_status_clean_findings"
+  else
+    ok "plan-review Status detector preserves implementation ownership"
+  fi
+
+  for semantic_skill in "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; do
+    [[ -z "$semantic_skill" ]] && continue
+    semantic_codex="$(hyphen_to_underscore "$semantic_skill")"
+    for semantic_file in \
+      "$CLAUDE_SKILLS/$semantic_skill/SKILL.md" \
+      "$CODEX_SKILLS/$semantic_codex/SKILL.md" \
+      "$PI_SKILLS/$semantic_skill/SKILL.md"; do
+      stale_route_findings="$(stale_done_review_route_findings "$semantic_file")"
+      if [[ -n "$stale_route_findings" ]]; then
+        fail "$semantic_file: modern DONE receipt contradiction routes directly to story review"
+        printf '%s\n' "$stale_route_findings" | sed 's/^/  /' >&2
+      fi
+      stale_ownership_findings="$(review_receipt_ownership_findings "$semantic_file")"
+      if [[ -n "$stale_ownership_findings" ]]; then
+        fail "$semantic_file: assigns completed-review publication/transition ownership to story review"
+        printf '%s\n' "$stale_ownership_findings" | sed 's/^/  /' >&2
+      fi
+    done
+  done
+
+  # Pi fragments are active prompt suffixes and can override generated skill
+  # routing, so they receive the same semantic guards as full distributions.
+  for semantic_fragment in "$PI_FRAGMENTS"/openspec-*.md; do
+    [[ -e "$semantic_fragment" ]] || continue
+    stale_route_findings="$(stale_done_review_route_findings "$semantic_fragment")"
+    stale_ownership_findings="$(review_receipt_ownership_findings "$semantic_fragment")"
+    blanket_route_findings="$(blanket_fresh_review_route_findings "$semantic_fragment")"
+    plan_status_findings="$(plan_review_status_ownership_findings "$semantic_fragment")"
+    if [[ -n "$stale_route_findings$stale_ownership_findings$blanket_route_findings$plan_status_findings" ]]; then
+      fail "$semantic_fragment: active Pi fragment overrides lifecycle routing or ownership"
+      printf '%s\n' "$stale_route_findings" "$stale_ownership_findings" "$blanket_route_findings" "$plan_status_findings" | sed '/^$/d; s/^/  /' >&2
+    fi
+  done
+
+  for semantic_pr_file in \
+    "$CLAUDE_SKILLS/openspec-pr/SKILL.md" \
+    "$CODEX_SKILLS/openspec_pr/SKILL.md" \
+    "$PI_SKILLS/openspec-pr/SKILL.md"; do
+    blanket_route_findings="$(blanket_fresh_review_route_findings "$semantic_pr_file")"
+    if [[ -n "$blanket_route_findings" ]]; then
+      fail "$semantic_pr_file: blankets final-recheck failures into fresh review"
+      printf '%s\n' "$blanket_route_findings" | sed 's/^/  /' >&2
+    fi
+  done
+
+  for semantic_plan_review_file in \
+    "$CLAUDE_SKILLS/openspec-story-plan-review/SKILL.md" \
+    "$CODEX_SKILLS/openspec_story_plan_review/SKILL.md" \
+    "$PI_SKILLS/openspec-story-plan-review/SKILL.md"; do
+    plan_status_findings="$(plan_review_status_ownership_findings "$semantic_plan_review_file")"
+    if [[ -n "$plan_status_findings" ]]; then
+      fail "$semantic_plan_review_file: plan review sets or owns implementation Status"
+      printf '%s\n' "$plan_status_findings" | sed 's/^/  /' >&2
+    fi
+  done
+
+  DESIGN_BOOK="$REPO_ROOT/docs/openspec-add-flow-design-book.svg"
+  for ownership_public_file in \
+    "$REPO_ROOT/README.md" \
+    "$CONVENTIONS_DOC" \
+    "$DESIGN_BOOK"; do
+    public_ownership_findings="$(review_receipt_ownership_findings "$ownership_public_file")"
+    if [[ -n "$public_ownership_findings" ]]; then
+      fail "$ownership_public_file: public reviewer/publisher wording assigns completed-review publication ownership to review"
+      printf '%s\n' "$public_ownership_findings" | sed 's/^/  /' >&2
+    else
+      ok "$ownership_public_file: public reviewer/publisher wording keeps review read-only"
+    fi
+  done
 
   # A transient root may be reported operationally, but no artifact template or
   # artifact-writing command (including planning writers) may persist it.
@@ -465,6 +793,16 @@ lint_workflow_contracts() {
   # The receipt remains one replace-in-place current record. Review evaluates and
   # returns a state-bound handoff; feedback alone validates and publishes it. For
   # non-DONE lanes a superseded receipt remains historical context only.
+  REVIEW_HANDOFF_PUBLICATION_DOC='`/openspec-story-review` authors the completed-review handoff; `/openspec-feedback` validates it and solely publishes the receipt, timeline transition, blocker, and Status.'
+  require_literal "README reviewer handoff and feedback publication ownership" "$REPO_ROOT/README.md" "$REVIEW_HANDOFF_PUBLICATION_DOC"
+  require_literal "conventions reviewer handoff and feedback publication ownership" "$CONVENTIONS_DOC" "$REVIEW_HANDOFF_PUBLICATION_DOC"
+  forbid_literal "README does not assign receipt creation to review" "$REPO_ROOT/README.md" 'review may create the current receipt'
+  forbid_literal "README does not describe review as receipt/status publisher" "$REPO_ROOT/README.md" 'Every completed verdict replaces/creates the one current'
+  forbid_literal "README command table does not describe review as publisher" "$REPO_ROOT/README.md" 'publish receipt plus timeline in one progress write'
+  forbid_literal "conventions do not assign receipt publication to review" "$CONVENTIONS_DOC" 'written only by `/openspec-story-review`'
+  forbid_literal "conventions write-surface list does not assign blocker publication to review" "$CONVENTIONS_DOC" 'implementation review: for BLOCKED, creates/updates `blocked.md` first'
+  forbid_literal "conventions do not let review create progress" "$CONVENTIONS_DOC" '`/openspec-story-review` may create the minimal review'
+  forbid_literal "conventions do not describe review as artifact publisher" "$CONVENTIONS_DOC" 'Review builds and validates the completed verdict in memory. For BLOCKED it'
   require_literal "implementation review receipt template" "$PROGRESS_TEMPLATE" '## Implementation Review Receipt'
   forbid_literal "implementation review receipt is not in story template" "$STORY_TEMPLATE" '## Implementation Review Receipt'
   require_schema_writer progress 'Implementation Review Receipt'
@@ -490,6 +828,10 @@ lint_workflow_contracts() {
     "feedback preserves canonical implementation receipt fields" \
     openspec-feedback \
     "$CANONICAL_RECEIPT_FIELD_LIST"
+  require_workflow_literal \
+    "feedback never synthesizes or repairs a receipt without a validated handoff" \
+    openspec-feedback \
+    'Without a validated completed-review handoff, never create, reconstruct, synthesize, repair, normalize, or replace an Implementation Review Receipt; ordinary feedback may only preserve existing receipt bytes while an acknowledged `resume-current-story` disposition reopens the story.'
   check_workflow_contract \
     "review canonical identity recording" openspec-story-review \
     'Record `Evidence reviewed` as a concise target/proof summary' \
@@ -992,7 +1334,7 @@ EOF
   check_workflow_contract \
     "planning review modern DONE receipt gate" openspec-story-plan-review \
     'inventory all `<change_dir>/progress.md → ## Implementation Review Receipt` headings.' \
-    'A bound modern DONE story without a receipt routes to the same fresh oblivious review, never legacy compatibility.' \
+    'A bound modern DONE with absent receipt evidence uses that ordinary-feedback reopen route.' \
     'Only a consistent DONE with a qualifying receipt or the exact zero-Initiative/zero-receipt pre-v3 exception' \
     'Do not recommend planning commands that reject DONE and do not invent a lifecycle owner.'
   check_workflow_contract \
@@ -1309,6 +1651,38 @@ EOF
     'filter a well-formed story bound to another initiative as unrelated instead of halting the PR scan' \
     'filter well-formed stories bound to other initiatives as unrelated rather than halting' \
     'A conflict on an explicitly selected story still halts.'
+
+  # The PR final mutation gate keeps each failure on its owning route. Invalid
+  # receipt shape reopens through feedback, identity drift may require fresh review,
+  # and durable state/root changes must not be collapsed into that review route.
+  pr_entry_recheck="$TMPDIR/pr-entry-condition-recheck.md"
+  awk '
+    /^### Entry-condition recheck[[:space:]]*$/ { capture=1 }
+    capture && /^### / && $0 !~ /^### Entry-condition recheck[[:space:]]*$/ { exit }
+    capture { print }
+  ' "$CLAUDE_SKILLS/openspec-pr/SKILL.md" >"$pr_entry_recheck"
+  require_literal \
+    "PR final recheck invalid receipt uses feedback reopen" \
+    "$pr_entry_recheck" \
+    'If receipt evidence is missing, duplicate, malformed, or non-approving for a bound modern story, abort without any `gh` or progress action using the ordinary-feedback reopen route above.'
+  require_literal \
+    "PR final recheck separates state/operator routes from identity review" \
+    "$pr_entry_recheck" \
+    'At final recheck, root ambiguity requires operator root correction; an archived story aborts as ineligible; a new blocker requires operator resolution/removal; non-DONE Status uses the state-correct diagnostic route; non-approved Plan uses only the contradictory durable-state operator action; only identity mismatch or unverifiable identity uses the fresh-review route.'
+  forbid_literal \
+    "PR final recheck does not blanket-route durable state failures to review" \
+    "$pr_entry_recheck" \
+    'If the root becomes ambiguous, the story is archived, `blocked.md` appeared, Status is no longer DONE, Plan is no longer unambiguously approved, or identity evidence mismatches or cannot be verified, abort without any `gh` or progress action using the same fresh-review route above.'
+
+  # Planning review owns only its Plan lane. Claim/resume own implementation entry
+  # and re-entry; readonly implementation review authors target state in its handoff,
+  # while feedback alone publishes completed-review transitions.
+  check_workflow_contract \
+    "plan review preserves implementation Status ownership" openspec-story-plan-review \
+    'the implementation `Status:` header field on `story.md` (`⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `✅ DONE`, `⛔ BLOCKED`)' \
+    'This planning command does neither.' \
+    'The substantive implementation review authors any normalized completed-review handoff; `/openspec-feedback` validates and publishes it.' \
+    'Non-looped pass:** TODO -> `/openspec-story-claim`, IN PROGRESS -> `/openspec-story-resume`'
 
   # Every IN REVIEW diagnostic names an executable fresh-review command; it does
   # not return a prose-only owner or send implementation review through a wrapper.

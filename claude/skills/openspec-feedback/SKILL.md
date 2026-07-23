@@ -50,6 +50,8 @@ Feedback often spans several stories. Selecting a story before classification re
 
 ## Completed review handoff intake
 
+Without a validated completed-review handoff, never create, reconstruct, synthesize, repair, normalize, or replace an Implementation Review Receipt; ordinary feedback may only preserve existing receipt bytes while an acknowledged `resume-current-story` disposition reopens the story.
+
 When the payload contains a completed-review handoff, process it exclusively under `## Completed review publication`; do not classify it as an FB item or combine it with ordinary feedback. Accept only one fenced `## Completed Review Handoff` block with `Handoff version: review-handoff-v1`. Require every handoff field exactly once, including the complete canonical receipt field set: `Reviewed at`, `Decision`, `Approval gate`, `Status transition`, `Evidence reviewed`, `Identity method`, `Identity digest`, `Identity bases`, `Identity paths`, `Findings`, `Proof`, and `Next owner`; also require `Story`, `Review cycle`, all three baseline digests, all three expected digests, `Target Status`, `Timeline transition`, and `Blocker body`.
 
 Resolve the canonical initiative/story pair and active root using the same containment, binding, partitioned explicit-selector, and unique branch-worktree precedence used below. Coordination-root selectors and target-repository selectors have distinct roles: only a selector whose path contains the selected contained initiative/story artifacts can choose `<receipt_root>`, while every named selector remains an explicit target override for reviewer-equivalent root mapping. A target-only selector never causes coordination-root selection to fail. Reject a missing, duplicate, malformed, stale, or mismatched completed-review handoff. Validate strict lowercase SHA-256 forms, canonical JSON identity fields, canonical JSON transport strings for the exact timeline/blocker bytes, one top-level Status, one complete receipt body in expected progress bytes, one timeline transition, and decision/gate/status consistency. `APPROVE`/`PASS` maps to `✅ DONE`; `REQUEST CHANGES`/`FAIL` maps to `🔄 IN PROGRESS`; `BLOCKED`/`FAIL` maps to `⛔ BLOCKED`.
@@ -350,7 +352,9 @@ For acknowledged `resume-current-story`, update `story.md → Status:` only as n
 - `🔄 IN PROGRESS` → unchanged.
 - `⛔ BLOCKED`, TODO, missing, or unknown status → stop and revise the disposition or ask the operator for the owning lifecycle command; do not guess.
 
-Record the before/after status in the feedback checkpoint and paired initiative receipt. The FB-tagged reopen checkpoint is the durable marker that the previous `## Implementation Review Receipt` is now historical. Leave that old receipt unchanged and do not treat its pre-reopen verdict/status as contradictory while current Status is active; only a fresh completed `/openspec-story-review` may replace it before the story becomes DONE again.
+Record the before/after status in the feedback checkpoint and paired initiative receipt. The FB-tagged reopen checkpoint is the durable marker that the previous `## Implementation Review Receipt` is now historical. Leave that old receipt unchanged and do not treat its pre-reopen verdict/status as contradictory while current Status is active.
+Before the story becomes DONE again, a fresh completed `/openspec-story-review` must provide a normalized handoff.
+`/openspec-feedback` must validate that handoff and publish the replacement receipt.
 
 For every `amend-existing-story` and `resume-current-story`, append (or create `progress.md` and `## Progress Timeline` with) this concise checkpoint before the next owning command runs. Use `none` for status, contract sections, task changes, or plan transitions that did not occur; status-only resume and direct amendment are not exceptions.
 
