@@ -35,7 +35,7 @@ openspec/
     ├── design.md
     ├── tasks.md
     ├── specs/**/*.md
-    ├── progress.md      # runtime evidence; review may create the current receipt
+    ├── progress.md      # runtime evidence; feedback publishes the current receipt
     └── blocked.md       # existence is an explicit blocker gate
 ```
 
@@ -87,6 +87,8 @@ convergence runs claim/resume only until `🟣 IN REVIEW` or a stop; it never ru
 review. Implementation review remains a separate, completely fresh and
 oblivious `/openspec-story-review` session.
 
+`/openspec-story-review` authors the completed-review handoff; `/openspec-feedback` validates it and solely publishes the receipt, timeline transition, blocker, and Status. A detected valid-receipt DONE identity/task/proof contradiction also goes first through acknowledged ordinary feedback: routers preserve DONE and receipt bytes, feedback alone reopens to IN PROGRESS with FB provenance, resume repairs to IN REVIEW, and fresh read-only review resumes the normal publication flow.
+
 1. **Plan an initiative** — `/openspec-initiative-plan` creates
    `openspec/initiatives/<slug>/initiative.md` as the initiative-level planning
    counterpart to `/openspec-story-plan`.
@@ -111,19 +113,15 @@ oblivious `/openspec-story-review` session.
    credible failing seam, turns it green, records proof, and hands off. `/openspec-story-resume` continues in-progress
    work or applies review/feedback that `/openspec-feedback` routed back to the
    story.
-5. **Review independently** — `/openspec-story-review` is read-only for product
-   code and must run from a completely fresh, oblivious session with no
-   implementation-loop notebook, summary, operational notes, or prior chat
-   context. Every completed verdict replaces/creates the one current
-   `progress.md → ## Implementation Review Receipt`, including the deterministic
-   story-scoped `review-identity-v1` digest/base/path list. For BLOCKED it writes
-   `blocked.md` first, then writes receipt plus transition timeline together in
-   one progress write, then writes top-level `story.md → Status:` last and
-   performs no later writes. Partial writes therefore fail closed. A fresh
-   substantive review may
-   reconcile a malformed or duplicated receipt section into the one current
-   record; it never chooses an old entry as authority or performs receipt-only
-   cleanup in place of review.
+5. **Review independently** — `/openspec-story-review` is read-only and must run
+   from a completely fresh, oblivious session with no implementation-loop
+   notebook, summary, operational notes, or prior chat context. It performs the
+   substantive assessment and authors a state-bound completed-review handoff;
+   it does not mutate product or coordination artifacts. `/openspec-feedback`
+   validates that handoff against current bytes and safely maps reviewed paths,
+   then publishes the blocker when required, the one current receipt and
+   timeline transition, and top-level Status last. Without a validated handoff,
+   feedback never constructs or repairs Implementation Review Receipt content.
 6. **Converge implementation** — `/openspec-story-converge` orchestrates fresh
    claim/resume implementation sessions for one change until the story reaches
    `🟣 IN REVIEW`, a blocker appears, no progress is made, or the cycle budget
@@ -177,7 +175,7 @@ schemas, proof matrices, Debt Friction, and runtime section conventions.
 | `/openspec-story-plan-converge` | Loop fresh plan-review and plan-resume passes until the Plan lane resolves. |
 | `/openspec-story-claim` | Claim one approved TODO story and begin red-first implementation. |
 | `/openspec-story-resume` | Continue implementation, resolve blockers, or address review/feedback routed back to the story. |
-| `/openspec-story-review` | Independently review implementation from a fresh, oblivious session, publish receipt plus timeline in one progress write, then write `story.md → Status:` last with no later writes. |
+| `/openspec-story-review` | Independently review implementation read-only from a fresh, oblivious session and author the completed-review handoff for `/openspec-feedback` to validate and publish. |
 | `/openspec-story-converge` | Loop fresh claim/resume implementation passes until `🟣 IN REVIEW` or stop, then instruct the operator to run review separately. |
 | `/openspec-pr` | Verify `review-identity-v1` before writes and manage optional GitHub PR delivery metadata/evidence in `progress.md → ## PR State`. |
 | `/openspec-feedback` | Classify and absorb structured feedback, including acknowledged story reopens, into the right OpenSpec artifacts. |

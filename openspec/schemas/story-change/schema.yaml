@@ -7,10 +7,10 @@ description: >
   header occurs exactly once; new stories require it, while bounded pre-v3
   compatibility requires zero Initiative or Initiative-like lines. A malformed
   present Initiative-like field is a conflict, never absence. Plan: and Status:
-  remain independent. Implementation review writes Status:, a compact durable
-  receipt with a deterministic story-scoped review-identity-v1 digest/base/path
-  list in progress.md, and blocked.md when blocked; there is no standalone
-  reviews.md artifact.
+  remain independent. Read-only implementation review returns a state-bound
+  handoff; /openspec-feedback validates it and writes Status:, the unchanged
+  compact review-identity-v1 receipt in progress.md, and blocked.md when blocked.
+  There is no standalone reviews.md artifact.
   Implementation is gated on completed planning artifacts and tracked via
   tasks.md checkboxes.
 
@@ -37,8 +37,8 @@ artifacts:
       /openspec-story-plan-resume. /openspec-story-claim and
       /openspec-story-resume write authorized implementation Status:
       transitions; /openspec-feedback may write acknowledged contract/lane and
-      reopen edits; /openspec-story-review writes completed review Status:
-      verdicts after publishing the current receipt. Planning readers apply the
+      reopen edits. /openspec-feedback publishes completed review Status:
+      verdicts after validating the state-bound review handoff and receipt. Planning readers apply the
       same bound-DONE rule: a bound DONE story requires one well-formed current
       APPROVE/PASS receipt and never falls through to receipt-absent legacy
       handling.
@@ -80,8 +80,8 @@ artifacts:
       Implementation Review Receipt, PR State, and Unresolved Debt Friction.
       Written by /openspec-story-claim and /openspec-story-resume for
       implementation state/timeline, /openspec-feedback for acknowledged
-      replanning checkpoints, /openspec-story-review for the single compact
-      current review receipt and review transition timeline entry, and
+      replanning checkpoints and validated completed-review handoff publication
+      (the single current review receipt and transition timeline entry), and
       /openspec-pr for PR evidence. The receipt includes the canonical
       story-scoped review-identity-v1 digest/base/path list. PR recomputes it
       before any write and records the matching digest/time in PR State; archive
@@ -97,8 +97,8 @@ artifacts:
       continue. The operator removes this file to unblock; editing or annotating
       it may document resolution, but the gate remains closed while the file
       exists. Created or updated by /openspec-story-claim,
-      /openspec-story-resume, and /openspec-story-review; review writes it before
-      setting Status: to BLOCKED. A plan-review blocked verdict uses the Plan
+      /openspec-story-resume, and /openspec-feedback; feedback writes it before
+      setting Status: to BLOCKED when publishing a validated review handoff. A plan-review blocked verdict uses the Plan
       lane instead. Never auto-created during normal planning.
     template: blocked.md
 

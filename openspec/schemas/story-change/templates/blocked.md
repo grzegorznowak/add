@@ -6,8 +6,8 @@
      while this file exists.
 
      Created or updated only by `/openspec-story-claim`,
-     `/openspec-story-resume`, or `/openspec-story-review`; review must write
-     this file before setting the top-level `Status:` to `⛔ BLOCKED`. A plan
+     `/openspec-story-resume`, or `/openspec-feedback`. `/openspec-feedback` publishes a completed BLOCKED review handoff
+     by writing this file before setting the top-level `Status:` to `⛔ BLOCKED`. A plan
      review blocked verdict uses the Plan lane instead. -->
 
 ## Blocker

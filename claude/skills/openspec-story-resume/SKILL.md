@@ -71,7 +71,9 @@ Before any implementation begins, read these files from the resolved change work
 2. **`story.md`** — Extract the top-level `Status:`, `Plan:`, `Initiative:`, `## Purpose`, `## Acceptance`, `## Verification`, and any other sections.
 3. **`design.md`** — Understand architecture decisions, if present.
 4. **`tasks.md`** — Extract the task checklist for implementation tracking.
-5. **`progress.md`** — Inventory every `## Implementation Review Receipt`, plus `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, and `## PR State`. One well-formed unsuperseded section is current. Duplicate/malformed sections are not current authority: if a traceable newer authorized feedback/resume/unblock transition puts the story in a non-DONE implementation lane, treat their parseable findings as historical context and proceed from Status/blocker routing; otherwise route a reviewable IN REVIEW/DONE story to fresh substantive `/openspec-story-review`, which owns normalization to exactly one current receipt. Do not rewrite receipt sections here.
+5. **`progress.md`** — Inventory every `## Implementation Review Receipt`, plus `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, and `## PR State`. One well-formed unsuperseded section is current. Duplicate/malformed sections are not current authority: if a traceable newer authorized feedback/resume/unblock transition puts the story in a non-DONE implementation lane, treat their parseable findings as historical context and proceed from Status/blocker routing.
+   A reviewable `🟣 IN REVIEW` story may route to fresh substantive `/openspec-story-review`; its only normalized output is a completed-review handoff. `/openspec-feedback` validates that handoff and publishes exactly one current receipt.
+   A bound modern `✅ DONE` story with invalid receipt evidence instead uses the ordinary-feedback reopen route below. Do not rewrite receipt sections here.
 6. **`story.md`** — Check the top-level Status header and contract sections for review findings and unresolved feedback. Optional review/feedback notebook pages may be consulted only for sourced orientation not already captured durably; never let them override artifacts or the receipt.
 7. Check for `blocked.md` existence — if present, the change is blocked; treat as a blocking signal.
 
@@ -91,9 +93,35 @@ Report the resolved resume intent to the operator before proceeding.
 
 These gates must pass before Phase 1 worktree checks, Phase 2 claim refresh, any `progress.md` write, or implementation work. If any gate fails, halt without updating `progress.md → ## Current Claim` or appending to `## Progress Timeline`.
 
-Apply precedence before the subsections below: if `blocked.md` exists, halt first with the singular operator action to resolve/remove it. Otherwise, for every non-DONE state, authoritative Status/blocker routing owns before prior receipt material: a newer authorized feedback reopen, resume/proof entry, or unblock transition may make a formerly current receipt historical without deleting it. If authoritative `Status: 🟣 IN REVIEW`, inspect bounded readiness evidence instead of blindly self-looping: implementation/proof incompleteness is owned by this implementation resume command; a missing anchor or incomplete/non-reviewable planning scaffold routes singularly to `/openspec-story-plan-resume <initiative-slug> <story-slug>` (or story-plan when the workspace is absent); unresolved external evidence routes to one concrete operator action. Fresh review happens only after the named repair. Halt with only a completely fresh, oblivious `/openspec-story-review <initiative-slug> <story-slug>` route when review has not yet run against the current evidence and all prerequisites are satisfied, or when malformed/duplicate review-owned receipt sections need substantive-review normalization. For `Status: ✅ DONE`, a bound story must have exactly one well-formed current receipt whose required fields occur exactly once and whose verdict is `Decision: APPROVE`, `Approval gate: PASS`, with a transition ending in `✅ DONE`. Do not recompute review identity here: it is story-scoped delivery evidence for PR, not lifecycle or prerequisite state. A missing, duplicate, malformed, or non-approving bound-story receipt routes only to fresh substantive `/openspec-story-review`, which can normalize it. Only an unbound pre-v3 DONE story with zero Initiative headers and zero receipt sections is the legacy fallback, with a warning and no backfill. If DONE is paired with a non-approved, missing, malformed, or ambiguous `Plan:`, halt with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. Do not offer planning or implementation choices for any of these precedence gates.
+Apply precedence before the subsections below: if `blocked.md` exists, halt first with the singular operator action to resolve/remove it. Otherwise, for every active state other than completion, authoritative Status/blocker routing owns before prior receipt material: a newer authorized feedback reopen, resume/proof entry, or unblock transition may make a formerly current receipt historical without deleting it. If authoritative `Status: 🟣 IN REVIEW`, inspect bounded readiness evidence instead of blindly self-looping: implementation/proof incompleteness is owned by this implementation resume command; a missing anchor or incomplete/non-reviewable planning scaffold routes singularly to `/openspec-story-plan-resume <initiative-slug> <story-slug>` (or story-plan when the workspace is absent); unresolved external evidence routes to one concrete operator action. Fresh review happens only after the named repair.
+Halt with only a completely fresh, oblivious `/openspec-story-review <initiative-slug> <story-slug>` route when review has not yet run against the current evidence and all prerequisites are satisfied, including when malformed/duplicate historical receipt sections need substantive-review normalization. The evaluator authors only the normalized handoff; feedback publishes the receipt.
+
+For `Status: ✅ DONE`, a bound story must have exactly one well-formed current receipt whose required fields occur exactly once and whose verdict is `Decision: APPROVE`, `Approval gate: PASS`, with a transition ending in `✅ DONE`. Do not recompute review identity here: it is story-scoped delivery evidence for PR, not lifecycle or prerequisite state. Invalid receipt evidence uses the ordinary-feedback reopen route stated in this skill. Only an unbound pre-v3 DONE story with zero Initiative headers and zero receipt sections is the legacy fallback, with a warning and no backfill. If DONE is paired with a non-approved, missing, malformed, or ambiguous `Plan:`, halt with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. Do not offer planning or implementation choices for any of these precedence gates.
 
 #### Plan Approval Check
+
+```openspec-contract
+contract: done-shallow-route-v1
+owner: openspec-story-resume
+mode: shallow
+order: blocker>receipt-or-pre-v3>plan>already-known-contradiction>defer
+receipt: bound-modern:exactly-one-approve-pass|pre-v3:unbound+zero-initiative-like+zero-receipt+no-identity
+plan: approved-only
+checks: already-known-only+deep-forbidden
+writes: forbidden-before-route
+routes: receipt-invalid=>feedback|plan-invalid=>operator-stop|already-known-contradiction=>feedback|otherwise=>delivery-owner
+```
+
+For a bound modern `Status: ✅ DONE`, a missing, duplicate, malformed, or non-approving Implementation Review Receipt routes exclusively to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition.
+
+Ordinary feedback preserves existing receipt bytes while it reopens the story to `🔄 IN PROGRESS`; then `/openspec-story-resume` repairs and returns it to `🟣 IN REVIEW`, a fresh `/openspec-story-review` authors a completed-review handoff, and `/openspec-feedback` validates and publishes it.
+
+The only no-receipt exception is an unbound pre-v3 DONE story with zero Initiative or Initiative-like header lines and zero receipt sections; warn and backfill neither binding nor receipt.
+
+After blocker and receipt-shape precedence, when a bound modern `Status: ✅ DONE` has exactly one valid `APPROVE`/`PASS` receipt but a current `review-identity-v1` mismatch or unverifiable identity, or bounded task/proof evidence contradicting DONE, route exclusively to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition while preserving the existing receipt bytes.
+Only after this router detects a DONE contradiction and before routing it to the operator-acknowledged feedback step, it must not mutate DONE Status, PR State, archive state, convergence state, Plan, implementation artifacts, or external state, as applicable; normal delivery behavior for a consistent DONE story remains allowed.
+This shallow router reacts only to a contradiction already known or visible in the bounded routing inputs. It never recomputes identity, applies authoritative task/APM qualification, or claims that deep delivery qualification passed; it performs no lifecycle, Plan, coordination, implementation, notebook, or external write before the feedback route. Otherwise it defers consistent DONE to a delivery owner.
+
 
 1. Read `story.md → Plan:` header.
 2. If `Plan: 🟢 PLAN APPROVED`, proceed.
@@ -126,7 +154,11 @@ An absent or empty `## Expected Prerequisites` section passes automatically.
 1. Read `story.md → Status:` after the Plan Approval, Blocker, and Prerequisite checks.
 2. If `Status: 🔄 IN PROGRESS`, proceed.
 3. If `Status: ⛔ BLOCKED` and `blocked.md` is absent, proceed only for the stale-blocker normalization described above.
-4. If status is TODO, IN REVIEW, DONE, missing, or unknown, halt without implementation writes unless IN REVIEW has a named implementation/proof incompleteness from an aborted review. For TODO, offer the implementation Converge wrapper plus Non-looped claim. For repairable IN REVIEW implementation/proof incompleteness, normalize `story.md → Status:` to `🔄 IN PROGRESS`, record why in the timeline, and proceed through this resume workflow; contract or external-evidence deficiencies use the singular owners in the precedence rule above. If IN REVIEW is ready and has not yet been reviewed against the current evidence, use the singular fresh-review route. For DONE with unchecked tasks or stale/incomplete implementation evidence, route only to a completely fresh, oblivious `/openspec-story-review <initiative-slug> <story-slug>` session; never resume. For actionable PR feedback on a consistent DONE story, recommend only `/openspec-feedback <initiative-slug> --pr <pr-url>`; when acknowledged as `resume-current-story`, feedback reopens the story to `🔄 IN PROGRESS` before implementation resumes. Route other DONE, missing, or unknown states singularly through the evidence/state-owning command; do not guess.
+4. If status is TODO, IN REVIEW, terminal completion, missing, or unknown, halt without implementation writes unless IN REVIEW has a named implementation/proof incompleteness from an aborted review. For TODO, offer the implementation Converge wrapper plus Non-looped claim. For repairable IN REVIEW implementation/proof incompleteness, normalize `story.md → Status:` to `🔄 IN PROGRESS`, record why in the timeline, and proceed through this resume workflow; contract or external-evidence deficiencies use the singular owners in the precedence rule above. If IN REVIEW is ready and has not yet been reviewed against the current evidence, use the singular fresh-review route.
+
+Other terminal states retain their state-owning singular routes.
+
+For DONE with unchecked tasks or stale/incomplete implementation evidence, use exclusively the ordinary-feedback reconciliation route above. For actionable PR feedback on a consistent DONE story, recommend only `/openspec-feedback <initiative-slug> --pr <pr-url>`; when acknowledged as `resume-current-story`, feedback reopens the story to `🔄 IN PROGRESS` before implementation resumes. Route other DONE, missing, or unknown states singularly through the evidence/state-owning command; do not guess.
 
 #### Parallelism Guard
 
@@ -358,8 +390,8 @@ If a blocker was encountered:
 - **Missing `proposal.md`**: Proceed without it; note the absence in the session handoff.
 - **Missing `design.md`**: Proceed without it; note the absence.
 - **Missing `tasks.md`**: Create a minimal `tasks.md` from `story.md → ## Acceptance` items; ask the operator to confirm.
-- **Missing `progress.md`**: Create it with `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, and `## PR State` sections. Do not invent or retroactively create `## Implementation Review Receipt`; only `/openspec-story-review` writes one after a completed verdict.
-Legacy review artifacts in existing workspaces are tolerated but not authoritative. The single receipt section is replaced by review rather than appended as history; a prior receipt can become historical context after a traceable authorized feedback/resume/unblock transition.
+- **Missing `progress.md`**: Create it with `## Current Claim`, `## Progress Timeline`, `## Session Handoff`, and `## PR State` sections. Do not invent or retroactively create `## Implementation Review Receipt`; only `/openspec-feedback` writes one after validating a completed-review handoff.
+Legacy review artifacts in existing workspaces are tolerated but not authoritative. Feedback replaces the single receipt section from a validated completed-review handoff rather than appending history; a prior receipt can become historical context after a traceable authorized feedback/resume/unblock transition.
 - **Missing `story.md`**: Halt — this is a required artifact.
 
 ### Status Inconsistencies

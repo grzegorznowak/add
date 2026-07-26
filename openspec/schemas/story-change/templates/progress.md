@@ -18,15 +18,15 @@
 ## Progress Timeline
 <!-- Append-only timestamped bullets recording meaningful milestones.
      Written by `/openspec-story-claim`, `/openspec-story-resume`,
-     `/openspec-story-review`, and `/openspec-pr`. Acknowledged replanning
-     checkpoints are written by `/openspec-feedback`; review records concise
-     verdict/Status transitions; PR writes only delivery evidence. -->
+     `/openspec-feedback`, and `/openspec-pr`. Feedback writes acknowledged
+     replanning checkpoints and publishes validated review handoff transitions;
+     PR writes only delivery evidence. -->
 
 ## Implementation Review Receipt
-<!-- Exactly one compact current completed-verdict body, written by
-     `/openspec-story-review` only. Review replaces this body; it never appends
-     receipt history. The timeline carries history. Review writes the receipt
-     and required transition timeline entry together in one validated progress
+<!-- Exactly one compact current completed-verdict body, written by `/openspec-feedback` from a validated completed-review handoff only.
+     The handoff comes from the read-only reviewer. Feedback replaces this body; it never appends receipt
+     history. The timeline carries history. Feedback writes the receipt and
+     required transition timeline entry together in one validated progress
      write (after blocked.md for BLOCKED), then writes top-level Status last and
      performs no later writes. Status controls non-DONE routing, where an older receipt may be
      historical/superseded by authorized later work. A bound
