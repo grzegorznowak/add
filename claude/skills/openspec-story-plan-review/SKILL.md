@@ -68,9 +68,28 @@ A gentle nudge: if you find yourself picking from the menu in the same session t
 
 ## Plan readiness check
 
-For a bound modern `Status: ✅ DONE`, a missing, duplicate, malformed, or non-approving Implementation Review Receipt routes only to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition; never route that receipt contradiction directly to `/openspec-story-review`.
+```openspec-contract
+contract: done-shallow-route-v1
+owner: openspec-story-plan-review
+mode: shallow
+order: blocker>receipt-or-pre-v3>plan>already-known-contradiction>defer
+receipt: bound-modern:exactly-one-approve-pass|pre-v3:unbound+zero-initiative-like+zero-receipt+no-identity
+plan: approved-only
+checks: already-known-only+deep-forbidden
+writes: forbidden-before-route
+routes: receipt-invalid=>feedback|plan-invalid=>operator-stop|already-known-contradiction=>feedback|otherwise=>delivery-owner
+```
+
+For a bound modern `Status: ✅ DONE`, a missing, duplicate, malformed, or non-approving Implementation Review Receipt routes exclusively to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition.
+
 Ordinary feedback preserves existing receipt bytes while it reopens the story to `🔄 IN PROGRESS`; then `/openspec-story-resume` repairs and returns it to `🟣 IN REVIEW`, a fresh `/openspec-story-review` authors a completed-review handoff, and `/openspec-feedback` validates and publishes it.
+
 The only no-receipt exception is an unbound pre-v3 DONE story with zero Initiative or Initiative-like header lines and zero receipt sections; warn and backfill neither binding nor receipt.
+
+After blocker and receipt-shape precedence, when a bound modern `Status: ✅ DONE` has exactly one valid `APPROVE`/`PASS` receipt but a current `review-identity-v1` mismatch or unverifiable identity, or bounded task/proof evidence contradicting DONE, route exclusively to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition while preserving the existing receipt bytes.
+Only after this router detects a DONE contradiction and before routing it to the operator-acknowledged feedback step, it must not mutate DONE Status, PR State, archive state, convergence state, Plan, implementation artifacts, or external state, as applicable; normal delivery behavior for a consistent DONE story remains allowed.
+This shallow router reacts only to a contradiction already known or visible in the bounded routing inputs. It never recomputes identity, applies authoritative task/APM qualification, or claims that deep delivery qualification passed; it performs no lifecycle, Plan, coordination, implementation, notebook, or external write before the feedback route. Otherwise it defers consistent DONE to a delivery owner.
+Apply this rule only to an already-detected DONE contradiction; do not recompute identity or perform deep delivery checks here.
 
 Before doing the full plan review, abort fast with a concise reason if any of these hold:
 
@@ -213,12 +232,15 @@ Warnings:
 
 You may update the `Plan:` header field in `story.md` as part of this review. Never change the implementation `Status:` header field on `story.md` from this command.
 
-- `approve` → set `Plan:` to `🟢 PLAN APPROVED`. Route from authoritative implementation `Status:`. For `⬜ TODO` or `⚪ TODO`, offer the Converge wrapper `/openspec-story-converge <initiative-slug> <story-slug>` or the Non-looped pass `/openspec-story-claim <initiative-slug> <story-slug>`. For `🔄 IN PROGRESS`, offer the same wrapper or the Non-looped pass `/openspec-story-resume <initiative-slug> <story-slug>`. Tell the operator to choose one and not run both because the wrapper delegates the direct claim/resume passes. For `🟣 IN REVIEW`, give only the fresh oblivious `/openspec-story-review` handoff; for `✅ DONE`, blocked, missing, malformed, or ambiguous state, give only the state-owning route.
+- `approve` → set `Plan:` to `🟢 PLAN APPROVED`. Route from authoritative implementation `Status:`. For `⬜ TODO` or `⚪ TODO`, offer the Converge wrapper `/openspec-story-converge <initiative-slug> <story-slug>` or the Non-looped pass `/openspec-story-claim <initiative-slug> <story-slug>`. For `🔄 IN PROGRESS`, offer the same wrapper or the Non-looped pass `/openspec-story-resume <initiative-slug> <story-slug>`. Tell the operator to choose one and not run both because the wrapper delegates the direct claim/resume passes.
+  For `🟣 IN REVIEW`, give only the fresh oblivious `/openspec-story-review` handoff.
+  For `✅ DONE`, blocked, missing, malformed, or ambiguous state, give only the state-owning route.
 - `request_changes` → set `Plan:` to `🟠 PLAN CHANGES REQUESTED`. Offer the Converge wrapper `/openspec-story-plan-converge <initiative-slug> <story-slug>` or the Non-looped pass `/openspec-story-plan-resume <initiative-slug> <story-slug>` to edit the specific spec sections named; tell the operator to choose one and not run both because the wrapper delegates the direct review/resume passes. After a Non-looped resume, re-check `Plan:` and run a fresh `/openspec-story-plan-review` when reviewable. For a ground-up rewrite before implementation starts, recommend deleting the change workspace and re-running `/openspec-story-plan` as the singular route.
 - `blocked` → set `Plan:` to `⛔ PLAN BLOCKED`. Use this only when the plan is unsalvageable as written and the operator needs to pause on this story (e.g., the plan depends on an upstream story that does not exist, or a `## Locked Decision` directly contradicts the architecture and the plan cannot be minimally amended). Blocked routing is singular; do not offer a wrapper/direct choice.
 - `not_reviewable` → set `Plan:` to `🟠 PLAN CHANGES REQUESTED` if missing context can be repaired in an otherwise reviewable story contract, then offer the same planning wrapper/Non-looped resume choice as `request_changes`. A missing or incomplete scaffold stops before review and gets only the singular `/openspec-story-plan-resume <initiative-slug> <story-slug>` route, never the planning Converge wrapper. If missing context cannot be repaired in the story contract, restore the pre-review `Plan:` value from before this command wrote `🟣 PLAN IN REVIEW` and say what context is missing as the singular route. Never leave the final lane at `🟣 PLAN IN REVIEW` for a completed `not_reviewable` verdict.
 
-**Explicit prohibitions:** never move a story's `Plan:` header into `⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `✅ DONE`, or implementation `⛔ BLOCKED` from this command. `/openspec-story-claim` and `/openspec-story-resume` own implementation entry and re-entry transitions. Read-only `/openspec-story-review` authors the target transition in its completed-review handoff, and `/openspec-feedback` alone validates and publishes that transition.
+**Explicit prohibitions:** never move a story's `Plan:` header into `⚪ TODO`, `🔄 IN PROGRESS`, `🟣 IN REVIEW`, `✅ DONE`, or implementation `⛔ BLOCKED` from this command. `/openspec-story-claim` and `/openspec-story-resume` own implementation entry and re-entry transitions.
+Read-only `/openspec-story-review` authors the target transition in its completed-review handoff, and `/openspec-feedback` alone validates and publishes that transition.
 
 ## Plan review log write-back
 
@@ -289,4 +311,6 @@ For a scalar route, put its value on the label line and omit the three dual-rout
 
 For implementation entry/re-entry, use **Converge wrapper:** `/openspec-story-converge <initiative-slug> <story-slug>` and **Non-looped pass:** TODO -> `/openspec-story-claim`, IN PROGRESS -> `/openspec-story-resume`; say to choose one and not run both because the wrapper delegates direct claim/resume passes.
 
-When Status is IN REVIEW, give only this route: open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>`; the wrapper never launches review. DONE with non-approved Plan uses only the operator action to investigate/reconcile the contradictory durable state and names no lifecycle owner. If there are no findings, say that explicitly.
+When Status is IN REVIEW, give only this route: open a completely fresh, oblivious session and run `/openspec-story-review <initiative-slug> <story-slug>`; the wrapper never launches review.
+
+DONE with non-approved Plan uses only the operator action to investigate/reconcile the contradictory durable state and names no lifecycle owner. If there are no findings, say that explicitly.

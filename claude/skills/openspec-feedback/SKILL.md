@@ -353,7 +353,8 @@ For acknowledged `resume-current-story`, update `story.md → Status:` only as n
 - `⛔ BLOCKED`, TODO, missing, or unknown status → stop and revise the disposition or ask the operator for the owning lifecycle command; do not guess.
 
 Record the before/after status in the feedback checkpoint and paired initiative receipt. The FB-tagged reopen checkpoint is the durable marker that the previous `## Implementation Review Receipt` is now historical. Leave that old receipt unchanged and do not treat its pre-reopen verdict/status as contradictory while current Status is active.
-Before the story becomes DONE again, a fresh completed `/openspec-story-review` must provide a normalized handoff.
+Before the story becomes DONE again, a fresh completed independent review must provide a normalized handoff.
+Run `/openspec-story-review` to produce that handoff.
 `/openspec-feedback` must validate that handoff and publish the replacement receipt.
 
 For every `amend-existing-story` and `resume-current-story`, append (or create `progress.md` and `## Progress Timeline` with) this concise checkpoint before the next owning command runs. Use `none` for status, contract sections, task changes, or plan transitions that did not occur; status-only resume and direct amendment are not exceptions.

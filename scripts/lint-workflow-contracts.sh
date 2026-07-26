@@ -3,6 +3,8 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=lint.sh
 source "$SCRIPT_DIR/lint.sh"
+# shellcheck source=lib/lint-done-contracts.sh
+source "$SCRIPT_DIR/lib/lint-done-contracts.sh"
 lint_suite_bootstrap || exit 1
 lint_collect_source_inventory
 # Aggregate primary reports generator failures and leaves shared trees ready.
@@ -406,13 +408,98 @@ extract_progress_transform_block() {
 }
 
 lint_workflow_contracts() {
+  local owner contract canonical generated finding codex_owner
+  local -a deep_done_owners=(openspec-archive openspec-next-action openspec-pr)
+  local -a shallow_done_owners=(
+    openspec-story-claim openspec-story-resume openspec-story-converge
+    openspec-story-plan-review openspec-story-plan-converge openspec-story-plan-resume
+  )
+
   echo "lint: OpenSpec lifecycle semantic invariants"
+  if ! lint_done_contract_selftest; then
+    fail "structural DONE contract fixture suite"
+  fi
+  # Close the visible contract inventory across every active canonical and
+  # generated prompt. Generated Pi skills include appended fragments, so this
+  # scan also rejects fragment-injected unknown or duplicate contracts.
+  for owner in "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; do
+    [[ -n "$owner" ]] || continue
+    codex_owner="$(hyphen_to_underscore "$owner")"
+    for generated in \
+      "$CLAUDE_SKILLS/$owner/SKILL.md" \
+      "$CODEX_SKILLS/$codex_owner/SKILL.md" \
+      "$PI_SKILLS/$owner/SKILL.md"; do
+      [[ -f "$generated" ]] || continue
+      while IFS= read -r finding; do [[ -z "$finding" ]] || fail "$finding:$generated"; done \
+        < <(lint_done_contract_inventory_findings "$generated" "$owner")
+    done
+  done
+  for owner in "${deep_done_owners[@]}" openspec-story-review "${shallow_done_owners[@]}"; do
+    canonical="$CLAUDE_SKILLS/$owner/SKILL.md"
+    while IFS= read -r finding; do [[ -z "$finding" ]] || fail "$finding:$owner"; done \
+      < <(lint_done_contract_denylist_findings "$canonical" "$owner")
+    while IFS= read -r finding; do [[ -z "$finding" ]] || fail "$finding"; done \
+      < <(lint_done_contract_review_contradiction_findings "$canonical" "$owner")
+  done
+  for owner in openspec-next-action openspec-pr; do
+    canonical="$CLAUDE_SKILLS/$owner/SKILL.md"
+    while IFS= read -r finding; do [[ -z "$finding" ]] || fail "$finding"; done \
+      < <(lint_done_contract_pre_v3_identity_findings "$canonical" "$owner")
+  done
+  while IFS= read -r finding; do [[ -z "$finding" ]] || fail "$finding"; done \
+    < <(lint_done_contract_pr_pre_v3_association_findings "$CLAUDE_SKILLS/openspec-pr/SKILL.md")
+  for owner in "${OPENSPEC_WORKFLOW_SKILLS[@]:-}"; do
+    [[ -n "$owner" ]] || continue
+    canonical="$CLAUDE_SKILLS/$owner/SKILL.md"
+    while IFS= read -r finding; do [[ -z "$finding" ]] || fail "$finding"; done \
+      < <(lint_done_contract_direct_done_review_findings "$canonical" "$owner")
+  done
+
+  for owner in "${deep_done_owners[@]}"; do
+    canonical="$CLAUDE_SKILLS/$owner/SKILL.md"
+    while IFS= read -r finding; do [[ -z "$finding" ]] || fail "$finding"; done \
+      < <(lint_done_contract_file_findings "$canonical" "$owner" done-delivery-v1)
+    while IFS= read -r finding; do [[ -z "$finding" ]] || fail "$finding"; done \
+      < <(lint_done_invocation_findings "$canonical" "$owner")
+  done
+  owner=openspec-story-review
+  canonical="$CLAUDE_SKILLS/$owner/SKILL.md"
+  while IFS= read -r finding; do [[ -z "$finding" ]] || fail "$finding"; done \
+    < <(lint_done_contract_file_findings "$canonical" "$owner" done-readonly-route-v1)
+  for owner in "${shallow_done_owners[@]}"; do
+    canonical="$CLAUDE_SKILLS/$owner/SKILL.md"
+    while IFS= read -r finding; do [[ -z "$finding" ]] || fail "$finding"; done \
+      < <(lint_done_contract_file_findings "$canonical" "$owner" done-shallow-route-v1)
+  done
+
+  # Compare generated contracts only after canonical blocks exist. This keeps
+  # the RED migration focused instead of multiplying each omission by runtime.
+  for owner in "${deep_done_owners[@]}" openspec-story-review "${shallow_done_owners[@]}"; do
+    canonical="$CLAUDE_SKILLS/$owner/SKILL.md"
+    contract=done-shallow-route-v1
+    [[ "$owner" == openspec-story-review ]] && contract=done-readonly-route-v1
+    in_array "$owner" "${deep_done_owners[@]}" && contract=done-delivery-v1
+    codex_owner="$(hyphen_to_underscore "$owner")"
+    for generated in "$CODEX_SKILLS/$codex_owner/SKILL.md" "$PI_SKILLS/$owner/SKILL.md"; do
+      while IFS= read -r finding; do [[ -z "$finding" ]] || fail "$finding"; done \
+        < <(lint_done_contract_parity_findings "$canonical" "$generated" "$owner" "$contract")
+      if [[ "$contract" == done-delivery-v1 ]]; then
+        while IFS= read -r finding; do [[ -z "$finding" ]] || fail "$finding"; done \
+          < <(lint_done_contract_parity_findings "$canonical" "$generated" "$owner" done-invocation-v1)
+      fi
+    done
+  done
 
   CANONICAL_SLUG_REGEX='^[a-z0-9]+(?:-[a-z0-9]+)*$'
   STORY_TEMPLATE="$REPO_ROOT/openspec/schemas/story-change/templates/story.md"
   PROGRESS_TEMPLATE="$REPO_ROOT/openspec/schemas/story-change/templates/progress.md"
   CONVENTIONS_DOC="$REPO_ROOT/docs/openspec-conventions.md"
   LIFECYCLE_DOC="$REPO_ROOT/docs/openspec-lifecycle.md"
+
+  require_literal \
+    "visible normative openspec-contract first-match policy" \
+    "$CONVENTIONS_DOC" \
+    'Visible `openspec-contract` blocks are normative first-match policy consumed by shipped prompts.'
 
   # Exact frontmatter key/token parsing is itself an invariant: duplicate keys or
   # malformed suffixes must not silently select a permissive value/token prefix.
@@ -520,7 +607,7 @@ lint_workflow_contracts() {
   # Every active DONE router sends invalid modern receipt evidence through an
   # acknowledged ordinary-feedback reopen. Generated runtimes must retain the
   # same route and the exact no-backfill pre-v3 exception.
-  MODERN_DONE_FEEDBACK_ROUTE='For a bound modern `Status: ✅ DONE`, a missing, duplicate, malformed, or non-approving Implementation Review Receipt routes only to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition; never route that receipt contradiction directly to `/openspec-story-review`.'
+  MODERN_DONE_FEEDBACK_ROUTE='For a bound modern `Status: ✅ DONE`, a missing, duplicate, malformed, or non-approving Implementation Review Receipt routes exclusively to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition.'
   PRE_V3_NO_BACKFILL_ROUTE='The only no-receipt exception is an unbound pre-v3 DONE story with zero Initiative or Initiative-like header lines and zero receipt sections; warn and backfill neither binding nor receipt.'
   for done_router in \
     openspec-archive openspec-next-action openspec-pr \
@@ -691,9 +778,10 @@ EOF
     stale_ownership_findings="$(review_receipt_ownership_findings "$semantic_fragment")"
     blanket_route_findings="$(blanket_fresh_review_route_findings "$semantic_fragment")"
     plan_status_findings="$(plan_review_status_ownership_findings "$semantic_fragment")"
-    if [[ -n "$stale_route_findings$stale_ownership_findings$blanket_route_findings$plan_status_findings" ]]; then
+    direct_done_review_findings="$(lint_done_contract_direct_done_review_findings "$semantic_fragment" "$(basename "$semantic_fragment" .md)")"
+    if [[ -n "$stale_route_findings$stale_ownership_findings$blanket_route_findings$plan_status_findings$direct_done_review_findings" ]]; then
       fail "$semantic_fragment: active Pi fragment overrides lifecycle routing or ownership"
-      printf '%s\n' "$stale_route_findings" "$stale_ownership_findings" "$blanket_route_findings" "$plan_status_findings" | sed '/^$/d; s/^/  /' >&2
+      printf '%s\n' "$stale_route_findings" "$stale_ownership_findings" "$blanket_route_findings" "$plan_status_findings" "$direct_done_review_findings" | sed '/^$/d; s/^/  /' >&2
     fi
   done
 
@@ -1668,7 +1756,7 @@ EOF
   require_literal \
     "PR final recheck separates state/operator routes from identity review" \
     "$pr_entry_recheck" \
-    'At final recheck, root ambiguity requires operator root correction; an archived story aborts as ineligible; a new blocker requires operator resolution/removal; non-DONE Status uses the state-correct diagnostic route; non-approved Plan uses only the contradictory durable-state operator action; only identity mismatch or unverifiable identity uses the fresh-review route.'
+    'At final recheck, root ambiguity requires operator root correction; an archived story aborts as ineligible; a new blocker requires operator resolution/removal; non-DONE Status uses the state-correct diagnostic route; non-approved Plan uses only the contradictory durable-state operator action; identity mismatch or unverifiable identity uses only the ordinary-feedback reconciliation route above.'
   forbid_literal \
     "PR final recheck does not blanket-route durable state failures to review" \
     "$pr_entry_recheck" \

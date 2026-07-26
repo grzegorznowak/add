@@ -14,7 +14,8 @@ Argument: `$ARGUMENTS` — `<initiative_slug> <story_slug> [<pr_url_or_OPEN=true
 
 ## Intent
 
-This flow applies after `/openspec-story-review` has approved local product/spec correctness and `/openspec-feedback` has validated and published its completed-review handoff as `Status: ✅ DONE`. GitHub PRs are external delivery/review channels: they may be useful or required before archive, but they are not the authority for local story completion.
+This flow applies after independent local review has approved product/spec correctness.
+`/openspec-feedback` must then validate and publish the completed-review handoff as `Status: ✅ DONE`. GitHub PRs are external delivery/review channels: they may be useful or required before archive, but they are not the authority for local story completion.
 
 Use this command to:
 
@@ -51,7 +52,7 @@ There is no `MASTER.md`, no tracker table, and no PR lifecycle status. All statu
 - `⬜ TODO` — not started
 - `🔄 IN PROGRESS` — actively being worked
 - `🟣 IN REVIEW` — ready for independent local review
-- `✅ DONE` — local workflow completed by independent `/openspec-story-review` approval
+- `✅ DONE` — local workflow completed by independent local-review approval
 - `⛔ BLOCKED` — explicit blocker
 
 ## Phase 0 — Resolution and inference
@@ -90,19 +91,60 @@ After the initiative is known, list active change workspaces across candidate ro
 
 ### DONE-only story qualification and diagnostic routing
 
-For a bound modern `Status: ✅ DONE`, a missing, duplicate, malformed, or non-approving Implementation Review Receipt routes only to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition; never route that receipt contradiction directly to `/openspec-story-review`.
+```openspec-contract
+contract: done-delivery-v1
+owner: openspec-pr
+mode: deep
+order: blocker>receipt-or-pre-v3>plan>identity>task-proof>feedback-stop>delivery
+receipt: bound-modern:exactly-one-approve-pass|pre-v3:unbound+zero-initiative-like+zero-receipt+no-identity
+plan: approved-only
+identity: modern:recompute|pre-v3:none
+task-proof: tasks:missing|whitespace-only|malformed-checkbox-like|no-valid-checkbox|unchecked=>contradiction;valid-task-lines:- [ ] <nonempty>|- [x] <nonempty>|- [X] <nonempty>;apm:missing-table|malformed-table|missing-required-A<n>-row|missing-proof-method|missing-reviewer-action|missing-expected-evidence|missing-relevant-surfaces|missing-proof-maturity|invalid-proof-maturity|provisional-regardless-of-open-detail|final-open-detail-neither-blank-nor-explicitly-closed=>contradiction
+feedback: ordinary-feedback+preserve-receipt+no-delivery-write
+delivery: all-prior-pass
+routes: receipt-invalid=>feedback|plan-invalid=>operator-stop|identity-invalid=>feedback|task-proof-invalid=>feedback|all-prior-pass=>delivery
+```
+
+For a bound modern `Status: ✅ DONE`, a missing, duplicate, malformed, or non-approving Implementation Review Receipt routes exclusively to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition.
+
 Ordinary feedback preserves existing receipt bytes while it reopens the story to `🔄 IN PROGRESS`; then `/openspec-story-resume` repairs and returns it to `🟣 IN REVIEW`, a fresh `/openspec-story-review` authors a completed-review handoff, and `/openspec-feedback` validates and publishes it.
+
 The only no-receipt exception is an unbound pre-v3 DONE story with zero Initiative or Initiative-like header lines and zero receipt sections; warn and backfill neither binding nor receipt.
 
+After blocker and receipt-shape precedence, when a bound modern `Status: ✅ DONE` has exactly one valid `APPROVE`/`PASS` receipt but a current `review-identity-v1` mismatch or unverifiable identity, or bounded task/proof evidence contradicting DONE, route exclusively to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition while preserving the existing receipt bytes.
+Only after this router detects a DONE contradiction and before routing it to the operator-acknowledged feedback step, it must not mutate DONE Status, PR State, archive state, convergence state, Plan, implementation artifacts, or external state, as applicable; normal delivery behavior for a consistent DONE story remains allowed.
 
-Before Pass 3, read the explicitly selected or DONE-inferred workspace and qualify it. A story becomes resolved PR context only after all of these checks pass: it is active/non-archived, its authoritative `story.md → Initiative:` binding matches, it has no `blocked.md`, it has authoritative `Status: ✅ DONE`, it has unambiguous `Plan: 🟢 PLAN APPROVED`, and bounded task/implementation approval evidence does not contradict DONE.
+
+### DONE contract checkpoint: initial-resolution
+```openspec-contract
+contract: done-invocation-v1
+owner: openspec-pr
+name: initial-resolution
+invokes: done-delivery-v1
+checkpoint: initial-resolution
+before: resolved-context-publication
+```
+
+Before Pass 3, read the explicitly selected or DONE-inferred workspace and qualify it.
+
+A DONE story qualifies as resolved PR context only when it has either a matching modern authoritative Initiative binding or the exact pre-v3 Phase 0 explicit/unique legacy association.
+
+It becomes resolved PR context only after all of these checks pass: it is active/non-archived, the applicable modern binding or qualified legacy association matches, it has no `blocked.md`, it has authoritative `Status: ✅ DONE`, it has unambiguous `Plan: 🟢 PLAN APPROVED`, and bounded task/implementation approval evidence does not contradict DONE.
 
 Consume `progress.md → ## Implementation Review Receipt` as follows:
 
-- Inventory every receipt heading and body. If any receipt is present for a DONE story, require exactly one `## Implementation Review Receipt` section and exactly one occurrence of every canonical field: `Reviewed at`, `Decision`, `Approval gate`, `Status transition`, `Evidence reviewed`, `Identity method`, `Identity digest`, `Identity bases`, `Identity paths`, `Findings`, `Proof`, and `Next owner`. Require `Decision: APPROVE`, `Approval gate: PASS`, a `Status transition` ending in `✅ DONE`, `Identity method: review-identity-v1`, one canonical `sha256:<lowercase-hex>` digest, and reproducible canonical JSON bases/path arrays (`[]` is valid for an empty list). Invalid receipt evidence uses the ordinary-feedback reopen route stated in this skill. Never search for an older approval; after reopen and repair, fresh substantive review authors the handoff and feedback owns normalization to one current receipt during publication.
-- Before displaying resolved PR context and again immediately before any `gh` mutation or `progress.md` write, recompute the story-scoped identity with canonical `review-identity-v1` using exactly the receipt-recorded `Identity bases` and `Identity paths`. Require an exact match to the receipt's `Identity digest` and resolve every recorded base/path without substitution. Missing paths, an unavailable base, unsupported/malformed identity input, or mismatch routes only to the same fresh oblivious review; this command never repairs or synthesizes receipt evidence. Save the matching digest and the last pre-mutation UTC verification timestamp in memory for PR State write-back.
+- Inventory every receipt heading and body. If any receipt is present for a DONE story, require exactly one `## Implementation Review Receipt` section and exactly one occurrence of every canonical field: `Reviewed at`, `Decision`, `Approval gate`, `Status transition`, `Evidence reviewed`, `Identity method`, `Identity digest`, `Identity bases`, `Identity paths`, `Findings`, `Proof`, and `Next owner`. Require `Decision: APPROVE`, `Approval gate: PASS`, a `Status transition` ending in `✅ DONE`, `Identity method: review-identity-v1`, one canonical `sha256:<lowercase-hex>` digest, and reproducible canonical JSON bases/path arrays (`[]` is valid for an empty list). Invalid receipt evidence uses the ordinary-feedback reopen route stated in this skill.
+
+After reopen and repair, fresh substantive review authors the handoff and feedback owns normalization to one current receipt during publication; never search for an older approval.
+
+- A true pre-v3 legacy DONE without an implementation review receipt is compatible only when the same story has zero Initiative or Initiative-like header lines, zero receipt sections, and every other qualification passes. Print a warning that both binding and receipt evidence are absent, use the Phase 0 explicit/unique-association rules to resolve it, skip identity recomputation because no identity exists, and use the documented `—` digest and `—` verification-timestamp placeholders; backfill neither artifact. A bound modern DONE with absent receipt evidence uses that ordinary-feedback reopen route.
+
+For a DONE candidate, any non-approved, missing, malformed, or ambiguous Plan is a contradictory durable state. Abort with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before PR delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. If Plan is approved but bounded tasks or incomplete/stale implementation evidence contradicts DONE, use only the ordinary-feedback reconciliation route above. Invalid bound-modern receipt evidence instead uses the ordinary-feedback reopen route above. Only a DONE candidate passing these checks is `<resolved_story>`.
+
+- For a modern receipt-bearing `Status: ✅ DONE` only, before displaying resolved PR context and again immediately before any `gh` mutation or `progress.md` write, recompute the story-scoped identity with canonical `review-identity-v1` using exactly the receipt-recorded `Identity bases` and `Identity paths`. Require an exact match to the receipt's `Identity digest` and resolve every recorded base/path without substitution. Missing paths, an unavailable base, unsupported/malformed identity input, or mismatch uses only the ordinary-feedback reconciliation route above; this command never repairs or synthesizes receipt evidence. Save the matching digest and the last pre-mutation UTC verification timestamp in memory for PR State write-back.
+
+Run the concrete task/proof gate before any delivery recommendation. Require `tasks.md` to exist and contain non-whitespace content. A valid task line is exactly `- [ ] <nonempty description>`, `- [x] <nonempty description>`, or `- [X] <nonempty description>`. Treat `- []`, a checked marker with no description, every marker other than space/`x`/`X`, no valid checkbox line, and every valid unchecked line as a DONE contradiction. Also inspect the current `story.md → ## Verification → ### Acceptance Proof Matrix`: reject a missing or malformed table, any missing required `A<n>` row, or any row missing `Proof Method`, `Reviewer Action`, `Expected Evidence`, `Relevant Surfaces`, or `Proof Maturity`. `Proof Maturity` must be exactly `final` or `provisional`; any provisional row contradicts DONE regardless of `Open Detail`; a final/non-provisional row contradicts DONE when `Open Detail` is unresolved or otherwise non-empty rather than blank or explicitly closed. Missing, invalid, incomplete, or stale task/proof evidence stops only through the ordinary-feedback reconciliation route above, preserving receipt bytes and making no PR, progress, wait, archive, or external write/recommendation. Only after this gate passes may delivery routing continue.
 - `review-identity-v1` excludes the story's OpenSpec coordination artifacts. Therefore this command's own `## PR State` and `## Progress Timeline` writes do not change the identity and must not trigger a post-write recomputation; source/path drift remains a mismatch at the required pre-mutation recomputation.
-- A true pre-v3 legacy DONE without an implementation review receipt is compatible only when the same story has zero Initiative or Initiative-like header lines, zero receipt sections, and every other qualification passes. Print a warning that both binding and receipt evidence are absent, use the Phase 0 explicit/unique-association rules to resolve it, and backfill neither artifact. A bound modern DONE with absent receipt evidence uses that ordinary-feedback reopen route.
 - For every non-DONE story, authoritative `Status:` owns routing. A receipt left from an earlier completed review may be historical context but never overrides the current non-DONE lane or makes the story eligible for PR delivery.
 
 An explicit or diagnostic non-DONE candidate is never resolved PR context and never reaches PR inference. Route it without mutation in this order:
@@ -111,8 +153,6 @@ An explicit or diagnostic non-DONE candidate is never resolved PR context and ne
 2. `Status: 🟣 IN REVIEW` -> one fresh, oblivious `/openspec-story-review <initiative> <story-slug>` route even when Plan contradicts it; the wrapper never launches review.
 3. For another non-DONE status, inspect Plan. A safely repairable incomplete scaffold may use the planning Converge wrapper plus Non-looped plan-resume; a structurally reviewable DRAFT/PLAN IN REVIEW lane with no unresolved finding may use the wrapper plus Non-looped plan-review; CHANGES REQUESTED uses plan-resume while findings/repairs remain and plan-review only when fully blended and reviewable. PLAN BLOCKED, malformed/ambiguous/unresolvable Plan, and unknown state remain singular.
 4. With approved Plan, TODO may use the implementation wrapper plus Non-looped claim and IN PROGRESS may use that wrapper plus Non-looped resume. BLOCKED, missing, malformed/ambiguous, and unknown statuses remain singular.
-
-For a DONE candidate, any non-approved, missing, malformed, or ambiguous Plan is a contradictory durable state. Abort with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before PR delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner. If Plan is approved but bounded tasks or incomplete/stale implementation evidence contradicts DONE, route only to a completely fresh, oblivious story-review session. Invalid bound-modern receipt evidence instead uses the ordinary-feedback reopen route above. Only a DONE candidate passing these checks is `<resolved_story>`.
 
 ### Pass 3 — PR inference (when `<pr_url_or_OPEN=true>` is empty)
 
@@ -152,9 +192,21 @@ Resolved context:
 
 Print this even when everything was passed explicitly — the printout is the contract the user approves before any PR/body update runs.
 
+### DONE contract checkpoint: final-recheck
+```openspec-contract
+contract: done-invocation-v1
+owner: openspec-pr
+name: final-recheck
+invokes: done-delivery-v1
+checkpoint: final-recheck
+before: first-pr-or-progress-mutation
+reread: current-story.md+current-tasks.md+current-progress.md+current-blocked.md
+recheck: receipt-or-pre-v3>plan>identity>task-proof>feedback-stop
+```
+
 ### Entry-condition recheck
 
-Immediately before any PR/body/progress mutation, re-resolve `<openspec_root>`, re-read and inventory the already resolved story's complete top-level Initiative-like header region by the rules above, and repeat the full DONE-only qualification. Legacy receipt absence is allowed only for the exact zero-Initiative-like/zero-receipt pre-v3 case. A present receipt must be the one complete canonical APPROVE/PASS record with a transition ending in DONE, and canonical `review-identity-v1` must recompute from its recorded bases/path list to exactly its recorded digest. If receipt evidence is missing, duplicate, malformed, or non-approving for a bound modern story, abort without any `gh` or progress action using the ordinary-feedback reopen route above. At final recheck, root ambiguity requires operator root correction; an archived story aborts as ineligible; a new blocker requires operator resolution/removal; non-DONE Status uses the state-correct diagnostic route; non-approved Plan uses only the contradictory durable-state operator action; only identity mismatch or unverifiable identity uses the fresh-review route. Save the matching digest and current UTC timestamp only after this final pre-mutation recheck. Never print a resolved-context block whose status is not `✅ DONE`.
+Immediately before any `gh`, PR/body, or `progress.md` mutation, re-resolve `<openspec_root>`, re-read the current `story.md`, current `tasks.md`, current `progress.md`, and current `blocked.md` presence, inventory the already resolved story's complete top-level Initiative-like header region by the rules above, and repeat the full DONE-only qualification. Rerun the complete receipt-or-pre-v3 classification, Plan gate, identity recomputation, task checkbox grammar and Acceptance Proof Matrix task/proof gate, and feedback-stop gate stated above from current bytes; this is a new full evaluation, not reuse of the initial result. Legacy receipt absence is allowed only for the exact zero-Initiative-like/zero-receipt pre-v3 case. A present receipt must be the one complete canonical APPROVE/PASS record with a transition ending in DONE, and canonical `review-identity-v1` must recompute from its recorded bases/path list to exactly its recorded digest. If receipt evidence is missing, duplicate, malformed, or non-approving for a bound modern story, abort without any `gh` or progress action using the ordinary-feedback reopen route above. At final recheck, root ambiguity requires operator root correction; an archived story aborts as ineligible; a new blocker requires operator resolution/removal; non-DONE Status uses the state-correct diagnostic route; non-approved Plan uses only the contradictory durable-state operator action; identity mismatch or unverifiable identity uses only the ordinary-feedback reconciliation route above. Save the matching digest and current UTC timestamp only after this final pre-mutation recheck. Never print a resolved-context block whose status is not `✅ DONE`.
 
 Do not normalize or mutate `story.md → Status:` from this command.
 
@@ -373,7 +425,7 @@ There is no `MASTER.md` and no tracker table in this flow. PR evidence is writte
 7. **Never silently pick among multiple locally DONE stories.** Ask the operator to pass the story explicitly.
 8. **Never absorb PR feedback here.** Route actionable feedback through `/openspec-feedback`.
 9. **Never treat cached local PR metadata as merged archive evidence when live `gh` data is available.** Archive performs its own authoritative preflight.
-10. **Never perform PR delivery against implementation state that differs from, or cannot be reproduced by, canonical `review-identity-v1` from the receipt's recorded bases/path list.** Require the recomputed digest to equal the receipt, persist that digest and verification time in PR State, and route mismatch or unverifiable evidence to fresh substantive review. PR State/timeline coordination writes are outside identity scope and require no post-write recomputation.
+10. **Never perform PR delivery against implementation state that differs from, or cannot be reproduced by, canonical `review-identity-v1` from the receipt's recorded bases/path list.** Require the recomputed digest to equal the receipt, persist that digest and verification time in PR State, and route mismatch or unverifiable evidence only through the ordinary-feedback reconciliation route above. PR State/timeline coordination writes are outside identity scope and require no post-write recomputation.
 11. **Never summarize or quote original tickets.** Include detected links only, and omit the section when no link is found.
 
 ## Final response

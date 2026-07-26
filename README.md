@@ -87,7 +87,7 @@ convergence runs claim/resume only until `🟣 IN REVIEW` or a stop; it never ru
 review. Implementation review remains a separate, completely fresh and
 oblivious `/openspec-story-review` session.
 
-`/openspec-story-review` authors the completed-review handoff; `/openspec-feedback` validates it and solely publishes the receipt, timeline transition, blocker, and Status.
+`/openspec-story-review` authors the completed-review handoff; `/openspec-feedback` validates it and solely publishes the receipt, timeline transition, blocker, and Status. A detected valid-receipt DONE identity/task/proof contradiction also goes first through acknowledged ordinary feedback: routers preserve DONE and receipt bytes, feedback alone reopens to IN PROGRESS with FB provenance, resume repairs to IN REVIEW, and fresh read-only review resumes the normal publication flow.
 
 1. **Plan an initiative** — `/openspec-initiative-plan` creates
    `openspec/initiatives/<slug>/initiative.md` as the initiative-level planning

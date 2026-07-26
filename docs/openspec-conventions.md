@@ -1,5 +1,7 @@
 # OpenSpec Artifact Conventions
 
+Visible `openspec-contract` blocks are normative first-match policy consumed by shipped prompts. They define machine-checked routing precedence and ownership; adjacent prose must implement the same behavior, and the first matching route stops before any later recommendation or write.
+
 This document describes the active `add` OpenSpec file conventions. The skill
 bodies are the executable command contracts; this document is the shared schema
 reference they point at for artifact shape, proof quality, and runtime logs.
@@ -534,7 +536,7 @@ completed-review publication replaces it. For `Status: ✅ DONE`, a present rece
 well-formed current body with `Decision: APPROVE`, `Approval gate: PASS`, a DONE
 transition, and the complete `review-identity-v1` fields. Duplicate
 headings/bodies, malformed fields, REQUEST CHANGES/BLOCKED/FAIL, stale or
-contradictory evidence block delivery/archive. A bound story with exactly one
+contradictory evidence block delivery/archive. When a valid APPROVE/PASS receipt has a detected mismatched/unverifiable implementation identity or bounded task/proof contradiction, routers recommend only ordinary `/openspec-feedback <initiative>` with an acknowledged plan naming target, reason, and `resume-current-story`; they preserve receipt bytes and do not mutate DONE or delivery state. Feedback alone records FB provenance and reopens DONE to IN PROGRESS, resume repairs and returns IN REVIEW, and fresh read-only review plus feedback publication replace the completed evidence. Consistent DONE delivery and matching-digest merged-PR archive trust are unchanged. A bound story with exactly one
 valid `Initiative:` header must have that receipt; planning readers and writers
 apply this same bound-DONE rule and must not treat a missing receipt as legacy.
 The only no-receipt compatibility case is an unbound pre-v3 DONE story—zero

@@ -80,15 +80,36 @@ Allowed starting states:
 - `Status: ⛔ BLOCKED` only when `Plan:` is `🟢 PLAN APPROVED` and `<blocked_file>` is absent; this means the explicit gate file was removed and `/openspec-story-resume` must normalize the stale status back to `🔄 IN PROGRESS` before work continues.
 - `Status: ✅ DONE` is independent completion authority, but only a DONE story whose `Plan:` is `🟢 PLAN APPROVED` and whose bounded task/proof evidence is consistent may take the already-complete early return. Convergence must not create or pursue `✅ DONE` itself.
 
-For a bound modern `Status: ✅ DONE`, a missing, duplicate, malformed, or non-approving Implementation Review Receipt routes only to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition; never route that receipt contradiction directly to `/openspec-story-review`.
+```openspec-contract
+contract: done-shallow-route-v1
+owner: openspec-story-converge
+mode: shallow
+order: blocker>receipt-or-pre-v3>plan>already-known-contradiction>defer
+receipt: bound-modern:exactly-one-approve-pass|pre-v3:unbound+zero-initiative-like+zero-receipt+no-identity
+plan: approved-only
+checks: already-known-only+deep-forbidden
+writes: forbidden-before-route
+routes: receipt-invalid=>feedback|plan-invalid=>operator-stop|already-known-contradiction=>feedback|otherwise=>delivery-owner
+```
+
+For a bound modern `Status: ✅ DONE`, a missing, duplicate, malformed, or non-approving Implementation Review Receipt routes exclusively to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition.
+
 Ordinary feedback preserves existing receipt bytes while it reopens the story to `🔄 IN PROGRESS`; then `/openspec-story-resume` repairs and returns it to `🟣 IN REVIEW`, a fresh `/openspec-story-review` authors a completed-review handoff, and `/openspec-feedback` validates and publishes it.
+
 The only no-receipt exception is an unbound pre-v3 DONE story with zero Initiative or Initiative-like header lines and zero receipt sections; warn and backfill neither binding nor receipt.
+
+After blocker and receipt-shape precedence, when a bound modern `Status: ✅ DONE` has exactly one valid `APPROVE`/`PASS` receipt but a current `review-identity-v1` mismatch or unverifiable identity, or bounded task/proof evidence contradicting DONE, route exclusively to ordinary `/openspec-feedback <initiative-slug>` with an operator-acknowledged `resume-current-story` disposition while preserving the existing receipt bytes.
+Only after this router detects a DONE contradiction and before routing it to the operator-acknowledged feedback step, it must not mutate DONE Status, PR State, archive state, convergence state, Plan, implementation artifacts, or external state, as applicable; normal delivery behavior for a consistent DONE story remains allowed.
+This shallow router reacts only to a contradiction already known or visible in the bounded routing inputs. It never recomputes identity, applies authoritative task/APM qualification, or claims that deep delivery qualification passed; it performs no lifecycle, Plan, coordination, implementation, notebook, or external write before the feedback route. Otherwise it defers consistent DONE to a delivery owner.
 
 Reject with a precise next action, in this order:
 
 - If `<blocked_file>` exists, stop at that singular operator-action gate. Do not evaluate or offer wrapper/direct choices until the operator resolves the blocker and removes the file.
+- For `Status: ✅ DONE`, qualify the DONE Implementation Review Receipt before evaluating `Plan:`: a bound modern story requires exactly one well-formed current receipt with every required field exactly once, `Decision: APPROVE`, `Approval gate: PASS`, and a transition ending in `✅ DONE`. Invalid receipt evidence stops through the ordinary-feedback reopen route above without evaluating Plan. Preserve the exact unbound pre-v3 no-receipt exception above and do not recompute identity or perform deep task/proof checks in this receipt-shape gate.
+
 - If `Status: 🟣 IN REVIEW`, inspect bounded readiness evidence. A named implementation/proof incompleteness routes singularly to `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`; a missing anchor or incomplete/non-reviewable contract scaffold routes singularly to `/openspec-story-plan-resume <initiative> <story-slug>` (or story-plan when the workspace is absent); unresolved external evidence routes to one concrete operator action. Say fresh review happens only after repair. Use the singular fresh, oblivious story-review handoff only when review has not yet run against the current evidence and all prerequisites are satisfied.
-- If `Status: ✅ DONE` is paired with any non-approved, missing, malformed, or ambiguous `Plan:`, stop with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner.
+
+- Only after receipt qualification, if `Status: ✅ DONE` is paired with any non-approved, missing, malformed, or ambiguous `Plan:`, stop with only `Operator action: investigate and reconcile the contradictory durable Status: ✅ DONE and Plan: <value> state before delivery or archive.` Do not recommend planning commands that reject DONE and do not invent a lifecycle owner.
 - A non-DONE story with `Plan:` at `🟡 PLAN DRAFT` or `🟣 PLAN IN REVIEW`: offer the planning Converge wrapper plus Non-looped plan-review when the full planning scaffold is structurally reviewable; when the scaffold is incomplete/non-reviewable but `/openspec-story-plan-resume` can safely identify and repair it, route singularly to plan-resume.
 - A non-DONE story with an unambiguously absent Plan/Status/log anchor or other safely repairable incomplete/non-reviewable planning scaffold: route singularly to `/openspec-story-plan-resume <initiative> <story-slug>`; plan-converge rejects that entry shape.
 - A non-DONE story with `Plan: 🟠 PLAN CHANGES REQUESTED`: unresolved findings use the planning Converge wrapper plus Non-looped plan-resume only when the scaffold is complete/reviewable and plan-converge can orchestrate it; repairable scaffold gaps route singularly to plan-resume. When all findings are fully blended/addressed and the scaffold is structurally reviewable, route to the wrapper plus Non-looped plan-review.
@@ -128,7 +149,7 @@ Before each subagent launch, build the command line from the current status in t
 - `Status: 🔄 IN PROGRESS`: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]`.
 - `Status: 🟣 IN REVIEW`: do not launch review. Apply the IN REVIEW repair-or-review gate above. For named implementation/proof incompleteness, stop with the singular resume owner; for contract or external evidence use its singular owner. Only a ready story not yet reviewed against current evidence stops successfully with result `IN_REVIEW` and the fresh, oblivious review route.
 - `Status: ⛔ BLOCKED` with no `<blocked_file>` present and plan-approved: `/openspec-story-resume <initiative> <story-slug> [WORKTREE=...]` to normalize the resolved blocker and continue.
-- `Status: ✅ DONE`: do not launch claim or resume. If `Plan:` is not unambiguously `🟢 PLAN APPROVED`, use the singular operator reconciliation action above. Otherwise spot-check bounded task/proof evidence. If it is consistent, stop with result `DONE` because the `story.md` Status header is completion authority. If tasks are unchecked or implementation evidence is stale/incomplete, stop with a singular fresh, oblivious `/openspec-story-review` route to reconcile the evidence contradiction; never resume.
+- `Status: ✅ DONE`: do not launch claim or resume. Apply the receipt-shape gate above first; invalid receipt evidence stops through ordinary feedback without evaluating Plan. Only after receipt qualification, if `Plan:` is not unambiguously `🟢 PLAN APPROVED`, use the singular operator reconciliation action above. Otherwise spot-check bounded task/proof evidence. If it is consistent, stop with result `DONE` because the `story.md` Status header is completion authority. If tasks are unchecked or implementation evidence is stale/incomplete, stop exclusively through the ordinary-feedback reconciliation route above.
 
 For each cycle:
 
@@ -168,11 +189,12 @@ For each cycle:
    - Only when neither an explicit nor branch candidate qualifies, fall back to `<workspace_root>`. If the launch `<story_file>` or `<progress_file>` is missing after a claim pass, stop with: `OpenSpec artifacts may have moved to a root worktree, but convergence could not locate them. Rerun from the checkout containing openspec/changes/<story-slug>/story.md, or pass WORKTREE="<basename>=<path>" from that checkout.`
 
    Before routing or stopping, perform a minimal authority spot-check of only the decision-bearing fields and anchors at the refreshed `<openspec_root>`: inventory the full top-level header region so duplicate or malformed Initiative-like lines cannot evade an exact-field grep, then inspect Status/Plan and bounded reads of `progress.md → ## Implementation Review Receipt` plus the newest relevant progress/handoff entry when they matter. Use bounded reads only for the newest relevant progress or handoff entry body. If those spot-checks agree with the agent's report, continue from the canonical fields. If anchors are missing, stale, ambiguous, or conflicting, broaden to targeted reads of the affected file(s) or stop with a concrete operator repair action; do not launch `/openspec-story-review` from this skill.
+
 9. After every claim or resume pass and artifact-root refresh, recheck `<blocked_file>` and rerun the complete prerequisite qualification from Phase 2 against current active-first story/blocked/progress evidence before accepting IN REVIEW, DONE, or any continuation. If the selected blocker exists or any prerequisite is now unsatisfied/contradictory, stop immediately with the singular owner/action; do not launch another implementation or review pass.
 10. If the pass leaves the story at `Status: 🟣 IN REVIEW`, stop with result `IN_REVIEW`. Do not launch a review pass in the same cycle.
 11. If the pass leaves the story at `Status: 🔄 IN PROGRESS`, continue only when the cycle budget remains and the no-progress gate does not fire.
 12. If any pass moves the story to `Status: ⛔ BLOCKED`, stop.
-13. If any implementation pass moves the story to `Status: ✅ DONE`, apply the same entry checks: require unambiguous `Plan: 🟢 PLAN APPROVED`, then bounded-check task completion and current implementation/proof evidence rather than confirming only the Status header. A non-approved Plan uses the singular operator reconciliation action; unchecked tasks or stale/incomplete proof use only a fresh oblivious story-review route. Stop with result `DONE` only when all checks are consistent, and note that this command did not create the completion authority.
+13. If any implementation pass moves the story to `Status: ✅ DONE`, apply the same entry checks: qualify receipt shape first, require unambiguous `Plan: 🟢 PLAN APPROVED` only after receipt qualification, then bounded-check task completion and current implementation/proof evidence rather than confirming only the Status header. Invalid receipt evidence uses only the ordinary-feedback reconciliation route without evaluating Plan; a non-approved Plan uses the singular operator reconciliation action; unchecked tasks or stale/incomplete proof use only the ordinary-feedback reconciliation route above. Stop with result `DONE` only when all checks are consistent, and note that this command did not create the completion authority.
 14. Run the no-progress gate before starting the next cycle.
 
 ### Worktree Discovery
@@ -231,7 +253,9 @@ Recommend a ready-for-review checkpoint when:
 
 Recommend a WIP checkpoint only when stopping at `MAX_CYCLES`, operator input, or no-progress with useful completed changes. Do not recommend a commit when the story blocked before meaningful implementation or no code/test/config changes exist.
 
-When the final authoritative status is `🟣 IN REVIEW`, treat implementation convergence as complete only when bounded readiness evidence has no named repair deficiency, current implementation/proof evidence or a traceable authorized feedback/resume/unblock transition supersedes any prior non-approve receipt, and review has not yet run against the current evidence. Then the next lifecycle step is `/openspec-story-review`, run by the operator from a completely fresh, oblivious session rooted at the current `<openspec_root>` if it differs from the launch checkout. If an aborted review preserved IN REVIEW, route to its named repair owner instead and state that fresh review happens only after repair. `/openspec-pr` may be a later delivery helper only after review marks the story `Status: ✅ DONE`.
+When the final authoritative status is `🟣 IN REVIEW`, treat implementation convergence as complete only when bounded readiness evidence has no named repair deficiency, current implementation/proof evidence or a traceable authorized feedback/resume/unblock transition supersedes any prior non-approve receipt, and review has not yet run against the current evidence. Then the next lifecycle step is `/openspec-story-review`, run by the operator from a completely fresh, oblivious session rooted at the current `<openspec_root>` if it differs from the launch checkout. If an aborted review preserved IN REVIEW, route to its named repair owner instead and state that fresh review happens only after repair.
+
+After independent review and feedback publication mark the story `Status: ✅ DONE`, `/openspec-pr` may be a later delivery helper.
 
 When the final authoritative status is `✅ DONE`, treat the story as already locally complete due to independent review authority that existed outside this convergence loop. `/openspec-pr` may be a later delivery helper before archive, but it is not the next lifecycle step.
 
@@ -284,6 +308,6 @@ For a scalar route, put its value on the label line and omit the three dual-rout
 
 When MAX_CYCLES leaves Status IN PROGRESS, or a clean actionable incomplete lane remains with no unresolved operator question or resolution failure, use the implementation Converge wrapper and Non-looped resume grammar above. Generic STOPPED due to an operator question, declined decision, unresolved command/worktree/root selection, or other resolution failure is singular: state the exact operator action needed and do not also suggest rerunning the wrapper/direct pass.
 
-When result is DONE with approved Plan and consistent task/evidence state, use `None. Story is already ✅ DONE.` A DONE/non-approved-Plan contradiction uses only the operator reconciliation action and names no lifecycle owner. A DONE/task-or-evidence contradiction uses only a completely fresh, oblivious `/openspec-story-review` route. For BLOCKED, planning-gate, malformed/ambiguous, PR, archive, wait, or terminal routes, give only the state-owning route.
+When result is DONE with approved Plan and consistent task/evidence state, use `None. Story is already ✅ DONE.` A receipt-qualified DONE/non-approved-Plan contradiction uses only the operator reconciliation action and names no lifecycle owner. A DONE/task-or-evidence contradiction uses only the ordinary-feedback reconciliation route above. For BLOCKED, planning-gate, malformed/ambiguous, PR, archive, wait, or terminal routes, give only the state-owning route.
 
 Do not run `/memorize` automatically. If the nice-to-haves are valuable, the operator can decide whether to promote them later.
